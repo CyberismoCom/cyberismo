@@ -26,7 +26,7 @@ export class LinkTypeRenameHandler implements Handler<RenameInput> {
     const oldName = resourceNameToString(ctx.input.target);
 
     // Interactive rename of a module-owned link type is not allowed.
-    if (ctx.input.target.prefix !== ctx.project.projectPrefix) {
+    if (ctx.input.target.prefix !== ctx.checkout.projectPrefix) {
       throw new Error(
         `Cannot rename resource ${oldName}: It is a module resource`,
       );
@@ -38,7 +38,7 @@ export class LinkTypeRenameHandler implements Handler<RenameInput> {
     await this.applyCascade(ctx);
 
     // Rename the resource itself.
-    const resource = ctx.project.resources.byType(oldName, 'linkTypes');
+    const resource = ctx.checkout.resources.byType(oldName, 'linkTypes');
     if (!resource) {
       throw new Error(`Link type '${oldName}' not found`);
     }
@@ -56,22 +56,22 @@ export class LinkTypeRenameHandler implements Handler<RenameInput> {
       metadata.links = metadata.links!.map((l) =>
         l.linkType === oldName ? { ...l, linkType: newName } : l,
       );
-      await ctx.project.updateCardMetadata(card, metadata);
+      await ctx.checkout.updateCardMetadata(card, metadata);
     }
 
     // 2. Rewrite cascading references in content files and card content.
-    await rewriteContentFileRefs(ctx.project, oldName, newName);
-    await rewriteCardContentRefs(ctx.project, oldName, newName);
+    await rewriteContentFileRefs(ctx.checkout, oldName, newName);
+    await rewriteCardContentRefs(ctx.checkout, oldName, newName);
   }
 
   // Project cards plus LOCAL template cards: module cards are immutable from
   // the consumer side and cannot reference a local link type anyway.
   private affectedCards(ctx: MutationContext, oldName: string): Card[] {
     const all = [
-      ...ctx.project.cardTree.cards(),
-      ...ctx.project
+      ...ctx.checkout.cardTree.cards(),
+      ...ctx.checkout
         .allTemplateCards()
-        .filter((card) => ctx.project.treeOf(card.key).writable),
+        .filter((card) => ctx.checkout.treeOf(card.key).writable),
     ];
     return all.filter((c) =>
       c.metadata?.links?.some((l) => l.linkType === oldName),

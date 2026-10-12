@@ -35,7 +35,7 @@ import type { WorkflowState } from '../../interfaces/resource-interfaces.js';
 export class WorkflowRemoveStateHandler implements Handler<EditInput> {
   async apply(ctx: MutationContext<EditInput>): Promise<void> {
     const name = resourceNameToString(ctx.input.target);
-    const resource = ctx.project.resources.byType(name, 'workflows');
+    const resource = ctx.checkout.resources.byType(name, 'workflows');
     if (!resource) {
       throw new Error(`Workflow '${name}' not found`);
     }
@@ -67,7 +67,7 @@ export class WorkflowRemoveStateHandler implements Handler<EditInput> {
     if (effective) {
       for (const card of this.cardsInState(ctx, name, stateName)) {
         card.metadata!.workflowState = effective;
-        await ctx.project.updateCardMetadata(card, card.metadata!);
+        await ctx.checkout.updateCardMetadata(card, card.metadata!);
       }
     }
   }
@@ -81,7 +81,7 @@ export class WorkflowRemoveStateHandler implements Handler<EditInput> {
     ctx: MutationContext,
     workflowName: string,
   ): string | undefined {
-    const workflow = ctx.project.resources.byType(
+    const workflow = ctx.checkout.resources.byType(
       workflowName,
       'workflows',
     )?.data;
@@ -96,7 +96,7 @@ export class WorkflowRemoveStateHandler implements Handler<EditInput> {
     state: string,
   ): Card[] {
     const cardTypeNames = new Set(
-      ctx.project.resources
+      ctx.checkout.resources
         .cardTypes()
         .filter((ct) => ct.data?.workflow === workflowName)
         .map((ct) => ct.data!.name),
@@ -114,10 +114,10 @@ export class WorkflowRemoveStateHandler implements Handler<EditInput> {
       usesWorkflow(card.metadata.cardType) &&
       card.metadata.workflowState === state;
 
-    const projectCards = ctx.project.cardTree.cards().filter(matches);
-    const templateCards = ctx.project
+    const projectCards = ctx.checkout.cardTree.cards().filter(matches);
+    const templateCards = ctx.checkout
       .allTemplateCards()
-      .filter((card) => ctx.project.treeOf(card.key).writable)
+      .filter((card) => ctx.checkout.treeOf(card.key).writable)
       .filter(matches);
     return [...projectCards, ...templateCards];
   }

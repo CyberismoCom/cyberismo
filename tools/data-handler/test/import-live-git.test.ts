@@ -7,7 +7,7 @@ import { platform } from 'node:os';
 import semver from 'semver';
 
 import { copyDir } from '../src/utils/file-utils.js';
-import { CommandManager } from '../src/command-manager.js';
+import { Workspace } from '../src/workspace/workspace.js';
 
 const { satisfies } = semver;
 
@@ -16,13 +16,13 @@ describe('import command — live git', () => {
   const baseDir = import.meta.dirname;
   const testDir = join(baseDir, 'tmp-import-live-git-tests');
   const decisionRecordsPath = join(testDir, 'valid/decision-records');
-  let commands: CommandManager;
+  let ws: Workspace;
 
   beforeEach(async () => {
     mkdirSync(testDir, { recursive: true });
     await copyDir('test/test-data/', testDir);
-    commands = new CommandManager(decisionRecordsPath, {});
-    await commands.initialize();
+    ws = new Workspace(decisionRecordsPath, {});
+    await ws.initialize();
   });
 
   afterEach(() => {
@@ -31,8 +31,8 @@ describe('import command — live git', () => {
 
   it('import git module', async () => {
     const gitModule = 'https://github.com/CyberismoCom/module-base.git';
-    await commands.modulesCmd.install(gitModule);
-    const modules = await commands.modulesCmd.list();
+    await ws.modulesCmd.install(gitModule);
+    const modules = await ws.modulesCmd.list();
     expect(modules.length).toBe(1);
     expect(modules[0].name).toBe('base');
   }, 120000);
@@ -41,13 +41,13 @@ describe('import command — live git', () => {
     // remote tag with a caret. The persisted range must be a valid caret
     // expansion covering the installed version.
     const gitModule = 'https://github.com/CyberismoCom/module-base.git';
-    await commands.modulesCmd.install(gitModule);
-    const persisted = commands.project.configuration.modules.find(
+    await ws.modulesCmd.install(gitModule);
+    const persisted = ws.checkout.configuration.modules.find(
       (m) => m.name === 'base',
     );
     expect(persisted).toBeDefined();
     expect(persisted!.version).toMatch(/^\^\d+\.\d+\.\d+$/);
-    const modules = await commands.modulesCmd.list();
+    const modules = await ws.modulesCmd.list();
     expect(modules[0].version).toBeDefined();
     expect(
       satisfies(modules[0].version as string, persisted!.version as string),
@@ -55,8 +55,8 @@ describe('import command — live git', () => {
   }, 120000);
   it('import git module at a pinned version installs that version', async () => {
     const gitModule = 'https://github.com/CyberismoCom/module-base.git';
-    await commands.modulesCmd.install(gitModule, { version: '1.0.0' });
-    const modules = await commands.modulesCmd.list();
+    await ws.modulesCmd.install(gitModule, { version: '1.0.0' });
+    const modules = await ws.modulesCmd.list();
     expect(modules.length).toBe(1);
     expect(modules[0].name).toBe('base');
     expect(modules[0].version).toBe('1.0.0');
@@ -78,23 +78,23 @@ describe('import command — live git', () => {
     'import git module using credentials',
     async () => {
       const gitModule = 'https://github.com/CyberismoCom/module-base.git';
-      await commands.modulesCmd.install(gitModule, {
+      await ws.modulesCmd.install(gitModule, {
         private: true,
         credentials: {
           username: process.env.CYBERISMO_GIT_USER,
           token: process.env.CYBERISMO_GIT_TOKEN,
         },
       });
-      const modules = await commands.modulesCmd.list();
+      const modules = await ws.modulesCmd.list();
       expect(modules.length).toBe(1);
     },
     120000,
   );
   it('re-importing a git module is upsert', async () => {
     const gitModule = 'https://github.com/CyberismoCom/module-base.git';
-    await commands.modulesCmd.install(gitModule);
-    await commands.modulesCmd.install(gitModule);
-    const modules = await commands.modulesCmd.list();
+    await ws.modulesCmd.install(gitModule);
+    await ws.modulesCmd.install(gitModule);
+    const modules = await ws.modulesCmd.list();
     expect(modules.length).toBe(1);
   }, 120000);
   it.skipIf(skipTest)(
@@ -102,7 +102,7 @@ describe('import command — live git', () => {
     async () => {
       const gitModule = 'https://github.com/CyberismoCom/i-do-not-exist.git';
 
-      await expect(commands.modulesCmd.install(gitModule)).rejects.toThrow(
+      await expect(ws.modulesCmd.install(gitModule)).rejects.toThrow(
         "Couldn't fetch module: 'https://github.com/CyberismoCom/i-do-not-exist.git' is unreachable",
       );
     },
@@ -117,31 +117,29 @@ describe('import command — live git', () => {
         token: process.env.CYBERISMO_GIT_TOKEN,
       },
     };
-    await expect(
-      commands.modulesCmd.install(gitModule, options),
-    ).rejects.toThrow(
+    await expect(ws.modulesCmd.install(gitModule, options)).rejects.toThrow(
       "Couldn't fetch module: 'https://github.com/CyberismoCom/i-do-not-exist.git' is unreachable",
     );
   }, 120000);
   it('update all modules', async () => {
-    let modules = await commands.modulesCmd.list();
+    let modules = await ws.modulesCmd.list();
     expect(modules.length).toBe(0);
     const localModule = join(testDir, 'valid/minimal');
-    await commands.modulesCmd.install(localModule);
+    await ws.modulesCmd.install(localModule);
 
     const gitModule = 'https://github.com/CyberismoCom/module-base.git';
-    await commands.modulesCmd.install(gitModule, {
+    await ws.modulesCmd.install(gitModule, {
       credentials: {
         username: process.env.CYBERISMO_GIT_USER,
         token: process.env.CYBERISMO_GIT_TOKEN,
       },
     });
 
-    modules = await commands.modulesCmd.list();
+    modules = await ws.modulesCmd.list();
     expect(modules.length).toBe(2);
 
-    await commands.modulesCmd.update({});
-    modules = await commands.modulesCmd.list();
+    await ws.modulesCmd.update({});
+    modules = await ws.modulesCmd.list();
     expect(modules.length).toBe(2);
   }, 120000);
 });

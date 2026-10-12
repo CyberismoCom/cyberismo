@@ -4,7 +4,7 @@ import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { copyDir } from '../src/utils/file-utils.js';
-import { Cmd, CommandManager, Commands } from '../src/command-handler.js';
+import { Cmd, Workspace, Commands } from '../src/command-handler.js';
 import { Show } from '../src/commands/index.js';
 import { getTestProject } from './helpers/test-utils.js';
 
@@ -25,9 +25,9 @@ describe('rank command', () => {
     mkdirSync(testDir, { recursive: true });
     await copyDir('test/test-data', testDir);
 
-    const shared = await CommandManager.getInstance(decisionRecordsPath);
-    shared.project.clearCards();
-    await shared.project.populateCaches();
+    const shared = await Workspace.getInstance(decisionRecordsPath);
+    shared.checkout.clearCards();
+    await shared.checkout.populateCaches();
 
     // Create a few cards to play with.
     const template = 'decision/templates/decision';
@@ -45,9 +45,9 @@ describe('rank command', () => {
     );
 
     // Populate caches and generate calculations for test queries.
-    const project = getTestProject(decisionRecordsPath);
-    await project.populateCaches();
-    await project.calculationEngine.generate();
+    const checkout = getTestProject(decisionRecordsPath);
+    await checkout.populateCaches();
+    await checkout.calculationEngine.generate();
 
     childCardKey = childResult.affectsCards![0];
   });
@@ -76,9 +76,9 @@ describe('rank command', () => {
 
       expect(result.statusCode).toBe(200);
 
-      const project = getTestProject(options.projectPath!);
-      await project.populateCaches();
-      const details = await new Show(project).showCardDetails(rankBefore);
+      const checkout = getTestProject(options.projectPath!);
+      await checkout.populateCaches();
+      const details = await new Show(checkout).showCardDetails(rankBefore);
       expect(details.metadata?.rank).toBe('0|c');
     });
     it('rank card in root (success)', async () => {
@@ -93,9 +93,9 @@ describe('rank command', () => {
 
       expect(result.statusCode).toBe(200);
 
-      const project = getTestProject(options.projectPath!);
-      await project.populateCaches();
-      const details = await new Show(project).showCardDetails(rankBefore);
+      const checkout = getTestProject(options.projectPath!);
+      await checkout.populateCaches();
+      const details = await new Show(checkout).showCardDetails(rankBefore);
       // Just verify that a rank was assigned (the exact value can vary based on existing cards)
       expect(details.metadata!.rank).toMatch(/^0\|[a-z0-9]+$/);
     });
@@ -108,18 +108,18 @@ describe('rank command', () => {
       );
       expect(result.statusCode).toBe(200);
 
-      const project = getTestProject(options.projectPath!);
-      await project.populateCaches();
-      const details = await new Show(project).showCardDetails(key);
+      const checkout = getTestProject(options.projectPath!);
+      await checkout.populateCaches();
+      const details = await new Show(checkout).showCardDetails(key);
 
       expect(details.metadata!.rank).toBe('0|a');
     });
     it('reranks a sibling without validating or timestamping it', async () => {
       const sibling = 'decision_6';
       const lastUpdated = '2020-01-01T00:00:00.000Z';
-      const shared = await CommandManager.getInstance(decisionRecordsPath);
+      const shared = await Workspace.getInstance(decisionRecordsPath);
       const cardFile = join(
-        shared.project.findCard(sibling).path,
+        shared.checkout.findCard(sibling).path,
         'index.json',
       );
       const before = JSON.parse(readFileSync(cardFile, 'utf-8'));
@@ -131,8 +131,8 @@ describe('rank command', () => {
           'decision/fieldTypes/responsible': 'not-an-email-address',
         }),
       );
-      shared.project.clearCards();
-      await shared.project.populateCaches();
+      shared.checkout.clearCards();
+      await shared.checkout.populateCaches();
 
       // Ranking the sibling's neighbour first demotes the sibling.
       const result = await commandHandler.command(
@@ -179,9 +179,9 @@ describe('rank command', () => {
         options,
       );
       expect(result.statusCode).toBe(200);
-      const project = getTestProject(options.projectPath!);
-      await project.populateCaches();
-      const details = await new Show(project).showCardDetails(key);
+      const checkout = getTestProject(options.projectPath!);
+      await checkout.populateCaches();
+      const details = await new Show(checkout).showCardDetails(key);
       expect(details.metadata!.rank).toBe('0|a');
     });
 
@@ -193,9 +193,9 @@ describe('rank command', () => {
         options,
       );
       expect(result.statusCode).toBe(200);
-      const project = getTestProject(options.projectPath!);
-      await project.populateCaches();
-      const details = await new Show(project).showCardDetails(key);
+      const checkout = getTestProject(options.projectPath!);
+      await checkout.populateCaches();
+      const details = await new Show(checkout).showCardDetails(key);
       expect(details.metadata!.rank).toBe('0|a');
     });
   });

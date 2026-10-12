@@ -8,7 +8,7 @@ import { simpleGit } from 'simple-git';
 import { GitManager } from '../src/utils/git-manager.js';
 import { RWLock } from '../src/utils/rw-lock.js';
 import { Publish } from '../src/commands/publish.js';
-import type { Project } from '../src/containers/project.js';
+import type { Checkout } from '../src/containers/project.js';
 
 /** Create a simpleGit instance with a test identity so tests work without global git config. */
 function testGit(dir: string) {
@@ -37,14 +37,14 @@ describe('Publish', () => {
 
     configuration = {};
 
-    const project = {
+    const checkout = {
       basePath: dir,
       git,
       lock: new RWLock(),
       configuration,
-    } as unknown as Project;
+    } as unknown as Checkout;
 
-    publish = new Publish(project);
+    publish = new Publish(checkout);
   });
 
   afterEach(async () => {

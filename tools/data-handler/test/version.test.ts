@@ -18,7 +18,7 @@ import { Version } from '../src/commands/version.js';
 import { ConfigurationLogger } from '../src/utils/configuration-logger.js';
 import type { ConfigurationOperation } from '../src/utils/configuration-logger.js';
 import { getCommitContext } from '../src/utils/commit-context.js';
-import type { Project } from '../src/containers/project.js';
+import type { Checkout } from '../src/containers/project.js';
 
 function makeConfiguration(configPath: string, initialVersion?: string) {
   return {
@@ -71,14 +71,14 @@ describe('Version', () => {
       await git.commit(context.message ?? 'Autocommit');
     });
 
-    const project = {
+    const checkout = {
       basePath: dir,
       git,
       lock,
       configuration,
-    } as unknown as Project;
+    } as unknown as Checkout;
 
-    versionCmd = new Version(project);
+    versionCmd = new Version(checkout);
   });
 
   afterEach(async () => {

@@ -4,9 +4,9 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 // cyberismo
 import { applySideEffects, type SideEffects } from '../src/side-effects.js';
 import { CardMetadataUpdater } from '../src/card-metadata-updater.js';
-import type { Project } from '../src/containers/project.js';
+import type { Checkout } from '../src/containers/project.js';
 
-const project = {} as Project;
+const checkout = {} as Checkout;
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -15,7 +15,7 @@ afterEach(() => {
 describe('applySideEffects', () => {
   it('does nothing without effects', async () => {
     const perform = vi.fn(async () => undefined);
-    await applySideEffects(project, undefined, new Set<string>(), perform);
+    await applySideEffects(checkout, undefined, new Set<string>(), perform);
     expect(perform).not.toHaveBeenCalled();
   });
 
@@ -26,8 +26,8 @@ describe('applySideEffects', () => {
     const effects: SideEffects = {
       updateFields: [{ card: 'a_1', field: 'title', newValue: 'x' }],
     };
-    await applySideEffects(project, effects, new Set<string>(), vi.fn());
-    expect(apply).toHaveBeenCalledWith(project, effects.updateFields);
+    await applySideEffects(checkout, effects, new Set<string>(), vi.fn());
+    expect(apply).toHaveBeenCalledWith(checkout, effects.updateFields);
   });
 
   it('propagates a CardMetadataUpdater failure on the initial effects', async () => {
@@ -38,7 +38,7 @@ describe('applySideEffects', () => {
       updateFields: [{ card: 'a_1', field: 'title', newValue: 'x' }],
     };
     await expect(
-      applySideEffects(project, effects, new Set<string>(), vi.fn()),
+      applySideEffects(checkout, effects, new Set<string>(), vi.fn()),
     ).rejects.toThrow('bad field');
   });
 
@@ -46,7 +46,7 @@ describe('applySideEffects', () => {
     const apply = vi.spyOn(CardMetadataUpdater, 'apply');
     const perform = vi.fn(async () => undefined);
     await applySideEffects(
-      project,
+      checkout,
       { updateFields: [], executeTransition: [] },
       new Set<string>(),
       perform,
@@ -67,7 +67,7 @@ describe('applySideEffects', () => {
       return nested[`${card}:${transition}`];
     });
     await applySideEffects(
-      project,
+      checkout,
       {
         executeTransition: [
           { card: 'b_1', transitionToExecute: 't1' },
@@ -83,7 +83,7 @@ describe('applySideEffects', () => {
   it('skips pairs already in the visited set', async () => {
     const perform = vi.fn(async () => undefined);
     await applySideEffects(
-      project,
+      checkout,
       { executeTransition: [{ card: 'a_1', transitionToExecute: 't1' }] },
       new Set(['a_1:t1']),
       perform,
@@ -98,7 +98,7 @@ describe('applySideEffects', () => {
       }),
     );
     await applySideEffects(
-      project,
+      checkout,
       { executeTransition: [{ card: 'a_1', transitionToExecute: 't1' }] },
       new Set<string>(),
       perform,
@@ -111,7 +111,7 @@ describe('applySideEffects', () => {
       .fn(async (): Promise<SideEffects | undefined> => undefined)
       .mockRejectedValueOnce(new Error('missing card'));
     await applySideEffects(
-      project,
+      checkout,
       {
         executeTransition: [
           { card: 'a_1', transitionToExecute: 't1' },

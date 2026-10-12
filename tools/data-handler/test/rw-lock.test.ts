@@ -544,7 +544,7 @@ describe('RWLock', () => {
       const lock = new RWLock();
 
       class TestCmd {
-        project = { lock };
+        checkout = { lock };
 
         @read
         async doRead(): Promise<string> {
@@ -566,7 +566,7 @@ describe('RWLock', () => {
       });
 
       class TestCmd {
-        project = { lock };
+        checkout = { lock };
 
         @write()
         async doWrite(): Promise<void> {
@@ -588,7 +588,7 @@ describe('RWLock', () => {
       });
 
       class TestCmd {
-        project = { lock };
+        checkout = { lock };
 
         @write((n: string) => `Create thing ${n}`)
         async createThing(name: string): Promise<void> {
@@ -610,7 +610,7 @@ describe('RWLock', () => {
       });
 
       class TestCmd {
-        project = { lock };
+        checkout = { lock };
 
         @write((src: string, dst: string) => `Move ${src} to ${dst}`)
         async move(src: string, dst: string): Promise<void> {
@@ -633,7 +633,7 @@ describe('RWLock', () => {
       });
 
       class TestCmd {
-        project = { lock };
+        checkout = { lock };
 
         @write(() => 'inner message')
         async inner(): Promise<void> {}
@@ -657,7 +657,7 @@ describe('RWLock', () => {
       const proceed = deferred();
 
       class TestCmd {
-        project = { lock };
+        checkout = { lock };
 
         @write()
         async slowWrite(): Promise<void> {

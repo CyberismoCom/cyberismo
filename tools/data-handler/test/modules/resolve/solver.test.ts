@@ -20,17 +20,17 @@ const testDir = join(baseDir, 'tmp-resolve-solver-tests');
 const minimalPath = join(testDir, 'valid/minimal');
 
 function buildProjectWithModules(modules: ModuleSetting[]) {
-  const project = getTestProject(minimalPath);
-  project.configuration.modules.splice(
+  const checkout = getTestProject(minimalPath);
+  checkout.configuration.modules.splice(
     0,
-    project.configuration.modules.length,
+    checkout.configuration.modules.length,
     ...modules,
   );
-  return project;
+  return checkout;
 }
 
 async function installModule(
-  project: ReturnType<typeof getTestProject>,
+  checkout: ReturnType<typeof getTestProject>,
   m: {
     name: string;
     version: string;
@@ -38,7 +38,7 @@ async function installModule(
     seals?: Array<[string, string]>;
   },
 ) {
-  const dir = join(project.paths.modulesFolder, m.name);
+  const dir = join(checkout.paths.modulesFolder, m.name);
   await mkdir(dir, { recursive: true });
   await writeFile(
     join(dir, 'cardsConfig.json'),
@@ -68,7 +68,7 @@ async function installModule(
  * it refuses on the pin.
  */
 async function buildOutOfPinFixture() {
-  const project = buildProjectWithModules([
+  const checkout = buildProjectWithModules([
     {
       name: 'A',
       location: 'https://x/A.git',
@@ -82,17 +82,17 @@ async function buildOutOfPinFixture() {
       private: false,
     },
   ]);
-  await installModule(project, {
+  await installModule(checkout, {
     name: 'A',
     version: '1.6.0',
     modules: [{ name: 'B', location: 'https://x/B.git', version: '>=1.3.0' }],
   });
-  await installModule(project, {
+  await installModule(checkout, {
     name: 'C',
     version: '1.2.0',
     modules: [{ name: 'B', location: 'https://x/B.git', version: '~1.3.0' }],
   });
-  await installModule(project, { name: 'B', version: '1.3.0' });
+  await installModule(checkout, { name: 'B', version: '1.3.0' });
 
   const configs = new Map<string, FakeModuleConfig>([
     [
@@ -138,7 +138,7 @@ async function buildOutOfPinFixture() {
     ['https://x/B.git@v1.4.0', [['1.3.0', '1.4.0']]],
   ]);
   return {
-    project,
+    checkout,
     source: new InMemorySource(configs, available, new Map(), seals),
   };
 }
@@ -159,7 +159,7 @@ describe('resolve solver', () => {
   });
 
   it('verify: no changes when the installed set is coherent', async () => {
-    const project = buildProjectWithModules([
+    const checkout = buildProjectWithModules([
       {
         name: 'A',
         location: 'https://x/A.git',
@@ -167,16 +167,16 @@ describe('resolve solver', () => {
         private: false,
       },
     ]);
-    await installModule(project, {
+    await installModule(checkout, {
       name: 'A',
       version: '1.6.0',
       modules: [{ name: 'B', location: 'https://x/B.git', version: '>=1.3.0' }],
     });
-    await installModule(project, { name: 'B', version: '1.3.0' });
+    await installModule(checkout, { name: 'B', version: '1.3.0' });
 
     const source = new InMemorySource(new Map(), new Map());
     const result = await resolve(
-      project,
+      checkout,
       { kind: 'verify' },
       { sourceLayer: source, tempDir: testDir },
     );
@@ -185,7 +185,7 @@ describe('resolve solver', () => {
   });
 
   it('update A to 1.8 forces B→1.4 and backtracks C 1.2→1.3', async () => {
-    const project = buildProjectWithModules([
+    const checkout = buildProjectWithModules([
       {
         name: 'A',
         location: 'https://x/A.git',
@@ -199,17 +199,17 @@ describe('resolve solver', () => {
         private: false,
       },
     ]);
-    await installModule(project, {
+    await installModule(checkout, {
       name: 'A',
       version: '1.6.0',
       modules: [{ name: 'B', location: 'https://x/B.git', version: '>=1.3.0' }],
     });
-    await installModule(project, {
+    await installModule(checkout, {
       name: 'C',
       version: '1.2.0',
       modules: [{ name: 'B', location: 'https://x/B.git', version: '~1.3.0' }],
     });
-    await installModule(project, { name: 'B', version: '1.3.0' });
+    await installModule(checkout, { name: 'B', version: '1.3.0' });
 
     const configs = new Map<string, FakeModuleConfig>([
       [
@@ -257,7 +257,7 @@ describe('resolve solver', () => {
     const source = new InMemorySource(configs, available, new Map(), seals);
 
     const result = await resolve(
-      project,
+      checkout,
       { kind: 'update', module: 'A', to: '1.8.0' as Version },
       { sourceLayer: source, tempDir: testDir },
     );
@@ -272,7 +272,7 @@ describe('resolve solver', () => {
     // Both C 1.3.0 and C 1.5.0 tolerate B 1.4.0 and sit inside C's own pin, so
     // the cascade has a choice. It has to take 1.3.0 — the least disturbance to
     // a module the user never asked to move.
-    const project = buildProjectWithModules([
+    const checkout = buildProjectWithModules([
       {
         name: 'A',
         location: 'https://x/A.git',
@@ -286,17 +286,17 @@ describe('resolve solver', () => {
         private: false,
       },
     ]);
-    await installModule(project, {
+    await installModule(checkout, {
       name: 'A',
       version: '1.6.0',
       modules: [{ name: 'B', location: 'https://x/B.git', version: '>=1.3.0' }],
     });
-    await installModule(project, {
+    await installModule(checkout, {
       name: 'C',
       version: '1.2.0',
       modules: [{ name: 'B', location: 'https://x/B.git', version: '~1.3.0' }],
     });
-    await installModule(project, { name: 'B', version: '1.3.0' });
+    await installModule(checkout, { name: 'B', version: '1.3.0' });
 
     const configs = new Map<string, FakeModuleConfig>([
       [
@@ -358,7 +358,7 @@ describe('resolve solver', () => {
     const source = new InMemorySource(configs, available, new Map(), seals);
 
     const result = await resolve(
-      project,
+      checkout,
       { kind: 'update', module: 'A', to: '1.8.0' as Version },
       { sourceLayer: source, tempDir: testDir },
     );
@@ -371,7 +371,7 @@ describe('resolve solver', () => {
   });
 
   it('unsatisfiable update reports a conflict naming the culprits', async () => {
-    const project = buildProjectWithModules([
+    const checkout = buildProjectWithModules([
       {
         name: 'A',
         location: 'https://x/A.git',
@@ -385,17 +385,17 @@ describe('resolve solver', () => {
         private: false,
       },
     ]);
-    await installModule(project, {
+    await installModule(checkout, {
       name: 'A',
       version: '1.6.0',
       modules: [{ name: 'B', location: 'https://x/B.git', version: '>=1.3.0' }],
     });
-    await installModule(project, {
+    await installModule(checkout, {
       name: 'C',
       version: '1.2.0',
       modules: [{ name: 'B', location: 'https://x/B.git', version: '~1.3.0' }],
     });
-    await installModule(project, { name: 'B', version: '1.3.0' });
+    await installModule(checkout, { name: 'B', version: '1.3.0' });
 
     const configs = new Map<string, FakeModuleConfig>([
       [
@@ -431,7 +431,7 @@ describe('resolve solver', () => {
     const source = new InMemorySource(configs, available, new Map(), seals);
 
     const result = await resolve(
-      project,
+      checkout,
       { kind: 'update', module: 'A', to: '1.8.0' as Version },
       { sourceLayer: source, tempDir: testDir },
     );
@@ -452,10 +452,10 @@ describe('resolve solver', () => {
     // The engine must not take C's out-of-pin escape hatch to dodge the
     // conflict: a bystander's own pin is a hard constraint, so this reports
     // the same B conflict as the unsatisfiable case rather than moving C.
-    const { project, source } = await buildOutOfPinFixture();
+    const { checkout, source } = await buildOutOfPinFixture();
 
     const result = await resolve(
-      project,
+      checkout,
       { kind: 'update', module: 'A', to: '1.8.0' as Version },
       { sourceLayer: source, tempDir: testDir },
     );
@@ -478,10 +478,10 @@ describe('resolve solver', () => {
     // pin. The engine backtracks to A's installed 1.6.0 and succeeds with an
     // empty plan, which a dry run renders as up-to-date — the pin that
     // held A back is not reported anywhere.
-    const { project, source } = await buildOutOfPinFixture();
+    const { checkout, source } = await buildOutOfPinFixture();
 
     const result = await resolve(
-      project,
+      checkout,
       { kind: 'update', module: 'A' },
       { sourceLayer: source, tempDir: testDir },
     );
@@ -494,7 +494,7 @@ describe('resolve solver', () => {
     // Importing D drags B to >=1.4.0. The only C that tolerates that is
     // 2.0.0, outside C's declared ^1.0.0, so the import must fail rather
     // than silently re-pinning a module the user never mentioned.
-    const project = buildProjectWithModules([
+    const checkout = buildProjectWithModules([
       {
         name: 'C',
         location: 'https://x/C.git',
@@ -502,12 +502,12 @@ describe('resolve solver', () => {
         private: false,
       },
     ]);
-    await installModule(project, {
+    await installModule(checkout, {
       name: 'C',
       version: '1.2.0',
       modules: [{ name: 'B', location: 'https://x/B.git', version: '~1.3.0' }],
     });
-    await installModule(project, { name: 'B', version: '1.3.0' });
+    await installModule(checkout, { name: 'B', version: '1.3.0' });
 
     const configs = new Map<string, FakeModuleConfig>([
       [
@@ -554,7 +554,7 @@ describe('resolve solver', () => {
     const source = new InMemorySource(configs, available, new Map(), seals);
 
     const result = await resolve(
-      project,
+      checkout,
       {
         kind: 'add',
         name: 'D',
@@ -576,7 +576,7 @@ describe('resolve solver', () => {
   });
 
   it('replayability prune blocks a non-linear upgrade', async () => {
-    const project = buildProjectWithModules([
+    const checkout = buildProjectWithModules([
       {
         name: 'A',
         location: 'https://x/A.git',
@@ -584,12 +584,12 @@ describe('resolve solver', () => {
         private: false,
       },
     ]);
-    await installModule(project, {
+    await installModule(checkout, {
       name: 'A',
       version: '1.6.0',
       modules: [{ name: 'B', location: 'https://x/B.git', version: '>=1.3.0' }],
     });
-    await installModule(project, { name: 'B', version: '1.3.0' });
+    await installModule(checkout, { name: 'B', version: '1.3.0' });
 
     const configs = new Map<string, FakeModuleConfig>([
       [
@@ -625,7 +625,7 @@ describe('resolve solver', () => {
     const source = new InMemorySource(configs, available, new Map(), seals);
 
     const result = await resolve(
-      project,
+      checkout,
       { kind: 'update', module: 'A', to: '1.8.0' as Version },
       { sourceLayer: source, tempDir: testDir },
     );
@@ -637,7 +637,7 @@ describe('resolve solver', () => {
   });
 
   it('update to an explicit version without a replay path names the gap', async () => {
-    const project = buildProjectWithModules([
+    const checkout = buildProjectWithModules([
       {
         name: 'A',
         location: 'https://x/A.git',
@@ -645,7 +645,7 @@ describe('resolve solver', () => {
         private: false,
       },
     ]);
-    await installModule(project, { name: 'A', version: '1.6.0' });
+    await installModule(checkout, { name: 'A', version: '1.6.0' });
 
     const configs = new Map<string, FakeModuleConfig>([
       [
@@ -663,7 +663,7 @@ describe('resolve solver', () => {
     const source = new InMemorySource(configs, available);
 
     const result = await resolve(
-      project,
+      checkout,
       { kind: 'update', module: 'A', to: '1.8.0' as Version },
       { sourceLayer: source, tempDir: testDir },
     );
@@ -679,7 +679,7 @@ describe('resolve solver', () => {
   });
 
   it('add: fresh import seeds a new root and installs its transitive closure', async () => {
-    const project = buildProjectWithModules([]);
+    const checkout = buildProjectWithModules([]);
 
     const configs = new Map<string, FakeModuleConfig>([
       [
@@ -710,7 +710,7 @@ describe('resolve solver', () => {
     const source = new InMemorySource(configs, available, new Map(), new Map());
 
     const result = await resolve(
-      project,
+      checkout,
       {
         kind: 'add',
         name: 'A',
@@ -735,7 +735,7 @@ describe('resolve solver', () => {
   });
 
   it('updateAll floats a transitive dep to newest even when its root stays put', async () => {
-    const project = buildProjectWithModules([
+    const checkout = buildProjectWithModules([
       {
         name: 'A',
         location: 'https://x/A.git',
@@ -743,12 +743,12 @@ describe('resolve solver', () => {
         private: false,
       },
     ]);
-    await installModule(project, {
+    await installModule(checkout, {
       name: 'A',
       version: '1.0.0',
       modules: [{ name: 'B', location: 'https://x/B.git', version: '^1.0.0' }],
     });
-    await installModule(project, { name: 'B', version: '1.0.0' });
+    await installModule(checkout, { name: 'B', version: '1.0.0' });
 
     const configs = new Map<string, FakeModuleConfig>([
       [
@@ -771,7 +771,7 @@ describe('resolve solver', () => {
     const source = new InMemorySource(configs, available, new Map(), seals);
 
     const result = await resolve(
-      project,
+      checkout,
       { kind: 'updateAll' },
       { sourceLayer: source, tempDir: testDir },
     );
@@ -782,7 +782,7 @@ describe('resolve solver', () => {
   });
 
   it('resolveForApply builds ResolvedModule[] for the moved cascade', async () => {
-    const project = buildProjectWithModules([
+    const checkout = buildProjectWithModules([
       {
         name: 'A',
         location: 'https://x/A.git',
@@ -796,17 +796,17 @@ describe('resolve solver', () => {
         private: false,
       },
     ]);
-    await installModule(project, {
+    await installModule(checkout, {
       name: 'A',
       version: '1.6.0',
       modules: [{ name: 'B', location: 'https://x/B.git', version: '>=1.3.0' }],
     });
-    await installModule(project, {
+    await installModule(checkout, {
       name: 'C',
       version: '1.2.0',
       modules: [{ name: 'B', location: 'https://x/B.git', version: '~1.3.0' }],
     });
-    await installModule(project, { name: 'B', version: '1.3.0' });
+    await installModule(checkout, { name: 'B', version: '1.3.0' });
 
     const configs = new Map<string, FakeModuleConfig>([
       [
@@ -854,7 +854,7 @@ describe('resolve solver', () => {
     const source = new InMemorySource(configs, available, new Map(), seals);
 
     const { plan, resolved } = await resolveForApply(
-      project,
+      checkout,
       { kind: 'update', module: 'A', to: '1.8.0' as Version },
       { sourceLayer: source, tempDir: join(testDir, 'apply-fetch') },
     );
@@ -897,7 +897,7 @@ describe('resolve solver', () => {
   });
 
   it('unversioned: fresh add of a file source installs as-is (to:null)', async () => {
-    const project = buildProjectWithModules([]);
+    const checkout = buildProjectWithModules([]);
 
     // file: location ⇒ supportsVersioning false ⇒ no available versions ⇒
     // unversioned. The fake reads readMetadata(source, null) from the bare key.
@@ -907,7 +907,7 @@ describe('resolve solver', () => {
     const source = new InMemorySource(configs, new Map(), new Map(), new Map());
 
     const result = await resolve(
-      project,
+      checkout,
       {
         kind: 'add',
         name: 'F',
@@ -923,7 +923,7 @@ describe('resolve solver', () => {
   });
 
   it('unversioned: fresh add pulls an unversioned transitive', async () => {
-    const project = buildProjectWithModules([]);
+    const checkout = buildProjectWithModules([]);
 
     const configs = new Map<string, FakeModuleConfig>([
       [
@@ -939,7 +939,7 @@ describe('resolve solver', () => {
     const source = new InMemorySource(configs, new Map(), new Map(), new Map());
 
     const result = await resolve(
-      project,
+      checkout,
       {
         kind: 'add',
         name: 'F',
@@ -956,7 +956,7 @@ describe('resolve solver', () => {
   });
 
   it('unversioned: a versioned root updates while its unversioned dep stays put', async () => {
-    const project = buildProjectWithModules([
+    const checkout = buildProjectWithModules([
       {
         name: 'A',
         location: 'https://x/A.git',
@@ -964,14 +964,14 @@ describe('resolve solver', () => {
         private: false,
       },
     ]);
-    await installModule(project, {
+    await installModule(checkout, {
       name: 'A',
       version: '1.0.0',
       modules: [{ name: 'F', location: 'file:/m/F' }],
     });
     // Installed unversioned file module (no version in its config).
     {
-      const dir = join(project.paths.modulesFolder, 'F');
+      const dir = join(checkout.paths.modulesFolder, 'F');
       await mkdir(dir, { recursive: true });
       await writeFile(
         join(dir, 'cardsConfig.json'),
@@ -998,7 +998,7 @@ describe('resolve solver', () => {
     const source = new InMemorySource(configs, available, new Map(), seals);
 
     const result = await resolve(
-      project,
+      checkout,
       { kind: 'update', module: 'A' },
       { sourceLayer: source, tempDir: testDir },
     );
@@ -1012,7 +1012,7 @@ describe('resolve solver', () => {
   });
 
   it('resolveForApply: a fresh unversioned add stages with no ref/version', async () => {
-    const project = buildProjectWithModules([]);
+    const checkout = buildProjectWithModules([]);
 
     const configs = new Map<string, FakeModuleConfig>([
       ['file:/m/F', { cardKeyPrefix: 'F', name: 'F', modules: [] }],
@@ -1020,7 +1020,7 @@ describe('resolve solver', () => {
     const source = new InMemorySource(configs, new Map(), new Map(), new Map());
 
     const { plan, resolved } = await resolveForApply(
-      project,
+      checkout,
       {
         kind: 'add',
         name: 'F',
@@ -1041,7 +1041,7 @@ describe('resolve solver', () => {
     // Regression: resolve/resolveForApply must NOT call dispose on a caller-injected
     // layer — the caller owns disposal. An injected fake whose dispose throws would
     // propagate and fail the test if the contract is broken.
-    const project = buildProjectWithModules([
+    const checkout = buildProjectWithModules([
       {
         name: 'A',
         location: 'https://x/A.git',
@@ -1049,7 +1049,7 @@ describe('resolve solver', () => {
         private: false,
       },
     ]);
-    await installModule(project, { name: 'A', version: '1.0.0' });
+    await installModule(checkout, { name: 'A', version: '1.0.0' });
 
     const source = new InMemorySource(
       new Map(),
@@ -1062,7 +1062,7 @@ describe('resolve solver', () => {
       };
 
     await resolve(
-      project,
+      checkout,
       { kind: 'verify' },
       { sourceLayer: source, tempDir: testDir },
     );
@@ -1071,7 +1071,7 @@ describe('resolve solver', () => {
     );
 
     await resolveForApply(
-      project,
+      checkout,
       { kind: 'verify' },
       { sourceLayer: source, tempDir: testDir },
     );
@@ -1082,7 +1082,7 @@ describe('resolve solver', () => {
   });
 
   it('resolveForApply returns an empty plan on an unsatisfiable request', async () => {
-    const project = buildProjectWithModules([
+    const checkout = buildProjectWithModules([
       {
         name: 'A',
         location: 'https://x/A.git',
@@ -1096,17 +1096,17 @@ describe('resolve solver', () => {
         private: false,
       },
     ]);
-    await installModule(project, {
+    await installModule(checkout, {
       name: 'A',
       version: '1.6.0',
       modules: [{ name: 'B', location: 'https://x/B.git', version: '>=1.3.0' }],
     });
-    await installModule(project, {
+    await installModule(checkout, {
       name: 'C',
       version: '1.2.0',
       modules: [{ name: 'B', location: 'https://x/B.git', version: '~1.3.0' }],
     });
-    await installModule(project, { name: 'B', version: '1.3.0' });
+    await installModule(checkout, { name: 'B', version: '1.3.0' });
 
     const configs = new Map<string, FakeModuleConfig>([
       [
@@ -1142,7 +1142,7 @@ describe('resolve solver', () => {
     const source = new InMemorySource(configs, available, new Map(), seals);
 
     const { plan, resolved } = await resolveForApply(
-      project,
+      checkout,
       { kind: 'update', module: 'A', to: '1.8.0' as Version },
       { sourceLayer: source, tempDir: join(testDir, 'apply-fetch-conflict') },
     );
@@ -1152,7 +1152,7 @@ describe('resolve solver', () => {
   });
 
   it('add: an undemanded bystander contributes no pin frame to the refusal', async () => {
-    const project = buildProjectWithModules([
+    const checkout = buildProjectWithModules([
       {
         name: 'E',
         location: 'https://x/E.git',
@@ -1160,12 +1160,12 @@ describe('resolve solver', () => {
         private: false,
       },
     ]);
-    await installModule(project, {
+    await installModule(checkout, {
       name: 'E',
       version: '1.4.0',
       modules: [{ name: 'C', location: 'https://x/C.git', version: '1.0.0' }],
     });
-    await installModule(project, { name: 'C', version: '1.0.0' });
+    await installModule(checkout, { name: 'C', version: '1.0.0' });
 
     const configs = new Map<string, FakeModuleConfig>([
       [
@@ -1188,7 +1188,7 @@ describe('resolve solver', () => {
     const source = new InMemorySource(configs, available);
 
     const result = await resolve(
-      project,
+      checkout,
       {
         kind: 'add',
         name: 'L',
@@ -1216,7 +1216,7 @@ describe('resolve solver', () => {
     // considered and dropped -- the cheap check is not accurate enough to be
     // worth a second rule -- so an unrelated add can carry a transitive up.
     it('add: a fresh transitive takes the newest in range, not the oldest', async () => {
-      const project = buildProjectWithModules([]);
+      const checkout = buildProjectWithModules([]);
 
       // Every B satisfies S's floorless '1.x', so only the candidate ordering
       // decides which one lands.
@@ -1253,7 +1253,7 @@ describe('resolve solver', () => {
       );
 
       const result = await resolve(
-        project,
+        checkout,
         {
           kind: 'add',
           name: 'S',
@@ -1269,7 +1269,7 @@ describe('resolve solver', () => {
     });
 
     it('add: an installed transitive is carried up by an unrelated add', async () => {
-      const project = buildProjectWithModules([
+      const checkout = buildProjectWithModules([
         {
           name: 'S',
           location: 'https://x/S.git',
@@ -1277,12 +1277,12 @@ describe('resolve solver', () => {
           private: false,
         },
       ]);
-      await installModule(project, {
+      await installModule(checkout, {
         name: 'S',
         version: '1.3.0',
         modules: [{ name: 'B', location: 'https://x/B.git', version: '1.x' }],
       });
-      await installModule(project, { name: 'B', version: '1.3.0' });
+      await installModule(checkout, { name: 'B', version: '1.3.0' });
 
       // Nothing about adding E forces B to move.
       const configs = new Map<string, FakeModuleConfig>([
@@ -1321,7 +1321,7 @@ describe('resolve solver', () => {
       const source = new InMemorySource(configs, available, new Map(), seals);
 
       const result = await resolve(
-        project,
+        checkout,
         {
           kind: 'add',
           name: 'E',
@@ -1337,7 +1337,7 @@ describe('resolve solver', () => {
     });
 
     it('add: a transitive missing from disk takes the newest in range', async () => {
-      const project = buildProjectWithModules([
+      const checkout = buildProjectWithModules([
         {
           name: 'S',
           location: 'https://x/S.git',
@@ -1345,7 +1345,7 @@ describe('resolve solver', () => {
           private: false,
         },
       ]);
-      await installModule(project, {
+      await installModule(checkout, {
         name: 'S',
         version: '1.3.0',
         modules: [{ name: 'B', location: 'https://x/B.git', version: '1.x' }],
@@ -1390,7 +1390,7 @@ describe('resolve solver', () => {
       const source = new InMemorySource(configs, available, new Map(), seals);
 
       const result = await resolve(
-        project,
+        checkout,
         {
           kind: 'add',
           name: 'E',
@@ -1406,7 +1406,7 @@ describe('resolve solver', () => {
     });
 
     it('update: a moving parent and its transitive both move', async () => {
-      const project = buildProjectWithModules([
+      const checkout = buildProjectWithModules([
         {
           name: 'S',
           location: 'https://x/S.git',
@@ -1414,12 +1414,12 @@ describe('resolve solver', () => {
           private: false,
         },
       ]);
-      await installModule(project, {
+      await installModule(checkout, {
         name: 'S',
         version: '1.0.0',
         modules: [{ name: 'B', location: 'https://x/B.git', version: '1.x' }],
       });
-      await installModule(project, { name: 'B', version: '1.3.0' });
+      await installModule(checkout, { name: 'B', version: '1.3.0' });
 
       // S 1.1.0 still declares only '1.x' for B, so B 1.3.0 satisfies every
       // edge: nothing forces B up, and both moves land in one plan.
@@ -1455,7 +1455,7 @@ describe('resolve solver', () => {
       const source = new InMemorySource(configs, available, new Map(), seals);
 
       const result = await resolve(
-        project,
+        checkout,
         { kind: 'update', module: 'S' },
         { sourceLayer: source, tempDir: testDir },
       );
@@ -1467,7 +1467,7 @@ describe('resolve solver', () => {
     });
 
     it('add: a bystanding root keeps its installed version', async () => {
-      const project = buildProjectWithModules([
+      const checkout = buildProjectWithModules([
         {
           name: 'R',
           location: 'https://x/R.git',
@@ -1475,7 +1475,7 @@ describe('resolve solver', () => {
           private: false,
         },
       ]);
-      await installModule(project, { name: 'R', version: '1.3.0' });
+      await installModule(checkout, { name: 'R', version: '1.3.0' });
 
       // Same shape as the transitive above, but R is a root: it stays put.
       const configs = new Map<string, FakeModuleConfig>([
@@ -1502,7 +1502,7 @@ describe('resolve solver', () => {
       const source = new InMemorySource(configs, available, new Map(), seals);
 
       const result = await resolve(
-        project,
+        checkout,
         {
           kind: 'add',
           name: 'E',
@@ -1519,7 +1519,7 @@ describe('resolve solver', () => {
 
   describe('refusals for a module drifted above its range', () => {
     it('update: a downgrade refusal cites the nearest version, not the oldest', async () => {
-      const project = buildProjectWithModules([
+      const checkout = buildProjectWithModules([
         {
           name: 'A',
           location: 'https://x/A.git',
@@ -1527,14 +1527,14 @@ describe('resolve solver', () => {
           private: false,
         },
       ]);
-      await installModule(project, { name: 'A', version: '2.0.0' });
+      await installModule(checkout, { name: 'A', version: '2.0.0' });
 
       const source = new InMemorySource(
         new Map(),
         new Map([['https://x/A.git', ['1.3.0', '1.2.0', '1.0.0']]]),
       );
       const result = await resolve(
-        project,
+        checkout,
         { kind: 'update', module: 'A' },
         { sourceLayer: source, tempDir: testDir },
       );
@@ -1549,7 +1549,7 @@ describe('resolve solver', () => {
     });
 
     it('update: a downgrade does not mask a coexisting pin block', async () => {
-      const project = buildProjectWithModules([
+      const checkout = buildProjectWithModules([
         {
           name: 'C',
           location: 'https://x/C.git',
@@ -1557,14 +1557,14 @@ describe('resolve solver', () => {
           private: false,
         },
       ]);
-      await installModule(project, { name: 'C', version: '2.0.0' });
+      await installModule(checkout, { name: 'C', version: '2.0.0' });
 
       const source = new InMemorySource(
         new Map(),
         new Map([['https://x/C.git', ['2.5.0', '1.3.0']]]),
       );
       const result = await resolve(
-        project,
+        checkout,
         { kind: 'update', module: 'C' },
         { sourceLayer: source, tempDir: testDir },
       );
@@ -1589,10 +1589,10 @@ describe('resolve solver', () => {
 
   describe('missing version defaults to 1.x', () => {
     it('update: a root declared without a version stays within 1.x', async () => {
-      const project = buildProjectWithModules([
+      const checkout = buildProjectWithModules([
         { name: 'A', location: 'https://x/A.git', private: false },
       ]);
-      await installModule(project, { name: 'A', version: '1.2.0' });
+      await installModule(checkout, { name: 'A', version: '1.2.0' });
 
       const configs = new Map<string, FakeModuleConfig>([
         [
@@ -1615,7 +1615,7 @@ describe('resolve solver', () => {
       const source = new InMemorySource(configs, available, new Map(), seals);
 
       const result = await resolve(
-        project,
+        checkout,
         { kind: 'update', module: 'A' },
         { sourceLayer: source, tempDir: testDir },
       );
@@ -1631,7 +1631,7 @@ describe('resolve solver', () => {
     });
 
     it('updateAll: a dependency edge without a version demands 1.x', async () => {
-      const project = buildProjectWithModules([
+      const checkout = buildProjectWithModules([
         {
           name: 'A',
           location: 'https://x/A.git',
@@ -1639,12 +1639,12 @@ describe('resolve solver', () => {
           private: false,
         },
       ]);
-      await installModule(project, {
+      await installModule(checkout, {
         name: 'A',
         version: '1.0.0',
         modules: [{ name: 'B', location: 'https://x/B.git' }],
       });
-      await installModule(project, { name: 'B', version: '1.0.0' });
+      await installModule(checkout, { name: 'B', version: '1.0.0' });
 
       const configs = new Map<string, FakeModuleConfig>([
         [
@@ -1668,7 +1668,7 @@ describe('resolve solver', () => {
       const source = new InMemorySource(configs, available, new Map(), seals);
 
       const result = await resolve(
-        project,
+        checkout,
         { kind: 'updateAll' },
         { sourceLayer: source, tempDir: testDir },
       );
@@ -1680,10 +1680,10 @@ describe('resolve solver', () => {
     });
 
     it('update: a pin conflict names the assumed 1.x range', async () => {
-      const project = buildProjectWithModules([
+      const checkout = buildProjectWithModules([
         { name: 'E', location: 'https://x/E.git', private: false },
       ]);
-      await installModule(project, { name: 'E', version: '1.0.0' });
+      await installModule(checkout, { name: 'E', version: '1.0.0' });
 
       const configs = new Map<string, FakeModuleConfig>([
         [
@@ -1698,7 +1698,7 @@ describe('resolve solver', () => {
       const source = new InMemorySource(configs, available, new Map(), seals);
 
       const result = await resolve(
-        project,
+        checkout,
         { kind: 'update', module: 'E' },
         { sourceLayer: source, tempDir: testDir },
       );
@@ -1714,17 +1714,17 @@ describe('resolve solver', () => {
     });
 
     it('verify: an installed root outside the assumed 1.x is not flagged', async () => {
-      const project = buildProjectWithModules([
+      const checkout = buildProjectWithModules([
         { name: 'G', location: 'https://x/G.git', private: false },
       ]);
-      await installModule(project, { name: 'G', version: '2.0.0' });
+      await installModule(checkout, { name: 'G', version: '2.0.0' });
 
       const source = new InMemorySource(
         new Map(),
         new Map([['https://x/G.git', ['2.0.0']]]),
       );
       const result = await resolve(
-        project,
+        checkout,
         { kind: 'verify' },
         { sourceLayer: source, tempDir: testDir },
       );
@@ -1733,7 +1733,7 @@ describe('resolve solver', () => {
     });
 
     it('update: a bystander outside the assumed 1.x keeps its installed version', async () => {
-      const project = buildProjectWithModules([
+      const checkout = buildProjectWithModules([
         {
           name: 'A',
           location: 'https://x/A.git',
@@ -1742,8 +1742,8 @@ describe('resolve solver', () => {
         },
         { name: 'H', location: 'https://x/H.git', private: false },
       ]);
-      await installModule(project, { name: 'A', version: '1.0.0' });
-      await installModule(project, { name: 'H', version: '2.0.0' });
+      await installModule(checkout, { name: 'A', version: '1.0.0' });
+      await installModule(checkout, { name: 'H', version: '2.0.0' });
 
       const configs = new Map<string, FakeModuleConfig>([
         [
@@ -1761,7 +1761,7 @@ describe('resolve solver', () => {
       const source = new InMemorySource(configs, available, new Map(), seals);
 
       const result = await resolve(
-        project,
+        checkout,
         { kind: 'update', module: 'A' },
         { sourceLayer: source, tempDir: testDir },
       );
@@ -1784,7 +1784,7 @@ describe('resolve solver', () => {
       installed: string;
       available?: string[];
     }) {
-      const project = buildProjectWithModules([
+      const checkout = buildProjectWithModules([
         {
           name: 'A',
           location: 'https://x/A.git',
@@ -1793,8 +1793,8 @@ describe('resolve solver', () => {
         },
         bystander.setting,
       ]);
-      await installModule(project, { name: 'A', version: '1.0.0' });
-      await installModule(project, {
+      await installModule(checkout, { name: 'A', version: '1.0.0' });
+      await installModule(checkout, {
         name: bystander.setting.name,
         version: bystander.installed,
       });
@@ -1813,16 +1813,16 @@ describe('resolve solver', () => {
         ['https://x/A.git@v1.1.0', [['1.0.0', '1.1.0']]],
       ]);
       return {
-        project,
+        checkout,
         source: new InMemorySource(configs, available, new Map(), seals),
       };
     }
 
     it('update: a version-less root that moves carries 1.x into its declaration', async () => {
-      const project = buildProjectWithModules([
+      const checkout = buildProjectWithModules([
         { name: 'A', location: 'https://x/A.git', private: false },
       ]);
-      await installModule(project, { name: 'A', version: '1.2.0' });
+      await installModule(checkout, { name: 'A', version: '1.2.0' });
 
       const configs = new Map<string, FakeModuleConfig>([
         [
@@ -1837,7 +1837,7 @@ describe('resolve solver', () => {
       const source = new InMemorySource(configs, available, new Map(), seals);
 
       const { plan, resolved } = await resolveForApply(
-        project,
+        checkout,
         { kind: 'update', module: 'A' },
         { sourceLayer: source, tempDir: testDir },
       );
@@ -1850,14 +1850,14 @@ describe('resolve solver', () => {
     });
 
     it('update: a version-less root that stays put is returned as a backfill', async () => {
-      const { project, source } = await buildSweepFixture({
+      const { checkout, source } = await buildSweepFixture({
         setting: { name: 'H', location: 'https://x/H.git', private: false },
         installed: '1.0.0',
         available: ['1.0.0'],
       });
 
       const { plan, resolved, backfill } = await resolveForApply(
-        project,
+        checkout,
         { kind: 'update', module: 'A' },
         { sourceLayer: source, tempDir: testDir },
       );
@@ -1877,13 +1877,13 @@ describe('resolve solver', () => {
     });
 
     it('a tagless root is left without a declared version', async () => {
-      const { project, source } = await buildSweepFixture({
+      const { checkout, source } = await buildSweepFixture({
         setting: { name: 'H', location: 'file:/somewhere/H', private: false },
         installed: '1.0.0',
       });
 
       const { backfill } = await resolveForApply(
-        project,
+        checkout,
         { kind: 'update', module: 'A' },
         { sourceLayer: source, tempDir: testDir },
       );
@@ -1895,14 +1895,14 @@ describe('resolve solver', () => {
     });
 
     it('a root drifted above the assumed range is left alone', async () => {
-      const { project, source } = await buildSweepFixture({
+      const { checkout, source } = await buildSweepFixture({
         setting: { name: 'H', location: 'https://x/H.git', private: false },
         installed: '2.0.0',
         available: ['2.0.0'],
       });
 
       const { backfill } = await resolveForApply(
-        project,
+        checkout,
         { kind: 'update', module: 'A' },
         { sourceLayer: source, tempDir: testDir },
       );
@@ -1913,7 +1913,7 @@ describe('resolve solver', () => {
     });
 
     it('an explicitly declared range is never rewritten', async () => {
-      const { project, source } = await buildSweepFixture({
+      const { checkout, source } = await buildSweepFixture({
         setting: {
           name: 'H',
           location: 'https://x/H.git',
@@ -1925,7 +1925,7 @@ describe('resolve solver', () => {
       });
 
       const { backfill } = await resolveForApply(
-        project,
+        checkout,
         { kind: 'update', module: 'A' },
         { sourceLayer: source, tempDir: testDir },
       );
@@ -1934,18 +1934,18 @@ describe('resolve solver', () => {
     });
 
     it('a refused resolution writes nothing back', async () => {
-      const { project, source } = await buildOutOfPinFixture();
+      const { checkout, source } = await buildOutOfPinFixture();
       // Give the drifted-in bystander a version-less declaration, so a
       // successful resolve would have backfilled it.
-      project.configuration.modules.push({
+      checkout.configuration.modules.push({
         name: 'D',
         location: 'https://x/D.git',
         private: false,
       });
-      await installModule(project, { name: 'D', version: '1.0.0' });
+      await installModule(checkout, { name: 'D', version: '1.0.0' });
 
       const { plan, resolved, backfill } = await resolveForApply(
-        project,
+        checkout,
         { kind: 'update', module: 'A', to: '1.8.0' as Version },
         { sourceLayer: source, tempDir: testDir },
       );

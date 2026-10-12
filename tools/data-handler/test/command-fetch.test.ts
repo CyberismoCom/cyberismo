@@ -15,11 +15,11 @@ import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
 
 import { Cmd, Commands } from '../src/command-handler.js';
-import { CommandManager } from '../src/command-manager.js';
+import { Workspace } from '../src/workspace/workspace.js';
 import { copyDir } from '../src/utils/file-utils.js';
 import { Fetch, MODULE_LIST_FULL_PATH } from '../src/commands/fetch.js';
 import { Show } from '../src/commands/show.js';
-import { Project } from '../src/containers/project.js';
+import { Checkout } from '../src/containers/project.js';
 
 import type { HubSetting } from '../src/interfaces/project-interfaces.js';
 import type * as Undici from 'undici';
@@ -62,7 +62,7 @@ describe('fetch command', () => {
   });
 
   describe('fetch hubs command', () => {
-    let manager: CommandManager;
+    let manager: Workspace;
     let originalHubs: HubSetting[];
     const fetchStub = undiciFetch;
 
@@ -85,18 +85,18 @@ describe('fetch command', () => {
     }
 
     beforeEach(async () => {
-      manager = await CommandManager.getInstance(decisionRecordsPath);
-      originalHubs = manager.project.configuration.hubs;
+      manager = await Workspace.getInstance(decisionRecordsPath);
+      originalHubs = manager.checkout.configuration.hubs;
       fetchStub.mockReset();
     });
 
     afterEach(() => {
-      manager.project.configuration.hubs = originalHubs;
+      manager.checkout.configuration.hubs = originalHubs;
       vi.restoreAllMocks();
     });
 
     it('fetches the hubs even when the cached module list is up to date', async () => {
-      manager.project.configuration.hubs = [
+      manager.checkout.configuration.hubs = [
         { location: 'https://test.com/hub-command' },
       ];
       const fetchModuleListStub = vi
@@ -113,7 +113,7 @@ describe('fetch command', () => {
     });
 
     it('fails when a hub cannot be read', async () => {
-      manager.project.configuration.hubs = [
+      manager.checkout.configuration.hubs = [
         { location: 'https://broken.test.com/hub' },
         { location: 'https://working.test.com/hub' },
       ];
@@ -132,7 +132,7 @@ describe('fetch command', () => {
     });
 
     it('succeeds when every hub can be read', async () => {
-      manager.project.configuration.hubs = [
+      manager.checkout.configuration.hubs = [
         { location: 'https://test.com/hub1' },
         { location: 'https://test.com/hub2' },
       ];
@@ -150,14 +150,14 @@ describe('fetch command', () => {
 
   describe('hub versions', () => {
     const fetchStub = undiciFetch;
-    let project: Project;
+    let checkout: Checkout;
     let fetchCmd: Fetch;
     let fetchModuleListStub: ReturnType<typeof vi.spyOn>;
 
     beforeEach(async () => {
-      project = new Project(decisionRecordsPath);
-      await project.populateCaches();
-      fetchCmd = new Fetch(project);
+      checkout = new Checkout(decisionRecordsPath);
+      await checkout.populateCaches();
+      fetchCmd = new Fetch(checkout);
       fetchStub.mockReset();
     });
 
@@ -166,8 +166,8 @@ describe('fetch command', () => {
     });
 
     it('should fetch when remote version is newer than local version', async () => {
-      const originalHubs = project.configuration.hubs;
-      project.configuration.hubs = [{ location: 'https://test.com/hub1' }];
+      const originalHubs = checkout.configuration.hubs;
+      checkout.configuration.hubs = [{ location: 'https://test.com/hub1' }];
 
       // return true; indicating fetch is needed
       fetchModuleListStub = vi
@@ -200,7 +200,7 @@ describe('fetch command', () => {
 
       expect(fetchModuleListStub).toHaveBeenCalledTimes(1);
       expect(fetchStub).toHaveBeenCalledTimes(1);
-      project.configuration.hubs = originalHubs;
+      checkout.configuration.hubs = originalHubs;
     });
     it('should skip fetch when local version matches remote version', async () => {
       // no fetch needed
@@ -215,8 +215,8 @@ describe('fetch command', () => {
       expect(fetchStub).not.toHaveBeenCalled();
     });
     it('should fetch when local file does not exist', async () => {
-      const originalHubs = project.configuration.hubs;
-      project.configuration.hubs = [{ location: 'https://test.com/hub1' }];
+      const originalHubs = checkout.configuration.hubs;
+      checkout.configuration.hubs = [{ location: 'https://test.com/hub1' }];
 
       // file doesn't exist locally
       fetchModuleListStub = vi
@@ -245,12 +245,12 @@ describe('fetch command', () => {
 
       expect(fetchModuleListStub).toHaveBeenCalledTimes(1);
       expect(fetchStub).toHaveBeenCalledTimes(1);
-      project.configuration.hubs = originalHubs;
+      checkout.configuration.hubs = originalHubs;
     });
 
     it('should fetch when force is set even if cache is up to date', async () => {
-      const originalHubs = project.configuration.hubs;
-      project.configuration.hubs = [{ location: 'https://test.com/hub1' }];
+      const originalHubs = checkout.configuration.hubs;
+      checkout.configuration.hubs = [{ location: 'https://test.com/hub1' }];
 
       // would return false; indicating fetch is not needed
       fetchModuleListStub = vi
@@ -278,12 +278,12 @@ describe('fetch command', () => {
 
       expect(fetchModuleListStub).not.toHaveBeenCalled();
       expect(fetchStub).toHaveBeenCalledTimes(1);
-      project.configuration.hubs = originalHubs;
+      checkout.configuration.hubs = originalHubs;
     });
 
     it('should write per-hub modules and metadata to the cache', async () => {
-      const originalHubs = project.configuration.hubs;
-      project.configuration.hubs = [{ location: 'https://test.com/hub1' }];
+      const originalHubs = checkout.configuration.hubs;
+      checkout.configuration.hubs = [{ location: 'https://test.com/hub1' }];
 
       fetchStub.mockResolvedValue({
         ok: true,
@@ -320,12 +320,12 @@ describe('fetch command', () => {
       expect(moduleList.hubs[0].description).toBe('Test hub description');
       expect(moduleList.hubs[0].modules).toHaveLength(2);
       expect(moduleList.hubs[0].modules[0].name).toBe('base');
-      project.configuration.hubs = originalHubs;
+      checkout.configuration.hubs = originalHubs;
     });
 
     it('should fetch when cached hub data is in an outdated format', async () => {
-      const originalHubs = project.configuration.hubs;
-      project.configuration.hubs = [{ location: 'https://test.com/hub1' }];
+      const originalHubs = checkout.configuration.hubs;
+      checkout.configuration.hubs = [{ location: 'https://test.com/hub1' }];
 
       // Cache without per-hub modules, as written by older versions.
       const moduleListPath = join(decisionRecordsPath, MODULE_LIST_FULL_PATH);
@@ -362,12 +362,12 @@ describe('fetch command', () => {
         await readFile(moduleListPath, { encoding: 'utf-8' }),
       );
       expect(moduleList.hubs[0].modules).toHaveLength(1);
-      project.configuration.hubs = originalHubs;
+      checkout.configuration.hubs = originalHubs;
     });
 
     it('showHubDetails returns hubs with their cached modules', async () => {
-      const originalHubs = project.configuration.hubs;
-      project.configuration.hubs = [
+      const originalHubs = checkout.configuration.hubs;
+      checkout.configuration.hubs = [
         { location: 'https://test.com/hub-details' },
       ];
 
@@ -389,7 +389,7 @@ describe('fetch command', () => {
       });
       await fetchCmd.fetchHubs(true);
 
-      const showCmd = new Show(project);
+      const showCmd = new Show(checkout);
       const hubs = await showCmd.showHubDetails();
 
       expect(hubs).toHaveLength(1);
@@ -399,12 +399,12 @@ describe('fetch command', () => {
       expect(hubs[0].modules).toHaveLength(1);
       expect(hubs[0].modules[0].name).toBe('base');
       expect(hubs[0].modules[0].displayName).toBe('Base module');
-      project.configuration.hubs = originalHubs;
+      checkout.configuration.hubs = originalHubs;
     });
 
     it('showHubDetails does not contact the hub', async () => {
-      const originalHubs = project.configuration.hubs;
-      project.configuration.hubs = [
+      const originalHubs = checkout.configuration.hubs;
+      checkout.configuration.hubs = [
         { location: 'https://unreachable.test.com/hub' },
       ];
 
@@ -414,14 +414,14 @@ describe('fetch command', () => {
       });
       fetchStub.mockRejectedValue(new Error('network down'));
 
-      const showCmd = new Show(project);
+      const showCmd = new Show(checkout);
       const hubs = await showCmd.showHubDetails();
 
       expect(hubs).toHaveLength(1);
       expect(hubs[0].location).toBe('https://unreachable.test.com/hub');
       expect(hubs[0].modules).toHaveLength(0);
       expect(fetchStub).not.toHaveBeenCalled();
-      project.configuration.hubs = originalHubs;
+      checkout.configuration.hubs = originalHubs;
     });
 
     // A location without a trailing slash used to resolve moduleList.json
@@ -431,8 +431,8 @@ describe('fetch command', () => {
       ['without a trailing slash', 'https://test.com/hub'],
       ['pointing at the file', 'https://test.com/hub/moduleList.json'],
     ])('reads a hub location %s', async (_name, location) => {
-      const originalHubs = project.configuration.hubs;
-      project.configuration.hubs = [{ location }];
+      const originalHubs = checkout.configuration.hubs;
+      checkout.configuration.hubs = [{ location }];
       rmSync(join(decisionRecordsPath, MODULE_LIST_FULL_PATH), {
         force: true,
       });
@@ -457,12 +457,12 @@ describe('fetch command', () => {
         'https://test.com/hub/moduleList.json',
         expect.anything(),
       );
-      project.configuration.hubs = originalHubs;
+      checkout.configuration.hubs = originalHubs;
     });
 
     it('keeps fetching the other hubs when one cannot be read', async () => {
-      const originalHubs = project.configuration.hubs;
-      project.configuration.hubs = [
+      const originalHubs = checkout.configuration.hubs;
+      checkout.configuration.hubs = [
         { location: 'https://broken.test.com/hub' },
         { location: 'https://working.test.com/hub' },
       ];
@@ -502,12 +502,14 @@ describe('fetch command', () => {
         moduleList.modules.map((mod: { name: string }) => mod.name),
       ).toEqual(['base']);
 
-      project.configuration.hubs = originalHubs;
+      checkout.configuration.hubs = originalHubs;
     });
 
     it('keeps cached modules of a hub when a later fetch of it fails', async () => {
-      const originalHubs = project.configuration.hubs;
-      project.configuration.hubs = [{ location: 'https://flaky.test.com/hub' }];
+      const originalHubs = checkout.configuration.hubs;
+      checkout.configuration.hubs = [
+        { location: 'https://flaky.test.com/hub' },
+      ];
 
       fetchStub.mockResolvedValue({
         ok: true,
@@ -536,12 +538,12 @@ describe('fetch command', () => {
       expect(moduleList.hubs[0].modules).toHaveLength(1);
       expect(moduleList.modules).toHaveLength(1);
 
-      project.configuration.hubs = originalHubs;
+      checkout.configuration.hubs = originalHubs;
     });
 
     it('ensureModuleListExists fetches only when no cache is present', async () => {
-      const originalHubs = project.configuration.hubs;
-      project.configuration.hubs = [{ location: 'https://test.com/hub-once' }];
+      const originalHubs = checkout.configuration.hubs;
+      checkout.configuration.hubs = [{ location: 'https://test.com/hub-once' }];
 
       fetchStub.mockResolvedValue({
         ok: true,
@@ -565,7 +567,7 @@ describe('fetch command', () => {
       await fetchCmd.ensureModuleListExists();
       expect(fetchStub).toHaveBeenCalledTimes(1);
 
-      project.configuration.hubs = originalHubs;
+      checkout.configuration.hubs = originalHubs;
     });
 
     it('should fetch when any hub has a newer version (multiple hubs)', async () => {
@@ -599,8 +601,8 @@ describe('fetch command', () => {
       } as Response);
 
       // Project with two hubs
-      const originalHubs = project.configuration.hubs;
-      project.configuration.hubs = [
+      const originalHubs = checkout.configuration.hubs;
+      checkout.configuration.hubs = [
         { location: 'https://test.com/hub1' },
         { location: 'https://test.com/hub2' },
       ];
@@ -610,7 +612,7 @@ describe('fetch command', () => {
       expect(fetchModuleListStub).toHaveBeenCalledTimes(1);
       expect(fetchStub).toHaveBeenCalledTimes(2);
 
-      project.configuration.hubs = originalHubs;
+      checkout.configuration.hubs = originalHubs;
     });
   });
 });

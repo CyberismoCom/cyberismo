@@ -31,8 +31,8 @@ const router = new Hono();
  */
 
 router.get('/', requireRole(UserRole.Reader), async (c) => {
-  const commands = c.get('commands');
-  const labels = await labelsService.getLabels(commands);
+  const ws = c.get('ws');
+  const labels = await labelsService.getLabels(ws);
   return c.json(labels);
 });
 

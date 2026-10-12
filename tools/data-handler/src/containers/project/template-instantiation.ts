@@ -25,13 +25,13 @@ import type {
   CardMetadata,
 } from '../../interfaces/project-interfaces.js';
 import type { CardTree, NewCard } from './card-tree.js';
-import type { Project } from '../project.js';
+import type { Checkout } from '../project.js';
 
 const logger = getChildLogger({ module: 'template' });
 
 /**
  * Adds new cards to a template.
- * @param project Project the template belongs to.
+ * @param checkout Project the template belongs to.
  * @param template The template's card tree.
  * @param cardTypeName card type for the new cards
  * @param count how many cards to add
@@ -40,14 +40,16 @@ const logger = getChildLogger({ module: 'template' });
  * @returns card key IDs of the added cards, in rank order
  */
 export async function addTemplateCards(
-  project: Project,
+  checkout: Checkout,
   template: CardTree,
   cardTypeName: string,
   count: number,
   parentCard?: Card,
 ): Promise<string[]> {
   try {
-    const cardType = project.resources.byType(cardTypeName, 'cardTypes').show();
+    const cardType = checkout.resources
+      .byType(cardTypeName, 'cardTypes')
+      .show();
 
     if (parentCard && !template.has(parentCard.key)) {
       throw new Error(
@@ -56,7 +58,7 @@ export async function addTemplateCards(
     }
 
     const parentKey = parentCard ? parentCard.key : ROOT;
-    const cardKeys = project.allocateCardKeys(count);
+    const cardKeys = checkout.allocateCardKeys(count);
     const ranks = template.rankBlock(parentKey, count);
 
     await template.createCards(
@@ -68,7 +70,7 @@ export async function addTemplateCards(
         metadata: { ...DefaultContent.card(cardType), rank: ranks[index] },
       })),
     );
-    await project.calculationEngine.refreshCardFacts(
+    await checkout.calculationEngine.refreshCardFacts(
       cardKeys.map((cardKey) => template.node(cardKey)),
     );
     return cardKeys;
@@ -81,13 +83,13 @@ export async function addTemplateCards(
 /**
  * Creates project cards from a template. If a parent card is given, the cards
  * are created underneath it.
- * @param project Project the cards are created into.
+ * @param checkout Project the cards are created into.
  * @param template The template's card tree.
  * @param parentCard parent card
  * @returns the created cards
  */
 export async function instantiateTemplate(
-  project: Project,
+  checkout: Checkout,
   template: CardTree,
   parentCard?: Card,
 ): Promise<Card[]> {
@@ -99,20 +101,20 @@ export async function instantiateTemplate(
       );
     }
     if (parentCard) {
-      project.findCard(parentCard.key);
+      checkout.findCard(parentCard.key);
     }
 
-    const destination = project.cardTree;
-    const cardKeyMap = buildCardKeyMap(project, templateCards);
+    const destination = checkout.cardTree;
+    const cardKeyMap = buildCardKeyMap(checkout, templateCards);
     const rootRanks = rootCardRanks(templateCards, destination, parentCard);
 
     const newCards = templateCards.map((templateCard) =>
-      instantiate(project, templateCard, cardKeyMap, rootRanks, parentCard),
+      instantiate(checkout, templateCard, cardKeyMap, rootRanks, parentCard),
     );
     await destination.createCards(newCards);
 
     const created = newCards.map((card) => destination.card(card.key));
-    await project.calculationEngine.refreshCardFacts(created);
+    await checkout.calculationEngine.refreshCardFacts(created);
     return created;
   } catch (error) {
     logger.error({ error }, 'Failed to create cards');
@@ -121,8 +123,11 @@ export async function instantiateTemplate(
 }
 
 // Fresh keys for the instantiated copies, keyed by template card key.
-function buildCardKeyMap(project: Project, cards: Card[]): Map<string, string> {
-  const newCardIds = project.allocateCardKeys(cards.length);
+function buildCardKeyMap(
+  checkout: Checkout,
+  cards: Card[],
+): Map<string, string> {
+  const newCardIds = checkout.allocateCardKeys(cards.length);
   const cardsByKey = new Map<string, string>();
   cards.forEach((card, index) => {
     cardsByKey.set(card.key, newCardIds.at(index) || '');
@@ -150,7 +155,7 @@ function rootCardRanks(
 
 // One instantiated card, built field by field.
 function instantiate(
-  project: Project,
+  checkout: Checkout,
   templateCard: Card,
   cardKeyMap: Map<string, string>,
   rootRanks: Map<string, string>,
@@ -187,7 +192,7 @@ function instantiate(
     // --- set by this operation ---
     attachments,
 
-    metadata: instantiatedMetadata(project, templateCard.metadata, {
+    metadata: instantiatedMetadata(checkout, templateCard.metadata, {
       templateCardKey: templateCard.key,
       rank: rootRanks.get(templateCard.key),
     }),
@@ -217,15 +222,15 @@ function renamedAttachmentReferences(
 
 // The metadata of an instantiated card, field by field. See instantiate().
 function instantiatedMetadata(
-  project: Project,
+  checkout: Checkout,
   templateMetadata: CardMetadata,
   computed: { templateCardKey: string; rank: string | undefined },
 ): CardMetadata {
-  const cardType = project.resources
+  const cardType = checkout.resources
     .byType(templateMetadata.cardType, 'cardTypes')
     .show();
 
-  const workflow = project.resources
+  const workflow = checkout.resources
     .byType(cardType.workflow, 'workflows')
     .show();
 

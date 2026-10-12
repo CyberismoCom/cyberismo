@@ -25,7 +25,7 @@ export class CardTypeDeleteHandler implements Handler<DeleteInput> {
     const cardTypeName = resourceNameToString(ctx.input.target);
 
     // Interactive deletion of a module-owned card type is not allowed.
-    if (ctx.input.target.prefix !== ctx.project.projectPrefix) {
+    if (ctx.input.target.prefix !== ctx.checkout.projectPrefix) {
       throw new Error(
         `Cannot delete resource ${cardTypeName}: It is a module resource`,
       );

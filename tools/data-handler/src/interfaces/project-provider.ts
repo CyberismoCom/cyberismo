@@ -13,13 +13,13 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import type { CommandManager } from '../command-manager.js';
+import type { Workspace } from '../workspace/workspace.js';
 
 /**
  * Minimal interface for project lookup by prefix.
  * Implemented by ProjectRegistry in the backend and used by the MCP server.
  */
 export interface ProjectProvider {
-  get(prefix: string): CommandManager | undefined;
+  get(prefix: string): Workspace | undefined;
   list(): { prefix: string; name: string }[];
 }

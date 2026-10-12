@@ -35,7 +35,7 @@ import type {
 import { ClingoProgramBuilder } from './clingo-program-builder.js';
 import { isPredefinedField, ROOT } from './constants.js';
 import { getChildLogger } from './log-utils.js';
-import type { Project } from '../containers/project.js';
+import type { Checkout } from '../containers/project.js';
 import type { CardTreeKind } from '../containers/project/card-tree.js';
 
 const logger = getChildLogger({ module: 'clingo-facts' });
@@ -185,13 +185,13 @@ export const createWorkflowFacts = (workflow: Workflow) => {
 /**
  * Creates Clingo facts for a card.
  * @param card Card information
- * @param project Project information
+ * @param checkout Project information
  * @param container How the card's container is projected into facts.
  * @returns clingo facts as a string
  */
 export const createCardFacts = async (
   card: CardNode,
-  project: Project,
+  checkout: Checkout,
   container: CardFactContext = PROJECT_CARD_FACTS,
 ) => {
   // A card names its parent card, or — when it is a root card of a template —
@@ -214,7 +214,7 @@ export const createCardFacts = async (
   let cardTypeResolved = false;
   if (card.metadata?.cardType) {
     try {
-      const cardType = project.resources
+      const cardType = checkout.resources
         .byType(card.metadata.cardType, 'cardTypes')
         .show();
       for (const customField of cardType.customFields ?? []) {
@@ -301,7 +301,7 @@ export const createCardFacts = async (
 
           let fieldType: FieldType;
           try {
-            fieldType = project.resources.byType(field, 'fieldTypes').show();
+            fieldType = checkout.resources.byType(field, 'fieldTypes').show();
           } catch (error) {
             logger.warn(
               error,

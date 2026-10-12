@@ -16,24 +16,24 @@
 import { beforeAll, afterAll, describe, expect, test } from 'vitest';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
-import { CommandManager } from '@cyberismo/data-handler';
+import { Workspace } from '@cyberismo/data-handler';
 import { createMcpServer } from '../src/server.js';
 import type { ProjectProvider } from '../src/lib/resolve-project.js';
 import { testDataPath } from './test-utils.js';
 
-let commands: CommandManager;
+let ws: Workspace;
 let client: Client;
 
 /**
  * A provider that exposes the same project under two prefixes,
  * simulating a multi-project deployment.
  */
-function multiProjectProvider(cmd: CommandManager): ProjectProvider {
-  const realPrefix = cmd.project.configuration.cardKeyPrefix;
+function multiProjectProvider(cmd: Workspace): ProjectProvider {
+  const realPrefix = cmd.checkout.configuration.cardKeyPrefix;
   return {
     get: (prefix: string) => (prefix === realPrefix ? cmd : undefined),
     list: () => [
-      { prefix: realPrefix, name: cmd.project.configuration.name },
+      { prefix: realPrefix, name: cmd.checkout.configuration.name },
       { prefix: 'other', name: 'Other project' },
     ],
   };
@@ -42,9 +42,9 @@ function multiProjectProvider(cmd: CommandManager): ProjectProvider {
 // Fixes weird issue with asciidoctor
 beforeAll(async () => {
   process.argv = [];
-  commands = await CommandManager.getInstance(testDataPath);
+  ws = await Workspace.getInstance(testDataPath);
 
-  const server = createMcpServer(multiProjectProvider(commands));
+  const server = createMcpServer(multiProjectProvider(ws));
   const [clientTransport, serverTransport] =
     InMemoryTransport.createLinkedPair();
 
@@ -56,7 +56,7 @@ beforeAll(async () => {
 
 afterAll(async () => {
   await client.close();
-  commands.project.dispose();
+  ws.checkout.dispose();
 });
 
 type TextContent = { type: string; text: string };

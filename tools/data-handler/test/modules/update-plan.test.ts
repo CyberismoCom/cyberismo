@@ -11,7 +11,7 @@ import type {
   ModuleSetting,
   UpdateTarget,
 } from '../../src/interfaces/project-interfaces.js';
-import type { Project } from '../../src/containers/project.js';
+import type { Checkout } from '../../src/containers/project.js';
 
 let dir: string;
 beforeEach(async () => {
@@ -22,10 +22,10 @@ afterEach(async () => {
 });
 
 const planFor = async (
-  project: Project,
+  checkout: Checkout,
   target: UpdateTarget,
   opts: { source: InMemorySource; credentials?: Credentials },
-) => toUpdatePlan(project, await resolveUpdate(project, target, opts));
+) => toUpdatePlan(checkout, await resolveUpdate(checkout, target, opts));
 
 const loc = (name: string) => `https://x/${name}.git`;
 
@@ -93,9 +93,9 @@ async function install(
 }
 
 async function setup(roots: ModuleSetting[]) {
-  const { project } = makeProjectStub({ basePath: dir, modules: roots });
+  const { checkout } = makeProjectStub({ basePath: dir, modules: roots });
   for (const { name } of roots) await install(name);
-  return project;
+  return checkout;
 }
 
 const root = (name: string, version?: string): ModuleSetting => ({
@@ -107,7 +107,7 @@ const root = (name: string, version?: string): ModuleSetting => ({
 
 describe('update plan', () => {
   it('reports latest and held-back from the solve’s own listing', async () => {
-    const project = await setup([
+    const checkout = await setup([
       root('asm'),
       root('car', '^1.0.0'),
       root('pin', '1.0.0'),
@@ -121,7 +121,7 @@ describe('update plan', () => {
       pin: { versions: ['1.0.0', '1.1.0'] },
     });
 
-    const plan = await planFor(project, {}, { source });
+    const plan = await planFor(checkout, {}, { source });
 
     expect(plan.changes).toEqual([
       { module: 'car', from: '1.0.0', to: '1.3.0', breaking: false },
@@ -139,13 +139,15 @@ describe('update plan', () => {
   });
 
   it('lists a private module with credentials for an explicit version', async () => {
-    const project = await setup([{ ...root('priv', '^1.0.0'), private: true }]);
+    const checkout = await setup([
+      { ...root('priv', '^1.0.0'), private: true },
+    ]);
     const source = fakeRemote({
       priv: { versions: ['1.0.0', '1.1.0'], seals: { '1.1.0': ['1.0.0'] } },
     });
 
     await planFor(
-      project,
+      checkout,
       { module: 'priv', version: '1.1.0' },
       { source: source, credentials: { username: 'u', token: 't' } },
     );
@@ -154,7 +156,7 @@ describe('update plan', () => {
   });
 
   it('fails an update-all plan when a private root cannot be listed', async () => {
-    const project = await setup([
+    const checkout = await setup([
       { ...root('priv', '^1.0.0'), private: true },
       root('pub', '^1.0.0'),
     ]);
@@ -163,17 +165,17 @@ describe('update plan', () => {
       pub: { versions: ['1.0.0', '1.1.0'], seals: { '1.1.0': ['1.0.0'] } },
     });
 
-    await expect(planFor(project, {}, { source })).rejects.toThrow(
+    await expect(planFor(checkout, {}, { source })).rejects.toThrow(
       "'priv' is unreachable",
     );
   });
 
   it('keeps a root installed at a prerelease in place', async () => {
-    const project = await setup([root('base', '^1.0.0')]);
+    const checkout = await setup([root('base', '^1.0.0')]);
     await install('base', '1.3.0-rc.1');
     const source = fakeRemote({ base: { versions: ['1.0.0', '1.2.0'] } });
 
-    const plan = await planFor(project, {}, { source });
+    const plan = await planFor(checkout, {}, { source });
 
     expect(plan.ok).toBe(true);
     expect(plan.changes).toEqual([]);
@@ -181,16 +183,16 @@ describe('update plan', () => {
 
   describe('refusals', () => {
     it('reports an undeclared module as not found', async () => {
-      const project = await setup([root('base')]);
+      const checkout = await setup([root('base')]);
       await expect(
-        planFor(project, { module: 'ghost' }, { source: fakeRemote({}) }),
+        planFor(checkout, { module: 'ghost' }, { source: fakeRemote({}) }),
       ).rejects.toMatchObject({
         message: "Module 'ghost' is not part of the project",
       });
     });
 
     it('refuses a transitive module and names its parents', async () => {
-      const project = await setup([root('parent')]);
+      const checkout = await setup([root('parent')]);
       await writeFile(
         join(dir, '.cards', 'modules', 'parent', 'cardsConfig.json'),
         JSON.stringify({
@@ -205,7 +207,7 @@ describe('update plan', () => {
         JSON.stringify({ cardKeyPrefix: 'kid', version: '1.0.0', modules: [] }),
       );
       await expect(
-        planFor(project, { module: 'kid' }, { source: fakeRemote({}) }),
+        planFor(checkout, { module: 'kid' }, { source: fakeRemote({}) }),
       ).rejects.toMatchObject({
         message:
           "Cannot use module 'kid' because it is required by 'parent'. Use the parent module(s) instead.",
@@ -213,10 +215,10 @@ describe('update plan', () => {
     });
 
     it('reports an unreachable remote for an explicit version', async () => {
-      const project = await setup([root('base', '^1.0.0')]);
+      const checkout = await setup([root('base', '^1.0.0')]);
       await expect(
         planFor(
-          project,
+          checkout,
           { module: 'base', version: '1.1.0' },
           { source: fakeRemote({ base: { versions: [], down: true } }) },
         ),
@@ -231,16 +233,20 @@ describe('update plan', () => {
       });
 
     it('refuses a blank range', async () => {
-      const project = await setup([root('base', '^1.0.0')]);
+      const checkout = await setup([root('base', '^1.0.0')]);
       await expect(
-        planFor(project, { module: 'base', range: '  ' }, { source: source() }),
+        planFor(
+          checkout,
+          { module: 'base', range: '  ' },
+          { source: source() },
+        ),
       ).rejects.toThrow('Version range cannot be empty');
     });
 
     it('re-declares the range and moves across it', async () => {
-      const project = await setup([root('base', '^1.0.0')]);
+      const checkout = await setup([root('base', '^1.0.0')]);
       const plan = await planFor(
-        project,
+        checkout,
         { module: 'base', range: '^2.0.0' },
         { source: source() },
       );
@@ -252,9 +258,9 @@ describe('update plan', () => {
     });
 
     it('reports no change when the version stays', async () => {
-      const project = await setup([root('base', '1.0.0')]);
+      const checkout = await setup([root('base', '1.0.0')]);
       const plan = await planFor(
-        project,
+        checkout,
         { module: 'base', range: '~1.0.0' },
         { source: source() },
       );

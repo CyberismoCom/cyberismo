@@ -5,7 +5,7 @@ import { mkdirSync, rmSync } from 'node:fs';
 
 import { copyDir } from '../src/utils/file-utils.js';
 import { getTestProject } from './helpers/test-utils.js';
-import type { Project } from '../src/containers/project.js';
+import type { Checkout } from '../src/containers/project.js';
 import { ResourceHandler } from '../src/containers/project/resource-handler.js';
 import { ResourcesFrom } from '../src/containers/project/resources-from.js';
 
@@ -15,15 +15,15 @@ describe('ResourceHandler', () => {
   const testProjectPath = join(testDir, 'valid', 'decision-records');
 
   describe('basic functionality', () => {
-    let project: Project;
+    let checkout: Checkout;
     let resourceHandler: ResourceHandler;
 
     beforeAll(async () => {
       mkdirSync(testDir, { recursive: true });
       await copyDir('test/test-data/', testDir);
-      project = getTestProject(testProjectPath);
-      await project.populateCaches();
-      resourceHandler = project.resources;
+      checkout = getTestProject(testProjectPath);
+      await checkout.populateCaches();
+      resourceHandler = checkout.resources;
     });
 
     afterAll(() => {

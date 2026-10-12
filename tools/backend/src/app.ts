@@ -46,7 +46,7 @@ import { createAuthMiddleware } from './middleware/auth.js';
 import type { AuthProvider } from './auth/types.js';
 import { MockAuthProvider } from './auth/mock.js';
 import type { ProjectRegistry } from './project-registry.js';
-import { CommandManager, scanForProjects } from '@cyberismo/data-handler';
+import { Workspace, scanForProjects } from '@cyberismo/data-handler';
 import { createProjectsRouter } from './domain/projects/index.js';
 import { simpleMcpAuthRouter } from '@hono/mcp';
 
@@ -187,9 +187,9 @@ export function createApp(
       }
       const entries = [];
       for (const project of projects) {
-        const commands = new CommandManager(project.path, gitOptionsFromEnv());
-        await commands.initialize();
-        entries.push({ prefix: project.prefix, commands });
+        const ws = new Workspace(project.path, gitOptionsFromEnv());
+        await ws.initialize();
+        entries.push({ prefix: project.prefix, ws });
       }
       await registry.replace(entries);
       return c.body(null, 204);

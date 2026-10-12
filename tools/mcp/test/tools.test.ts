@@ -16,19 +16,19 @@
 import { beforeAll, afterAll, describe, expect, test } from 'vitest';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
-import { CommandManager } from '@cyberismo/data-handler';
+import { Workspace } from '@cyberismo/data-handler';
 import { createMcpServer, singleProjectProvider } from '../src/server.js';
 import { testDataPath } from './test-utils.js';
 
-let commands: CommandManager;
+let ws: Workspace;
 let client: Client;
 
 // Fixes weird issue with asciidoctor
 beforeAll(async () => {
   process.argv = [];
-  commands = await CommandManager.getInstance(testDataPath);
+  ws = await Workspace.getInstance(testDataPath);
 
-  const server = createMcpServer(singleProjectProvider(commands));
+  const server = createMcpServer(singleProjectProvider(ws));
   const [clientTransport, serverTransport] =
     InMemoryTransport.createLinkedPair();
 
@@ -40,7 +40,7 @@ beforeAll(async () => {
 
 afterAll(async () => {
   await client.close();
-  commands.project.dispose();
+  ws.checkout.dispose();
 });
 
 type TextContent = { type: string; text: string };

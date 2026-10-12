@@ -27,7 +27,7 @@ import type {
   FieldType,
   UpdateKey,
 } from '../interfaces/resource-interfaces.js';
-import type { Project } from '../containers/project.js';
+import type { Checkout } from '../containers/project.js';
 import type { ResourceName } from '../utils/resource-utils.js';
 
 /**
@@ -36,11 +36,11 @@ import type { ResourceName } from '../utils/resource-utils.js';
 export class FieldTypeResource extends FileResource<FieldType> {
   /**
    * Creates an instance of FieldTypeResource
-   * @param project Project to use
+   * @param checkout Project to use
    * @param name Resource name
    */
-  constructor(project: Project, name: ResourceName) {
-    super(project, name, 'fieldTypes');
+  constructor(checkout: Checkout, name: ResourceName) {
+    super(checkout, name, 'fieldTypes');
 
     this.contentSchemaId = 'fieldTypeSchema';
     this.contentSchema = super.contentSchemaContent(this.contentSchemaId);
@@ -114,7 +114,7 @@ export class FieldTypeResource extends FileResource<FieldType> {
   // Card types that use field type.
   private relevantCardTypes(): string[] {
     const resourceName = resourceNameToString(this.resourceName);
-    const cardTypes = this.project.resources.cardTypes();
+    const cardTypes = this.checkout.resources.cardTypes();
     const references = [];
     for (const cardType of cardTypes) {
       const found = cardType.data?.customFields.filter(

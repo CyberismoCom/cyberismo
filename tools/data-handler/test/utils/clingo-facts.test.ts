@@ -16,7 +16,7 @@ import {
   type Workflow,
 } from '../../src/interfaces/resource-interfaces.js';
 import type { Card } from '../../src/index.js';
-import type { Project } from '../../src/containers/project.js';
+import type { Checkout } from '../../src/containers/project.js';
 import { copyDir } from '../../src/utils/file-utils.js';
 import { getTestProject } from '../helpers/test-utils.js';
 
@@ -255,7 +255,7 @@ describe('createCardFacts only emits fields the card type declares', () => {
   // Card whose card type resource does not exist, so nothing can be classified
   // as declared or dormant.
   const BROKEN_CARD_TYPE_CARD_KEY = 'decision_5';
-  let project: Project;
+  let checkout: Checkout;
   let card: Card;
   let brokenCardTypeCard: Card;
 
@@ -297,41 +297,41 @@ describe('createCardFacts only emits fields the card type declares', () => {
     brokenMetadata[DECLARED_FIELD] = 'Kept as a plain field';
     writeFileSync(brokenCardJsonPath, JSON.stringify(brokenMetadata, null, 4));
 
-    project = getTestProject(projectPath);
-    await project.populateCaches();
-    card = project.findCard(CARD_KEY);
-    brokenCardTypeCard = project.findCard(BROKEN_CARD_TYPE_CARD_KEY);
+    checkout = getTestProject(projectPath);
+    await checkout.populateCaches();
+    card = checkout.findCard(CARD_KEY);
+    brokenCardTypeCard = checkout.findCard(BROKEN_CARD_TYPE_CARD_KEY);
   });
 
   afterAll(() => {
-    project?.dispose();
+    checkout?.dispose();
     rmSync(testDir, { recursive: true, force: true });
   });
 
   it('metadata key not declared by the card type emits no fact', async () => {
-    const facts = await createCardFacts(card, project);
+    const facts = await createCardFacts(card, checkout);
     expect(facts).not.toContain(UNDECLARED_FIELD);
   });
 
   it('undeclared key is dropped before its field type is looked up', async () => {
-    const facts = await createCardFacts(card, project);
+    const facts = await createCardFacts(card, checkout);
     expect(facts).not.toContain(GHOST_FIELD);
   });
 
   it('declared field whose field type was deleted is skipped, not thrown on', async () => {
-    const facts = await createCardFacts(card, project);
+    const facts = await createCardFacts(card, checkout);
     expect(facts).not.toContain(DELETED_TYPE_FIELD);
   });
 
   it('declared field with a resolvable field type still emits a fact', async () => {
-    const facts = await createCardFacts(card, project);
+    const facts = await createCardFacts(card, checkout);
     expect(facts).toContain(
       `field(${CARD_KEY}, "${DECLARED_FIELD}", "Rewrote the decision").`,
     );
   });
 
   it('unresolvable card type falls back to plain field facts for stored values', async () => {
-    const facts = await createCardFacts(brokenCardTypeCard, project);
+    const facts = await createCardFacts(brokenCardTypeCard, checkout);
     expect(facts).toContain(
       `field(${BROKEN_CARD_TYPE_CARD_KEY}, "${DECLARED_FIELD}", "Kept as a plain field").`,
     );

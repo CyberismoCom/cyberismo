@@ -11,13 +11,13 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { CommandManager, type ProjectProvider } from '@cyberismo/data-handler';
+import { Workspace, type ProjectProvider } from '@cyberismo/data-handler';
 import { ProjectEvents } from './domain/events/project-events.js';
 import type { ProjectErrors } from './project-errors.js';
 
 export type ProjectRegistryEntry = {
   prefix: string;
-  commands: CommandManager;
+  ws: Workspace;
 };
 
 export type ProjectListItem = {
@@ -35,21 +35,21 @@ export interface ScannedProject {
 }
 
 export class ProjectRegistry implements ProjectProvider {
-  private projects: Map<string, CommandManager> = new Map();
-  private events = new Map<CommandManager, ProjectEvents>();
-  readonly options: ConstructorParameters<typeof CommandManager>[1];
+  private projects: Map<string, Workspace> = new Map();
+  private events = new Map<Workspace, ProjectEvents>();
+  readonly options: ConstructorParameters<typeof Workspace>[1];
 
   constructor(
     entries: ProjectRegistryEntry[] = [],
-    options?: ConstructorParameters<typeof CommandManager>[1],
+    options?: ConstructorParameters<typeof Workspace>[1],
   ) {
     this.options = options;
     for (const entry of entries) {
-      this.add(entry.prefix, entry.commands);
+      this.add(entry.prefix, entry.ws);
     }
   }
 
-  get(prefix: string): CommandManager | undefined {
+  get(prefix: string): Workspace | undefined {
     return this.projects.get(prefix);
   }
 
@@ -57,40 +57,40 @@ export class ProjectRegistry implements ProjectProvider {
     return this.projects.has(prefix);
   }
 
-  add(prefix: string, commands: CommandManager): void {
+  add(prefix: string, ws: Workspace): void {
     if (this.projects.has(prefix)) {
       throw new Error(`Project '${prefix}' is already registered`);
     }
-    this.projects.set(prefix, commands);
+    this.projects.set(prefix, ws);
   }
 
-  eventsFor(commands: CommandManager): ProjectEvents {
-    let events = this.events.get(commands);
+  eventsFor(ws: Workspace): ProjectEvents {
+    let events = this.events.get(ws);
     if (!events) {
-      if (![...this.projects.values()].includes(commands)) {
+      if (![...this.projects.values()].includes(ws)) {
         throw new Error('Project is not registered');
       }
       events = new ProjectEvents();
-      this.events.set(commands, events);
+      this.events.set(ws, events);
     }
     return events;
   }
 
   list(): ProjectListItem[] {
-    return Array.from(this.projects.entries()).map(([prefix, commands]) => ({
+    return Array.from(this.projects.entries()).map(([prefix, ws]) => ({
       prefix,
-      name: commands.project.configuration.name,
-      category: commands.project.configuration.category || undefined,
-      description: commands.project.configuration.description || undefined,
+      name: ws.checkout.configuration.name,
+      category: ws.checkout.configuration.category || undefined,
+      description: ws.checkout.configuration.description || undefined,
     }));
   }
 
   /** Iterate over all registered CommandManagers. */
-  values(): IterableIterator<CommandManager> {
+  values(): IterableIterator<Workspace> {
     return this.projects.values();
   }
 
-  first(): CommandManager | undefined {
+  first(): Workspace | undefined {
     const [first] = this.projects.values();
     return first;
   }
@@ -100,8 +100,8 @@ export class ProjectRegistry implements ProjectProvider {
       events.dispose();
     }
     this.events.clear();
-    for (const commands of this.projects.values()) {
-      commands.project.dispose();
+    for (const ws of this.projects.values()) {
+      ws.checkout.dispose();
     }
     this.projects.clear();
   }
@@ -114,7 +114,7 @@ export class ProjectRegistry implements ProjectProvider {
   async replace(entries: ProjectRegistryEntry[]): Promise<void> {
     this.dispose();
     for (const entry of entries) {
-      this.add(entry.prefix, entry.commands);
+      this.add(entry.prefix, entry.ws);
     }
   }
 
@@ -122,9 +122,9 @@ export class ProjectRegistry implements ProjectProvider {
    * Create a single-project registry from a CommandManager.
    * Used by export mode and tests where only one project is needed.
    */
-  static fromCommandManager(commands: CommandManager): ProjectRegistry {
+  static fromCommandManager(ws: Workspace): ProjectRegistry {
     return new ProjectRegistry([
-      { prefix: commands.project.configuration.cardKeyPrefix, commands },
+      { prefix: ws.checkout.configuration.cardKeyPrefix, ws },
     ]);
   }
 
@@ -134,18 +134,18 @@ export class ProjectRegistry implements ProjectProvider {
    */
   static async fromScannedProjects(
     projects: ScannedProject[],
-    options?: ConstructorParameters<typeof CommandManager>[1],
+    options?: ConstructorParameters<typeof Workspace>[1],
   ): Promise<{ registry: ProjectRegistry; failed: ProjectErrors[] }> {
     const entries: ProjectRegistryEntry[] = [];
     const failed: ProjectErrors[] = [];
     for (const project of projects) {
-      let commands: CommandManager | undefined;
+      let ws: Workspace | undefined;
       try {
-        commands = new CommandManager(project.path, options);
-        await commands.initialize();
-        entries.push({ prefix: project.prefix, commands });
+        ws = new Workspace(project.path, options);
+        await ws.initialize();
+        entries.push({ prefix: project.prefix, ws });
       } catch (error) {
-        commands?.project.dispose();
+        ws?.checkout.dispose();
         failed.push({
           prefix: project.prefix,
           errors: [

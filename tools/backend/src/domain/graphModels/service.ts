@@ -11,11 +11,8 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import type { CommandManager } from '@cyberismo/data-handler';
+import type { Workspace } from '@cyberismo/data-handler';
 
-export async function createGraphModel(
-  commands: CommandManager,
-  graphModelName: string,
-) {
-  await commands.createCmd.createGraphModel(graphModelName);
+export async function createGraphModel(ws: Workspace, graphModelName: string) {
+  await ws.createCmd.createGraphModel(graphModelName);
 }

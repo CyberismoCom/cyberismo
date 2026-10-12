@@ -3,7 +3,7 @@ import { mkdirSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { copyDir } from '../../../src/utils/file-utils.js';
-import type { Project } from '../../../src/containers/project.js';
+import type { Checkout } from '../../../src/containers/project.js';
 import { getTestProject } from '../../helpers/test-utils.js';
 import { resourceName } from '../../../src/utils/resource-utils.js';
 import { ResourceMutations } from '../../../src/mutations/resource-mutations.js';
@@ -11,25 +11,25 @@ import { ResourceMutations } from '../../../src/mutations/resource-mutations.js'
 const baseDir = import.meta.dirname;
 const testDir = join(baseDir, 'tmp-card-type-workflow');
 const decisionRecordsPath = join(testDir, 'valid/decision-records');
-let project: Project;
+let checkout: Checkout;
 
-const cardTypeName = () => `${project.projectPrefix}/cardTypes/decision`;
-const fromWorkflow = () => `${project.projectPrefix}/workflows/decision`;
-const toWorkflow = () => `${project.projectPrefix}/workflows/simple`;
+const cardTypeName = () => `${checkout.projectPrefix}/cardTypes/decision`;
+const fromWorkflow = () => `${checkout.projectPrefix}/workflows/decision`;
+const toWorkflow = () => `${checkout.projectPrefix}/workflows/simple`;
 
 describe('CardTypeWorkflowChangeHandler', () => {
   beforeEach(async () => {
     mkdirSync(testDir, { recursive: true });
     await copyDir(join(baseDir, '..', '..', 'test-data'), testDir);
-    project = getTestProject(decisionRecordsPath);
-    await project.populateCaches();
+    checkout = getTestProject(decisionRecordsPath);
+    await checkout.populateCaches();
   });
   afterEach(() => {
     rmSync(testDir, { recursive: true, force: true });
   });
 
   it('rejects incomplete mappings the same way verifyStateMapping does', async () => {
-    const mutations = new ResourceMutations(project);
+    const mutations = new ResourceMutations(checkout);
     await expect(
       mutations.apply({
         kind: 'edit' as const,
@@ -48,7 +48,7 @@ describe('CardTypeWorkflowChangeHandler', () => {
   });
 
   it('applies the state mapping when provided', async () => {
-    const mutations = new ResourceMutations(project);
+    const mutations = new ResourceMutations(checkout);
     await mutations.apply({
       kind: 'edit' as const,
       target: resourceName(cardTypeName()),
@@ -68,11 +68,11 @@ describe('CardTypeWorkflowChangeHandler', () => {
         },
       },
     });
-    const updated = project.resources
+    const updated = checkout.resources
       .byType(cardTypeName(), 'cardTypes')
       .show();
     expect(updated.workflow).toBe(toWorkflow());
-    for (const card of project.cardTree.cards()) {
+    for (const card of checkout.cardTree.cards()) {
       if (card.metadata?.cardType === cardTypeName()) {
         expect(['Created', 'Approved', 'Deprecated']).toContain(
           card.metadata.workflowState,
@@ -83,13 +83,13 @@ describe('CardTypeWorkflowChangeHandler', () => {
 
   it('changes the workflow reference but leaves card states when no mapping is given', async () => {
     const before = new Map(
-      project.cardTree
+      checkout.cardTree
         .cards()
         .filter((c) => c.metadata?.cardType === cardTypeName())
         .map((c) => [c.key, c.metadata!.workflowState]),
     );
 
-    const mutations = new ResourceMutations(project);
+    const mutations = new ResourceMutations(checkout);
     await mutations.apply({
       kind: 'edit' as const,
       target: resourceName(cardTypeName()),
@@ -101,12 +101,12 @@ describe('CardTypeWorkflowChangeHandler', () => {
       },
     });
 
-    const updated = project.resources
+    const updated = checkout.resources
       .byType(cardTypeName(), 'cardTypes')
       .show();
     expect(updated.workflow).toBe(toWorkflow());
     // With no state mapping, card workflowState is untouched.
-    for (const card of project.cardTree.cards()) {
+    for (const card of checkout.cardTree.cards()) {
       if (card.metadata?.cardType === cardTypeName()) {
         expect(card.metadata.workflowState).toBe(before.get(card.key));
       }

@@ -63,7 +63,7 @@ export default class IncludeMacro extends BaseMacro {
     const title = this.generateTitle(options, card.metadata?.title);
     const cardContent = await this.generateCardContent(
       options,
-      context.project.cardContent(options.cardKey),
+      context.checkout.cardContent(options.cardKey),
       newContext,
     );
 
@@ -131,7 +131,7 @@ export default class IncludeMacro extends BaseMacro {
   }
 
   private getCard(cardKey: string, context: MacroGenerationContext) {
-    return context.project.cardNode(cardKey);
+    return context.checkout.cardNode(cardKey);
   }
 
   // Adjust asciidoc titles to match the level offset

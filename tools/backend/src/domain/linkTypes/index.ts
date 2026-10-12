@@ -35,10 +35,10 @@ const router = new Hono();
  *         description: project_path not set or other internal error
  */
 router.get('/', requireRole(UserRole.Reader), async (c) => {
-  const commands = c.get('commands');
+  const ws = c.get('ws');
 
   try {
-    const linkTypes = await linkTypeService.getLinkTypes(commands);
+    const linkTypes = await linkTypeService.getLinkTypes(ws);
     return c.json(linkTypes);
   } catch (error) {
     return c.json(
@@ -80,10 +80,10 @@ router.post(
   requireRole(UserRole.Admin),
   zValidator('json', createLinkTypeSchema),
   async (c) => {
-    const commands = c.get('commands');
+    const ws = c.get('ws');
     const { identifier } = c.req.valid('json');
 
-    await linkTypeService.createLinkType(commands, identifier);
+    await linkTypeService.createLinkType(ws, identifier);
     return c.json({ message: 'Link type created successfully' });
   },
 );

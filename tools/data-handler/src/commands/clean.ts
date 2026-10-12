@@ -11,7 +11,7 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import type { Project } from '../containers/project.js';
+import type { Checkout } from '../containers/project.js';
 import { ResourcesFrom } from '../containers/project/resources-from.js';
 import { isPredefinedField } from '../utils/constants.js';
 import { getChildLogger } from '../utils/log-utils.js';
@@ -54,7 +54,7 @@ export interface CleanResult {
  * ("dormant") until this command runs; dry-run reports without writing.
  */
 export class Clean {
-  constructor(private project: Project) {}
+  constructor(private checkout: Checkout) {}
 
   /**
    * Removes unused custom field values from project cards and local template
@@ -119,7 +119,7 @@ export class Clean {
           delete metadata[removal.field];
         }
         try {
-          await this.project.updateCardMetadata(card, card.metadata);
+          await this.checkout.updateCardMetadata(card, card.metadata);
         } catch (error) {
           logger().warn(error, `Could not clean card '${card.key}'`);
           failedCards.push(card.key);
@@ -139,8 +139,8 @@ export class Clean {
   // All cards this command may write to: project cards and local template cards.
   private cleanableCards(): Card[] {
     return [
-      ...this.project.cardTree.cards(),
-      ...this.project.resources
+      ...this.checkout.cardTree.cards(),
+      ...this.checkout.resources
         .templates(ResourcesFrom.localOnly)
         .flatMap((template) => template.cardTree.cards()),
     ];
@@ -156,7 +156,7 @@ export class Clean {
     let customFields: CustomField[];
     try {
       customFields =
-        this.project.resources.byType(cardTypeName, 'cardTypes').show()
+        this.checkout.resources.byType(cardTypeName, 'cardTypes').show()
           .customFields ?? [];
     } catch (error) {
       logger().warn(

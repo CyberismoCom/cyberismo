@@ -36,7 +36,7 @@ import type {
   ResourceFolderType,
 } from '../interfaces/project-interfaces.js';
 import type { Logger } from 'pino';
-import type { Project } from '../containers/project.js';
+import type { Checkout } from '../containers/project.js';
 import type {
   ResourceBaseMetadata,
   UpdateKey,
@@ -149,18 +149,18 @@ export abstract class ResourceObject<
 
   /**
    * Constructs a ResourceObject instance
-   * @param project Project where this resource is
+   * @param checkout Project where this resource is
    * @param resourceName Name for the resource
    * @param type Type of resource
    */
   constructor(
-    protected project: Project,
+    protected checkout: Checkout,
     protected resourceName: ResourceName,
     type: ResourceFolderType,
   ) {
     super();
     this.moduleResource =
-      this.resourceName.prefix !== this.project.projectPrefix;
+      this.resourceName.prefix !== this.checkout.projectPrefix;
     this.type = type;
     this.logger = this.getLogger(this.getType);
     this.content = { name: '' } as T; // not found if name is empty
@@ -169,7 +169,7 @@ export abstract class ResourceObject<
   // Check if resource already exists. First checks the cache, then filesystem.
   private exists(): boolean {
     const name = resourceNameToString(this.resourceName);
-    const existsInCache = this.project.resources.exists(name);
+    const existsInCache = this.checkout.resources.exists(name);
     return existsInCache || pathExists(this.fileName);
   }
 
@@ -215,7 +215,7 @@ export abstract class ResourceObject<
    */
   protected async calculations(): Promise<string[]> {
     const name = resourceNameToString(this.resourceName);
-    return this.project.resources
+    return this.checkout.resources
       .calculations()
       .filter((c) => c.contentData().calculation?.includes(name))
       .map((c) => c.data!.name);
@@ -226,8 +226,8 @@ export abstract class ResourceObject<
    */
   protected cards(): Card[] {
     return [
-      ...this.project.cardTree.cards(),
-      ...this.project.allTemplateCards(),
+      ...this.checkout.cardTree.cards(),
+      ...this.checkout.allTemplateCards(),
     ];
   }
 
@@ -261,9 +261,9 @@ export abstract class ResourceObject<
 
     if (this.resourceFolder === '') {
       this.resourceName = resourceName(
-        `${this.project.projectPrefix}/${this.type}/${this.resourceName.identifier}`,
+        `${this.checkout.projectPrefix}/${this.type}/${this.resourceName.identifier}`,
       );
-      this.resourceFolder = this.project.paths.resourcePath(
+      this.resourceFolder = this.checkout.paths.resourcePath(
         this.resourceName.type as ResourceFolderType,
       );
       this.fileName = join(
@@ -276,7 +276,7 @@ export abstract class ResourceObject<
     const validName = validator.validResourceName(
       this.resourceType(),
       resourceNameToString(this.resourceName),
-      this.project.projectPrefixes(),
+      this.checkout.projectPrefixes(),
     );
 
     let validContent = {} as T;
@@ -292,7 +292,7 @@ export abstract class ResourceObject<
     await this.write();
 
     const resourceString = resourceNameToString(this.resourceName);
-    this.project.resources.add(resourceString, this);
+    this.checkout.resources.add(resourceString, this);
   }
 
   /**
@@ -366,23 +366,23 @@ export abstract class ResourceObject<
       this.resourceName.type = this.type;
     }
     if (this.resourceName.prefix === '') {
-      this.resourceName.prefix = this.project.projectPrefix;
+      this.resourceName.prefix = this.checkout.projectPrefix;
     }
     if (this.type) {
       this.moduleResource =
-        this.resourceName.prefix !== this.project.projectPrefix;
+        this.resourceName.prefix !== this.checkout.projectPrefix;
       this.resourceFolder = this.moduleResource
         ? join(
-            this.project.paths.modulesFolder,
+            this.checkout.paths.modulesFolder,
             this.resourceName.prefix,
             this.resourceName.type,
           )
-        : this.project.paths.resourcePath(this.type);
-      this.fileName = resourceNameToPath(this.project, this.resourceName);
+        : this.checkout.paths.resourcePath(this.type);
+      this.fileName = resourceNameToPath(this.checkout, this.resourceName);
     }
     // Only load content from disk if resource exists in the cache registry
     if (
-      this.project.resources.exists(resourceNameToString(this.resourceName))
+      this.checkout.resources.exists(resourceNameToString(this.resourceName))
     ) {
       try {
         this.content = readJsonFileSync(this.fileName);
@@ -493,7 +493,7 @@ export abstract class ResourceObject<
     const oldName = resourceNameToString(this.resourceName);
     this.resourceName = { ...this.resourceName, prefix: newPrefix };
     this.content.name = resourceNameToString(this.resourceName);
-    this.project.resources.rename(oldName, this.content.name);
+    this.checkout.resources.rename(oldName, this.content.name);
     await this.write();
   }
 
@@ -554,7 +554,7 @@ export abstract class ResourceObject<
         `Resource '${this.resourceName.identifier}' does not exist in the project`,
       );
     }
-    const cardArray = cards?.length ? cards : this.project.cardTree.cards();
+    const cardArray = cards?.length ? cards : this.checkout.cardTree.cards();
 
     return cardArray
       .filter((card) =>
@@ -589,7 +589,7 @@ export abstract class ResourceObject<
     const validName = validator.validResourceName(
       this.resourceType(),
       resourceNameToString(newName),
-      this.project.projectPrefixes(),
+      this.checkout.projectPrefixes(),
     );
     return validName;
   }
@@ -619,7 +619,7 @@ export abstract class ResourceObject<
       await rename(this.fileName, newFileName);
       this.fileName = newFileName;
       this.resourceName = resourceName(this.content.name);
-      this.project.resources.rename(resourceString, this.content.name);
+      this.checkout.resources.rename(resourceString, this.content.name);
     }
     await writeJsonFile(this.fileName, this.content);
   }
@@ -658,7 +658,7 @@ export abstract class ResourceObject<
       );
     }
     await deleteFile(this.fileName);
-    this.project.resources.remove(resourceNameToString(this.resourceName));
+    this.checkout.resources.remove(resourceNameToString(this.resourceName));
     this.fileName = '';
   }
 

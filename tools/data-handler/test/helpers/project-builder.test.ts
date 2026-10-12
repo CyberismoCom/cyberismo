@@ -20,7 +20,7 @@ import { tmpdir } from 'node:os';
 import { join, relative, sep } from 'node:path';
 import { simpleGit } from 'simple-git';
 
-import { Project } from '../../src/containers/project.js';
+import { Checkout } from '../../src/containers/project.js';
 import { Validate } from '../../src/commands/validate.js';
 import {
   buildProject,
@@ -67,27 +67,27 @@ function readJson(path: string) {
 }
 
 async function validate(path: string): Promise<string> {
-  let project: Project | undefined;
+  let checkout: Checkout | undefined;
   try {
     return await Validate.getInstance().validate(path, () => {
-      project = new Project(path);
-      return project;
+      checkout = new Checkout(path);
+      return checkout;
     });
   } finally {
-    project?.dispose();
+    checkout?.dispose();
   }
 }
 
 async function withProject(
   path: string,
-  check: (project: Project) => void,
+  check: (checkout: Checkout) => void,
 ): Promise<void> {
-  const project = new Project(path);
+  const checkout = new Checkout(path);
   try {
-    await project.populateCaches();
-    check(project);
+    await checkout.populateCaches();
+    check(checkout);
   } finally {
-    project.dispose();
+    checkout.dispose();
   }
 }
 
@@ -131,13 +131,13 @@ describe('buildProject', () => {
     expect(readJson(join(path, '.cards/local/cardsConfig.json')).name).toBe(
       'Flow project',
     );
-    await withProject(path, (project) => {
+    await withProject(path, (checkout) => {
       expect(
-        project.resources.byType('flow/cardTypes/decision', 'cardTypes').show()
+        checkout.resources.byType('flow/cardTypes/decision', 'cardTypes').show()
           .workflow,
       ).toBe('flow/workflows/review');
       expect(
-        keys.map((key) => project.findCard(key).metadata?.workflowState),
+        keys.map((key) => checkout.findCard(key).metadata?.workflowState),
       ).toEqual(['Approved', 'Draft']);
     });
   });
@@ -160,13 +160,13 @@ describe('buildProject', () => {
     for (const key of keys) expect(key).toMatch(/^nest_[0-9a-z]{8}$/);
     expect(await validate(path)).toBe('');
     const [parent, child1, child2, sibling] = keys;
-    await withProject(path, (project) => {
-      const card = project.findCard(parent);
+    await withProject(path, (checkout) => {
+      const card = checkout.findCard(parent);
       expect(card.metadata?.title).toBe('Parent');
       expect(card.metadata?.labels).toEqual(['a']);
       expect(card.content).toBe('Hello');
       expect(card.children).toEqual([child1, child2]);
-      expect(project.findCard(sibling).parent).toBe('root');
+      expect(checkout.findCard(sibling).parent).toBe('root');
     });
   });
 
@@ -179,9 +179,9 @@ describe('buildProject', () => {
     expect(templateKeys['test/templates/tpl']).toHaveLength(2);
 
     expect(await validate(path)).toBe('');
-    await withProject(path, (project) => {
+    await withProject(path, (checkout) => {
       expect(
-        project
+        checkout
           .allTemplateCards()
           .map((card) => card.key)
           .sort(),
@@ -212,12 +212,12 @@ describe('buildProject', () => {
     const [moduleCard] = templateKeys['mod/templates/modtpl'];
     expect(projectCard).toMatch(/^test_/);
     expect(moduleCard).toMatch(/^mod_/);
-    await withProject(path, (project) => {
-      expect(project.allModulePrefixes()).toEqual(['test', 'mod']);
-      expect(project.findCard(projectCard).metadata?.workflowState).toBe(
+    await withProject(path, (checkout) => {
+      expect(checkout.allModulePrefixes()).toEqual(['test', 'mod']);
+      expect(checkout.findCard(projectCard).metadata?.workflowState).toBe(
         'Open',
       );
-      expect(project.allTemplateCards().map((card) => card.key)).toEqual([
+      expect(checkout.allTemplateCards().map((card) => card.key)).toEqual([
         moduleCard,
       ]);
     });
