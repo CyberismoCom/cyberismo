@@ -90,7 +90,6 @@ export interface ShowCommandOptions extends BaseCommandOptions {
 
 // Options for 'start' command
 export interface StartCommandOptions extends BaseCommandOptions {
-  forceStart?: boolean;
   watchResourceChanges?: boolean;
 }
 
@@ -167,7 +166,6 @@ export type CommandOptions<T extends CmdKey> = {
   rename: RenameCommandOptions;
   report: ReportCommandOptions;
   show: ShowCommandOptions;
-  start: StartCommandOptions;
   transition: TransitionCommandOptions;
   update: UpdateCommandOptions;
   updateModules: UpdateModulesCommandOptions;
