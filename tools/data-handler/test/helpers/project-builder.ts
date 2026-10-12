@@ -369,8 +369,8 @@ export async function buildProject(
   try {
     await builder.build();
     if (spec.git) {
-      // user.* and signing are overridden; on Windows the user's global git
-      // config may still load.
+      // user.* and signing are overridden; the user's global git config still
+      // loads, so hooks are skipped.
       const git = simpleGit(path, {
         config: [
           'user.name=Test',
@@ -380,7 +380,7 @@ export async function buildProject(
       });
       await git.init(['--initial-branch=main']);
       await git.add('.');
-      await git.commit('Initial commit');
+      await git.commit('Initial commit', undefined, { '--no-verify': null });
     }
   } catch (error) {
     await cleanup();

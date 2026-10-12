@@ -281,6 +281,13 @@ describe('buildProject', () => {
       'card type test/cardTypes/nope is not defined yet',
     ],
     [
+      'a module template card without a card type',
+      {
+        modules: [{ prefix: 'mod', templates: [{ name: 't', cards: [{}] }] }],
+      },
+      'module mod: card',
+    ],
+    [
       'a card whose workflow is undefined',
       { cardTypes: [{ name: 'x', workflow: 'ghost' }], cards: [{}] },
       'workflow test/workflows/ghost is not defined yet',
