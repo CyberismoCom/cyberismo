@@ -166,6 +166,18 @@ export interface ModuleInfo {
   version?: string;
 }
 
+// An installed module as the project sees it. Carries no source location.
+export interface ProjectModuleInfo {
+  name: string;
+  installedVersion?: string;
+  declaredRange?: string;
+  isRoot: boolean;
+  // Cardkey prefixes of the installed modules that depend on it.
+  parents: string[];
+  // Unset when the source of a transitive module cannot be recovered.
+  versionSource?: VersionSource;
+}
+
 // Project metadata details. @todo - this overlaps the above; check & merge
 export interface ProjectMetadata {
   name: string;

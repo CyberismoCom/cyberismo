@@ -732,7 +732,7 @@ describe('module update — spec behaviours', () => {
     await expect(
       commands.modulesCmd.update({ module: 'tupdep' }),
     ).rejects.toThrow(
-      "Cannot update module 'tupdep' because it is required by 'tuphost'. Update the parent module(s) instead.",
+      "Cannot use module 'tupdep' because it is required by 'tuphost'. Use the parent module(s) instead.",
     );
   });
 
