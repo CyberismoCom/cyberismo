@@ -28,7 +28,11 @@ import { Transition } from '../commands/transition.js';
 import { Update } from '../commands/update.js';
 import { Validate } from '../commands/validate.js';
 import { Checkout } from '../containers/project.js';
-import { runWithCommitContext } from '../utils/commit-context.js';
+import type { ActorRef } from '@cyberismo/model';
+import {
+  type CommitIdentity,
+  runWithCommitContext,
+} from '../utils/commit-context.js';
 import { type Level } from 'pino';
 import { join } from 'node:path';
 import { initLogger } from '../utils/log-utils.js';
@@ -106,14 +110,18 @@ export class Workspace {
   }
 
   /**
-   * Run a function with the given author set in async-local context.
-   * Git commits made during the function will use this author.
+   * Run a function with the given author and actor set in async-local context.
+   * Git commits made during the function use this author and record the actor.
+   * @param author Commit author.
+   * @param fn Function to run.
+   * @param actor Who acted, recorded as commit trailers.
    */
   public runAsAuthor<T>(
-    author: { name: string; email: string },
+    author: CommitIdentity,
     fn: () => Promise<T>,
+    actor: ActorRef,
   ): Promise<T> {
-    return runWithCommitContext({ author }, fn);
+    return runWithCommitContext({ author, actor }, fn);
   }
 
   /**
