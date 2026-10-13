@@ -11,7 +11,6 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Create } from '../commands/create.js';
 import { Fetch } from '../commands/fetch.js';
 import { Import } from '../commands/import.js';
 import { Modules } from '../commands/modules.js';
@@ -26,7 +25,6 @@ import type { Checkout } from '../containers/project.js';
  * An entry goes when its group gets a façade.
  */
 export class SharedCommands {
-  public createCmd: Create;
   public fetchCmd: Fetch;
   public importCmd: Import;
   public modulesCmd: Modules;
@@ -41,7 +39,6 @@ export class SharedCommands {
     this.fetchCmd = new Fetch(checkout);
     this.modulesCmd = new Modules(checkout, this.fetchCmd);
     this.showCmd = new Show(checkout);
-    this.createCmd = new Create(checkout);
     this.importCmd = new Import(checkout);
     this.removeCmd = new Remove(checkout, this.fetchCmd, this.modulesCmd);
     this.renameCmd = new Rename(checkout);

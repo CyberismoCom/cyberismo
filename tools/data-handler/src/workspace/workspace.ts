@@ -225,9 +225,6 @@ export class Workspace {
     return this.checkout.basePath;
   }
 
-  get createCmd(): Create {
-    return this.legacy('createCmd');
-  }
   get fetchCmd(): Fetch {
     return this.legacy('fetchCmd');
   }
@@ -319,7 +316,7 @@ export class Workspace {
 
     // Add default hub and fetch module data
     try {
-      await ws.createCmd.addHubLocation(DEFAULT_HUB);
+      await ws.settings.hubs.add(DEFAULT_HUB);
       await ws.fetchCmd.fetchHubs();
     } catch {
       // Hub setup is non-critical; project is still usable

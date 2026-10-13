@@ -20,14 +20,8 @@ import type {
   ModuleContent,
   ModuleInfo,
   ModuleSettingFromHub,
-  ProjectMetadata,
   RemovableResourceTypes,
   ResourceTypes,
-  DataType,
-  AnyResourceContent,
-  UpdateKey,
-  Operation,
-  UpdateOperations,
 } from '@cyberismo/model';
 import type {
   AllCommandOptions,
@@ -35,7 +29,6 @@ import type {
   ShowCommandOptions,
   RenameCommandOptions,
   StartCommandOptions,
-  UpdateCommandOptions,
   UpdateModulesCommandOptions,
 } from './interfaces/command-options.js';
 
@@ -55,8 +48,7 @@ import { SYSTEM_ACTOR } from './utils/tx-record.js';
 import { pathExists, resolveTilde } from './utils/file-utils.js';
 import { ModuleRequestError } from './exceptions/index.js';
 import { errorFunction } from './utils/error-utils.js';
-import { readJsonFile } from './utils/json.js';
-import { resourceName, resourceNameToString } from './utils/resource-utils.js';
+import { resourceName } from './utils/resource-utils.js';
 
 import { type Level } from 'pino';
 import { type Context } from '@cyberismo/model';
@@ -231,12 +223,7 @@ export class Commands {
     credentials?: Credentials,
   ) {
     try {
-      if (command === Cmd.add) {
-        const [type, target] = args;
-        if (type === 'hub') {
-          return await this.addHub(target);
-        }
-      } else if (command === Cmd.calc) {
+      if (command === Cmd.calc) {
         const [command, ...rest] = args;
         if (command === 'run') {
           const [cardKey] = rest;
@@ -255,27 +242,7 @@ export class Commands {
         if (target !== type) {
           rest.unshift(type);
         }
-        if (target === 'cardType') {
-          const [name, workflow] = rest;
-          await this.ws?.resources.create(name, 'cardTypes', { workflow });
-        } else if (target === 'fieldType') {
-          const [name, datatype] = rest;
-          await this.ws?.resources.create(name, 'fieldTypes', {
-            dataType: datatype as DataType,
-          });
-        } else if (target === 'graphModel') {
-          const [name] = rest;
-          await this.ws?.resources.create(name, 'graphModels', {});
-        } else if (target === 'graphView') {
-          const [name] = rest;
-          await this.ws?.resources.create(name, 'graphViews', {});
-        } else if (target === 'calculation') {
-          const [name] = rest;
-          await this.ws?.resources.create(name, 'calculations', {});
-        } else if (target === 'linkType') {
-          const [name] = rest;
-          await this.ws?.resources.create(name, 'linkTypes', {});
-        } else if (target === 'project') {
+        if (target === 'project') {
           // 3rd parameter - path - is skipped it is used in general command handling
           // eslint-disable-next-line @typescript-eslint/no-unused-vars
           const [name, prefix, _, category, description] = rest;
@@ -286,22 +253,6 @@ export class Commands {
             category || '',
             description || '',
           );
-        } else if (target === 'report') {
-          const [name] = rest;
-          await this.ws?.resources.create(name, 'reports', {});
-        } else if (target === 'skill') {
-          const [name] = rest;
-          await this.ws?.resources.create(name, 'skills', {});
-        } else if (target === 'template') {
-          const [name, content] = rest;
-          await this.ws?.resources.create(name, 'templates', {
-            content: content ? JSON.parse(content) : undefined,
-          });
-        } else if (target === 'workflow') {
-          const [name, content] = rest;
-          await this.ws?.resources.create(name, 'workflows', {
-            content: content ? JSON.parse(content) : undefined,
-          });
         } else {
           throw new Error(`Unknown type to create: '${target}'`);
         }
@@ -353,16 +304,6 @@ export class Commands {
         const [type, target] = args;
         const removed = this.commandType<RemovableResourceTypes>(type);
         await this.remove(removed, this.commandTarget(type, target));
-
-        // Card types stop declaring a deleted field type, so the values its
-        // cards stored are left in place; nothing else removed here can strand
-        // a value that 'clean' would find.
-        if (removed === 'fieldType') {
-          return {
-            statusCode: 200,
-            note: await this.cleanRecommendation(),
-          };
-        }
       } else if (command === Cmd.rename) {
         const [to] = args;
         const { force } = options as RenameCommandOptions;
@@ -385,81 +326,6 @@ export class Commands {
           this.commandTarget(type, detail),
           options,
         );
-      } else if (command === Cmd.update) {
-        const [resource, operation, key, value, newValue] = args;
-        let parsedValue = '';
-        try {
-          parsedValue = JSON.parse(value);
-        } catch {
-          parsedValue = value;
-        }
-
-        // Handle mapping file for workflow changes
-        let mappingTable: { stateMapping: Record<string, string> } | undefined;
-        if (
-          (options as UpdateCommandOptions).mappingFile &&
-          operation === 'change' &&
-          key === 'workflow'
-        ) {
-          try {
-            const mappingData = await readJsonFile(
-              resolveTilde((options as UpdateCommandOptions).mappingFile!),
-            );
-            if (
-              mappingData &&
-              typeof mappingData === 'object' &&
-              'stateMapping' in mappingData
-            ) {
-              mappingTable = mappingData as {
-                stateMapping: Record<string, string>;
-              };
-            } else {
-              throw new Error(
-                'Mapping file must contain a "stateMapping" object',
-              );
-            }
-          } catch (error) {
-            throw new Error(
-              `Failed to read mapping file: ${errorFunction(error)}`,
-              { cause: error },
-            );
-          }
-        }
-
-        let parsedNewValue = newValue;
-        if (newValue) {
-          try {
-            parsedNewValue = JSON.parse(newValue);
-          } catch {
-            parsedNewValue = newValue;
-          }
-        }
-
-        const target = resourceName(resource);
-        await this.ws?.changes.apply({
-          kind: 'edit',
-          target,
-          updateKey: parseUpdateKey(key),
-          operation: buildOperation(
-            operation as UpdateOperations,
-            parsedValue,
-            parsedNewValue,
-            mappingTable,
-          ),
-        });
-
-        // Dropping or replacing a custom field leaves the cards' values in
-        // place; only those two operations can create something to clean.
-        if (
-          target.type === 'cardTypes' &&
-          key === 'customFields' &&
-          (operation === 'remove' || operation === 'change')
-        ) {
-          return {
-            statusCode: 200,
-            note: await this.cleanRecommendation(resourceNameToString(target)),
-          };
-        }
       } else if (command === Cmd.updateModules) {
         const [module, targetVersion] = args;
         if (!module && targetVersion) {
@@ -526,15 +392,6 @@ export class Commands {
     return isProjectPath(path) ? path : '';
   }
 
-  // Adds a hub to the project.
-  private async addHub(name: string) {
-    await this.ws?.createCmd.addHubLocation(name);
-    return {
-      statusCode: 200,
-      message: `Hub '${name}' was added to the project`,
-    };
-  }
-
   // Bumps project version in cardsConfig.json.
   private async version(args: string[]): Promise<requestStatus> {
     if (!this.ws) {
@@ -559,10 +416,8 @@ export class Commands {
   // An operation that stranded nothing still reports whatever was dormant
   // before it, so the note states what the project holds and never claims the
   // operation caused it.
-  private async cleanRecommendation(
-    cardType?: string,
-  ): Promise<string | undefined> {
-    const dormant = await this.ws?.clean.dormantSummary(cardType);
+  private async cleanRecommendation(): Promise<string | undefined> {
+    const dormant = await this.ws?.clean.dormantSummary();
     if (!dormant) {
       return undefined;
     }
@@ -702,37 +557,10 @@ export class Commands {
       | ModuleContent
       | ModuleInfo[]
       | ModuleSettingFromHub[]
-      | ProjectMetadata
-      | AnyResourceContent
-      | string[]
       | undefined
     >;
 
     switch (type) {
-      case 'calculation':
-      case 'cardType':
-      case 'fieldType':
-      case 'graphView':
-      case 'graphModel':
-      case 'linkType':
-      case 'report':
-      case 'skill':
-      case 'template':
-      case 'workflow':
-        promise = this.ws!.showCmd.showResource(detail, options.showUse);
-        break;
-      case 'calculations':
-      case 'cardTypes':
-      case 'fieldTypes':
-      case 'graphModels':
-      case 'graphViews':
-      case 'linkTypes':
-      case 'reports':
-      case 'skills':
-      case 'templates':
-      case 'workflows':
-        promise = this.ws!.showCmd.showResources(type);
-        break;
       case 'importableModules':
         // The show commands read cached hub data; on the command line a stale
         // listing is never what the user asked for, so refresh it first.
@@ -753,9 +581,6 @@ export class Commands {
         break;
       case 'modules':
         promise = this.ws!.modulesCmd.list();
-        break;
-      case 'project':
-        promise = this.ws!.showCmd.showProject();
         break;
       case 'attachment': // fallthrough - not implemented yet
       case 'link': // fallthrough - not implemented yet
@@ -791,50 +616,4 @@ export class Commands {
       message: result.length ? result : 'Project structure validated',
     };
   }
-}
-
-// Builds the discriminated update operation from the CLI's flat
-// (operation, value, newValue) arguments. A 'change' without newValue sets a
-// scalar: 'to' carries the value and 'target' is unused.
-function buildOperation(
-  operation: UpdateOperations,
-  value: unknown,
-  newValue: unknown,
-  mappingTable?: { stateMapping: Record<string, string> },
-): Operation<unknown> {
-  switch (operation) {
-    case 'add':
-      return { name: 'add', target: value };
-    case 'change':
-      return {
-        name: 'change',
-        target: newValue ? value : undefined,
-        to: newValue ? newValue : value,
-        ...(mappingTable && { mappingTable }),
-      };
-    case 'rank':
-      return { name: 'rank', target: value, newIndex: newValue as number };
-    case 'remove':
-      return {
-        name: 'remove',
-        target: value,
-        replacementValue: newValue ? newValue : undefined,
-      };
-  }
-}
-
-function parseUpdateKey(key: string): UpdateKey {
-  const splitKey = key.split('/');
-  if (splitKey.length !== 1 && splitKey.length !== 2) {
-    throw new Error(
-      `Invalid key format: ${key}. Use 'property' or 'content/<property>'.`,
-    );
-  }
-  if (splitKey.length === 2 && splitKey[0] !== 'content') {
-    throw new Error(
-      `Invalid key format: ${key}. When using 'content', always use as 'content/<property>'.`,
-    );
-  }
-  const [parsedKey, subKey] = splitKey;
-  return subKey === undefined ? { key: parsedKey } : { key: 'content', subKey };
 }

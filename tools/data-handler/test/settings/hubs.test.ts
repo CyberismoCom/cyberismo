@@ -99,7 +99,7 @@ describe('adding a hub', () => {
   ])('stores %s as a directory URL', async (_name, location, stored) => {
     const { ws, path } = await open({});
 
-    await ws.createCmd.addHubLocation(location);
+    await ws.settings.hubs.add(location);
 
     expect(configured(path)).toEqual([stored]);
     expect(await hubs(ws)).toEqual([{ location: stored }]);
@@ -132,11 +132,7 @@ describe('adding a hub', () => {
     ])('when it is %s', async (_name, location, error) => {
       const { ws, path } = await open({ hubs: [{ location: hubA }] });
 
-      await expectRefused(
-        path,
-        () => ws.createCmd.addHubLocation(location),
-        error,
-      );
+      await expectRefused(path, () => ws.settings.hubs.add(location), error);
     });
   });
 
@@ -147,7 +143,7 @@ describe('adding a hub', () => {
 
     await expectRefused(
       path,
-      () => ws.createCmd.addHubLocation('https://old.example.com/hub'),
+      () => ws.settings.hubs.add('https://old.example.com/hub'),
       /already exists as a hub/,
     );
   });
@@ -155,7 +151,7 @@ describe('adding a hub', () => {
   it('is one commit under autocommit', async () => {
     const { ws, path } = await open({ git: true }, { autocommit: true });
 
-    await ws.createCmd.addHubLocation(hubA);
+    await ws.settings.hubs.add(hubA);
 
     expect(
       (
@@ -168,6 +164,23 @@ describe('adding a hub', () => {
 });
 
 describe('removing a hub', () => {
+  it('is one commit under autocommit', async () => {
+    const { ws, path } = await open(
+      { git: true, hubs: [{ location: hubA }] },
+      { autocommit: true },
+    );
+
+    await ws.settings.hubs.remove(hubA);
+
+    expect(
+      (
+        await promisify(execFile)('git', ['log', '-1', '--format=%s'], {
+          cwd: path,
+        })
+      ).stdout.trim(),
+    ).toBe(`Remove hub ${hubA}`);
+  });
+
   it.each([
     ['its stored location', hubA],
     ['its location without the slash', 'https://a.example.com/hub'],
@@ -176,7 +189,7 @@ describe('removing a hub', () => {
       hubs: [{ location: hubA }, { location: hubB }],
     });
 
-    await ws.removeCmd.remove('hub', name);
+    await ws.settings.hubs.remove(name);
 
     expect(configured(path)).toEqual([hubB]);
   });
@@ -186,7 +199,7 @@ describe('removing a hub', () => {
       hubs: [{ location: 'https://old.example.com/hub' }],
     });
 
-    await ws.removeCmd.remove('hub', 'https://old.example.com/hub/');
+    await ws.settings.hubs.remove('https://old.example.com/hub/');
 
     expect(configured(path)).toEqual([]);
   });
@@ -196,7 +209,7 @@ describe('removing a hub', () => {
 
     await expectRefused(
       path,
-      () => ws.removeCmd.remove('hub', hubB),
+      () => ws.settings.hubs.remove(hubB),
       /not part of the project/,
     );
   });
@@ -207,7 +220,7 @@ describe('removing a hub', () => {
     });
     cache(path, { [hubA]: ['one', 'shared'], [hubB]: ['two', 'shared'] });
 
-    await ws.removeCmd.remove('hub', hubA);
+    await ws.settings.hubs.remove(hubA);
 
     expect(cachedModules(path)).toEqual(['two', 'shared']);
     expect(
@@ -222,7 +235,7 @@ describe('removing a hub', () => {
   it('works when no module list has been cached', async () => {
     const { ws, path } = await open({ hubs: [{ location: hubA }] });
 
-    await ws.removeCmd.remove('hub', hubA);
+    await ws.settings.hubs.remove(hubA);
 
     expect(configured(path)).toEqual([]);
   });

@@ -16,14 +16,27 @@ import { type Command } from 'commander';
 import { DEFAULT_HUB } from '@cyberismo/assets';
 import {
   Cmd,
+  removeResource,
   type CommandOptions,
   type Workspace,
 } from '@cyberismo/data-handler';
 
-import { CommandWithPath, ResourceTypeParser as Parser } from '../lib/args.js';
+import {
+  CommandWithPath,
+  commandTarget,
+  commandType,
+  ResourceTypeParser as Parser,
+  Resources,
+} from '../lib/args.js';
 import { commandHandler, program } from '../lib/dispatch.js';
 import { onProject } from '../lib/errors.js';
-import { deprecationNote, handleResponse, printResult } from '../lib/output.js';
+import {
+  cleanNote,
+  deprecationNote,
+  handleResponse,
+  printResult,
+  printResultWithNote,
+} from '../lib/output.js';
 
 const additionalHelpForRemove = `Sub-command help:
   remove attachment <cardKey> <filename>, where
@@ -147,6 +160,28 @@ export async function removeAction(
       return;
     }
 
+    const commandOptions = Object.assign({}, options, program.opts());
+    if (type === 'hub') {
+      await onProject(commandOptions, (ws) =>
+        ws.settings.hubs.remove(parameter1!),
+      );
+      printResult();
+      return;
+    }
+    const removed = commandType(type);
+    if (Resources.includes(removed)) {
+      const note = await onProject(commandOptions, async (ws) => {
+        await removeResource(ws, removed, commandTarget(type, parameter1!));
+        // Card types stop declaring a deleted field type, so the values its
+        // cards stored are left in place; nothing else removed here can strand
+        // a value that 'clean' would find.
+        return removed === 'fieldType' ? cleanNote(ws) : undefined;
+      });
+      printResultWithNote(note);
+      return;
+    }
+
+    // Modules and unknown types.
     const result = await commandHandler.command(
       Cmd.remove,
       [type, parameter1!, parameter2!, parameter3!],
