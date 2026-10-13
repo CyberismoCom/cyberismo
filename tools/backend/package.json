@@ -29,6 +29,7 @@
     "@cyberismo/assets": "workspace:*",
     "@cyberismo/data-handler": "workspace:*",
     "@cyberismo/mcp": "workspace:*",
+    "@cyberismo/model": "workspace:*",
     "@hono/mcp": "^0.3.2",
     "@hono/node-server": "^2.1.1",
     "@hono/zod-validator": "^0.9.1",
