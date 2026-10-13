@@ -18,6 +18,7 @@ import { resourceName, resourceNameToString } from '../utils/resource-utils.js';
 import { sortCards } from '../utils/card-utils.js';
 import { removeValue } from '../utils/common-utils.js';
 import { Validate } from '../commands/validate.js';
+import { ResourceNotFoundError } from '../exceptions/index.js';
 
 import type {
   Operation,
@@ -146,7 +147,8 @@ export class CardTypeResource extends FileResource<CardType> {
     // Check that field type exists in the project.
     const exists = await this.fieldTypeExists(field);
     if (!exists) {
-      throw new Error(
+      throw new ResourceNotFoundError(
+        field.name,
         `Field type '${field.name}' does not exist in the project`,
       );
     }
@@ -182,7 +184,8 @@ export class CardTypeResource extends FileResource<CardType> {
       .byType(workflowName, 'workflows')
       .show();
     if (!workflow) {
-      throw new Error(
+      throw new ResourceNotFoundError(
+        workflowName,
         `Workflow '${workflowName}' does not exist in the project`,
       );
     }

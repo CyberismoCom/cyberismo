@@ -14,8 +14,11 @@
 // Type test: checked by `tsc -p tsconfig.types.json`, never run.
 // Every façade method takes and returns only JSON-serialisable data
 // (Uint8Array allowed for bytes): no functions, class instances or Dates.
+// `unknown` is trusted as an untyped JSON payload (an edit's value); `any` is not.
 
 import type { Cards } from '../../src/cards/cards.js';
+import type { Changes } from '../../src/workspace/changes.js';
+import type { Resources } from '../../src/workspace/resources.js';
 import type { Settings } from '../../src/workspace/settings.js';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -25,17 +28,21 @@ type AnyFunction = (...args: any[]) => unknown;
 // (a card's childrenCards) is trusted below the depth D counts down from.
 type Check<T, D extends unknown[] = []> = D['length'] extends 6
   ? true
-  : T extends string | number | bigint | boolean | null | undefined | void
-    ? true
-    : T extends Uint8Array
+  : 0 extends 1 & T
+    ? false
+    : unknown extends T
       ? true
-      : T extends AnyFunction
-        ? false
-        : T extends readonly (infer U)[]
-          ? Check<U, [...D, 0]>
-          : T extends object
-            ? { [K in keyof T]-?: Check<T[K], [...D, 0]> }[keyof T]
-            : false;
+      : T extends string | number | bigint | boolean | null | undefined | void
+        ? true
+        : T extends Uint8Array
+          ? true
+          : T extends AnyFunction
+            ? false
+            : T extends readonly (infer U)[]
+              ? Check<U, [...D, 0]>
+              : T extends object
+                ? { [K in keyof T]-?: Check<T[K], [...D, 0]> }[keyof T]
+                : false;
 
 export type Serializable<T> = false extends Check<T> ? false : true;
 
@@ -62,7 +69,9 @@ export const rejects: [
   Serializable<{ at: Date }>,
   Serializable<() => void>,
   Serializable<Map<string, string>>,
-] = [false, false, false];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  Serializable<any>,
+] = [false, false, false, false];
 
 export const cards: FacadeSerializable<Cards> = {
   move: true,
@@ -109,4 +118,15 @@ export const settings: FacadeSerializable<Settings> &
   setDescription: true,
   setCategory: true,
   setGitRemoteUrl: true,
+};
+
+export const changes: FacadeSerializable<Changes> &
+  PropertiesSerializable<Changes> = {
+  actor: true,
+  identity: true,
+  apply: true,
+};
+
+export const resources: FacadeSerializable<Resources> = {
+  create: true,
 };

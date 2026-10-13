@@ -13,5 +13,5 @@
 
 import type { Workspace } from '@cyberismo/data-handler';
 export async function createGraphView(ws: Workspace, graphViewName: string) {
-  await ws.createCmd.createGraphView(graphViewName);
+  await ws.resources.create(graphViewName, 'graphViews', {});
 }

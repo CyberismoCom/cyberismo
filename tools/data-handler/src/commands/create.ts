@@ -22,7 +22,7 @@ import { pathExists } from '../utils/file-utils.js';
 import { Checkout } from '../containers/project.js';
 import { Validate } from './validate.js';
 
-import type { DataType, ProjectFile } from '@cyberismo/model';
+import type { ProjectFile } from '@cyberismo/model';
 import { write } from '../utils/rw-lock.js';
 import { writeJsonFile } from '../utils/json.js';
 import { getChildLogger } from '../utils/log-utils.js';
@@ -80,70 +80,6 @@ export class Create {
   @write((hubUrl) => `Add hub ${hubUrl}`)
   public async addHubLocation(hubUrl: string) {
     return this.checkout.configuration.addHub(hubUrl);
-  }
-
-  /**
-   * Creates a calculation resource.
-   * @param calculationName name for the calculation resource
-   */
-  @write((calculationName) => `Create calculation ${calculationName}`)
-  public async createCalculation(calculationName: string) {
-    return this.checkout.resources
-      .byType(calculationName, 'calculations')
-      .create();
-  }
-
-  /**
-   * Creates a card type.
-   * @param cardTypeName name for the card type.
-   * @param workflowName workflow name to use in the card type.
-   */
-  @write((cardTypeName) => `Create card type ${cardTypeName}`)
-  public async createCardType(cardTypeName: string, workflowName: string) {
-    return this.checkout.resources
-      .byType(cardTypeName, 'cardTypes')
-      .createCardType(workflowName);
-  }
-
-  /**
-   * Creates a new field type.
-   * @param fieldTypeName name for the field type.
-   * @param dataType data type for the field type
-   */
-  @write((fieldTypeName) => `Create field type ${fieldTypeName}`)
-  public async createFieldType(fieldTypeName: string, dataType: DataType) {
-    return this.checkout.resources
-      .byType(fieldTypeName, 'fieldTypes')
-      .createFieldType(dataType);
-  }
-
-  /**
-   * Creates a new graph model.
-   * @param graphModelName name for the graph model.
-   */
-  @write((graphModelName) => `Create graph model ${graphModelName}`)
-  public async createGraphModel(graphModelName: string) {
-    return this.checkout.resources
-      .byType(graphModelName, 'graphModels')
-      .create();
-  }
-
-  /**
-   * Creates a new graph view.
-   * @param graphViewName name for the graph view.
-   */
-  @write((graphViewName) => `Create graph view ${graphViewName}`)
-  public async createGraphView(graphViewName: string) {
-    return this.checkout.resources.byType(graphViewName, 'graphViews').create();
-  }
-
-  /**
-   * Creates a new link type.
-   * @param linkTypeName name for the link type.
-   */
-  @write((linkTypeName) => `Create link type ${linkTypeName}`)
-  public async createLinkType(linkTypeName: string) {
-    return this.checkout.resources.byType(linkTypeName, 'linkTypes').create();
   }
 
   /**
@@ -313,47 +249,5 @@ export class Create {
     }
 
     return finalPath;
-  }
-
-  /**
-   * Creates a report
-   * @param name name of the report
-   */
-  @write((name) => `Create report ${name}`)
-  public async createReport(name: string) {
-    return this.checkout.resources.byType(name, 'reports').createReport();
-  }
-
-  /**
-   * Creates a skill
-   * @param name name of the skill
-   */
-  @write((name) => `Create skill ${name}`)
-  public async createSkill(name: string) {
-    return this.checkout.resources.byType(name, 'skills').createSkill();
-  }
-
-  /**
-   * Creates a new template to a project.
-   * @param templateName Name of the template.
-   * @param templateContent JSON content for the template file.
-   */
-  @write((templateName) => `Create template ${templateName}`)
-  public async createTemplate(templateName: string, templateContent: string) {
-    return this.checkout.resources
-      .byType(templateName, 'templates')
-      .create(templateContent ? JSON.parse(templateContent) : undefined);
-  }
-
-  /**
-   * Creates a workflow.
-   * @param workflowName workflow name
-   * @param workflowContent workflow content JSON
-   */
-  @write((workflowName) => `Create workflow ${workflowName}`)
-  public async createWorkflow(workflowName: string, workflowContent: string) {
-    return this.checkout.resources
-      .byType(workflowName, 'workflows')
-      .create(workflowContent ? JSON.parse(workflowContent) : undefined);
   }
 }

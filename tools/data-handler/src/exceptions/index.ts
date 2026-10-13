@@ -190,8 +190,11 @@ export class PermissionDeniedError extends DomainError {
  */
 export class ResourceNotFoundError extends DomainError {
   readonly code = 'not-found';
-  constructor(public readonly resourceName: string) {
-    super(`Resource '${resourceName}' does not exist in the project`);
+  constructor(
+    public readonly resourceName: string,
+    message = `Resource '${resourceName}' does not exist in the project`,
+  ) {
+    super(message);
     this.name = 'ResourceNotFoundError';
     this.details = { resourceName };
   }

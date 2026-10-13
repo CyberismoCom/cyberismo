@@ -32,7 +32,7 @@ describe('FieldType mutation engine end-to-end', () => {
     await checkout.resources
       .byType(name, 'fieldTypes')
       .createFieldType('shortText');
-    await Workspace.over(checkout, SYSTEM_ACTOR).updateCmd.apply({
+    await Workspace.over(checkout, SYSTEM_ACTOR).changes.apply({
       kind: 'delete',
       target: resourceName(name),
     });
@@ -54,7 +54,7 @@ describe('FieldType mutation engine end-to-end', () => {
       .byType(name, 'fieldTypes')
       .createFieldType('shortText');
     const target = resourceName(name);
-    await Workspace.over(checkout, SYSTEM_ACTOR).updateCmd.apply({
+    await Workspace.over(checkout, SYSTEM_ACTOR).changes.apply({
       kind: 'rename',
       target,
       newIdentifier: 'spareRenamed',
@@ -72,7 +72,7 @@ describe('FieldType mutation engine end-to-end', () => {
     const target = resourceName(
       `${checkout.projectPrefix}/fieldTypes/finished`,
     );
-    await Workspace.over(checkout, SYSTEM_ACTOR).updateCmd.apply({
+    await Workspace.over(checkout, SYSTEM_ACTOR).changes.apply({
       kind: 'edit',
       target,
       updateKey: { key: 'dataType' },
@@ -93,7 +93,7 @@ describe('FieldType mutation engine end-to-end', () => {
     // 'finished' is referenced by the decision card type's customFields.
     const name = `${checkout.projectPrefix}/fieldTypes/finished`;
     const cardTypeName = `${checkout.projectPrefix}/cardTypes/decision`;
-    await Workspace.over(checkout, SYSTEM_ACTOR).updateCmd.apply({
+    await Workspace.over(checkout, SYSTEM_ACTOR).changes.apply({
       kind: 'delete',
       target: resourceName(name),
     });
@@ -147,7 +147,7 @@ describe('FieldType mutation engine end-to-end', () => {
       card.metadata![fieldName] = 'low';
       await updateCardMetadata(freshProject, card, card.metadata!);
     }
-    await Workspace.over(freshProject, SYSTEM_ACTOR).updateCmd.apply({
+    await Workspace.over(freshProject, SYSTEM_ACTOR).changes.apply({
       kind: 'edit',
       target: resourceName(fieldName),
       updateKey: { key: 'enumValues' },
@@ -192,7 +192,7 @@ describe('FieldType mutation engine end-to-end', () => {
     );
     const freshProject = getTestProject(decisionRecordsPath);
     await freshProject.populateCaches();
-    await Workspace.over(freshProject, SYSTEM_ACTOR).updateCmd.apply({
+    await Workspace.over(freshProject, SYSTEM_ACTOR).changes.apply({
       kind: 'edit',
       target: resourceName(`${freshProject.projectPrefix}/fieldTypes/testEnum`),
       updateKey: { key: 'enumValues' },
@@ -204,7 +204,7 @@ describe('FieldType mutation engine end-to-end', () => {
   });
 
   it('display-only changes route to the plain handler (no log entry)', async () => {
-    await Workspace.over(checkout, SYSTEM_ACTOR).updateCmd.apply({
+    await Workspace.over(checkout, SYSTEM_ACTOR).changes.apply({
       kind: 'edit',
       target: resourceName(`${checkout.projectPrefix}/fieldTypes/finished`),
       updateKey: { key: 'displayName' },

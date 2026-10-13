@@ -27,5 +27,5 @@ export async function getLinkTypes(ws: Workspace) {
 }
 
 export async function createLinkType(ws: Workspace, linkTypeName: string) {
-  await ws.createCmd.createLinkType(linkTypeName);
+  await ws.resources.create(linkTypeName, 'linkTypes', {});
 }

@@ -25,6 +25,7 @@ import {
   moduleNameFromCardKey,
   resourceName,
   resourceNameToString,
+  ResourceNotFoundError,
 } from '@cyberismo/data-handler';
 import type { ResourceParams } from '../../common/validationSchemas.js';
 import type {
@@ -492,7 +493,7 @@ export async function getWorkflowGraph(
     try {
       await ws.showCmd.showResource(workflowName, 'workflows');
     } catch (error) {
-      if (error instanceof Error && error.message.includes('does not exist')) {
+      if (error instanceof ResourceNotFoundError) {
         throw new Error(`Workflow '${workflowName}' not found`, {
           cause: error,
         });
@@ -539,7 +540,7 @@ export async function previewSkill(
     try {
       await ws.showCmd.showResource(skillName, 'skills');
     } catch (error) {
-      if (error instanceof Error && error.message.includes('does not exist')) {
+      if (error instanceof ResourceNotFoundError) {
         throw new Error(`Skill '${skillName}' not found`, { cause: error });
       }
       throw error;
@@ -574,7 +575,7 @@ export async function updateResourceWithOperation(
   const { updateKey, operation } = body;
   await ws.atomic(
     () =>
-      ws.updateCmd.apply({
+      ws.changes.apply({
         kind: 'edit',
         target: resource,
         updateKey,

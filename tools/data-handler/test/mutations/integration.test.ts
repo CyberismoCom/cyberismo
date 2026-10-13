@@ -29,7 +29,7 @@ describe('mutation engine end-to-end', () => {
       newIdentifier: 'is-caused-by',
     };
 
-    await Workspace.over(checkout, SYSTEM_ACTOR).updateCmd.apply(input);
+    await Workspace.over(checkout, SYSTEM_ACTOR).changes.apply(input);
 
     // The cascade ran: every card link that referenced the old name now
     // points at the new name.
