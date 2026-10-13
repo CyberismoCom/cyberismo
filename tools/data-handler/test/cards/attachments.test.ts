@@ -65,7 +65,7 @@ describe('card attachments', () => {
     const source = join(path, 'note.txt'); // inside the project's tmp dir, cleaned with it
     writeFileSync(source, 'from disk');
 
-    await ws.cards.addAttachment(keys[0], source);
+    await ws.cards.addAttachment(keys[0], source, readFileSync(source));
 
     expect(
       readFileSync(join(path, 'cardRoot', keys[0], 'a', 'note.txt'), 'utf-8'),
@@ -124,11 +124,6 @@ describe('card attachments', () => {
       'adding a name the card has',
       (c, k) => c.addAttachment(k, 'a.txt', text('x')),
       /a\.txt/,
-    ],
-    [
-      'adding a file that does not exist',
-      (c, k) => c.addAttachment(k, '/nowhere/x.txt'),
-      /x\.txt|ENOENT/,
     ],
     [
       'adding to an imported template card',

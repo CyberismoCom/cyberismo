@@ -18,14 +18,14 @@ import { errorFunction } from '../utils/error-utils.js';
  * Creates an attachment for a card.
  * @param cardKey The card to add attachment to
  * @param attachmentName The name for the attachment file
- * @param attachmentData The attachment data (file path or buffer)
- * @throws If trying to add attachment to module card, or if attachment is not found
+ * @param attachmentData The attachment data
+ * @throws If trying to add attachment to module card, or if the card already has it
  */
 export async function createCardAttachment(
   checkout: Checkout,
   cardKey: string,
   attachmentName: string,
-  attachmentData: string | Buffer,
+  attachmentData: Buffer,
 ): Promise<void> {
   await checkout
     .treeOf(cardKey)
@@ -67,22 +67,17 @@ export async function renameCardAttachment(
 /**
  * Adds an attachment to a card.
  * @param cardKey card ID
- * @param attachment path to an attachment file or attachment name if buffer is defined
- * @param buffer (Optional) attachment buffer
+ * @param attachment attachment name; its base name names the file
+ * @param buffer attachment data
  */
 export async function addAttachment(
   checkout: Checkout,
   cardKey: string,
   attachment: string,
-  buffer?: Buffer,
+  buffer: Buffer,
 ) {
   try {
-    await createCardAttachment(
-      checkout,
-      cardKey,
-      attachment,
-      buffer || attachment,
-    );
+    await createCardAttachment(checkout, cardKey, attachment, buffer);
   } catch (error) {
     throw new Error(errorFunction(error), { cause: error });
   }
