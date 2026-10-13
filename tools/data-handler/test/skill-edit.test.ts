@@ -24,7 +24,7 @@ describe('edit skill', () => {
     ws = await openTestWorkspace(projectPath, {
       autoSaveConfiguration: false,
     });
-    await ws.createCmd.createSkill(SKILL);
+    await ws.resources.create(SKILL, 'skills', {});
   });
 
   afterEach(() => {
@@ -39,7 +39,7 @@ describe('edit skill', () => {
   }
 
   async function edit(operation: Operation<string>) {
-    await ws.updateCmd.apply({
+    await ws.changes.apply({
       kind: 'edit',
       target: resourceName(SKILL),
       updateKey: { key: 'relatedTools' },

@@ -40,7 +40,7 @@ describe('LinkType delete end-to-end', () => {
       );
     expect(linksBefore).toBeGreaterThan(0);
 
-    await Workspace.over(checkout, SYSTEM_ACTOR).updateCmd.apply(input);
+    await Workspace.over(checkout, SYSTEM_ACTOR).changes.apply(input);
 
     // Cards no longer reference the deleted link type.
     for (const c of checkout.cardTree.cards()) {

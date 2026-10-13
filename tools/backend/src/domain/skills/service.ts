@@ -14,5 +14,5 @@
 import type { Workspace } from '@cyberismo/data-handler';
 
 export async function createSkill(ws: Workspace, skillName: string) {
-  await ws.createCmd.createSkill(skillName);
+  await ws.resources.create(skillName, 'skills', {});
 }

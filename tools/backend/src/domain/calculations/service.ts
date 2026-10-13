@@ -24,7 +24,7 @@ function capitalize(str: string): string {
 
 export async function createCalculation(ws: Workspace, identifier: string) {
   await ws.atomic(async () => {
-    await ws.createCmd.createCalculation(identifier);
+    await ws.resources.create(identifier, 'calculations', {});
 
     // Set displayName to capitalized version of identifier
     const project = await ws.showCmd.showProject();
