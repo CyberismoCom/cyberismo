@@ -449,9 +449,7 @@ export async function validateResource(
   ws: Workspace,
   resource: ValidateResourceParams,
 ) {
-  const errors = await ws.consistent(() =>
-    ws.validateCmd.validateResource(resource, ws.checkout),
-  );
+  const errors = await ws.resources.validate(resource);
 
   return {
     errors: errors.split('\n\n').filter((error) => error !== ''),
