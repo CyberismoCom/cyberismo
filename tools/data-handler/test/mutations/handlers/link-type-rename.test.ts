@@ -3,10 +3,11 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 
 import { Checkout } from '../../../src/containers/project.js';
-import { ResourceMutations } from '../../../src/mutations/resource-mutations.js';
 import { resourceName } from '../../../src/utils/resource-utils.js';
 import { copyDir, deleteDir } from '../../../src/utils/file-utils.js';
 import { createLinkSeededProject } from '../helpers.js';
+import { Workspace } from '../../../src/workspace/workspace.js';
+import { SYSTEM_ACTOR } from '../../../src/utils/tx-record.js';
 
 const tmpDir = join(import.meta.dirname, 'tmp-link-type-rename');
 
@@ -21,7 +22,7 @@ describe('LinkTypeRenameHandler', () => {
   });
 
   it('applying rewrites every card that referenced the old link type', async () => {
-    await new ResourceMutations(checkout).apply({
+    await Workspace.over(checkout, SYSTEM_ACTOR).updateCmd.apply({
       kind: 'rename' as const,
       target: resourceName(`${checkout.projectPrefix}/linkTypes/test`),
       newIdentifier: 'is-caused-by',
@@ -104,7 +105,7 @@ describe('LinkTypeRenameHandler module scope', () => {
   });
 
   it('leaves module template card links untouched by the cascade', async () => {
-    await new ResourceMutations(checkout).apply({
+    await Workspace.over(checkout, SYSTEM_ACTOR).updateCmd.apply({
       kind: 'rename' as const,
       target: resourceName(`${checkout.projectPrefix}/linkTypes/test`),
       newIdentifier: 'is-caused-by',

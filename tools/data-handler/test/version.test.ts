@@ -14,11 +14,13 @@ import sinon from 'sinon';
 import { GitManager } from '../src/utils/git-manager.js';
 import { pathExists } from '../src/utils/file-utils.js';
 import { RWLock } from '../src/utils/rw-lock.js';
-import { Version } from '../src/commands/version.js';
+import type { Version } from '../src/commands/version.js';
 import { ConfigurationLogger } from '../src/utils/configuration-logger.js';
 import type { ConfigurationOperation } from '../src/utils/configuration-logger.js';
 import { getCommitContext } from '../src/utils/commit-context.js';
 import type { Checkout } from '../src/containers/project.js';
+import { Workspace } from '../src/workspace/workspace.js';
+import { SYSTEM_ACTOR } from '../src/utils/tx-record.js';
 
 function makeConfiguration(configPath: string, initialVersion?: string) {
   return {
@@ -78,7 +80,7 @@ describe('Version', () => {
       configuration,
     } as unknown as Checkout;
 
-    versionCmd = new Version(checkout);
+    versionCmd = Workspace.over(checkout, SYSTEM_ACTOR).versionCmd;
   });
 
   afterEach(async () => {

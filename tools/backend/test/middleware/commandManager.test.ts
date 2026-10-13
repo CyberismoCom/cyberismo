@@ -107,9 +107,9 @@ describe('attachProjectRegistry', () => {
     return new ProjectRegistry(
       entries.map(({ prefix }) => ({
         prefix,
-        ws: mockCommands({
+        checkout: mockCommands({
           checkout: { basePath: `/tmp/${prefix}` },
-        } as Partial<Workspace>),
+        } as Partial<Workspace>).checkout,
       })),
     );
   }

@@ -21,6 +21,7 @@ import type { CreateCommandOptions } from '../src/interfaces/command-options.js'
 import type { Card, CardListContainer } from '@cyberismo/model';
 import { Checkout } from '../src/containers/project.js';
 import { Validate } from '../src/commands/index.js';
+import { openTestWorkspace } from './helpers/open-test-workspace.js';
 
 // Create test artifacts in a temp folder.
 const baseDir = import.meta.dirname;
@@ -226,8 +227,7 @@ describe('create command', () => {
   it('card with parent returns root cards sorted first by rank', async () => {
     const parentCard = 'decision_5';
     const templateName = 'decision/templates/simplepage';
-    const ws = new Workspace(decisionRecordsPath, {});
-    await ws.initialize();
+    const ws = await openTestWorkspace(decisionRecordsPath, {});
     const createdCards = await ws.createCmd.createCard(
       templateName,
       parentCard,
@@ -1199,8 +1199,7 @@ describe('created cards and custom field values', () => {
   beforeAll(async () => {
     mkdirSync(testRoot, { recursive: true });
     await copyDir('test/test-data/', testRoot);
-    ws = new Workspace(projectPath, {});
-    await ws.initialize();
+    ws = await openTestWorkspace(projectPath, {});
   });
 
   afterAll(() => {

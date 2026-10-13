@@ -7,7 +7,8 @@ import { platform } from 'node:os';
 import semver from 'semver';
 
 import { copyDir } from '../src/utils/file-utils.js';
-import { Workspace } from '../src/workspace/workspace.js';
+import { type Workspace } from '../src/workspace/workspace.js';
+import { openTestWorkspace } from './helpers/open-test-workspace.js';
 
 const { satisfies } = semver;
 
@@ -21,8 +22,7 @@ describe('import command — live git', () => {
   beforeEach(async () => {
     mkdirSync(testDir, { recursive: true });
     await copyDir('test/test-data/', testDir);
-    ws = new Workspace(decisionRecordsPath, {});
-    await ws.initialize();
+    ws = await openTestWorkspace(decisionRecordsPath, {});
   });
 
   afterEach(() => {

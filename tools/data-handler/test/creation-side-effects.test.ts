@@ -7,12 +7,13 @@ import { join } from 'node:path';
 
 // cyberismo
 import { Cmd } from '../src/command-handler.js';
-import { Workspace } from '../src/workspace/workspace.js';
+import { type Workspace } from '../src/workspace/workspace.js';
 import { copyDir } from '../src/utils/file-utils.js';
 import {
   cardState,
   setupSideEffectProject,
 } from './helpers/side-effect-fixture.js';
+import { openTestWorkspace } from './helpers/open-test-workspace.js';
 
 const baseDir = import.meta.dirname;
 const testDir = join(baseDir, 'tmp-creation-side-effects-tests');
@@ -61,8 +62,10 @@ describe('creation query batching', () => {
   beforeAll(async () => {
     mkdirSync(batchingDir, { recursive: true });
     await copyDir('test/test-data', batchingDir);
-    ws = new Workspace(join(batchingDir, 'valid', 'decision-records'), {});
-    await ws.initialize();
+    ws = await openTestWorkspace(
+      join(batchingDir, 'valid', 'decision-records'),
+      {},
+    );
   });
 
   it('runs the creation query once for a batch of instantiated cards', async () => {

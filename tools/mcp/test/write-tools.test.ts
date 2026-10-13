@@ -24,12 +24,13 @@ import { promisify } from 'node:util';
 import { afterEach, beforeEach, describe, expect, test } from 'vitest';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
-import { resourceName, Workspace } from '@cyberismo/data-handler';
+import { resourceName, type Workspace } from '@cyberismo/data-handler';
 import { createMcpServer, singleProjectProvider } from '../src/server.js';
 import {
   buildProject,
   type BuiltProject,
 } from '../../data-handler/test/helpers/project-builder.js';
+import { openTestWorkspace } from './helpers/open-test-workspace.js';
 
 // Author of MCP autocommits today.
 const COMMIT_AUTHOR = 'Cyberismo Bot <bot@cyberismo.com>';
@@ -75,11 +76,12 @@ beforeEach(async () => {
     ],
   });
   [alpha, child, beta, gamma, labelled] = project.keys;
-  ws = new Workspace(project.path, { autocommit: true });
-  await ws.initialize();
+  ws = await openTestWorkspace(project.path, { autocommit: true });
   const [clientTransport, serverTransport] =
     InMemoryTransport.createLinkedPair();
-  await createMcpServer(singleProjectProvider(ws)).connect(serverTransport);
+  await createMcpServer(singleProjectProvider(ws.checkout)).connect(
+    serverTransport,
+  );
   client = new Client({ name: 'test-client', version: '1.0.0' });
   await client.connect(clientTransport);
 });

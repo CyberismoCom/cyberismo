@@ -7,7 +7,8 @@ import { copyDir } from '../../../src/utils/file-utils.js';
 import type { Checkout } from '../../../src/containers/project.js';
 import { getTestProject } from '../../helpers/test-utils.js';
 import { resourceName } from '../../../src/utils/resource-utils.js';
-import { ResourceMutations } from '../../../src/mutations/resource-mutations.js';
+import { Workspace } from '../../../src/workspace/workspace.js';
+import { SYSTEM_ACTOR } from '../../../src/utils/tx-record.js';
 
 const baseDir = import.meta.dirname;
 const testDir = join(baseDir, 'tmp-card-type-rename');
@@ -28,8 +29,7 @@ describe('CardTypeRenameHandler', () => {
   it('rewrites cardType in every affected card after apply', async () => {
     const oldName = `${checkout.projectPrefix}/cardTypes/decision`;
     const newName = `${checkout.projectPrefix}/cardTypes/choice`;
-    const mutations = new ResourceMutations(checkout);
-    await mutations.apply({
+    await Workspace.over(checkout, SYSTEM_ACTOR).updateCmd.apply({
       kind: 'rename' as const,
       target: resourceName(oldName),
       newIdentifier: 'choice',
@@ -45,8 +45,7 @@ describe('CardTypeRenameHandler', () => {
 
   it('rewrites occurrences in link-type sourceCardTypes/destinationCardTypes', async () => {
     const oldName = `${checkout.projectPrefix}/cardTypes/decision`;
-    const mutations = new ResourceMutations(checkout);
-    await mutations.apply({
+    await Workspace.over(checkout, SYSTEM_ACTOR).updateCmd.apply({
       kind: 'rename' as const,
       target: resourceName(oldName),
       newIdentifier: 'choice',
@@ -114,7 +113,7 @@ describe('CardTypeRenameHandler module scope', () => {
 
   it('rejects a module card-type rename before rewriting local card metadata', async () => {
     await expect(
-      new ResourceMutations(moduleProject).apply({
+      Workspace.over(moduleProject, SYSTEM_ACTOR).updateCmd.apply({
         kind: 'rename' as const,
         target: resourceName('mymod/cardTypes/dummy'),
         newIdentifier: 'renamed',

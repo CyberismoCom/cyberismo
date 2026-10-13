@@ -4,9 +4,10 @@ import { join } from 'node:path';
 import { mkdirSync, rmSync, readFileSync, writeFileSync } from 'node:fs';
 
 import { copyDir } from '../src/utils/file-utils.js';
-import { Workspace } from '../src/workspace/workspace.js';
+import { type Workspace } from '../src/workspace/workspace.js';
 import { Cmd, Commands } from '../src/command-handler.js';
 import { Clean } from '../src/commands/clean.js';
+import { openTestWorkspace } from './helpers/open-test-workspace.js';
 
 const GHOST = 'decision/fieldTypes/ghost';
 const OBSOLETED_BY = 'decision/fieldTypes/obsoletedBy';
@@ -21,8 +22,7 @@ describe('clean command', () => {
   beforeAll(async () => {
     mkdirSync(testDir, { recursive: true });
     await copyDir('test/test-data/', testDir);
-    ws = new Workspace(decisionRecordsPath, {});
-    await ws.initialize();
+    ws = await openTestWorkspace(decisionRecordsPath, {});
     cleanCmd = ws.cleanCmd;
   });
 
@@ -42,8 +42,7 @@ describe('clean command', () => {
     const projectPath = join(freshTestDir, 'valid/decision-records');
     prepare?.(projectPath);
 
-    const freshCommands = new Workspace(projectPath, {});
-    await freshCommands.initialize();
+    const freshCommands = await openTestWorkspace(projectPath, {});
     return { freshTestDir, freshCommands };
   }
 
@@ -263,8 +262,10 @@ describe('clean command', () => {
     const moduleTestDir = join(baseDir, 'tmp-clean-module');
     mkdirSync(moduleTestDir, { recursive: true });
     await copyDir('test/test-data/', moduleTestDir);
-    const importing = new Workspace(join(moduleTestDir, 'valid/minimal'), {});
-    await importing.initialize();
+    const importing = await openTestWorkspace(
+      join(moduleTestDir, 'valid/minimal'),
+      {},
+    );
     try {
       // The imported project's template card carries null placeholders.
       await importing.modulesCmd.install(

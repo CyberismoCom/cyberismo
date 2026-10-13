@@ -1,9 +1,9 @@
 import { expect, test, beforeAll, afterAll } from 'vitest';
-import { Workspace } from '@cyberismo/data-handler';
 import { createApp } from '../src/app.js';
 import { ProjectRegistry } from '../src/project-registry.js';
 import { MockAuthProvider, MOCK_ROLE_COOKIE } from '../src/auth/mock.js';
 import { cleanupTempTestData, createTempTestData } from './test-utils.js';
+import { openTestWorkspace } from './helpers/open-test-workspace.js';
 
 let app: ReturnType<typeof createApp>;
 let tempTestDataPath: string;
@@ -16,10 +16,10 @@ interface CardTypeResponse {
 
 beforeAll(async () => {
   tempTestDataPath = await createTempTestData('decision-records');
-  const ws = await Workspace.getInstance(tempTestDataPath);
+  const ws = await openTestWorkspace(tempTestDataPath);
   app = createApp(
     new MockAuthProvider(),
-    ProjectRegistry.fromCommandManager(ws),
+    ProjectRegistry.fromCheckout(ws.checkout),
   );
 });
 
