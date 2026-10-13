@@ -218,5 +218,5 @@ export async function cleanProject(
   ws: Workspace,
   dryRun: boolean,
 ): Promise<CleanResult> {
-  return ws.cleanCmd.clean(dryRun);
+  return ws.clean.run(dryRun);
 }

@@ -29,13 +29,13 @@ describe('clean command', () => {
   const testDir = join(baseDir, 'tmp-clean-tests');
   const decisionRecordsPath = join(testDir, 'valid/decision-records');
   let ws: Workspace;
-  let cleanCmd: Clean;
+  let clean: Clean;
 
   beforeAll(async () => {
     mkdirSync(testDir, { recursive: true });
     await copyDir('test/test-data/', testDir);
     ws = await openTestWorkspace(decisionRecordsPath, {});
-    cleanCmd = ws.cleanCmd;
+    clean = ws.clean;
   });
 
   afterAll(() => {
@@ -77,7 +77,7 @@ describe('clean command', () => {
       const file = join(card.path, 'index.json');
       const before = readFileSync(file, 'utf-8');
 
-      const result = await freshCommands.cleanCmd.clean(true);
+      const result = await freshCommands.clean.run(true);
 
       expect(result.dryRun).toBe(true);
       expect(result.findings.some((f) => f.reason === 'null-value')).toBe(true);
@@ -91,7 +91,7 @@ describe('clean command', () => {
     const { freshTestDir, freshCommands } =
       await freshProject('tmp-clean-nulls');
     try {
-      const result = await freshCommands.cleanCmd.clean(false);
+      const result = await freshCommands.clean.run(false);
 
       expect(result.findings.length).toBeGreaterThan(0);
       for (const card of freshCommands.checkout.cardTree.cards()) {
@@ -108,7 +108,7 @@ describe('clean command', () => {
   it('removes keys the card type does not declare', async () => {
     await storeValue(ws, 'decision_6', GHOST, 'stale');
 
-    const result = await cleanCmd.clean(false);
+    const result = await clean.run(false);
 
     expect(result.findings).toContainEqual({
       cardKey: 'decision_6',
@@ -123,7 +123,7 @@ describe('clean command', () => {
   it('removes stored values on calculated fields without override', async () => {
     await storeValue(ws, 'decision_6', OBSOLETED_BY, 'stale');
 
-    const result = await cleanCmd.clean(false);
+    const result = await clean.run(false);
 
     expect(result.findings).toContainEqual({
       cardKey: 'decision_6',
@@ -157,7 +157,7 @@ describe('clean command', () => {
       // A sibling removal proves the card really was visited and written.
       await storeValue(freshCommands, 'decision_6', GHOST, 'stale');
 
-      const result = await freshCommands.cleanCmd.clean(false);
+      const result = await freshCommands.clean.run(false);
 
       expect(result.skippedCards).not.toContain('decision_6');
       expect(result.findings).toContainEqual({
@@ -184,17 +184,17 @@ describe('clean command', () => {
       const afterWrite = vi.fn().mockResolvedValue(undefined);
       freshCommands.checkout.lock.onAfterWrite(afterWrite);
 
-      await freshCommands.cleanCmd.clean(true);
+      await freshCommands.clean.run(true);
       expect(afterWrite).not.toHaveBeenCalled();
 
       // A read lock is reentrant from a read context; a write lock throws.
       const nested = await freshCommands.checkout.lock.read(() =>
-        freshCommands.cleanCmd.clean(true),
+        freshCommands.clean.run(true),
       );
       expect(nested.findings.length).toBeGreaterThan(0);
       expect(afterWrite).not.toHaveBeenCalled();
 
-      await freshCommands.cleanCmd.clean(false);
+      await freshCommands.clean.run(false);
       expect(afterWrite).toHaveBeenCalled();
     } finally {
       rmSync(freshTestDir, { recursive: true, force: true });
@@ -219,7 +219,7 @@ describe('clean command', () => {
       const status = git('status', '--porcelain');
       expect(status).not.toBe('');
 
-      await handle.cleanCmd.clean(true);
+      await handle.clean.run(true);
 
       expect(git('rev-parse', 'HEAD')).toBe(head);
       expect(git('status', '--porcelain')).toBe(status);
@@ -249,7 +249,7 @@ describe('clean command', () => {
       );
       const before = readFileSync(cardFile, 'utf-8');
 
-      const result = await freshCommands.cleanCmd.clean(false);
+      const result = await freshCommands.clean.run(false);
 
       expect(result.skippedCards).toContain('decision_6');
       expect(result.findings.every((f) => f.cardKey !== 'decision_6')).toBe(
@@ -280,9 +280,9 @@ describe('clean command', () => {
       // Project cards are visited first, and decision_6 is the only one with
       // removals, so the single rejection lands on it.
       chmodSync(failingFile, 0o444);
-      let result: Awaited<ReturnType<Clean['clean']>>;
+      let result: Awaited<ReturnType<Clean['run']>>;
       try {
-        result = await freshCommands.cleanCmd.clean(false);
+        result = await freshCommands.clean.run(false);
       } finally {
         chmodSync(failingFile, 0o644);
       }
@@ -323,7 +323,7 @@ describe('clean command', () => {
       const before = moduleFiles.map((file) => readFileSync(file, 'utf-8'));
       expect(before.some((content) => content.includes('null'))).toBe(true);
 
-      const result = await importing.cleanCmd.clean(false);
+      const result = await importing.clean.run(false);
 
       const moduleKeys = moduleCards.map((card) => card.key);
       expect(
@@ -344,7 +344,7 @@ describe('clean command', () => {
       .at(0)!;
     await storeValue(ws, templateCard.key, GHOST, 'stale');
 
-    const result = await cleanCmd.clean(false);
+    const result = await clean.run(false);
 
     expect(result.findings).toContainEqual({
       cardKey: templateCard.key,
@@ -357,7 +357,7 @@ describe('clean command', () => {
   });
 
   it('never touches predefined fields', async () => {
-    await cleanCmd.clean(false);
+    await clean.run(false);
 
     const card = findCard(ws.checkout, 'decision_6');
     expect(card.metadata!.title).toBeDefined();
@@ -369,7 +369,7 @@ describe('clean command', () => {
     await storeValue(ws, 'decision_5', GHOST, 'stale');
     await storeValue(ws, 'decision_6', GHOST, 'stale');
 
-    const result = await cleanCmd.clean(true, 'decision/cardTypes/simplepage');
+    const result = await clean.run(true, 'decision/cardTypes/simplepage');
 
     expect(result.findings).toContainEqual({
       cardKey: 'decision_5',
@@ -594,7 +594,7 @@ describe('clean recommendation', () => {
     );
     try {
       const failingScan = vi
-        .spyOn(Clean.prototype, 'clean')
+        .spyOn(Clean.prototype, 'run')
         .mockRejectedValue(new Error('scan failed'));
 
       const result = await handler.command(

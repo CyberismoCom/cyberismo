@@ -58,12 +58,11 @@ import { pathExists, resolveTilde } from './utils/file-utils.js';
 import { ModuleRequestError } from './exceptions/index.js';
 import { errorFunction } from './utils/error-utils.js';
 import { readJsonFile } from './utils/json.js';
-import { getChildLogger } from './utils/log-utils.js';
 import { resourceName, resourceNameToString } from './utils/resource-utils.js';
 
 import { type Level } from 'pino';
 import { type Context, type QueryName } from '@cyberismo/model';
-import { validBumps, type BumpType } from './versions/version.js';
+import { type BumpType } from './versions/version.js';
 
 // Commands that this class supports.
 export const Cmd = {
@@ -564,26 +563,7 @@ export class Commands {
     }
 
     const [bumpType] = args;
-    if (!(validBumps as readonly string[]).includes(bumpType)) {
-      return {
-        statusCode: 400,
-        message: `Invalid bump type '${bumpType}'. Must be one of: ${validBumps.join(', ')}`,
-      };
-    }
-
-    // Validate project before versioning
-    const validation = await this.validate();
-    if (
-      validation.statusCode !== 200 ||
-      validation.message !== 'Project structure validated'
-    ) {
-      return {
-        statusCode: 400,
-        message: `Cannot version: project has validation errors.\n${validation.message}`,
-      };
-    }
-
-    const result = await this.ws.versionCmd.bumpVersion(bumpType as BumpType);
+    const result = await this.ws.versions.bump(bumpType as BumpType);
 
     const previousInfo = result.previousVersion
       ? ` (was v${result.previousVersion})`
@@ -597,34 +577,20 @@ export class Commands {
   // A recommendation when the project holds dormant field values, or undefined
   // when there is nothing to clean. Never fails the parent operation.
   //
-  // The scan reports the project (or card type), not the caller's change: it
-  // counts values that were already dormant, and an operation that stranded
-  // nothing still reports whatever was dormant before it. The note therefore
-  // states what the project holds and never claims the operation caused it.
+  // An operation that stranded nothing still reports whatever was dormant
+  // before it, so the note states what the project holds and never claims the
+  // operation caused it.
   private async cleanRecommendation(
     cardType?: string,
   ): Promise<string | undefined> {
-    if (!this.ws) {
+    const dormant = await this.ws?.clean.dormantSummary(cardType);
+    if (!dormant) {
       return undefined;
     }
-    try {
-      const result = await this.ws.cleanCmd.clean(true, cardType);
-      if (result.findings.length === 0) {
-        return undefined;
-      }
-      return (
-        `This project has ${result.findings.length} dormant field value(s) on ${result.cardCount} card(s) — ` +
-        `run 'cyberismo clean --dry-run' to list them, 'cyberismo clean' to remove them`
-      );
-    } catch (error) {
-      // The logger is initialized while the project loads, so the child logger
-      // is taken here rather than at module scope.
-      getChildLogger({ module: 'command-handler' }).warn(
-        error,
-        'Could not scan for dormant field values',
-      );
-      return undefined;
-    }
+    return (
+      `This project has ${dormant.valueCount} dormant field value(s) on ${dormant.cardCount} card(s) — ` +
+      `run 'cyberismo clean --dry-run' to list them, 'cyberismo clean' to remove them`
+    );
   }
 
   // Removes field values that are not used by card types.
@@ -636,7 +602,7 @@ export class Commands {
     const [dryRunFlag] = args;
     const dryRun = dryRunFlag === 'true';
 
-    const result = await this.ws.cleanCmd.clean(dryRun);
+    const result = await this.ws.clean.run(dryRun);
 
     const skipped = result.skippedCards.length
       ? `\nSkipped ${result.skippedCards.length} card(s) with unresolvable card types: ${result.skippedCards.join(', ')}`
@@ -676,10 +642,7 @@ export class Commands {
     const [dryRunFlag, remote] = args;
     const dryRun = dryRunFlag === 'true';
 
-    const result = await this.ws.publishCmd.publishVersion(
-      dryRun,
-      remote || undefined,
-    );
+    const result = await this.ws.versions.publish(dryRun, remote || undefined);
 
     if (result.dryRun) {
       return {
@@ -706,20 +669,12 @@ export class Commands {
     }
     let message: string;
     if (format === 'pdf') {
-      const options = {
-        title: pdfOptions?.title || 'Title',
-        name: pdfOptions?.name || 'Name',
-        version: pdfOptions?.version || '1.0.0',
-        revremark: pdfOptions?.revremark || 'Initial version',
+      message = await this.ws?.export.exportPdf(destination, {
+        ...pdfOptions,
         cardKey: parentCardKey,
-        date: pdfOptions?.date ? new Date(pdfOptions.date) : new Date(),
-      };
-      message = await this.ws?.exportCmd.exportPdf(destination, options);
+      });
     } else {
-      message = await this.ws?.exportCmd.exportToADoc(
-        destination,
-        parentCardKey,
-      );
+      message = await this.ws?.export.exportToADoc(destination, parentCardKey);
     }
     return { statusCode: 200, message: message };
   }
@@ -729,7 +684,7 @@ export class Commands {
     query?: string,
   ): Promise<requestStatus> {
     try {
-      await this.ws?.calculateCmd.exportLogicProgram(
+      await this.ws?.queries.exportLogicProgram(
         destination,
         ['all'],
         query as QueryName, // TODO: validate with zod
@@ -781,7 +736,7 @@ export class Commands {
     context: Context,
   ): Promise<requestStatus> {
     try {
-      const res = await this.ws?.calculateCmd.runLogicProgram(
+      const res = await this.ws?.queries.runLogicProgram(
         readFileSync(filePath, 'utf-8'),
         context,
       );
@@ -800,37 +755,11 @@ export class Commands {
     context: Context,
     outputPath?: string,
   ) {
-    const parametersFile = await readJsonFile(parametersPath);
-
-    // Validate the parameters file.
-    if (!parametersFile.name) {
-      return {
-        statusCode: 500,
-        message:
-          'The parameters file must include a "name" field (report name).',
-      };
-    }
-    if (!parametersFile.parameters) {
-      return {
-        statusCode: 500,
-        message:
-          'The parameters file must include a "parameters" field (report parameters).',
-      };
-    }
-    if (!parametersFile.parameters.cardKey) {
-      return {
-        statusCode: 500,
-        message:
-          'The parameters file must include a "cardKey" field included in the "parameters".',
-      };
-    }
-
-    const { name, parameters } = parametersFile;
+    const { name, parameters } = await readJsonFile(parametersPath);
     let result: string | undefined;
     try {
-      result = await this.ws?.showCmd.showReportResults(
+      result = await this.ws?.queries.runReport(
         name,
-        parameters.cardKey,
         parameters,
         context,
         outputPath,

@@ -7,7 +7,7 @@ import { simpleGit } from 'simple-git';
 
 import { GitManager } from '../src/utils/git-manager.js';
 import { RWLock } from '../src/utils/rw-lock.js';
-import type { Publish } from '../src/versions/publish.js';
+import type { Versions } from '../src/versions/version.js';
 import type { Checkout } from '../src/containers/project.js';
 import { Workspace } from '../src/workspace/workspace.js';
 import { SYSTEM_ACTOR } from '../src/utils/tx-record.js';
@@ -22,7 +22,7 @@ function testGit(dir: string) {
 describe('Publish', () => {
   let dir: string;
   let git: GitManager;
-  let publish: Publish;
+  let publish: Versions;
   let configuration: { version?: string };
 
   beforeEach(async () => {
@@ -46,7 +46,7 @@ describe('Publish', () => {
       configuration,
     } as unknown as Checkout;
 
-    publish = Workspace.over(checkout, SYSTEM_ACTOR).publishCmd;
+    publish = Workspace.over(checkout, SYSTEM_ACTOR).versions;
   });
 
   afterEach(async () => {
@@ -62,7 +62,7 @@ describe('Publish', () => {
 
       const pushStub = sinon.stub(git, 'push').resolves();
 
-      const result = await publish.publishVersion(false);
+      const result = await publish.publish(false);
 
       expect(result.version).toBe('1.0.0');
       expect(result.remote).toBe('origin');
@@ -82,7 +82,7 @@ describe('Publish', () => {
 
       sinon.stub(git, 'push').resolves();
 
-      await publish.publishVersion(false);
+      await publish.publish(false);
 
       const tagInfo = await testGit(dir).raw([
         'tag',
@@ -96,9 +96,7 @@ describe('Publish', () => {
 
   describe('error conditions', () => {
     it('should throw if no version set', async () => {
-      await expect(publish.publishVersion(false)).rejects.toThrow(
-        'No version set',
-      );
+      await expect(publish.publish(false)).rejects.toThrow('No version set');
     });
 
     it('should throw if version already tagged', async () => {
@@ -107,9 +105,7 @@ describe('Publish', () => {
       await git.commit('change');
       await git.tagVersion('1.0.0', 'Release v1.0.0');
 
-      await expect(publish.publishVersion(false)).rejects.toThrow(
-        'already published',
-      );
+      await expect(publish.publish(false)).rejects.toThrow('already published');
     });
 
     it('should not save the tag when push fails', async () => {
@@ -119,9 +115,7 @@ describe('Publish', () => {
 
       sinon.stub(git, 'push').rejects(new Error('network error'));
 
-      await expect(publish.publishVersion(false)).rejects.toThrow(
-        'network error',
-      );
+      await expect(publish.publish(false)).rejects.toThrow('network error');
 
       // Tag should have been cleaned up so retry works
       const tags = await testGit(dir).tags();
@@ -137,7 +131,7 @@ describe('Publish', () => {
 
       const pushSpy = sinon.spy(git, 'push');
 
-      const result = await publish.publishVersion(true);
+      const result = await publish.publish(true);
 
       expect(result.version).toBe('1.0.0');
       expect(result.dryRun).toBe(true);
