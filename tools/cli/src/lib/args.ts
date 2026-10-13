@@ -13,10 +13,11 @@
 
 import { Command, Option } from 'commander';
 
+import { resourceName } from '@cyberismo/data-handler';
 import { validContexts } from '@cyberismo/model';
 
 // Resource types that have commands affecting them.
-const Resources = [
+export const Resources = [
   'calculation',
   'cardType',
   'fieldType',
@@ -232,6 +233,19 @@ export class ResourceTypeParser {
   public static parseShowTypes(type: string): string {
     return ResourceTypeParser.parseCommandTypes(type, 'show');
   }
+}
+
+// The type a 'create', 'remove' or 'show' type argument names: a resource
+// name's type in singular, else the argument itself.
+export function commandType(type: string): string {
+  const resource = resourceName(type);
+  return resource.type.substring(0, resource.type.length - 1) || type;
+}
+
+// The resource a type argument names: the argument when it is a resource
+// name, else 'target'.
+export function commandTarget(type: string, target: string): string {
+  return resourceName(type).type ? type : target;
 }
 
 // Ensure that all names have the same guideline.

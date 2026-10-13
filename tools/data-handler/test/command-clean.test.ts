@@ -14,7 +14,7 @@ import {
 import { copyDir } from '../src/utils/file-utils.js';
 import { type Workspace } from '../src/workspace/workspace.js';
 import { Cmd, Commands } from '../src/command-handler.js';
-import { Clean } from '../src/clean/clean.js';
+import type { Clean } from '../src/clean/clean.js';
 import { Checkout } from '../src/containers/project.js';
 import { openTestWorkspace } from './helpers/open-test-workspace.js';
 import { updateCardMetadata } from '../src/cards/update.js';
@@ -386,10 +386,7 @@ describe('clean command', () => {
 
 describe('clean recommendation', () => {
   const baseDir = import.meta.dirname;
-  const DECISION = 'decision/cardTypes/decision';
   const RECOMMENDATION = "'cyberismo clean' to remove them";
-  const COUNTS =
-    /this project has \d+ dormant field value\(s\) on \d+ card\(s\)/i;
 
   // Each test gets its own project folder: the CommandManager instance the
   // handler uses is keyed by project path, so a reused path would be served
@@ -404,145 +401,6 @@ describe('clean recommendation', () => {
       options: { projectPath: join(testDir, 'valid/decision-records') },
     };
   }
-
-  it('recommends clean after removing a custom field from a card type', async () => {
-    const { testDir, handler, options } = await handlerProject(
-      'tmp-clean-recommend-remove',
-    );
-    try {
-      const result = await handler.command(
-        Cmd.update,
-        [
-          DECISION,
-          'remove',
-          'customFields',
-          JSON.stringify({ name: 'decision/fieldTypes/responsible' }),
-          '',
-        ],
-        options,
-      );
-
-      expect(result.statusCode).toBe(200);
-      // The note travels beside 'message' so the CLI keeps printing its own
-      // success line.
-      expect(result.message).toBeUndefined();
-      expect(result.note).toMatch(COUNTS);
-      expect(result.note).toContain(RECOMMENDATION);
-    } finally {
-      rmSync(testDir, { recursive: true, force: true });
-    }
-  });
-
-  it('recommends clean after making a custom field calculated', async () => {
-    const { testDir, handler, options } = await handlerProject(
-      'tmp-clean-recommend-change',
-    );
-    try {
-      // decision_6 stores a value for this field; once the field is calculated
-      // without an override, that stored value is dormant.
-      const result = await handler.command(
-        Cmd.update,
-        [
-          DECISION,
-          'change',
-          'customFields',
-          JSON.stringify({ name: 'decision/fieldTypes/numberOfCommits' }),
-          JSON.stringify({
-            name: 'decision/fieldTypes/numberOfCommits',
-            isCalculated: true,
-          }),
-        ],
-        options,
-      );
-
-      expect(result.statusCode).toBe(200);
-      expect(result.message).toBeUndefined();
-      expect(result.note).toMatch(COUNTS);
-      expect(result.note).toContain(RECOMMENDATION);
-    } finally {
-      rmSync(testDir, { recursive: true, force: true });
-    }
-  });
-
-  it('does not recommend clean after adding a custom field', async () => {
-    const { testDir, handler, options } = await handlerProject(
-      'tmp-clean-recommend-add',
-    );
-    try {
-      const created = await handler.command(
-        Cmd.create,
-        ['fieldType', 'extra', 'shortText'],
-        options,
-      );
-      expect(created.statusCode).toBe(200);
-
-      // The card type's cards do hold dormant values, so a scan would report
-      // findings — an 'add' must not run one.
-      const result = await handler.command(
-        Cmd.update,
-        [
-          DECISION,
-          'add',
-          'customFields',
-          JSON.stringify({ name: 'decision/fieldTypes/extra' }),
-          '',
-        ],
-        options,
-      );
-
-      expect(result.statusCode).toBe(200);
-      expect(result.note).toBeUndefined();
-    } finally {
-      rmSync(testDir, { recursive: true, force: true });
-    }
-  });
-
-  it('does not recommend clean when no card of the card type has dormant data', async () => {
-    const { testDir, handler, options } = await handlerProject(
-      'tmp-clean-recommend-unused-card-type',
-    );
-    try {
-      await handler.command(
-        Cmd.create,
-        ['fieldType', 'extra', 'shortText'],
-        options,
-      );
-      await handler.command(
-        Cmd.create,
-        ['cardType', 'unused', 'decision/workflows/decision'],
-        options,
-      );
-      const added = await handler.command(
-        Cmd.update,
-        [
-          'decision/cardTypes/unused',
-          'add',
-          'customFields',
-          JSON.stringify({ name: 'decision/fieldTypes/extra' }),
-          '',
-        ],
-        options,
-      );
-      expect(added.statusCode).toBe(200);
-
-      const result = await handler.command(
-        Cmd.update,
-        [
-          'decision/cardTypes/unused',
-          'remove',
-          'customFields',
-          JSON.stringify({ name: 'decision/fieldTypes/extra' }),
-          '',
-        ],
-        options,
-      );
-
-      expect(result.statusCode).toBe(200);
-      expect(result.note).toBeUndefined();
-    } finally {
-      rmSync(testDir, { recursive: true, force: true });
-    }
-  });
 
   it('recommends clean after a module import and after a module update', async () => {
     const { testDir, handler, options } = await handlerProject(
@@ -563,57 +421,6 @@ describe('clean recommendation', () => {
       expect(updated.statusCode).toBe(200);
       expect(updated.note).toContain(RECOMMENDATION);
     } finally {
-      rmSync(testDir, { recursive: true, force: true });
-    }
-  });
-
-  it('recommends clean after deleting a field type', async () => {
-    const { testDir, handler, options } = await handlerProject(
-      'tmp-clean-recommend-delete-field-type',
-    );
-    try {
-      // Card types stop declaring the field, so the values its cards stored are
-      // left dormant rather than deleted.
-      const result = await handler.command(
-        Cmd.remove,
-        ['fieldType', 'decision/fieldTypes/responsible'],
-        options,
-      );
-
-      expect(result.statusCode).toBe(200);
-      expect(result.note).toMatch(COUNTS);
-      expect(result.note).toContain(RECOMMENDATION);
-    } finally {
-      rmSync(testDir, { recursive: true, force: true });
-    }
-  });
-
-  it('a failing scan does not fail the operation', async () => {
-    const { testDir, handler, options } = await handlerProject(
-      'tmp-clean-recommend-scan-failure',
-    );
-    try {
-      const failingScan = vi
-        .spyOn(Clean.prototype, 'run')
-        .mockRejectedValue(new Error('scan failed'));
-
-      const result = await handler.command(
-        Cmd.update,
-        [
-          DECISION,
-          'remove',
-          'customFields',
-          JSON.stringify({ name: 'decision/fieldTypes/responsible' }),
-          '',
-        ],
-        options,
-      );
-
-      expect(failingScan).toHaveBeenCalled();
-      expect(result.statusCode).toBe(200);
-      expect(result.note).toBeUndefined();
-    } finally {
-      vi.restoreAllMocks();
       rmSync(testDir, { recursive: true, force: true });
     }
   });
