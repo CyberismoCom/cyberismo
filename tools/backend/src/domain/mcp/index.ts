@@ -120,7 +120,7 @@ export function createMcpRouter(
     if (session) {
       session.lastActivity = Date.now();
       const response = await session.transport.handleRequest(c.req.raw, {
-        authInfo: authInfoOf(c.get('user')!),
+        authInfo: authInfoOf(user),
       });
       return response;
     }
