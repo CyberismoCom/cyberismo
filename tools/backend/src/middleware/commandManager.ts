@@ -13,6 +13,7 @@
 import type { Context, MiddlewareHandler } from 'hono';
 import type { Workspace } from '@cyberismo/data-handler';
 import { getCurrentUser } from './auth.js';
+import { UserRole } from '../types.js';
 import type { ProjectRegistry } from '../project-registry.js';
 import type { ProjectEvents } from '../domain/events/project-events.js';
 
@@ -40,7 +41,11 @@ async function runWithCommands(
   }
   c.set('ws', ws);
   c.set('projectPath', ws.checkout.basePath);
-  await ws.runAsAuthor({ name: user.name, email: user.email }, () => next());
+  await ws.runAsAuthor({ name: user.name, email: user.email }, () => next(), {
+    kind: user.role === UserRole.Connector ? 'connector' : 'user',
+    id: user.id,
+    name: user.name,
+  });
 }
 
 // TODO: Remove once MCP is made project-scoped via attachProjectRegistry

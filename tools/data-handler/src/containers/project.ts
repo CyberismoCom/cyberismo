@@ -49,6 +49,7 @@ import { RWLock } from '../utils/rw-lock.js';
 import { GitSync } from '../utils/git-sync.js';
 import { GitManager } from '../utils/git-manager.js';
 import { getCommitContext } from '../utils/commit-context.js';
+import { commitTrailers } from '../utils/tx-record.js';
 
 import type { TemplateResource } from '../resources/template-resource.js';
 
@@ -168,11 +169,11 @@ export class Checkout {
 
     if (this.options.autocommit) {
       // Commit after successful writes
-      this.lock.onAfterWrite(async () => {
-        const context = getCommitContext();
+      this.lock.onAfterWrite(async (tx) => {
         await this.gitManager.commit(
-          context.message ?? 'Autocommit',
-          context.author,
+          tx.message ?? 'Autocommit',
+          tx.identity,
+          commitTrailers(tx.actor),
         );
         if (this.options.autopush) void this.gitSync.push();
       });
