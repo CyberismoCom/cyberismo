@@ -5,10 +5,12 @@ import { join, sep } from 'node:path';
 
 import { Cmd, Commands, type Workspace } from '../src/command-handler.js';
 import { copyDir } from '../src/utils/file-utils.js';
-import { Show } from '../src/commands/index.js';
 import { ContainerMismatchError } from '../src/exceptions/index.js';
 import { getTestBaseDir, getTestProject } from './helpers/test-utils.js';
 import { openTestWorkspace } from './helpers/open-test-workspace.js';
+import { Cards } from '../src/cards/cards.js';
+import { SYSTEM_ACTOR } from '../src/utils/tx-record.js';
+import { findCard } from '../src/cards/read.js';
 
 // Create test artifacts in a temp folder.
 let commandHandler: Commands;
@@ -87,7 +89,7 @@ describe('move command', () => {
   it('move card to root (success)', async () => {
     const checkout = getTestProject(options.projectPath!);
     await checkout.populateCaches();
-    const cards = await new Show(checkout).showProjectCards();
+    const cards = await new Cards(checkout, SYSTEM_ACTOR, undefined).roots();
 
     // Use the card created in beforeEach
     const sourceId = createdCardKey;
@@ -103,7 +105,7 @@ describe('move command', () => {
   it('move card to another card (success)', async () => {
     const checkout = getTestProject(options.projectPath!);
     await checkout.populateCaches();
-    const cards = await new Show(checkout).showProjectCards();
+    const cards = await new Cards(checkout, SYSTEM_ACTOR, undefined).roots();
     expect(cards.map((card) => card.key).sort()).toEqual(
       [createdCardKey, 'decision_5'].sort(),
     );
@@ -252,7 +254,7 @@ describe('move command', () => {
     expect(result.statusCode).toBe(200);
     const verify = getTestProject(options.projectPath!);
     await verify.populateCaches();
-    const after = verify.findCard('decision_4');
+    const after = findCard(verify, 'decision_4');
     expect(after.parent).toBe('decision_1');
     expect(after.path).toContain(
       `templates${sep}decision${sep}c${sep}decision_1${sep}c${sep}decision_4`,
@@ -284,7 +286,7 @@ describe('move command', () => {
     expect(result.statusCode).toBe(200);
     const verify = getTestProject(options.projectPath!);
     await verify.populateCaches();
-    const after = verify.findCard('decision_4');
+    const after = findCard(verify, 'decision_4');
     expect(after.parent).toBe('root');
     expect(after.path).toContain(
       `templates${sep}decision${sep}c${sep}decision_4`,
@@ -316,7 +318,7 @@ describe('move command', () => {
 
     const verify = getTestProject(options.projectPath!);
     await verify.populateCaches();
-    const after = verify.findCard('decision_4');
+    const after = findCard(verify, 'decision_4');
     expect(after.parent).toBe('root');
     // It now lives directly under simplepage/c, not under decision_3/c
     expect(after.path).toContain(
@@ -448,8 +450,8 @@ describe('move command', () => {
     expect(childCardKey).toBeTypeOf('string');
 
     // Verify initial state - both cards should be findable in the same project instance used by commandHandler
-    const parentBefore = checkout.findCard(parentCardKey!);
-    const childBefore = checkout.findCard(childCardKey!);
+    const parentBefore = findCard(checkout, parentCardKey!);
+    const childBefore = findCard(checkout, childCardKey!);
     const allCardsBefore = checkout.cardTree.cards();
 
     expect(
@@ -475,8 +477,8 @@ describe('move command', () => {
     expect(result.statusCode).toBe(200);
 
     // Verify state after move
-    const parentAfter = checkout.findCard(parentCardKey!);
-    const childAfter = checkout.findCard(childCardKey!);
+    const parentAfter = findCard(checkout, parentCardKey!);
+    const childAfter = findCard(checkout, childCardKey!);
     const allCardsAfter = checkout.cardTree.cards();
 
     // Verify expectations
@@ -558,10 +560,10 @@ describe('move command', () => {
     expect(destinationKey).toBeTypeOf('string');
 
     // Get paths before move
-    const grandparentBefore = checkout.findCard(grandparentKey!);
-    const parentBefore = checkout.findCard(parentKey!);
-    const childBefore = checkout.findCard(childKey!);
-    const grandchildBefore = checkout.findCard(grandchildKey!);
+    const grandparentBefore = findCard(checkout, grandparentKey!);
+    const parentBefore = findCard(checkout, parentKey!);
+    const childBefore = findCard(checkout, childKey!);
+    const grandchildBefore = findCard(checkout, grandchildKey!);
 
     // Verify child has our attachment before move
     const ourAttachmentBefore = childBefore.attachments.find(
@@ -589,10 +591,10 @@ describe('move command', () => {
     expect(result.statusCode).toBe(200);
 
     // Verify all descendant paths are updated in cache
-    const grandparentAfter = checkout.findCard(grandparentKey!);
-    const parentAfterMove = checkout.findCard(parentKey!);
-    const childAfterMove = checkout.findCard(childKey!);
-    const grandchildAfterMove = checkout.findCard(grandchildKey!);
+    const grandparentAfter = findCard(checkout, grandparentKey!);
+    const parentAfterMove = findCard(checkout, parentKey!);
+    const childAfterMove = findCard(checkout, childKey!);
+    const grandchildAfterMove = findCard(checkout, grandchildKey!);
 
     // Grandparent should have new path under destination
     expect(grandparentAfter.path).toContain(

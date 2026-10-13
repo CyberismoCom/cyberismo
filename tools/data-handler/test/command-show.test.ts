@@ -10,10 +10,12 @@ import { sleep } from '../src/utils/common-utils.js';
 import { Cmd, Commands, type Workspace } from '../src/command-handler.js';
 import { copyDir } from '../src/utils/file-utils.js';
 import { resourceName } from '../src/utils/resource-utils.js';
-import { Show } from '../src/commands/index.js';
+import type { Show } from '../src/commands/index.js';
 import { getTestBaseDir, getTestProject } from './helpers/test-utils.js';
 import type { ModuleContent } from '@cyberismo/model';
 import type { ShowCommandOptions } from '../src/interfaces/command-options.js';
+import { Cards } from '../src/cards/cards.js';
+import { SYSTEM_ACTOR } from '../src/utils/tx-record.js';
 import { CardNotFoundError } from '../src/exceptions/index.js';
 import { openTestWorkspace } from './helpers/open-test-workspace.js';
 
@@ -53,11 +55,11 @@ describe('shows command', () => {
       // No commandHandler command for getting attachment files, so using Show directly
       const checkout = getTestProject(decisionRecordsPath);
       await checkout.populateCaches();
-      const showCommand = new Show(checkout);
-      const result = await showCommand.showAttachment(
-        'decision_1',
-        'the-needle.heic',
-      );
+      const result = await new Cards(
+        checkout,
+        SYSTEM_ACTOR,
+        undefined,
+      ).attachment('decision_1', 'the-needle.heic');
       expect(result).not.toBe(null);
       expect(result.fileBuffer).not.toBe(null);
       expect(result.mimeType).toBe('image/heic');
@@ -66,18 +68,22 @@ describe('shows command', () => {
       // No commandHandler command for getting attachment files, so using Show directly
       const checkout = getTestProject(decisionRecordsPath);
       await checkout.populateCaches();
-      const showCommand = new Show(checkout);
       await expect(
-        showCommand.showAttachment('invalid_key', 'does-not-exist.png'),
+        new Cards(checkout, SYSTEM_ACTOR, undefined).attachment(
+          'invalid_key',
+          'does-not-exist.png',
+        ),
       ).rejects.toThrow(CardNotFoundError);
     });
     it('show attachment file, file not found', async () => {
       // No commandHandler command for getting attachment files, so using Show directly
       const checkout = getTestProject(decisionRecordsPath);
       await checkout.populateCaches();
-      const showCommand = new Show(checkout);
       await expect(
-        showCommand.showAttachment('decision_1', 'does-not-exist.png'),
+        new Cards(checkout, SYSTEM_ACTOR, undefined).attachment(
+          'decision_1',
+          'does-not-exist.png',
+        ),
       ).rejects.toThrow(
         `Attachment 'does-not-exist.png' not found for card decision_1`,
       );
@@ -654,47 +660,43 @@ describe('show', () => {
   });
 
   it('showAttachments (success)', async () => {
-    const results = await showCmd.showAttachments();
+    const results = await ws.cards.attachments();
     expect(results).not.toBeUndefined();
   });
   it('showAttachment (success)', async () => {
     const cardId = 'decision_1';
     const attachmentName = 'the-needle.heic';
-    const results = await showCmd.showAttachment(cardId, attachmentName);
+    const results = await ws.cards.attachment(cardId, attachmentName);
     expect(results).not.toBeUndefined();
   });
   it('showAttachment - empty card key', async () => {
     const cardId = '';
     const attachmentName = 'the-needle.heic';
-    await expect(
-      showCmd.showAttachment(cardId, attachmentName),
-    ).rejects.toThrow(`Mandatory parameter 'cardKey' missing`);
+    await expect(ws.cards.attachment(cardId, attachmentName)).rejects.toThrow(
+      `Mandatory parameter 'cardKey' missing`,
+    );
   });
   it('showAttachment - card does not have particular attachment', async () => {
     const cardId = 'decision_1';
     const attachmentName = 'i-dont-exist';
-    await expect(
-      showCmd.showAttachment(cardId, attachmentName),
-    ).rejects.toThrow(
+    await expect(ws.cards.attachment(cardId, attachmentName)).rejects.toThrow(
       `Attachment 'i-dont-exist' not found for card decision_1`,
     );
   });
   it('showCardDetails (success)', async () => {
     const cardId = 'decision_1';
-    const result = await showCmd.showCardDetails(cardId);
+    const result = await ws.cards.details(cardId);
     expect(result.key).toBe('decision_1');
   });
   it('showCardDetails - empty card key', async () => {
     const cardId = '';
-    await expect(showCmd.showCardDetails(cardId)).rejects.toThrow(
+    await expect(ws.cards.details(cardId)).rejects.toThrow(
       `Mandatory parameter 'cardKey' missing`,
     );
   });
   it('showCardDetails - card not in project', async () => {
     const cardId = 'decision_999';
-    await expect(showCmd.showCardDetails(cardId)).rejects.toThrow(
-      CardNotFoundError,
-    );
+    await expect(ws.cards.details(cardId)).rejects.toThrow(CardNotFoundError);
   });
   it('showCardDetails - empty attachment folder', async () => {
     // Use existing cards from test data
@@ -704,24 +706,21 @@ describe('show', () => {
     const cardWithAttachments = 'decision_1'; // template card with attachment
 
     // Test card with no attachments
-    const noAttachmentResult = await showCmd.showCardDetails(
-      cardWithNoAttachments,
-    );
+    const noAttachmentResult = await ws.cards.details(cardWithNoAttachments);
     expect(noAttachmentResult.attachments.length).toBe(0);
 
     // Test card with attachments
-    const withAttachmentResult =
-      await showCmd.showCardDetails(cardWithAttachments);
+    const withAttachmentResult = await ws.cards.details(cardWithAttachments);
     expect(withAttachmentResult.attachments.length).toBeGreaterThan(0);
     const firstAttachment = withAttachmentResult.attachments.at(0);
     expect(firstAttachment!.card).toBe(cardWithAttachments);
   });
   it('showCards (success)', async () => {
-    const results = await showCmd.showCards();
+    const results = await ws.cards.list();
     expect(results).not.toBeUndefined();
   });
   it('showProjectCards (success)', async () => {
-    const results = await showCmd.showProjectCards();
+    const results = await ws.cards.roots();
     expect(results).not.toBeUndefined();
   });
   it('showResource - card type (success)', async () => {
@@ -792,7 +791,7 @@ describe('show', () => {
     expect(results).to.have.property('hubs');
     expect(results).to.have.property('description');
     expect(results).to.have.property('category');
-    const containers = await showCmd.showCards();
+    const containers = await ws.cards.list();
     expect(results.numberOfCards).to.equal(
       containers.find((container) => container.type === 'project')!.cards
         .length,
@@ -991,7 +990,7 @@ describe('show', () => {
 
   it('showCardLogicProgram (success)', async () => {
     const cardKey = 'decision_1';
-    const result = await showCmd.showCardLogicProgram(cardKey);
+    const result = await ws.cards.logicProgram(cardKey);
     expect(result).not.toBeUndefined();
     expect(result).to.be.a('string');
   });
@@ -999,7 +998,7 @@ describe('show', () => {
   it('showCardLogicProgram - card does not exist', async () => {
     const cardKey = 'nonexistent_card';
 
-    await expect(showCmd.showCardLogicProgram(cardKey)).rejects.toThrow(
+    await expect(ws.cards.logicProgram(cardKey)).rejects.toThrow(
       `Card 'nonexistent_card' does not exist in the project`,
     );
   });
@@ -1024,7 +1023,7 @@ describe('show', () => {
   });
 
   it('showAllTemplateCards shall provide a hierarchical array', async () => {
-    const results = await showCmd.showAllTemplateCards();
+    const results = await ws.cards.templateCards();
     expect(results).not.toBeUndefined();
     expect(results.length).toBeGreaterThan(0);
 

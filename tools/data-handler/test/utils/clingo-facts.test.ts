@@ -19,6 +19,7 @@ import type { Card } from '@cyberismo/model';
 import type { Checkout } from '../../src/containers/project.js';
 import { copyDir } from '../../src/utils/file-utils.js';
 import { getTestProject } from '../helpers/test-utils.js';
+import { findCard } from '../../src/cards/read.js';
 
 const testCases = [
   { context: 'localApp' as const, expectedFact: 'localApp().\n' },
@@ -299,8 +300,8 @@ describe('createCardFacts only emits fields the card type declares', () => {
 
     checkout = getTestProject(projectPath);
     await checkout.populateCaches();
-    card = checkout.findCard(CARD_KEY);
-    brokenCardTypeCard = checkout.findCard(BROKEN_CARD_TYPE_CARD_KEY);
+    card = findCard(checkout, CARD_KEY);
+    brokenCardTypeCard = findCard(checkout, BROKEN_CARD_TYPE_CARD_KEY);
   });
 
   afterAll(() => {

@@ -21,6 +21,7 @@ import type { CreateCommandOptions } from '../src/interfaces/command-options.js'
 import type { Card, CardListContainer } from '@cyberismo/model';
 import { Checkout } from '../src/containers/project.js';
 import { Validate } from '../src/commands/index.js';
+import { findCard } from '../src/cards/read.js';
 import { openTestWorkspace } from './helpers/open-test-workspace.js';
 import { SYSTEM_ACTOR } from '../src/utils/tx-record.js';
 
@@ -229,10 +230,7 @@ describe('create command', () => {
     const parentCard = 'decision_5';
     const templateName = 'decision/templates/simplepage';
     const ws = await openTestWorkspace(decisionRecordsPath, {});
-    const createdCards = await ws.createCmd.createCard(
-      templateName,
-      parentCard,
-    );
+    const createdCards = await ws.cards.create(templateName, parentCard);
     // simplepage template has 2 root cards + 1 child = 3 cards total
     expect(createdCards.length).toBe(3);
 
@@ -1208,8 +1206,8 @@ describe('created cards and custom field values', () => {
   });
 
   it('new cards do not contain null custom-field placeholders', async () => {
-    const created = await ws.createCmd.createCard(templateName, undefined);
-    const card = ws.checkout.findCard(created[0].key);
+    const created = await ws.cards.create(templateName, undefined);
+    const card = findCard(ws.checkout, created[0].key);
     const nullCustomFieldKeys = (metadata: object) =>
       Object.entries(metadata)
         .filter(([key, value]) => value === null && key.includes('/'))
@@ -1226,11 +1224,11 @@ describe('created cards and custom field values', () => {
   it('cards added to a template get no null placeholders', async () => {
     // 'decision/cardTypes/decision' declares eight non-calculated custom fields;
     // the empty template keeps this out of the way of the tests below.
-    const added = await ws.createCmd.addCards(
+    const added = await ws.cards.addToTemplate(
       'decision/cardTypes/decision',
       'decision/templates/empty',
     );
-    const card = ws.checkout.findCard(added[0]);
+    const card = findCard(ws.checkout, added[0]);
     const customFieldKeys = Object.keys(card.metadata!).filter((key) =>
       key.includes('/'),
     );
@@ -1239,7 +1237,7 @@ describe('created cards and custom field values', () => {
 
   it('reports a card the template does not hold as not part of it', async () => {
     await expect(
-      ws.createCmd.addCards(
+      ws.cards.addToTemplate(
         'decision/cardTypes/decision',
         'decision/templates/decision',
         'idontexist',
@@ -1257,8 +1255,8 @@ describe('created cards and custom field values', () => {
       false,
     );
 
-    const created = await ws.createCmd.createCard(templateName, undefined);
-    const card = ws.checkout.findCard(created[0].key);
+    const created = await ws.cards.create(templateName, undefined);
+    const card = findCard(ws.checkout, created[0].key);
     expect(card.metadata!['decision/fieldTypes/finished']).toBe(false);
   });
 });
