@@ -46,6 +46,7 @@ import {
   findCard,
   hasCard,
 } from '../src/cards/read.js';
+import { resourceName } from '../src/utils/resource-utils.js';
 import { openTestWorkspace } from './helpers/open-test-workspace.js';
 
 const baseDir = import.meta.dirname;
@@ -1132,8 +1133,7 @@ describe('Card tree', () => {
       }
 
       // Remove template
-      const removeCmd = ws.removeCmd;
-      await removeCmd.remove('template', name);
+      await ws.changes.apply({ kind: 'delete', target: resourceName(name) });
       for (const cardKey of templateCardKeys) {
         expect(hasCard(ws.checkout, cardKey)).toBe(false);
       }

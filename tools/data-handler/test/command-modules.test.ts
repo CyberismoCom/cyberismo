@@ -363,7 +363,7 @@ describe('update-modules version arg', () => {
     // Force the CommandManager singleton to reload from disk by routing
     // through a different project path first — otherwise the in-memory
     // Project still holds the module location from before the rewrite above.
-    await commandHandler.command(Cmd.show, ['project'], {
+    await commandHandler.command(Cmd.show, ['modules'], {
       projectPath: decisionRecordsPath,
     });
 
