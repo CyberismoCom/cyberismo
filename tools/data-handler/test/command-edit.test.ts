@@ -33,7 +33,7 @@ describe('edit card', () => {
     const firstCard = cards.at(0) as Card;
 
     // Modify content
-    await editCmd.editCardContent(firstCard.key, 'whoopie');
+    await ws.cards.edit(firstCard.key, 'whoopie');
 
     // Fetch the changed card again
     const changedCard = ws.checkout.findCard(firstCard.key);
@@ -48,7 +48,7 @@ describe('edit card', () => {
       .cards();
     const firstCard = templateCards.at(0) as Card;
 
-    await editCmd.editCardContent(firstCard.key, 'whoopie');
+    await ws.cards.edit(firstCard.key, 'whoopie');
     const changedCard = ws.checkout.findCard(firstCard.key);
     expect(changedCard.content).toBe('whoopie');
   });
@@ -56,14 +56,12 @@ describe('edit card', () => {
   it('edit card content - no content', async () => {
     const cards = ws.checkout.cardTree.cards();
     const firstCard = cards.at(0) as Card;
-    await expect(
-      editCmd.editCardContent(firstCard.key, ''),
-    ).resolves.not.toThrow();
+    await expect(ws.cards.edit(firstCard.key, '')).resolves.not.toThrow();
   });
 
   it('try to edit card content - card is not in project', async () => {
     await expect(
-      editCmd.editCardContent('card-key-does-not-exist', 'whoopie'),
+      ws.cards.edit('card-key-does-not-exist', 'whoopie'),
     ).rejects.toThrow();
   });
 
@@ -80,7 +78,7 @@ describe('edit card', () => {
 
     // Modify metadata - title
     await expect(
-      editCmd.editCardMetadata(firstCard.key, 'title', 'new name'),
+      ws.cards.editField(firstCard.key, 'title', 'new name'),
     ).resolves.not.toThrow();
 
     // Fetch the changed card again
@@ -97,14 +95,12 @@ describe('edit card', () => {
       'valid/decision-records',
     );
     const freshCommands = await openTestWorkspace(freshDecisionRecordsPath, {});
-    const freshEditCmd = freshCommands.editCmd;
-
     const templateCards = freshCommands.checkout
       .templateTree('decision/templates/decision')
       .cards();
     const firstCard = templateCards.at(0) as Card;
 
-    await freshEditCmd.editCardMetadata(firstCard.key, 'title', 'new name');
+    await freshCommands.cards.editField(firstCard.key, 'title', 'new name');
 
     const changedCard = freshCommands.checkout.findCard(firstCard.key);
     expect(changedCard.metadata?.title).to.equal('new name');
@@ -133,7 +129,7 @@ describe('edit card', () => {
 
     const longValue = 'x'.repeat(120);
     await expect(
-      freshCommands.editCmd.editCardMetadata(
+      freshCommands.cards.editField(
         'decision_6',
         'decision/fieldTypes/myShort',
         longValue,
@@ -142,7 +138,7 @@ describe('edit card', () => {
       /value exceeds the maximum length for 'shortText': 80 characters allowed, but value has 120 characters/,
     );
     await expect(
-      freshCommands.editCmd.editCardMetadata(
+      freshCommands.cards.editField(
         'decision_6',
         'decision/fieldTypes/myShort',
         longValue,
@@ -154,21 +150,18 @@ describe('edit card', () => {
   it('try to edit card metadata - incorrect field name', async () => {
     const cards = ws.checkout.cardTree.cards();
     const firstCard = cards.at(0) as Card;
-    await expect(
-      editCmd.editCardMetadata(firstCard.key, '', ''),
-    ).rejects.toThrow();
+    await expect(ws.cards.editField(firstCard.key, '', '')).rejects.toThrow();
   });
 
   it('try to edit card metadata - card is not in project', async () => {
-    const EditCmd = ws.editCmd;
     await expect(
-      EditCmd.editCardMetadata('card-key-does-not-exist', 'whoopie', 'whoopie'),
+      ws.cards.editField('card-key-does-not-exist', 'whoopie', 'whoopie'),
     ).rejects.toThrow();
   });
 
   it('editing a calculated field without override is rejected', async () => {
     await expect(
-      editCmd.editCardMetadata(
+      ws.cards.editField(
         'decision_6',
         'decision/fieldTypes/obsoletedBy',
         'decision_999',
@@ -205,7 +198,7 @@ describe('edit card', () => {
     );
     try {
       await expect(
-        freshCommands.editCmd.editCardMetadata(
+        freshCommands.cards.editField(
           'decision_6',
           'decision/fieldTypes/obsoletedBy',
           'decision_999',
@@ -219,7 +212,7 @@ describe('edit card', () => {
 
       // Clearing the override (saving null) removes the key entirely.
       await expect(
-        freshCommands.editCmd.editCardMetadata(
+        freshCommands.cards.editField(
           'decision_6',
           'decision/fieldTypes/obsoletedBy',
           null,
@@ -247,7 +240,7 @@ describe('edit card', () => {
     const templateCard = templateCards.at(0) as Card;
 
     await expect(
-      editCmd.editCardMetadata(
+      ws.cards.editField(
         templateCard.key,
         'decision/fieldTypes/obsoletedBy',
         'decision_999',
@@ -266,7 +259,7 @@ describe('edit card', () => {
         .at(0) as Card;
 
       await expect(
-        freshCommands.editCmd.editCardMetadata(
+        freshCommands.cards.editField(
           templateCard.key,
           'decision/fieldTypes/obsoletedBy',
           'decision_999',
@@ -280,7 +273,7 @@ describe('edit card', () => {
       );
 
       await expect(
-        freshCommands.editCmd.editCardMetadata(
+        freshCommands.cards.editField(
           templateCard.key,
           'decision/fieldTypes/obsoletedBy',
           null,
@@ -313,7 +306,7 @@ describe('edit card', () => {
     const freshCommands = await openTestWorkspace(projectPath, {});
     try {
       await expect(
-        freshCommands.editCmd.editCardMetadata(
+        freshCommands.cards.editField(
           'decision_6',
           'decision/fieldTypes/obsoletedBy',
           null,
@@ -341,7 +334,7 @@ describe('edit card', () => {
       ]);
 
       await expect(
-        freshCommands.editCmd.editCardMetadata(
+        freshCommands.cards.editField(
           'decision_6',
           'decision/fieldTypes/obsoletedBy',
           null,
@@ -378,7 +371,7 @@ describe('edit card', () => {
     // Gives RESPONSIBLE a real value, so that clearing it removes an actual
     // value rather than null residue.
     async function cardWithResponsibleSet(): Promise<Card> {
-      await clearCommands.editCmd.editCardMetadata(
+      await clearCommands.cards.editField(
         'decision_6',
         RESPONSIBLE,
         'someone@example.com',
@@ -392,7 +385,7 @@ describe('edit card', () => {
       const card = await cardWithResponsibleSet();
       const keysBefore = Object.keys(card.metadata!).sort();
 
-      await clearCommands.editCmd.editCardMetadata(card.key, RESPONSIBLE, null);
+      await clearCommands.cards.editField(card.key, RESPONSIBLE, null);
 
       const changed = clearCommands.checkout.findCard(card.key);
       expect(changed.metadata!).not.toHaveProperty([RESPONSIBLE]);
@@ -408,11 +401,7 @@ describe('edit card', () => {
     it('clearing a regular custom field with undefined removes the key too', async () => {
       const card = await cardWithResponsibleSet();
 
-      await clearCommands.editCmd.editCardMetadata(
-        card.key,
-        RESPONSIBLE,
-        undefined,
-      );
+      await clearCommands.cards.editField(card.key, RESPONSIBLE, undefined);
 
       const changed = clearCommands.checkout.findCard(card.key);
       expect(changed.metadata!).not.toHaveProperty([RESPONSIBLE]);
@@ -421,14 +410,14 @@ describe('edit card', () => {
     });
 
     it('clearing a predefined field does not delete the key', async () => {
-      await clearCommands.editCmd.editCardMetadata(
+      await clearCommands.cards.editField(
         'decision_6',
         'title',
         'a real title',
       );
 
       // Key deletion covers custom fields; predefined fields are out of scope.
-      await clearCommands.editCmd.editCardMetadata('decision_6', 'title', null);
+      await clearCommands.cards.editField('decision_6', 'title', null);
 
       const changed = clearCommands.checkout.findCard('decision_6');
       expect('title' in changed.metadata!).toBe(true);
@@ -440,17 +429,13 @@ describe('edit card', () => {
     });
 
     it('writing undefined to a predefined field stores null', async () => {
-      await clearCommands.editCmd.editCardMetadata(
+      await clearCommands.cards.editField(
         'decision_6',
         'title',
         'a real title',
       );
 
-      await clearCommands.editCmd.editCardMetadata(
-        'decision_6',
-        'title',
-        undefined,
-      );
+      await clearCommands.cards.editField('decision_6', 'title', undefined);
 
       const changed = clearCommands.checkout.findCard('decision_6');
       expect('title' in changed.metadata!).toBe(true);

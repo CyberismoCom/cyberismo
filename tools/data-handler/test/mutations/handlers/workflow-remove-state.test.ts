@@ -8,6 +8,7 @@ import { copyDir } from '../../../src/utils/file-utils.js';
 import { ResourceMutations } from '../../../src/mutations/resource-mutations.js';
 import { Workspace } from '../../../src/workspace/workspace.js';
 import { SYSTEM_ACTOR, SYSTEM_FRAME } from '../../../src/utils/tx-record.js';
+import { updateCardMetadata } from '../../../src/cards/update.js';
 
 const FIXTURE_PATH = join(
   import.meta.dirname,
@@ -42,7 +43,7 @@ describe('WorkflowRemoveStateHandler', () => {
       .cards()
       .find((c) => c.metadata?.cardType === 'decision/cardTypes/decision')!;
     target.metadata!.workflowState = state;
-    await checkout.updateCardMetadata(target, target.metadata!);
+    await updateCardMetadata(checkout, target, target.metadata!);
     return target.key;
   }
 
@@ -90,7 +91,7 @@ describe('WorkflowRemoveStateHandler', () => {
       .find((c) => c.metadata?.cardType === 'decision/cardTypes/decision')!;
     target.metadata!.cardType = 'decision/cardTypes/oldDecision';
     target.metadata!.workflowState = 'Rejected';
-    await checkout.updateCardMetadata(target, target.metadata!);
+    await updateCardMetadata(checkout, target, target.metadata!);
 
     await checkout.lock.write(SYSTEM_FRAME, () =>
       new ResourceMutations(checkout).apply(

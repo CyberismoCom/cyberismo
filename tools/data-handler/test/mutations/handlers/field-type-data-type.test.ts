@@ -9,6 +9,7 @@ import { resourceName } from '../../../src/utils/resource-utils.js';
 import { ResourceMutations } from '../../../src/mutations/resource-mutations.js';
 import { Workspace } from '../../../src/workspace/workspace.js';
 import { SYSTEM_ACTOR, SYSTEM_FRAME } from '../../../src/utils/tx-record.js';
+import { updateCardMetadata } from '../../../src/cards/update.js';
 
 const baseDir = import.meta.dirname;
 const testDir = join(baseDir, 'tmp-field-type-data-type');
@@ -30,7 +31,7 @@ describe('FieldTypeDataTypeHandler', () => {
       .filter((c) => c.metadata && fieldName() in c.metadata);
     if (cards.length > 0 && cards[0].metadata) {
       cards[0].metadata[fieldName()] = true;
-      await checkout.updateCardMetadata(cards[0], cards[0].metadata);
+      await updateCardMetadata(checkout, cards[0], cards[0].metadata);
     }
   });
   afterEach(() => {

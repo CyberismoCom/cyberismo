@@ -58,7 +58,7 @@ describe('autocommit', () => {
       message: () => 'Create card from template decision/templates/decision',
     },
     'card edit': {
-      write: () => cm.editCmd.editCardContent('decision_5', 'edited'),
+      write: () => cm.cards.edit('decision_5', 'edited'),
       message: () => 'Edit content of decision_5',
     },
     'card move': {
@@ -73,11 +73,11 @@ describe('autocommit', () => {
       message: (key) => `Rank card ${key} first`,
     },
     'card remove': {
-      write: () => cm.removeCmd.remove('card', 'decision_6'),
+      write: () => cm.cards.remove('decision_6'),
       message: () => 'Remove card decision_6',
     },
     label: {
-      write: () => cm.createCmd.createLabel('decision_5', 'urgent'),
+      write: () => cm.cards.addLabel('decision_5', 'urgent'),
       message: () => 'Add label urgent to decision_5',
     },
     'resource create': {
