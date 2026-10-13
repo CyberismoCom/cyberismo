@@ -5,13 +5,6 @@ import { mkdirSync, readFileSync, rmSync } from 'node:fs';
 
 import { copyDir } from '../src/utils/file-utils.js';
 import { getTestProject } from './helpers/test-utils.js';
-import {
-  Create,
-  Fetch,
-  Modules,
-  Remove,
-  Update,
-} from '../src/commands/index.js';
 import type { Checkout } from '../src/containers/project.js';
 import { resourceName } from '../src/utils/resource-utils.js';
 
@@ -32,6 +25,8 @@ import type {
   ChangeOperation,
   RemoveOperation,
 } from '@cyberismo/model';
+import { Workspace } from '../src/workspace/workspace.js';
+import { SYSTEM_ACTOR } from '../src/utils/tx-record.js';
 
 // Helper type for resource test configurations
 type ResourceType =
@@ -1152,8 +1147,10 @@ describe('resources', function () {
     it('show imported report', async () => {
       const projectMini = getTestProject(minimalPath);
       await projectMini.populateCaches();
-      const fetchCmd = new Fetch(projectMini);
-      const modulesCmdMini = new Modules(projectMini, fetchCmd);
+      const modulesCmdMini = Workspace.over(
+        projectMini,
+        SYSTEM_ACTOR,
+      ).modulesCmd;
       await modulesCmdMini.install(decisionRecordsPath);
       const name = 'decision/reports/newREP';
       const res = checkout.resources.byType(name, 'reports');
@@ -2568,8 +2565,7 @@ describe('resources', function () {
 
   describe('card content reference updates on resource rename', () => {
     async function cleanup(cardKey: string) {
-      const fetch = new Fetch(checkout);
-      const remove = new Remove(checkout, fetch, new Modules(checkout, fetch));
+      const remove = Workspace.over(checkout, SYSTEM_ACTOR).removeCmd;
       await remove.remove('card', cardKey);
     }
 
@@ -2618,7 +2614,7 @@ describe('resources', function () {
       const workflow = checkout.resources.byType(workflowName, 'workflows');
       await workflow.create();
 
-      const create = new Create(checkout);
+      const create = Workspace.over(checkout, SYSTEM_ACTOR).createCmd;
       const result = await create.createCard('decision/templates/simplepage');
       const cardKey = result[0].key;
       await checkout.updateCardContent(
@@ -2647,7 +2643,7 @@ describe('resources', function () {
       const fieldType = checkout.resources.byType(fieldTypeName, 'fieldTypes');
       await fieldType.createFieldType('shortText');
 
-      const create = new Create(checkout);
+      const create = Workspace.over(checkout, SYSTEM_ACTOR).createCmd;
       const result = await create.createCard('decision/templates/simplepage');
       const cardKey = result[0].key;
 
@@ -2676,7 +2672,7 @@ describe('resources', function () {
       const cardType = checkout.resources.byType(cardTypeName, 'cardTypes');
       await cardType.createCardType('decision/workflows/decision');
 
-      const create = new Create(checkout);
+      const create = Workspace.over(checkout, SYSTEM_ACTOR).createCmd;
       const result = await create.createCard('decision/templates/simplepage');
       const cardKey = result[0].key;
 
@@ -2709,7 +2705,7 @@ describe('resources', function () {
       const linkType = checkout.resources.byType(linkTypeName, 'linkTypes');
       await linkType.create();
 
-      const create = new Create(checkout);
+      const create = Workspace.over(checkout, SYSTEM_ACTOR).createCmd;
       const result = await create.createCard('decision/templates/simplepage');
       const cardKey = result[0].key;
 
@@ -2721,7 +2717,7 @@ describe('resources', function () {
       let card = checkout.findCard(cardKey);
       expect(card.content).toContain(linkTypeName);
 
-      const update = new Update(checkout);
+      const update = Workspace.over(checkout, SYSTEM_ACTOR).updateCmd;
       await update.apply({
         kind: 'edit',
         target: resourceName(linkTypeName),
@@ -2754,7 +2750,7 @@ describe('resources', function () {
       );
       await calculation.create();
 
-      const create = new Create(checkout);
+      const create = Workspace.over(checkout, SYSTEM_ACTOR).createCmd;
       const result = await create.createCard('decision/templates/simplepage');
       const cardKey = result[0].key;
       await checkout.updateCardContent(
@@ -2785,7 +2781,7 @@ describe('resources', function () {
       );
       await graphModel.create();
 
-      const create = new Create(checkout);
+      const create = Workspace.over(checkout, SYSTEM_ACTOR).createCmd;
       const result = await create.createCard('decision/templates/simplepage');
       const cardKey = result[0].key;
       await checkout.updateCardContent(
@@ -2813,7 +2809,7 @@ describe('resources', function () {
       const graphView = checkout.resources.byType(graphViewName, 'graphViews');
       await graphView.create();
 
-      const create = new Create(checkout);
+      const create = Workspace.over(checkout, SYSTEM_ACTOR).createCmd;
       const result = await create.createCard('decision/templates/simplepage');
       const cardKey = result[0].key;
       await checkout.updateCardContent(
@@ -2843,7 +2839,7 @@ describe('resources', function () {
 
       const cardKeys: string[] = [];
       for (let i = 0; i < 3; i++) {
-        const create = new Create(checkout);
+        const create = Workspace.over(checkout, SYSTEM_ACTOR).createCmd;
         const result = await create.createCard('decision/templates/simplepage');
         const cardKey = result[0].key;
         cardKeys.push(cardKey);
@@ -2866,8 +2862,7 @@ describe('resources', function () {
       }
 
       // Cleanup
-      const fetch = new Fetch(checkout);
-      const remove = new Remove(checkout, fetch, new Modules(checkout, fetch));
+      const remove = Workspace.over(checkout, SYSTEM_ACTOR).removeCmd;
       for (const cardKey of cardKeys) {
         await remove.remove('card', cardKey);
       }
@@ -2895,7 +2890,7 @@ describe('resources', function () {
       await linkType.create();
 
       // Create two cards
-      const create = new Create(checkout);
+      const create = Workspace.over(checkout, SYSTEM_ACTOR).createCmd;
       const result1 = await create.createCard('decision/templates/simplepage');
       const cardKey1 = result1[0].key;
       const result2 = await create.createCard('decision/templates/simplepage');
@@ -2915,7 +2910,7 @@ describe('resources', function () {
       expect(card1.metadata?.links).to.have.lengthOf(1);
       expect(card1.metadata?.links[0].linkType).toBe(linkTypeName);
 
-      const update = new Update(checkout);
+      const update = Workspace.over(checkout, SYSTEM_ACTOR).updateCmd;
       await update.apply({
         kind: 'rename',
         target: resourceName(linkTypeName),

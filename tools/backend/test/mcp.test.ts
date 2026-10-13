@@ -16,12 +16,12 @@
 import { beforeAll, describe, expect, test } from 'vitest';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { Workspace } from '@cyberismo/data-handler';
 import { createApp } from '../src/app.js';
 import { ProjectRegistry } from '../src/project-registry.js';
 import { MockAuthProvider } from '../src/auth/mock.js';
 import { UserRole, type UserInfo } from '../src/types.js';
 import type { AuthProvider } from '../src/auth/types.js';
+import { openTestWorkspace } from './helpers/open-test-workspace.js';
 
 const fileUrl = fileURLToPath(import.meta.url);
 const dirname = path.dirname(fileUrl);
@@ -31,7 +31,7 @@ let app: ReturnType<typeof createApp>;
 beforeAll(async () => {
   // Fixes weird issue with asciidoctor
   process.argv = [];
-  const ws = await Workspace.getInstance(
+  const ws = await openTestWorkspace(
     path.resolve(
       dirname,
       '../../data-handler/test/test-data/valid/decision-records',
@@ -39,7 +39,7 @@ beforeAll(async () => {
   );
   app = createApp(
     new MockAuthProvider(),
-    ProjectRegistry.fromCommandManager(ws),
+    ProjectRegistry.fromCheckout(ws.checkout),
   );
 });
 
@@ -84,7 +84,7 @@ describe('MCP HTTP Endpoint', () => {
     let sessionApp: ReturnType<typeof createApp>;
 
     beforeAll(async () => {
-      const ws = await Workspace.getInstance(
+      const ws = await openTestWorkspace(
         path.resolve(
           dirname,
           '../../data-handler/test/test-data/valid/decision-records',
@@ -94,7 +94,7 @@ describe('MCP HTTP Endpoint', () => {
         {
           authenticate: async () => ({ ...user, exp: Number.MAX_SAFE_INTEGER }),
         },
-        ProjectRegistry.fromCommandManager(ws),
+        ProjectRegistry.fromCheckout(ws.checkout),
       );
     });
 
@@ -221,7 +221,7 @@ describe('MCP HTTP Endpoint', () => {
       }),
     };
 
-    const ws = await Workspace.getInstance(
+    const ws = await openTestWorkspace(
       path.resolve(
         dirname,
         '../../data-handler/test/test-data/valid/decision-records',
@@ -229,7 +229,7 @@ describe('MCP HTTP Endpoint', () => {
     );
     const readerApp = createApp(
       readerProvider,
-      ProjectRegistry.fromCommandManager(ws),
+      ProjectRegistry.fromCheckout(ws.checkout),
     );
 
     const response = await readerApp.request('/mcp', {

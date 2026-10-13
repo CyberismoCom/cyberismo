@@ -5,7 +5,8 @@ import { join } from 'node:path';
 import { Checkout } from '../../../src/containers/project.js';
 import { resourceName } from '../../../src/utils/resource-utils.js';
 import { copyDir } from '../../../src/utils/file-utils.js';
-import { ResourceMutations } from '../../../src/mutations/resource-mutations.js';
+import { Workspace } from '../../../src/workspace/workspace.js';
+import { SYSTEM_ACTOR } from '../../../src/utils/tx-record.js';
 
 const FIXTURE_PATH = join(
   import.meta.dirname,
@@ -34,8 +35,7 @@ describe('WorkflowRenameHandler', () => {
   it('apply rewrites the workflow reference in dependent card types', async () => {
     const oldName = 'decision/workflows/decision';
     const newName = 'decision/workflows/decision-v2';
-    const mutations = new ResourceMutations(checkout);
-    await mutations.apply({
+    await Workspace.over(checkout, SYSTEM_ACTOR).updateCmd.apply({
       kind: 'rename',
       target: resourceName(oldName),
       newIdentifier: 'decision-v2',
@@ -59,9 +59,8 @@ describe('WorkflowRenameHandler', () => {
   });
 
   it('throws when the workflow does not exist', async () => {
-    const mutations = new ResourceMutations(checkout);
     await expect(
-      mutations.apply({
+      Workspace.over(checkout, SYSTEM_ACTOR).updateCmd.apply({
         kind: 'rename',
         target: resourceName('decision/workflows/does-not-exist'),
         newIdentifier: 'whatever',

@@ -6,7 +6,8 @@ import { Checkout } from '../../../src/containers/project.js';
 import { route } from '../../../src/mutations/route.js';
 import { resourceName } from '../../../src/utils/resource-utils.js';
 import { copyDir } from '../../../src/utils/file-utils.js';
-import { ResourceMutations } from '../../../src/mutations/resource-mutations.js';
+import { Workspace } from '../../../src/workspace/workspace.js';
+import { SYSTEM_ACTOR } from '../../../src/utils/tx-record.js';
 
 const FIXTURE_PATH = join(
   import.meta.dirname,
@@ -69,9 +70,7 @@ describe('WorkflowRenameStateHandler', () => {
       .find((c) => c.metadata?.cardType === 'decision/cardTypes/decision')!;
     target.metadata!.workflowState = 'Draft';
     await checkout.updateCardMetadata(target, target.metadata!);
-
-    const mutations = new ResourceMutations(checkout);
-    await mutations.apply({
+    await Workspace.over(checkout, SYSTEM_ACTOR).updateCmd.apply({
       kind: 'edit',
       target: resourceName(WF),
       updateKey: { key: 'states' },

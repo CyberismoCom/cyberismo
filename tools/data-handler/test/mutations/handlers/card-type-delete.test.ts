@@ -6,7 +6,8 @@ import { copyDir } from '../../../src/utils/file-utils.js';
 import type { Checkout } from '../../../src/containers/project.js';
 import { getTestProject } from '../../helpers/test-utils.js';
 import { resourceName } from '../../../src/utils/resource-utils.js';
-import { ResourceMutations } from '../../../src/mutations/resource-mutations.js';
+import { Workspace } from '../../../src/workspace/workspace.js';
+import { SYSTEM_ACTOR } from '../../../src/utils/tx-record.js';
 
 const baseDir = import.meta.dirname;
 const testDir = join(baseDir, 'tmp-card-type-delete');
@@ -31,9 +32,7 @@ describe('CardTypeDeleteHandler', () => {
       .cards()
       .filter((c) => c.metadata?.cardType === cardTypeName());
     expect(before.length).toBeGreaterThan(0);
-
-    const mutations = new ResourceMutations(checkout);
-    await mutations.apply({
+    await Workspace.over(checkout, SYSTEM_ACTOR).updateCmd.apply({
       kind: 'delete',
       target: resourceName(cardTypeName()),
     });
@@ -46,8 +45,7 @@ describe('CardTypeDeleteHandler', () => {
   });
 
   it('strips the card type from every link type sourceCardTypes/destinationCardTypes', async () => {
-    const mutations = new ResourceMutations(checkout);
-    await mutations.apply({
+    await Workspace.over(checkout, SYSTEM_ACTOR).updateCmd.apply({
       kind: 'delete',
       target: resourceName(cardTypeName()),
     });
@@ -59,8 +57,7 @@ describe('CardTypeDeleteHandler', () => {
   });
 
   it('deletes the card type resource file from disk', async () => {
-    const mutations = new ResourceMutations(checkout);
-    await mutations.apply({
+    await Workspace.over(checkout, SYSTEM_ACTOR).updateCmd.apply({
       kind: 'delete',
       target: resourceName(cardTypeName()),
     });

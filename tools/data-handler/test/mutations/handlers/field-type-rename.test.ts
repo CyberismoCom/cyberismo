@@ -7,6 +7,8 @@ import type { Checkout } from '../../../src/containers/project.js';
 import { getTestProject } from '../../helpers/test-utils.js';
 import { resourceName } from '../../../src/utils/resource-utils.js';
 import { ResourceMutations } from '../../../src/mutations/resource-mutations.js';
+import { Workspace } from '../../../src/workspace/workspace.js';
+import { SYSTEM_ACTOR, SYSTEM_FRAME } from '../../../src/utils/tx-record.js';
 
 const baseDir = import.meta.dirname;
 const testDir = join(baseDir, 'tmp-field-type-rename');
@@ -33,9 +35,7 @@ describe('FieldTypeRenameHandler', () => {
     await checkout.resources
       .byType(oldName, 'fieldTypes')
       .createFieldType('shortText');
-
-    const mutations = new ResourceMutations(checkout);
-    await mutations.apply({
+    await Workspace.over(checkout, SYSTEM_ACTOR).updateCmd.apply({
       kind: 'rename' as const,
       target: resourceName(oldName),
       newIdentifier: 'spareRenamed',
@@ -81,9 +81,7 @@ describe('FieldTypeRenameHandler', () => {
     await moduleProject.resources
       .byType(oldName, 'fieldTypes')
       .createFieldType('shortText');
-
-    const mutations = new ResourceMutations(moduleProject);
-    await mutations.apply({
+    await Workspace.over(moduleProject, SYSTEM_ACTOR).updateCmd.apply({
       kind: 'rename' as const,
       target: resourceName(oldName),
       newIdentifier: 'spareRenamed',
@@ -101,9 +99,8 @@ describe('FieldTypeRenameHandler', () => {
     // explicit guard in apply() refuses the authoring rename before touching
     // the resource.
     const oldName = `${checkout.projectPrefix}/fieldTypes/finished`;
-    const mutations = new ResourceMutations(checkout);
     await expect(
-      mutations.apply({
+      Workspace.over(checkout, SYSTEM_ACTOR).updateCmd.apply({
         kind: 'rename' as const,
         target: resourceName(oldName),
         newIdentifier: 'completed',
@@ -168,13 +165,15 @@ describe('FieldTypeRenameHandler', () => {
     const replayProject = getTestProject(decisionRecordsPath);
     await replayProject.populateCaches();
 
-    await new ResourceMutations(replayProject).apply(
-      {
-        kind: 'rename' as const,
-        target: resourceName(oldName),
-        newIdentifier: 'newField',
-      },
-      { kind: 'replay', modulePrefix: replayProject.projectPrefix },
+    await replayProject.lock.write(SYSTEM_FRAME, () =>
+      new ResourceMutations(replayProject).apply(
+        {
+          kind: 'rename' as const,
+          target: resourceName(oldName),
+          newIdentifier: 'newField',
+        },
+        { kind: 'replay', modulePrefix: replayProject.projectPrefix },
+      ),
     );
 
     const cardType = JSON.parse(readFileSync(cardTypeFile, 'utf-8'));
@@ -196,13 +195,15 @@ describe('FieldTypeRenameHandler', () => {
     // Neither the old nor the new field type exists and nothing references
     // either name; the cascade must still resolve.
     await expect(
-      new ResourceMutations(checkout).apply(
-        {
-          kind: 'rename' as const,
-          target: resourceName('mymod/fieldTypes/ghost'),
-          newIdentifier: 'phantom',
-        },
-        { kind: 'replay', modulePrefix: 'mymod' },
+      checkout.lock.write(SYSTEM_FRAME, () =>
+        new ResourceMutations(checkout).apply(
+          {
+            kind: 'rename' as const,
+            target: resourceName('mymod/fieldTypes/ghost'),
+            newIdentifier: 'phantom',
+          },
+          { kind: 'replay', modulePrefix: 'mymod' },
+        ),
       ),
     ).resolves.toBeUndefined();
   });

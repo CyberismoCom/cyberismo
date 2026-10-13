@@ -30,6 +30,7 @@ import type {
   ModuleInstallation,
 } from '../../../src/modules/types.js';
 import type { ResolvedModule } from '../../../src/modules/resolve/types.js';
+import { SYSTEM_FRAME } from '../../../src/utils/tx-record.js';
 
 const baseDir = import.meta.dirname;
 const testDir = join(baseDir, 'tmp-replay-integration');
@@ -208,7 +209,9 @@ describe('module replay end to end', () => {
     expect(steps[0].seals[0].entries).toHaveLength(1);
 
     const moduleTreeBefore = snapshotTree(installed.path);
-    await executeModuleReplays(checkout, steps);
+    await checkout.lock.write(SYSTEM_FRAME, () =>
+      executeModuleReplays(checkout, steps),
+    );
 
     // Card content and folder-resource content files are rewritten on disk.
     const adoc = readFileSync(join(cardDir, 'index.adoc'), 'utf8');
@@ -263,7 +266,9 @@ describe('module replay end to end', () => {
 
     const checkout = await loadProject();
     const steps = await planModuleReplays([resolved], [installed]);
-    await executeModuleReplays(checkout, steps);
+    await checkout.lock.write(SYSTEM_FRAME, () =>
+      executeModuleReplays(checkout, steps),
+    );
 
     // The customFields entry keeps its shape — only the name is rewritten,
     // sibling properties survive.
@@ -311,7 +316,9 @@ describe('module replay end to end', () => {
 
     const checkout = await loadProject();
     const steps = await planModuleReplays([resolved], [installed]);
-    await executeModuleReplays(checkout, steps);
+    await checkout.lock.write(SYSTEM_FRAME, () =>
+      executeModuleReplays(checkout, steps),
+    );
 
     const metadata = JSON.parse(
       readFileSync(join(cardDir, 'index.json'), 'utf8'),
@@ -382,7 +389,9 @@ describe('module replay end to end', () => {
       ['2.0.0', '2.9.0'],
     ]);
 
-    await executeModuleReplays(checkout, steps);
+    await checkout.lock.write(SYSTEM_FRAME, () =>
+      executeModuleReplays(checkout, steps),
+    );
 
     for (const content of [
       readFileSync(join(cardDir, 'index.adoc'), 'utf8'),
@@ -434,7 +443,9 @@ describe('module replay end to end', () => {
     const steps = await planModuleReplays([resolved], [installed]);
     expect(steps[0].seals).toHaveLength(2);
 
-    const error = await executeModuleReplays(checkout, steps).catch((e) => e);
+    const error = await checkout.lock
+      .write(SYSTEM_FRAME, () => executeModuleReplays(checkout, steps))
+      .catch((e) => e);
 
     expect(error).toBeInstanceOf(ModuleReplayFailedError);
     expect(error.modulePrefix).toBe('mod');
@@ -487,7 +498,9 @@ describe('module replay end to end', () => {
       formatSealFileName('1.1.0', '1.2.0'),
     ]);
 
-    await executeModuleReplays(checkout, steps);
+    await checkout.lock.write(SYSTEM_FRAME, () =>
+      executeModuleReplays(checkout, steps),
+    );
 
     for (const content of [
       readFileSync(join(cardDir, 'index.adoc'), 'utf8'),

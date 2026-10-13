@@ -2,11 +2,12 @@ import { expect, it, describe, beforeEach, afterEach } from 'vitest';
 import { join } from 'node:path';
 import { mkdirSync, rmSync } from 'node:fs';
 
-import { Workspace } from '../src/workspace/workspace.js';
+import { type Workspace } from '../src/workspace/workspace.js';
 import { copyDir } from '../src/utils/file-utils.js';
 import { resourceName } from '../src/utils/resource-utils.js';
 
 import type { Operation, Skill } from '@cyberismo/model';
+import { openTestWorkspace } from './helpers/open-test-workspace.js';
 
 const baseDir = import.meta.dirname;
 const testDir = join(baseDir, 'tmp-skill-edit-tests');
@@ -20,10 +21,9 @@ describe('edit skill', () => {
   beforeEach(async () => {
     mkdirSync(testDir, { recursive: true });
     await copyDir('test/test-data/', testDir);
-    ws = new Workspace(projectPath, {
+    ws = await openTestWorkspace(projectPath, {
       autoSaveConfiguration: false,
     });
-    await ws.initialize();
     await ws.createCmd.createSkill(SKILL);
   });
 

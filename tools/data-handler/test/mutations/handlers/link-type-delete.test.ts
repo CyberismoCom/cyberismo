@@ -3,10 +3,11 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 
 import { Checkout } from '../../../src/containers/project.js';
-import { ResourceMutations } from '../../../src/mutations/resource-mutations.js';
 import { copyDir, deleteDir } from '../../../src/utils/file-utils.js';
 import { resourceName } from '../../../src/utils/resource-utils.js';
 import { createLinkSeededProject } from '../helpers.js';
+import { Workspace } from '../../../src/workspace/workspace.js';
+import { SYSTEM_ACTOR } from '../../../src/utils/tx-record.js';
 
 const tmpDir = join(import.meta.dirname, 'tmp-link-type-delete');
 
@@ -22,7 +23,7 @@ describe('LinkTypeDeleteHandler', () => {
 
   it('apply strips matching links and deletes the resource', async () => {
     const linkTypeName = `${checkout.projectPrefix}/linkTypes/test`;
-    await new ResourceMutations(checkout).apply({
+    await Workspace.over(checkout, SYSTEM_ACTOR).updateCmd.apply({
       kind: 'delete',
       target: resourceName(linkTypeName),
     });
@@ -120,7 +121,7 @@ describe('LinkTypeDeleteHandler module scope', () => {
   // The cascade is local-only: deleting a local link type strips it from local
   // cards but must leave module-owned card links untouched.
   it('local delete leaves module template card links untouched', async () => {
-    await new ResourceMutations(checkout).apply({
+    await Workspace.over(checkout, SYSTEM_ACTOR).updateCmd.apply({
       kind: 'delete',
       target: resourceName(`${checkout.projectPrefix}/linkTypes/test`),
     });
@@ -141,7 +142,7 @@ describe('LinkTypeDeleteHandler module scope', () => {
 
   it('rejects a module link-type delete before stripping local card links', async () => {
     await expect(
-      new ResourceMutations(checkout).apply({
+      Workspace.over(checkout, SYSTEM_ACTOR).updateCmd.apply({
         kind: 'delete',
         target: resourceName('mymod/linkTypes/dummy'),
       }),

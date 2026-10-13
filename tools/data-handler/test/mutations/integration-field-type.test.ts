@@ -5,9 +5,10 @@ import { join } from 'node:path';
 import { copyDir } from '../../src/utils/file-utils.js';
 import type { Checkout } from '../../src/containers/project.js';
 import { getTestProject } from '../helpers/test-utils.js';
-import { ResourceMutations } from '../../src/mutations/resource-mutations.js';
 import { ConfigurationLogger } from '../../src/utils/configuration-logger.js';
 import { resourceName } from '../../src/utils/resource-utils.js';
+import { Workspace } from '../../src/workspace/workspace.js';
+import { SYSTEM_ACTOR } from '../../src/utils/tx-record.js';
 
 const baseDir = import.meta.dirname;
 const testDir = join(baseDir, 'tmp-field-type-integration');
@@ -30,9 +31,10 @@ describe('FieldType mutation engine end-to-end', () => {
     await checkout.resources
       .byType(name, 'fieldTypes')
       .createFieldType('shortText');
-
-    const mutations = new ResourceMutations(checkout);
-    await mutations.apply({ kind: 'delete', target: resourceName(name) });
+    await Workspace.over(checkout, SYSTEM_ACTOR).updateCmd.apply({
+      kind: 'delete',
+      target: resourceName(name),
+    });
 
     expect(checkout.resources.exists(name)).toBe(false);
     const entries = await ConfigurationLogger.entries(checkout.basePath);
@@ -51,9 +53,7 @@ describe('FieldType mutation engine end-to-end', () => {
       .byType(name, 'fieldTypes')
       .createFieldType('shortText');
     const target = resourceName(name);
-    const mutations = new ResourceMutations(checkout);
-
-    await mutations.apply({
+    await Workspace.over(checkout, SYSTEM_ACTOR).updateCmd.apply({
       kind: 'rename',
       target,
       newIdentifier: 'spareRenamed',
@@ -71,9 +71,7 @@ describe('FieldType mutation engine end-to-end', () => {
     const target = resourceName(
       `${checkout.projectPrefix}/fieldTypes/finished`,
     );
-    const mutations = new ResourceMutations(checkout);
-
-    await mutations.apply({
+    await Workspace.over(checkout, SYSTEM_ACTOR).updateCmd.apply({
       kind: 'edit',
       target,
       updateKey: { key: 'dataType' },
@@ -94,9 +92,10 @@ describe('FieldType mutation engine end-to-end', () => {
     // 'finished' is referenced by the decision card type's customFields.
     const name = `${checkout.projectPrefix}/fieldTypes/finished`;
     const cardTypeName = `${checkout.projectPrefix}/cardTypes/decision`;
-
-    const mutations = new ResourceMutations(checkout);
-    await mutations.apply({ kind: 'delete', target: resourceName(name) });
+    await Workspace.over(checkout, SYSTEM_ACTOR).updateCmd.apply({
+      kind: 'delete',
+      target: resourceName(name),
+    });
 
     expect(checkout.resources.exists(name)).toBe(false);
     expect(
@@ -147,9 +146,7 @@ describe('FieldType mutation engine end-to-end', () => {
       card.metadata![fieldName] = 'low';
       await freshProject.updateCardMetadata(card, card.metadata!);
     }
-
-    const mutations = new ResourceMutations(freshProject);
-    await mutations.apply({
+    await Workspace.over(freshProject, SYSTEM_ACTOR).updateCmd.apply({
       kind: 'edit',
       target: resourceName(fieldName),
       updateKey: { key: 'enumValues' },
@@ -194,9 +191,7 @@ describe('FieldType mutation engine end-to-end', () => {
     );
     const freshProject = getTestProject(decisionRecordsPath);
     await freshProject.populateCaches();
-
-    const mutations = new ResourceMutations(freshProject);
-    await mutations.apply({
+    await Workspace.over(freshProject, SYSTEM_ACTOR).updateCmd.apply({
       kind: 'edit',
       target: resourceName(`${freshProject.projectPrefix}/fieldTypes/testEnum`),
       updateKey: { key: 'enumValues' },
@@ -208,8 +203,7 @@ describe('FieldType mutation engine end-to-end', () => {
   });
 
   it('display-only changes route to the plain handler (no log entry)', async () => {
-    const mutations = new ResourceMutations(checkout);
-    await mutations.apply({
+    await Workspace.over(checkout, SYSTEM_ACTOR).updateCmd.apply({
       kind: 'edit',
       target: resourceName(`${checkout.projectPrefix}/fieldTypes/finished`),
       updateKey: { key: 'displayName' },

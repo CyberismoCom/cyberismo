@@ -16,7 +16,7 @@
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { afterEach, beforeEach, expect, test } from 'vitest';
-import { Workspace } from '@cyberismo/data-handler';
+import { type Workspace } from '@cyberismo/data-handler';
 import { createApp } from '../src/app.js';
 import { ProjectRegistry } from '../src/project-registry.js';
 import { UserRole, type UserInfo } from '../src/types.js';
@@ -24,6 +24,7 @@ import {
   buildProject,
   type BuiltProject,
 } from '../../data-handler/test/helpers/project-builder.js';
+import { openTestWorkspace } from './helpers/open-test-workspace.js';
 
 const user: UserInfo = {
   id: 'dana-1',
@@ -37,8 +38,7 @@ let ws: Workspace;
 
 beforeEach(async () => {
   project = await buildProject({ git: true, cards: [{ title: 'Alpha' }] });
-  ws = new Workspace(project.path, { autocommit: true });
-  await ws.initialize();
+  ws = await openTestWorkspace(project.path, { autocommit: true });
 });
 
 afterEach(async () => {
@@ -49,7 +49,7 @@ afterEach(async () => {
 test('a REST write is committed as the user', async () => {
   const app = createApp(
     { authenticate: async () => user },
-    ProjectRegistry.fromCommandManager(ws),
+    ProjectRegistry.fromCheckout(ws.checkout),
   );
   const response = await app.request(
     `/api/projects/test/cards/${project.keys[0]}`,

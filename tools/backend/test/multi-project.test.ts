@@ -1,10 +1,10 @@
 import { expect, test, describe, beforeAll, afterAll } from 'vitest';
-import { Workspace } from '@cyberismo/data-handler';
 import { createApp } from '../src/app.js';
 import { ProjectRegistry } from '../src/project-registry.js';
 import { MockAuthProvider } from '../src/auth/mock.js';
 import { createTempTestData, cleanupTempTestData } from './test-utils.js';
 import { dirname } from 'node:path';
+import { openTestWorkspace } from './helpers/open-test-workspace.js';
 
 describe('multi-project routing', () => {
   let app: ReturnType<typeof createApp>;
@@ -16,17 +16,17 @@ describe('multi-project routing', () => {
     tempDecisionPath = await createTempTestData('decision-records');
     tempMinimalPath = await createTempTestData('minimal');
 
-    const decisionCommands = await Workspace.getInstance(tempDecisionPath);
-    const minimalCommands = await Workspace.getInstance(tempMinimalPath);
+    const decisionCommands = await openTestWorkspace(tempDecisionPath);
+    const minimalCommands = await openTestWorkspace(tempMinimalPath);
 
     const registry = new ProjectRegistry([
       {
         prefix: decisionCommands.checkout.configuration.cardKeyPrefix,
-        ws: decisionCommands,
+        checkout: decisionCommands.checkout,
       },
       {
         prefix: minimalCommands.checkout.configuration.cardKeyPrefix,
-        ws: minimalCommands,
+        checkout: minimalCommands.checkout,
       },
     ]);
 
@@ -119,17 +119,17 @@ describe('multi-project export mode routing', () => {
     tempDecisionPath = await createTempTestData('decision-records');
     tempMinimalPath = await createTempTestData('minimal');
 
-    const decisionCommands = await Workspace.getInstance(tempDecisionPath);
-    const minimalCommands = await Workspace.getInstance(tempMinimalPath);
+    const decisionCommands = await openTestWorkspace(tempDecisionPath);
+    const minimalCommands = await openTestWorkspace(tempMinimalPath);
 
     const registry = new ProjectRegistry([
       {
         prefix: decisionCommands.checkout.configuration.cardKeyPrefix,
-        ws: decisionCommands,
+        checkout: decisionCommands.checkout,
       },
       {
         prefix: minimalCommands.checkout.configuration.cardKeyPrefix,
-        ws: minimalCommands,
+        checkout: minimalCommands.checkout,
       },
     ]);
 

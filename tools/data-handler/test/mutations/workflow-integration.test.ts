@@ -5,9 +5,10 @@ import { join } from 'node:path';
 import { copyDir } from '../../src/utils/file-utils.js';
 import type { Checkout } from '../../src/containers/project.js';
 import { getTestProject } from '../helpers/test-utils.js';
-import { ResourceMutations } from '../../src/mutations/resource-mutations.js';
 import { ConfigurationLogger } from '../../src/utils/configuration-logger.js';
 import { resourceName } from '../../src/utils/resource-utils.js';
+import { Workspace } from '../../src/workspace/workspace.js';
+import { SYSTEM_ACTOR } from '../../src/utils/tx-record.js';
 
 const baseDir = import.meta.dirname;
 const testDir = join(baseDir, 'tmp-workflow-integration');
@@ -28,8 +29,7 @@ describe('Workflow mutation engine end-to-end', () => {
   });
 
   it('apply → log entry for a workflow rename, dependent card types rewritten', async () => {
-    const mutations = new ResourceMutations(checkout);
-    await mutations.apply({
+    await Workspace.over(checkout, SYSTEM_ACTOR).updateCmd.apply({
       kind: 'rename',
       target: resourceName(WF),
       newIdentifier: 'decision-v2',
@@ -49,8 +49,7 @@ describe('Workflow mutation engine end-to-end', () => {
   });
 
   it('apply → state removal records a log entry', async () => {
-    const mutations = new ResourceMutations(checkout);
-    await mutations.apply({
+    await Workspace.over(checkout, SYSTEM_ACTOR).updateCmd.apply({
       kind: 'edit',
       target: resourceName(WF),
       updateKey: { key: 'states' },
@@ -75,8 +74,7 @@ describe('Workflow mutation engine end-to-end', () => {
   });
 
   it('apply → state rename records a log entry', async () => {
-    const mutations = new ResourceMutations(checkout);
-    await mutations.apply({
+    await Workspace.over(checkout, SYSTEM_ACTOR).updateCmd.apply({
       kind: 'edit',
       target: resourceName(WF),
       updateKey: { key: 'states' },
@@ -102,8 +100,7 @@ describe('Workflow mutation engine end-to-end', () => {
   });
 
   it('apply → add state records NO log entry', async () => {
-    const mutations = new ResourceMutations(checkout);
-    await mutations.apply({
+    await Workspace.over(checkout, SYSTEM_ACTOR).updateCmd.apply({
       kind: 'edit',
       target: resourceName(WF),
       updateKey: { key: 'states' },
@@ -121,8 +118,7 @@ describe('Workflow mutation engine end-to-end', () => {
   });
 
   it('apply → transition change records NO log entry', async () => {
-    const mutations = new ResourceMutations(checkout);
-    await mutations.apply({
+    await Workspace.over(checkout, SYSTEM_ACTOR).updateCmd.apply({
       kind: 'edit',
       target: resourceName(WF),
       updateKey: { key: 'transitions' },
@@ -137,8 +133,7 @@ describe('Workflow mutation engine end-to-end', () => {
   });
 
   it('display-only changes route to the plain handler (no log entry)', async () => {
-    const mutations = new ResourceMutations(checkout);
-    await mutations.apply({
+    await Workspace.over(checkout, SYSTEM_ACTOR).updateCmd.apply({
       kind: 'edit',
       target: resourceName(WF),
       updateKey: { key: 'displayName' },
@@ -157,8 +152,10 @@ describe('Workflow mutation engine end-to-end', () => {
   });
 
   it('apply → deleting an in-use workflow cascade-deletes dependent card types and logs', async () => {
-    const mutations = new ResourceMutations(checkout);
-    await mutations.apply({ kind: 'delete', target: resourceName(WF) });
+    await Workspace.over(checkout, SYSTEM_ACTOR).updateCmd.apply({
+      kind: 'delete',
+      target: resourceName(WF),
+    });
 
     // The workflow and every card type that referenced it are gone.
     expect(checkout.resources.exists(WF)).toBe(false);
