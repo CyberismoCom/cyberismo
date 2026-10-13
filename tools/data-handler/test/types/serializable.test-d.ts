@@ -19,6 +19,7 @@
 import type { ChangeEvent } from '@cyberismo/model';
 import type { Cards } from '../../src/cards/cards.js';
 import type { Clean } from '../../src/clean/clean.js';
+import type { Export } from '../../src/export/export.js';
 import type { Render } from '../../src/macros/render.js';
 import type { Queries } from '../../src/queries/queries.js';
 import type { Versions } from '../../src/versions/version.js';
@@ -145,7 +146,7 @@ export const resources: FacadeSerializable<Resources> = {
 };
 
 export const queries: FacadeSerializable<Queries> = {
-  exportLogicProgram: true,
+  program: true,
   runGraph: true,
   runWorkflowGraph: true,
   runLogicProgram: true,
@@ -173,4 +174,9 @@ export const versions: FacadeSerializable<Versions> &
 export const render: FacadeSerializable<Render> = {
   macros: true,
   xrefs: true,
+};
+
+export const exports: FacadeSerializable<Export> = {
+  pdf: true,
+  adoc: true,
 };

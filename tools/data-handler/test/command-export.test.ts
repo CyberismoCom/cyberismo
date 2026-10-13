@@ -2,9 +2,7 @@ import { mkdirSync, rmSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
-import { Cmd, Commands } from '../src/command-handler.js';
 import { copyDir } from '../src/utils/file-utils.js';
-import type { ExportCommandOptions } from '../src/interfaces/command-options.js';
 import {
   beforeAll,
   expect,
@@ -14,78 +12,49 @@ import {
   beforeEach,
   afterEach,
 } from 'vitest';
+import type { Workspace } from '../src/workspace/workspace.js';
 import { openTestWorkspace } from './helpers/open-test-workspace.js';
 import { findCard } from '../src/cards/read.js';
 
 const baseDir = import.meta.dirname;
 const testDir = join(baseDir, 'tmp-export-tests');
-const testDirForExport = join(baseDir, 'tmp-command-export-site-tests');
-
 const decisionRecordsPath = join(testDir, 'valid/decision-records');
-const minimalPath = join(testDir, 'valid/minimal');
-const optionsMini: ExportCommandOptions = { projectPath: minimalPath };
 
-describe('export command', () => {
-  const commandHandler = new Commands();
+describe('adoc export', () => {
+  let ws: Workspace;
 
   beforeAll(async () => {
     mkdirSync(testDir, { recursive: true });
     await copyDir('test/test-data/', testDir);
-    optionsMini.projectPath = minimalPath;
+    ws = await openTestWorkspace(decisionRecordsPath);
   });
 
   afterAll(() => {
+    ws.checkout.dispose();
     rmSync(testDir, { recursive: true, force: true });
-    rmSync(testDirForExport, { recursive: true, force: true });
   });
 
-  beforeEach(() => {
-    rmSync(join(decisionRecordsPath, 'output'), {
-      recursive: true,
-      force: true,
-    });
-    rmSync(join(decisionRecordsPath, 'test/output'), {
-      recursive: true,
-      force: true,
-    });
-    rmSync(join(minimalPath, 'output'), {
-      recursive: true,
-      force: true,
-    });
-    rmSync(join(minimalPath, 'test/output'), {
-      recursive: true,
-      force: true,
-    });
-  });
-  it('missing project (adoc export)', async () => {
-    optionsMini.projectPath = join(testDirForExport, 'valid/i-do-not-exist');
-    const output = 'test/output/';
-    const result = await commandHandler.command(
-      Cmd.export,
-      ['adoc', output],
-      optionsMini,
+  it('refuses a card that is not in the project', async () => {
+    await expect(ws.export.adoc('decision_999')).rejects.toThrow(
+      "Card 'decision_999' does not exist in the project",
     );
-    expect(result.statusCode).toBe(400);
   });
-  it('missing parent card (adoc export)', async () => {
-    const output = join(testDirForExport, 'test/output/');
-    const card = 'decision_999';
-    const result = await commandHandler.command(
-      Cmd.export,
-      ['adoc', output, card],
-      optionsMini,
+
+  it('gives the document and its attachments by path', async () => {
+    const files = await ws.export.adoc('decision_5');
+
+    expect(Object.keys(files)).toContain('index.adoc');
+    expect(
+      Object.keys(files).filter((path) => path !== 'index.adoc'),
+    ).toContain('a/games.jpg');
+    expect(files['a/games.jpg']).toEqual(
+      await readFile(
+        join(decisionRecordsPath, 'cardRoot/decision_5/a/games.jpg'),
+      ),
     );
-    expect(result.statusCode).toBe(400);
-  });
-  it('inaccessible destination (adoc export)', async () => {
-    const output = join(testDirForExport, '/i-do-not-exist/output');
-    const card = 'decision_1';
-    const result = await commandHandler.command(
-      Cmd.export,
-      ['adoc', output, card],
-      optionsMini,
-    );
-    expect(result.statusCode).toBe(400);
+    const document = Buffer.from(files['index.adoc']).toString();
+    expect(document).toMatch(/^:imagesdir: \.\/a\/\n== /);
+    expect(document).toContain('|Card key|decision_5\n');
   });
 });
 
@@ -123,10 +92,9 @@ describe('adoc export section order', () => {
     expect(findCard(ws.checkout, 'decision_6').children).not.toEqual(rankOrder);
 
     await ws.checkout.calculationEngine.generate();
-    const output = join(orderTestDir, 'output');
-    await ws.export.exportToADoc(output);
+    const files = await ws.export.adoc();
 
-    const adoc = await readFile(join(output, 'index.adoc'), 'utf-8');
+    const adoc = Buffer.from(files['index.adoc']).toString();
     const positionOf = (cardKey: string) =>
       adoc.indexOf(`|Card key|${cardKey}\n`);
     expect(positionOf(lastCreated)).toBeGreaterThan(-1);

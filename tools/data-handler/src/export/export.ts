@@ -13,19 +13,15 @@
 */
 
 // node
-import {
-  appendFile,
-  copyFile,
-  mkdir,
-  truncate,
-  writeFile,
-} from 'node:fs/promises';
-import { dirname, join } from 'node:path';
+import { readFile } from 'node:fs/promises';
+import { join } from 'node:path';
 import { spawn } from 'node:child_process';
 
 import type {
+  AdocFiles,
   Card,
   CardType,
+  ExportedPdf,
   ExportPdfOptions,
   QueryResult,
 } from '@cyberismo/model';
@@ -48,7 +44,7 @@ const ASCIIDOCTOR_DIAGNOSTIC = /^asciidoctor: (WARNING|ERROR):/;
 const FAILURE_DIAGNOSTIC_LINES = 20;
 
 // Diagnostics can contain server paths, so they stay out of the message
-class AsciidoctorPdfError extends Error {
+export class AsciidoctorPdfError extends Error {
   constructor(
     code: number | null,
     public readonly diagnostics: string[],
@@ -68,9 +64,10 @@ export class Export {
   constructor(protected checkout: Checkout) {}
 
   // This file should set the top level items to the adoc.
-  private async toAdocFile(path: string, cards: Card[]) {
-    await appendFile(path, `:imagesdir: ./${attachmentFolder}/\n`);
-    await this.toAdocFileAsContent(path, cards);
+  private async toAdocFile(files: AdocFiles, cards: Card[]) {
+    const content = [`:imagesdir: ./${attachmentFolder}/\n`];
+    await this.toAdocFileAsContent(files, content, cards);
+    files[Checkout.cardContentFile] = Buffer.from(content.join(''));
   }
 
   // Format card metadata to an AsciiDoc table.
@@ -221,7 +218,11 @@ export class Export {
   }
 
   // Adds cards to an ADOC file as additional content.
-  private async toAdocFileAsContent(path: string, cards: Card[]) {
+  private async toAdocFileAsContent(
+    files: AdocFiles,
+    content: string[],
+    cards: Card[],
+  ) {
     for (const card of cards) {
       let fileContent = '';
 
@@ -244,29 +245,28 @@ export class Export {
       }
 
       if (card.attachments) {
-        const promiseContainer = [];
-        for (const attachment of card.attachments) {
-          const destination = join(
-            dirname(path),
-            attachmentFolder,
-            attachment.fileName,
-          );
-          const source = join(attachment.path, attachment.fileName);
-          promiseContainer.push(copyFile(source, destination));
-        }
-        await Promise.all(promiseContainer);
+        const attachments = await Promise.all(
+          card.attachments.map((attachment) =>
+            readFile(join(attachment.path, attachment.fileName)),
+          ),
+        );
+        card.attachments.forEach((attachment, index) => {
+          files[`${attachmentFolder}/${attachment.fileName}`] =
+            attachments[index];
+        });
       }
 
       // Add separator between cards
       fileContent += '\n\n';
 
       if (fileContent) {
-        await appendFile(path, fileContent);
+        content.push(fileContent);
       }
 
       if (card.children) {
         await this.toAdocFileAsContent(
-          path,
+          files,
+          content,
           sortItems(
             cardsByKeys(this.checkout, card.children),
             (child) => child.metadata?.rank || '1|z',
@@ -400,79 +400,30 @@ export class Export {
   }
 
   /**
-   * Exports the card(s) to pdf.
-   * @param destination Path to where the resulting file(s) will be created.
-   * @param options Export options.
-   * @returns status message
+   * Renders the card(s) as a PDF, with its rendering warnings. Unset document
+   * fields default to Title, Name, 1.0.0, Initial version and today.
+   * @throws AsciidoctorPdfError when asciidoctor-pdf fails; its diagnostics
+   *   stay off the message.
    */
   @read
-  public async exportPdf(
-    destination: string,
-    pdfOptions: ExportPdfOptions,
-  ): Promise<string> {
-    const options = {
-      title: pdfOptions?.title || 'Title',
-      name: pdfOptions?.name || 'Name',
-      version: pdfOptions?.version || '1.0.0',
-      revremark: pdfOptions?.revremark || 'Initial version',
-      cardKey: pdfOptions.cardKey,
-      date: pdfOptions?.date ? new Date(pdfOptions.date) : new Date(),
-    };
-    let rendered;
-    try {
-      rendered = await this.renderPdf(options);
-    } catch (error) {
-      if (error instanceof AsciidoctorPdfError) {
-        throw new Error([error.message, ...error.diagnostics].join('\n'), {
-          cause: error,
-        });
-      }
-      throw error;
-    }
-    const { pdf, warnings } = rendered;
-    await writeFile(destination, pdf);
-    const summary =
-      warnings.length === 1
-        ? ' with 1 rendering warning'
-        : warnings.length > 1
-          ? ` with ${warnings.length} rendering warnings`
-          : '';
-    return `Content exported as PDF to ${destination}${summary}`;
+  public async pdf(options: ExportPdfOptions): Promise<ExportedPdf> {
+    return this.renderPdf({
+      ...options,
+      title: options.title || 'Title',
+      name: options.name || 'Name',
+      version: options.version || '1.0.0',
+      revremark: options.revremark || 'Initial version',
+      date: options.date ? new Date(options.date) : new Date(),
+    });
   }
 
   /**
-   * Exports the card(s) as a pdf buffer.
-   * @param options Export options.
-   * @returns buffer
-   */
-  @read
-  public async exportPdfBuffer(options: ExportPdfOptions): Promise<Buffer> {
-    try {
-      return (
-        await this.renderPdf({
-          ...options,
-          date: options.date ? new Date(options.date) : undefined,
-        })
-      ).pdf;
-    } catch (error) {
-      if (error instanceof AsciidoctorPdfError) {
-        console.error(error.message, error.diagnostics.join('\n'));
-      }
-      throw error;
-    }
-  }
-
-  /**
-   * Exports the card(s) to ascii doc.
-   * @param destination Path to where the resulting file(s) will be created.
+   * The card(s) as an AsciiDoc document with its attachments, by path:
+   * 'index.adoc' and 'a/<file name>'.
    * @param cardKey If not exporting the whole card tree, card key of parent card.
-   * @returns status message
    */
   @read
-  public async exportToADoc(
-    destination: string,
-    cardKey?: string,
-  ): Promise<string> {
+  public async adoc(cardKey?: string): Promise<AdocFiles> {
     const sourcePath: string = this.checkout.paths.cardRootFolder;
     let cards: Card[] = [];
 
@@ -509,20 +460,8 @@ export class Export {
       return card.metadata?.rank || '1|z';
     });
 
-    await mkdir(join(destination, attachmentFolder), { recursive: true });
-    const resultDocumentPath: string = join(
-      destination,
-      Checkout.cardContentFile,
-    );
-    let message: string;
-    try {
-      await truncate(resultDocumentPath, 0);
-      message = `Using existing output file '${resultDocumentPath}'`;
-    } catch {
-      message = `Creating output file '${resultDocumentPath}'`;
-    }
-
-    await this.toAdocFile(resultDocumentPath, cards);
-    return message;
+    const files: AdocFiles = {};
+    await this.toAdocFile(files, cards);
+    return files;
   }
 }

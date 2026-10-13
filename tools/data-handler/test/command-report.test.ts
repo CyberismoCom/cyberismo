@@ -3,201 +3,98 @@ import { expect, it, describe, beforeEach, afterEach } from 'vitest';
 
 // node
 import { mkdirSync, rmSync } from 'node:fs';
-import { readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
 // cyberismo
-import { Cmd, Commands } from '../src/command-handler.js';
+import type { ReportParameters } from '@cyberismo/model';
+import { DHValidationError } from '../src/exceptions/index.js';
 import { copyDir } from '../src/utils/file-utils.js';
+import type { Workspace } from '../src/workspace/workspace.js';
+import { openTestWorkspace } from './helpers/open-test-workspace.js';
 
-// validation tests do not modify the content - so they can use the original files
 const baseDir = import.meta.dirname;
 const testDir = join(baseDir, 'tmp-command-handler-report-tests');
 
 const decisionRecordsPath = join(testDir, 'valid/decision-records');
 
-const commandHandler: Commands = new Commands();
-const optionsDecision = {
-  projectPath: decisionRecordsPath,
-  context: 'localApp',
-};
+describe('report', () => {
+  let ws: Workspace;
 
-describe('report command', () => {
   beforeEach(async () => {
     mkdirSync(testDir, { recursive: true });
     await copyDir('test/test-data', testDir);
-    await commandHandler.command(Cmd.calc, ['generate'], optionsDecision);
+    ws = await openTestWorkspace(decisionRecordsPath);
   });
 
   afterEach(() => {
+    ws.checkout.dispose();
     rmSync(testDir, { recursive: true, force: true });
   });
 
+  const run = (name: string, parameters: ReportParameters) =>
+    ws.queries.runReport(name, parameters, 'localApp');
+
   it('run test report that returns no data', async () => {
-    const parameters = {
-      name: 'decision/reports/anotherReport',
-      parameters: {
-        cardKey: 'decision_1',
-      },
-    };
-    await writeFile(
-      join(testDir, 'report.json'),
-      JSON.stringify(parameters, null, 2),
-      { encoding: 'utf-8' },
-    );
-    const result = await commandHandler.command(
-      Cmd.report,
-      [join(testDir, 'report.json')],
-      optionsDecision,
-    );
-    expect(result.statusCode).toBe(200);
     // decision_1 card does not have children.
-    expect(result.message).toMatch('No report result');
+    expect(
+      await run('decision/reports/anotherReport', { cardKey: 'decision_1' }),
+    ).toBe('');
   });
   it('run test report that returns results', async () => {
-    const parameters = {
-      name: 'decision/reports/anotherReport',
-      parameters: {
-        cardKey: 'decision_5',
-      },
-    };
-    await writeFile(
-      join(testDir, 'report.json'),
-      JSON.stringify(parameters, null, 2),
-      { encoding: 'utf-8' },
-    );
-    const result = await commandHandler.command(
-      Cmd.report,
-      [join(testDir, 'report.json')],
-      optionsDecision,
-    );
-    expect(result.statusCode).toBe(200);
-    // decision_1 card does not have children.
-    expect(result.message).toMatch('xref');
-  });
-  it('run test report and put the results to an output file', async () => {
-    const parameters = {
-      name: 'decision/reports/anotherReport',
-      parameters: {
-        cardKey: 'decision_5',
-      },
-    };
-    const outputFile = join(testDir, 'report-output.txt');
-    await writeFile(
-      join(testDir, 'report.json'),
-      JSON.stringify(parameters, null, 2),
-      { encoding: 'utf-8' },
-    );
-    const result = await commandHandler.command(
-      Cmd.report,
-      [join(testDir, 'report.json'), outputFile],
-      optionsDecision,
-    );
-    expect(result.statusCode).toBe(200);
-    await readFile(outputFile, { encoding: 'utf-8' }).then((data) => {
-      expect(data).toMatch('xref');
-      expect(data).toMatch('decision_6'); //decision_6 is decision_5's child
-    });
+    expect(
+      await run('decision/reports/anotherReport', { cardKey: 'decision_5' }),
+    ).toMatch('xref');
   });
   it('eq helper matches equal values', async () => {
-    const parameters = {
-      name: 'decision/reports/eqNeReport',
-      parameters: {
-        cardKey: 'decision_5',
-      },
-    };
-    await writeFile(
-      join(testDir, 'report.json'),
-      JSON.stringify(parameters, null, 2),
-      { encoding: 'utf-8' },
-    );
-    const result = await commandHandler.command(
-      Cmd.report,
-      [join(testDir, 'report.json')],
-      optionsDecision,
-    );
-    expect(result.statusCode).toBe(200);
-    expect(result.message).toMatch('EQ_MATCH:decision_6');
+    expect(
+      await run('decision/reports/eqNeReport', { cardKey: 'decision_5' }),
+    ).toMatch('EQ_MATCH:decision_6');
   });
   it('ne helper does not match equal values', async () => {
-    const parameters = {
-      name: 'decision/reports/eqNeReport',
-      parameters: {
-        cardKey: 'decision_5',
-      },
-    };
-    await writeFile(
-      join(testDir, 'report.json'),
-      JSON.stringify(parameters, null, 2),
-      { encoding: 'utf-8' },
-    );
-    const result = await commandHandler.command(
-      Cmd.report,
-      [join(testDir, 'report.json')],
-      optionsDecision,
-    );
-    expect(result.statusCode).toBe(200);
-    expect(result.message).not.toMatch('NE_MATCH:decision_6');
+    expect(
+      await run('decision/reports/eqNeReport', { cardKey: 'decision_5' }),
+    ).not.toMatch('NE_MATCH:decision_6');
   });
   it('renders a report without running a query, using math helpers', async () => {
-    const parameters = {
-      name: 'decision/reports/percentageReport',
-      parameters: {
-        cardKey: 'decision_1',
-        value: 55,
-      },
-    };
-    await writeFile(
-      join(testDir, 'report.json'),
-      JSON.stringify(parameters, null, 2),
-      { encoding: 'utf-8' },
-    );
-    const result = await commandHandler.command(
-      Cmd.report,
-      [join(testDir, 'report.json')],
-      optionsDecision,
-    );
-    expect(result.statusCode).toBe(200);
-    expect(result.message).toMatch('Completed: 55%');
-    expect(result.message).toMatch('Remaining: 45%');
-    expect(result.message).toMatch('Doubled: 110');
+    const result = await run('decision/reports/percentageReport', {
+      cardKey: 'decision_1',
+      value: 55,
+    });
+    expect(result).toMatch('Completed: 55%');
+    expect(result).toMatch('Remaining: 45%');
+    expect(result).toMatch('Doubled: 110');
   });
   it('try to run test report that does not exist', async () => {
-    const parameters = {
-      name: 'decision/reports/i-do-not-exist',
-      parameters: {
-        cardKey: 'decision_5',
-      },
-    };
-    await writeFile(
-      join(testDir, 'report.json'),
-      JSON.stringify(parameters, null, 2),
-      { encoding: 'utf-8' },
+    await expect(
+      run('decision/reports/i-do-not-exist', { cardKey: 'decision_5' }),
+    ).rejects.toThrow(
+      "Report 'decision/reports/i-do-not-exist' does not exist",
     );
-    const result = await commandHandler.command(
-      Cmd.report,
-      [join(testDir, 'report.json')],
-      optionsDecision,
-    );
-    expect(result.statusCode).toBe(500);
   });
-  it('try to run test report with incorrect parameters', async () => {
-    const parameters = {
+
+  // The parameters come from a file the user wrote, so each is checked.
+  it.each([
+    {
+      missing: 'name',
+      name: '',
+      parameters: { cardKey: 'decision_5' },
+      message: 'The parameters file must include a "name" field',
+    },
+    {
+      missing: 'parameters',
       name: 'decision/reports/anotherReport',
-      parameters: {
-        wrong: 'wrong',
-      },
-    };
-    await writeFile(
-      join(testDir, 'report.json'),
-      JSON.stringify(parameters, null, 2),
-      { encoding: 'utf-8' },
-    );
-    const result = await commandHandler.command(
-      Cmd.report,
-      [join(testDir, 'report.json')],
-      optionsDecision,
-    );
-    expect(result.statusCode).toBe(500);
+      parameters: undefined,
+      message: 'The parameters file must include a "parameters" field',
+    },
+    {
+      missing: 'cardKey',
+      name: 'decision/reports/anotherReport',
+      parameters: { wrong: 'wrong' },
+      message: 'The parameters file must include a "cardKey" field',
+    },
+  ])('refuses parameters without $missing', async (row) => {
+    const result = run(row.name, row.parameters as unknown as ReportParameters);
+    await expect(result).rejects.toThrow(row.message);
+    await expect(result).rejects.toBeInstanceOf(DHValidationError);
   });
 });
