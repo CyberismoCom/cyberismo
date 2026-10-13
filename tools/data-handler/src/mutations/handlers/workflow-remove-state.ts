@@ -20,6 +20,7 @@ import {
   resourceNameToString,
 } from '../../utils/resource-utils.js';
 import type { RemoveOperation, Card, WorkflowState } from '@cyberismo/model';
+import { updateCardMetadata } from '../../cards/update.js';
 
 /**
  * Transition rewriting (dropping transitions that reference the removed state,
@@ -65,7 +66,7 @@ export class WorkflowRemoveStateHandler implements Handler<EditInput> {
     if (effective) {
       for (const card of this.cardsInState(ctx, name, stateName)) {
         card.metadata!.workflowState = effective;
-        await ctx.checkout.updateCardMetadata(card, card.metadata!);
+        await updateCardMetadata(ctx.checkout, card, card.metadata!);
       }
     }
   }

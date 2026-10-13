@@ -18,6 +18,7 @@ import { resourceNameToString } from '../../utils/resource-utils.js';
 import { ResourcesFrom } from '../../containers/project/resources-from.js';
 import { getChildLogger } from '../../utils/log-utils.js';
 import type { Card, ChangeOperation, Operation } from '@cyberismo/model';
+import { updateCardMetadata } from '../../cards/update.js';
 
 /**
  * When a mapping is supplied, the handler validates it before writing
@@ -91,7 +92,7 @@ export class CardTypeWorkflowChangeHandler implements Handler<EditInput> {
             `Updating card '${card.key}': ${currentState} -> ${newState}`,
           );
           card.metadata.workflowState = newState;
-          await ctx.checkout.updateCardMetadata(card, card.metadata);
+          await updateCardMetadata(ctx.checkout, card, card.metadata);
         } else if (!newState && !unmappedStates.includes(currentState)) {
           unmappedStates.push(currentState);
         }

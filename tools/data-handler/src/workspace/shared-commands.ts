@@ -23,7 +23,6 @@ import { Publish } from '../commands/publish.js';
 import { Remove } from '../commands/remove.js';
 import { Rename } from '../commands/rename.js';
 import { Show } from '../commands/show.js';
-import { Transition } from '../commands/transition.js';
 import { Update } from '../commands/update.js';
 import { Validate } from '../commands/validate.js';
 import { Version } from '../commands/version.js';
@@ -46,7 +45,6 @@ export class SharedCommands {
   public removeCmd: Remove;
   public renameCmd: Rename;
   public showCmd: Show;
-  public transitionCmd: Transition;
   public updateCmd: Update;
   public validateCmd: Validate;
   public versionCmd: Version;
@@ -66,7 +64,6 @@ export class SharedCommands {
     this.publishCmd = new Publish(checkout);
     this.removeCmd = new Remove(checkout, this.fetchCmd, this.modulesCmd);
     this.renameCmd = new Rename(checkout);
-    this.transitionCmd = new Transition(checkout);
     this.updateCmd = new Update(checkout);
     this.versionCmd = new Version(checkout);
   }
