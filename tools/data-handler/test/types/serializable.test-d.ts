@@ -16,6 +16,7 @@
 // (Uint8Array allowed for bytes): no functions, class instances or Dates.
 // `unknown` is trusted as an untyped JSON payload (an edit's value); `any` is not.
 
+import type { ChangeEvent } from '@cyberismo/model';
 import type { Cards } from '../../src/cards/cards.js';
 import type { Changes } from '../../src/workspace/changes.js';
 import type { Resources } from '../../src/workspace/resources.js';
@@ -120,12 +121,16 @@ export const settings: FacadeSerializable<Settings> &
   setGitRemoteUrl: true,
 };
 
-export const changes: FacadeSerializable<Changes> &
+// subscribe is exempt: a listener is a function (remote, it is SSE); the
+// event it receives is checked instead.
+export const changes: FacadeSerializable<Omit<Changes, 'subscribe'>> &
   PropertiesSerializable<Changes> = {
   actor: true,
   identity: true,
   apply: true,
 };
+
+export const changeEvent: Serializable<ChangeEvent> = true;
 
 export const resources: FacadeSerializable<Resources> = {
   create: true,

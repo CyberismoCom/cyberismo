@@ -17,7 +17,9 @@ const testUser: UserInfo = {
 };
 
 function mockCheckout(basePath = '/tmp/test-project') {
-  return { basePath } as unknown as Checkout;
+  // The registry subscribes to the checkout's changes.
+  const changeFeed = { subscribe: () => () => {} };
+  return { basePath, changeFeed } as unknown as Checkout;
 }
 
 interface ContextBody {
