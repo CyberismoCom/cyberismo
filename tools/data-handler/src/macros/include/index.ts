@@ -25,6 +25,7 @@ import {
   closeUnterminatedBlock,
   verbatimBlockTerminator,
 } from '../../utils/asciidoc-blocks.js';
+import { cardNode, cardContent } from '../../cards/read.js';
 
 export default class IncludeMacro extends BaseMacro {
   constructor(tasksQueue: TaskQueue) {
@@ -61,14 +62,14 @@ export default class IncludeMacro extends BaseMacro {
     const card = this.getCard(options.cardKey, context);
     const anchor = this.generateAnchor(options);
     const title = this.generateTitle(options, card.metadata?.title);
-    const cardContent = await this.generateCardContent(
+    const included = await this.generateCardContent(
       options,
-      context.checkout.cardContent(options.cardKey),
+      cardContent(context.checkout, options.cardKey),
       newContext,
     );
 
     // Skip the leading newlines if trim is enabled
-    const content = `\n\n${anchor}${title}${cardContent}`;
+    const content = `\n\n${anchor}${title}${included}`;
 
     let levelOffset = 0;
     if (options.levelOffset) {
@@ -131,7 +132,7 @@ export default class IncludeMacro extends BaseMacro {
   }
 
   private getCard(cardKey: string, context: MacroGenerationContext) {
-    return context.checkout.cardNode(cardKey);
+    return cardNode(context.checkout, cardKey);
   }
 
   // Adjust asciidoc titles to match the level offset

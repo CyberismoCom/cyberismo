@@ -59,8 +59,8 @@ export class SharedCommands {
     this.showCmd = new Show(checkout);
     this.createCmd = new Create(checkout);
     this.editCmd = new Edit(checkout);
-    this.exportCmd = new Export(checkout, this.showCmd);
-    this.importCmd = new Import(checkout, this.createCmd);
+    this.exportCmd = new Export(checkout);
+    this.importCmd = new Import(checkout);
     this.publishCmd = new Publish(checkout);
     this.removeCmd = new Remove(checkout, this.fetchCmd, this.modulesCmd);
     this.renameCmd = new Rename(checkout);

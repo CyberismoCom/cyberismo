@@ -18,6 +18,7 @@ import type { EditInput } from '../types.js';
 import { resourceNameToString } from '../../utils/resource-utils.js';
 import type { ChangeOperation, Card, WorkflowState } from '@cyberismo/model';
 import { updateCardMetadata } from '../../cards/update.js';
+import { allTemplateCards } from '../../cards/read.js';
 
 /**
  * Renaming a workflow state (a 'change' on 'states' whose target name differs
@@ -86,8 +87,7 @@ export class WorkflowRenameStateHandler implements Handler<EditInput> {
       card.metadata.workflowState === state;
 
     const projectCards = ctx.checkout.cardTree.cards().filter(matches);
-    const templateCards = ctx.checkout
-      .allTemplateCards()
+    const templateCards = allTemplateCards(ctx.checkout)
       .filter((card) => ctx.checkout.treeOf(card.key).writable)
       .filter(matches);
     return [...projectCards, ...templateCards];

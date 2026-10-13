@@ -18,6 +18,7 @@ import { resourceNameToString } from '../../utils/resource-utils.js';
 import { fromDate, fromNumber, fromString } from '../../utils/value-utils.js';
 import type { Card, MetadataContent, DataType } from '@cyberismo/model';
 import { updateCardMetadata } from '../../cards/update.js';
+import { allTemplateCards } from '../../cards/read.js';
 
 const SHORT_TEXT_MAX_LENGTH = 80;
 
@@ -80,8 +81,7 @@ export class FieldTypeDataTypeHandler implements Handler<EditInput> {
       card.metadata != null && fieldName in card.metadata;
 
     const projectCards = ctx.checkout.cardTree.cards().filter(holdsField);
-    const templateCards = ctx.checkout
-      .allTemplateCards()
+    const templateCards = allTemplateCards(ctx.checkout)
       .filter((card) => ctx.checkout.treeOf(card.key).writable)
       .filter(holdsField);
     return [...projectCards, ...templateCards];

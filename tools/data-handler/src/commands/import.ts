@@ -15,13 +15,14 @@ import { readCsvFile } from '../utils/csv.js';
 import { Validate } from './validate.js';
 import { write } from '../utils/rw-lock.js';
 
-import type { Create } from './create.js';
 import type { Checkout } from '../containers/project.js';
 import {
   addLabel,
   updateCardContent,
   updateCardMetadataKey,
 } from '../cards/update.js';
+import { createCard } from '../cards/instantiate.js';
+import { findCard } from '../cards/read.js';
 
 /**
  * Handles importing cards from a CSV file.
@@ -30,12 +31,8 @@ export class Import {
   /**
    * Creates an instance of Import.
    * @param checkout Project to use.
-   * @param createCmd Instance of Create to use.
    */
-  constructor(
-    private checkout: Checkout,
-    private createCmd: Create,
-  ) {}
+  constructor(private checkout: Checkout) {}
 
   /**
    * Imports cards based on a csv file
@@ -72,13 +69,13 @@ export class Import {
       }
 
       // Create card
-      const cards = await this.createCmd.createCard(template, parentCardKey);
+      const cards = await createCard(this.checkout, template, parentCardKey);
 
       if (cards.length !== 1) {
         throw new Error('Card not created');
       }
       const cardKey = cards[0].key;
-      const card = this.checkout.findCard(cardKey);
+      const card = findCard(this.checkout, cardKey);
       if (!card.metadata?.cardType) {
         throw new Error(`Card type not found for card ${cardKey}`);
       }

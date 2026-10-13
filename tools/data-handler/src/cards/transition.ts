@@ -16,6 +16,7 @@ import { ActionGuard } from '../permissions/action-guard.js';
 import { applySideEffects, type SideEffects } from '../side-effects.js';
 import { getChildLogger } from '../utils/log-utils.js';
 import { updateCardMetadata } from './update.js';
+import { findCard } from './read.js';
 
 const logger = getChildLogger({ module: 'Project' });
 
@@ -46,7 +47,7 @@ export async function performTransition(
   cardKey: string,
   transitionName: string,
 ): Promise<SideEffects | undefined> {
-  const card = checkout.findCard(cardKey);
+  const card = findCard(checkout, cardKey);
 
   if (!card.metadata?.cardType) {
     throw new Error(`Card does not have card type`);
