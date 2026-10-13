@@ -39,7 +39,7 @@ describe('FieldTypeDataTypeHandler', () => {
   });
 
   it('converts values on every affected card and updates the field definition', async () => {
-    await Workspace.over(checkout, SYSTEM_ACTOR).updateCmd.apply({
+    await Workspace.over(checkout, SYSTEM_ACTOR).changes.apply({
       kind: 'edit' as const,
       target: resourceName(fieldName()),
       updateKey: { key: 'dataType' as const },
@@ -90,7 +90,7 @@ describe('FieldTypeDataTypeHandler', () => {
 
   it('rejects a conversion that is not allowed', async () => {
     await expect(
-      Workspace.over(checkout, SYSTEM_ACTOR).updateCmd.apply({
+      Workspace.over(checkout, SYSTEM_ACTOR).changes.apply({
         kind: 'edit' as const,
         target: resourceName(fieldName()),
         updateKey: { key: 'dataType' as const },

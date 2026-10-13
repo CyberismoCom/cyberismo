@@ -32,5 +32,5 @@ export async function createFieldType(
   identifier: string,
   dataType: DataType,
 ) {
-  await ws.createCmd.createFieldType(identifier, dataType);
+  await ws.resources.create(identifier, 'fieldTypes', { dataType });
 }

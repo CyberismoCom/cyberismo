@@ -22,9 +22,10 @@ import type { Remove } from '../commands/remove.js';
 import type { Version } from '../commands/version.js';
 import type { Rename } from '../commands/rename.js';
 import type { Show } from '../commands/show.js';
-import type { Update } from '../commands/update.js';
 import type { Validate } from '../commands/validate.js';
 import { Cards } from '../cards/cards.js';
+import { Changes } from './changes.js';
+import { Resources } from './resources.js';
 import { Settings } from './settings.js';
 import { Checkout } from '../containers/project.js';
 import type { ActorRef } from '@cyberismo/model';
@@ -116,6 +117,8 @@ export class Workspace {
   private readonly proxies = new Map<keyof SharedCommands, object>();
   private cardsFacade?: Cards;
   private settingsFacade?: Settings;
+  private changesFacade?: Changes;
+  private resourcesFacade?: Resources;
 
   private constructor(
     public readonly checkout: Checkout,
@@ -166,6 +169,22 @@ export class Workspace {
     return this.settingsFacade;
   }
 
+  /** Resource changes, as this handle's actor. */
+  get changes(): Changes {
+    this.changesFacade ??= new Changes(
+      this.checkout,
+      this.actor,
+      this.identity,
+    );
+    return this.changesFacade;
+  }
+
+  /** Resources, as this handle's actor. */
+  get resources(): Resources {
+    this.resourcesFacade ??= new Resources(this.checkout, this.changes);
+    return this.resourcesFacade;
+  }
+
   /** Path of the project. */
   get path(): string {
     return this.checkout.basePath;
@@ -203,9 +222,6 @@ export class Workspace {
   }
   get showCmd(): Show {
     return this.legacy('showCmd');
-  }
-  get updateCmd(): Update {
-    return this.legacy('updateCmd');
   }
   get validateCmd(): Validate {
     return this.legacy('validateCmd');

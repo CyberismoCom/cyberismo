@@ -29,7 +29,7 @@ describe('CardType mutation engine end-to-end', () => {
   it('apply → log entry for a CardType delete with cards', async () => {
     const target = resourceName(`${checkout.projectPrefix}/cardTypes/decision`);
 
-    await Workspace.over(checkout, SYSTEM_ACTOR).updateCmd.apply({
+    await Workspace.over(checkout, SYSTEM_ACTOR).changes.apply({
       kind: 'delete',
       target,
     });
@@ -60,7 +60,7 @@ describe('CardType mutation engine end-to-end', () => {
   it('apply → log entry for a CardType rename', async () => {
     const target = resourceName(`${checkout.projectPrefix}/cardTypes/decision`);
 
-    await Workspace.over(checkout, SYSTEM_ACTOR).updateCmd.apply({
+    await Workspace.over(checkout, SYSTEM_ACTOR).changes.apply({
       kind: 'rename',
       target,
       newIdentifier: 'choice',
@@ -77,7 +77,7 @@ describe('CardType mutation engine end-to-end', () => {
   });
 
   it('display-only changes route to the plain handler (no log entry)', async () => {
-    await Workspace.over(checkout, SYSTEM_ACTOR).updateCmd.apply({
+    await Workspace.over(checkout, SYSTEM_ACTOR).changes.apply({
       kind: 'edit',
       target: resourceName(`${checkout.projectPrefix}/cardTypes/decision`),
       updateKey: { key: 'displayName' },
@@ -108,7 +108,7 @@ describe('CardType mutation engine end-to-end', () => {
     expect(cardOnDisk(cardPath).cardType).toBe(cardType);
     expect(field in cardOnDisk(cardPath)).toBe(false);
 
-    await Workspace.over(checkout, SYSTEM_ACTOR).updateCmd.apply({
+    await Workspace.over(checkout, SYSTEM_ACTOR).changes.apply({
       kind: 'edit',
       target: resourceName(cardType),
       updateKey: { key: 'customFields' },
@@ -139,7 +139,7 @@ describe('CardType mutation engine end-to-end', () => {
     checkout = getTestProject(decisionRecordsPath);
     await checkout.populateCaches();
 
-    await Workspace.over(checkout, SYSTEM_ACTOR).updateCmd.apply({
+    await Workspace.over(checkout, SYSTEM_ACTOR).changes.apply({
       kind: 'edit',
       target: resourceName(cardType),
       updateKey: { key: 'customFields' },

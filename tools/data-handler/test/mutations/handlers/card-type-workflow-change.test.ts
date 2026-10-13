@@ -31,7 +31,7 @@ describe('CardTypeWorkflowChangeHandler', () => {
 
   it('rejects incomplete mappings the same way verifyStateMapping does', async () => {
     await expect(
-      Workspace.over(checkout, SYSTEM_ACTOR).updateCmd.apply({
+      Workspace.over(checkout, SYSTEM_ACTOR).changes.apply({
         kind: 'edit' as const,
         target: resourceName(cardTypeName()),
         updateKey: { key: 'workflow' },
@@ -48,7 +48,7 @@ describe('CardTypeWorkflowChangeHandler', () => {
   });
 
   it('applies the state mapping when provided', async () => {
-    await Workspace.over(checkout, SYSTEM_ACTOR).updateCmd.apply({
+    await Workspace.over(checkout, SYSTEM_ACTOR).changes.apply({
       kind: 'edit' as const,
       target: resourceName(cardTypeName()),
       updateKey: { key: 'workflow' },
@@ -87,7 +87,7 @@ describe('CardTypeWorkflowChangeHandler', () => {
         .filter((c) => c.metadata?.cardType === cardTypeName())
         .map((c) => [c.key, c.metadata!.workflowState]),
     );
-    await Workspace.over(checkout, SYSTEM_ACTOR).updateCmd.apply({
+    await Workspace.over(checkout, SYSTEM_ACTOR).changes.apply({
       kind: 'edit' as const,
       target: resourceName(cardTypeName()),
       updateKey: { key: 'workflow' },

@@ -33,7 +33,7 @@ describe('workflow states add routing and cascade', () => {
   });
 
   it('apply appends the new state to the workflow definition', async () => {
-    await Workspace.over(checkout, SYSTEM_ACTOR).updateCmd.apply({
+    await Workspace.over(checkout, SYSTEM_ACTOR).changes.apply({
       kind: 'edit',
       target: resourceName('decision/workflows/decision'),
       updateKey: { key: 'states' },

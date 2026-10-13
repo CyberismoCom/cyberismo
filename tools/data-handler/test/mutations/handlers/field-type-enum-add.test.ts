@@ -57,7 +57,7 @@ describe('fieldType enumValues add routing', () => {
   });
 
   it('adds the new value to the field definition', async () => {
-    await Workspace.over(checkout, SYSTEM_ACTOR).updateCmd.apply({
+    await Workspace.over(checkout, SYSTEM_ACTOR).changes.apply({
       kind: 'edit' as const,
       target: resourceName(fieldName()),
       updateKey: { key: 'enumValues' as const },

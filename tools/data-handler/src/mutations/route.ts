@@ -45,6 +45,8 @@ function isMemberRename(key: string, op: ChangeOperation<unknown>): boolean {
 }
 
 export function route(input: MutationInput): RouteKey {
+  if (input.kind === 'create')
+    return { kind: 'create', type: input.target.type };
   if (input.kind === 'rename')
     return { kind: 'rename', type: input.target.type };
   if (input.kind === 'delete')

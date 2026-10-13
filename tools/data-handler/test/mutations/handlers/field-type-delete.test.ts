@@ -77,7 +77,7 @@ describe('FieldTypeDeleteHandler', () => {
       .createFieldType('shortText');
     expect(checkout.resources.exists(name)).toBe(true);
 
-    await Workspace.over(checkout, SYSTEM_ACTOR).updateCmd.apply({
+    await Workspace.over(checkout, SYSTEM_ACTOR).changes.apply({
       kind: 'delete',
       target: resourceName(name),
     });
@@ -85,7 +85,7 @@ describe('FieldTypeDeleteHandler', () => {
   });
 
   it('deletes an in-use field type resource from disk', async () => {
-    await Workspace.over(checkout, SYSTEM_ACTOR).updateCmd.apply({
+    await Workspace.over(checkout, SYSTEM_ACTOR).changes.apply({
       kind: 'delete',
       target: resourceName(fieldName()),
     });
@@ -99,7 +99,7 @@ describe('FieldTypeDeleteHandler', () => {
         .data?.customFields?.some((f) => f.name === fieldName()),
     ).toBe(true);
 
-    await Workspace.over(checkout, SYSTEM_ACTOR).updateCmd.apply({
+    await Workspace.over(checkout, SYSTEM_ACTOR).changes.apply({
       kind: 'delete',
       target: resourceName(fieldName()),
     });
@@ -120,7 +120,7 @@ describe('FieldTypeDeleteHandler', () => {
       .filter((c) => c.metadata?.[fieldName()] === 'a value');
     expect(before.length).toBeGreaterThan(0);
 
-    await Workspace.over(checkout, SYSTEM_ACTOR).updateCmd.apply({
+    await Workspace.over(checkout, SYSTEM_ACTOR).changes.apply({
       kind: 'delete',
       target: resourceName(fieldName()),
     });
@@ -133,7 +133,7 @@ describe('FieldTypeDeleteHandler', () => {
 
   it('rejects deleting a module-owned field type', async () => {
     await expect(
-      Workspace.over(checkout, SYSTEM_ACTOR).updateCmd.apply({
+      Workspace.over(checkout, SYSTEM_ACTOR).changes.apply({
         kind: 'delete',
         target: resourceName('mymod/fieldTypes/dummy'),
       }),

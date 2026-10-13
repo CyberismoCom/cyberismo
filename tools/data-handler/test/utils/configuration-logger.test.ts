@@ -368,7 +368,7 @@ describe('configuration logger', () => {
     );
     await checkout.populateCaches();
     const target = `${checkout.projectPrefix}/reports/anotherReport`;
-    await Workspace.over(checkout, SYSTEM_ACTOR).updateCmd.apply({
+    await Workspace.over(checkout, SYSTEM_ACTOR).changes.apply({
       kind: 'delete',
       target: resourceName(target),
     });

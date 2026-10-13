@@ -14,9 +14,15 @@
 
 import type { Handler } from './handler.js';
 import type { RouteKey } from './route.js';
-import type { DeleteInput, EditInput, RenameInput } from './types.js';
+import type {
+  CreateInput,
+  DeleteInput,
+  EditInput,
+  RenameInput,
+} from './types.js';
 
 import { PlainHandler, PlainDeleteHandler } from './handlers/plain-handler.js';
+import { CreateHandler } from './handlers/create.js';
 import { CardTypeWorkflowChangeHandler } from './handlers/card-type-workflow-change.js';
 import { CardTypeRenameHandler } from './handlers/card-type-rename.js';
 import { CardTypeDeleteHandler } from './handlers/card-type-delete.js';
@@ -65,6 +71,11 @@ export type ChangeClassification = 'none' | 'migratable' | 'breaking';
  */
 export type Registration =
   | {
+      route: RouteKey & { kind: 'create' };
+      handler: Handler<CreateInput>;
+      classification: ChangeClassification;
+    }
+  | {
       route: RouteKey & { kind: 'edit' };
       handler: Handler<EditInput>;
       classification: ChangeClassification;
@@ -80,6 +91,7 @@ export type Registration =
       classification: ChangeClassification;
     };
 
+const create = new CreateHandler();
 const plain = new PlainHandler();
 const plainDelete = new PlainDeleteHandler();
 
@@ -156,6 +168,58 @@ const wildcardEditKeys: Record<string, string[]> = {
 };
 
 export const ROUTES: Registration[] = [
+  // CREATE rows: a new resource has no consumers yet.
+  {
+    route: { kind: 'create', type: 'calculations' },
+    handler: create,
+    classification: 'none',
+  },
+  {
+    route: { kind: 'create', type: 'cardTypes' },
+    handler: create,
+    classification: 'none',
+  },
+  {
+    route: { kind: 'create', type: 'fieldTypes' },
+    handler: create,
+    classification: 'none',
+  },
+  {
+    route: { kind: 'create', type: 'graphModels' },
+    handler: create,
+    classification: 'none',
+  },
+  {
+    route: { kind: 'create', type: 'graphViews' },
+    handler: create,
+    classification: 'none',
+  },
+  {
+    route: { kind: 'create', type: 'linkTypes' },
+    handler: create,
+    classification: 'none',
+  },
+  {
+    route: { kind: 'create', type: 'reports' },
+    handler: create,
+    classification: 'none',
+  },
+  {
+    route: { kind: 'create', type: 'skills' },
+    handler: create,
+    classification: 'none',
+  },
+  {
+    route: { kind: 'create', type: 'templates' },
+    handler: create,
+    classification: 'none',
+  },
+  {
+    route: { kind: 'create', type: 'workflows' },
+    handler: create,
+    classification: 'none',
+  },
+
   // EDIT — specific (exact op) rows.
   {
     route: { kind: 'edit', type: 'cardTypes', key: 'workflow', op: 'change' },
