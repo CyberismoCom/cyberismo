@@ -13,10 +13,9 @@
 
 import { type Command } from 'commander';
 
-import { DEFAULT_HUB } from '@cyberismo/assets';
 import { type CommandOptions } from '@cyberismo/data-handler';
 
-import { CommandGroup } from '../lib/args.js';
+import { CommandGroup, hubLocation } from '../lib/args.js';
 import { fail, onProject } from '../lib/errors.js';
 import { printResult } from '../lib/output.js';
 
@@ -71,9 +70,7 @@ export function registerAdd(program: Command) {
       'Hub URL. Default hub can be added by using "default"',
     )
     .action(async (location: string, options: CommandOptions<'add'>) => {
-      if (location === 'default') {
-        location = DEFAULT_HUB;
-      }
+      location = hubLocation(location);
       await onProject(Object.assign({}, options, program.opts()), (ws) =>
         ws.settings.hubs.add(location),
       );
