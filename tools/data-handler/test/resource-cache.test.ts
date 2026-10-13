@@ -3,13 +3,14 @@ import { expect, describe, it, beforeEach, afterEach } from 'vitest';
 import { join } from 'node:path';
 import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
 
-import { Workspace } from '../src/workspace/workspace.js';
+import { type Workspace } from '../src/workspace/workspace.js';
 import { copyDir, pathExists } from '../src/utils/file-utils.js';
 import type { Checkout } from '../src/containers/project.js';
 import { ResourceCache } from '../src/containers/project/resource-cache.js';
 import { getTestProject } from './helpers/test-utils.js';
 import { WorkflowCategory } from '@cyberismo/model';
 import { ResourcesFrom } from '../src/containers/project/resources-from.js';
+import { openTestWorkspace } from './helpers/open-test-workspace.js';
 
 describe('Resource cache', () => {
   const baseDir = import.meta.dirname;
@@ -386,8 +387,7 @@ describe('Resource cache', () => {
     beforeEach(async () => {
       mkdirSync(testDir, { recursive: true });
       await copyDir('test/test-data/', testDir);
-      ws = new Workspace(testProjectPath, {});
-      await ws.initialize();
+      ws = await openTestWorkspace(testProjectPath, {});
     });
 
     afterEach(() => {

@@ -14,7 +14,7 @@
 */
 
 import { beforeAll, afterAll, describe, expect, test } from 'vitest';
-import { Workspace } from '@cyberismo/data-handler';
+import { type Workspace } from '@cyberismo/data-handler';
 import type { QueryResult } from '@cyberismo/model';
 import {
   renderCard,
@@ -23,6 +23,7 @@ import {
   type RenderedCard,
 } from '../src/lib/render.js';
 import { testDataPath } from './test-utils.js';
+import { openTestWorkspace } from './helpers/open-test-workspace.js';
 
 let ws: Workspace;
 let renderedCard: RenderedCard;
@@ -30,7 +31,7 @@ let renderedCard: RenderedCard;
 // Fixes weird issue with asciidoctor
 beforeAll(async () => {
   process.argv = [];
-  ws = await Workspace.getInstance(testDataPath);
+  ws = await openTestWorkspace(testDataPath);
   renderedCard = await renderCard(ws, 'decision_5');
 });
 

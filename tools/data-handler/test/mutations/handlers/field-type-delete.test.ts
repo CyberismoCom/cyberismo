@@ -6,7 +6,8 @@ import { copyDir } from '../../../src/utils/file-utils.js';
 import type { Checkout } from '../../../src/containers/project.js';
 import { getTestProject } from '../../helpers/test-utils.js';
 import { resourceName } from '../../../src/utils/resource-utils.js';
-import { ResourceMutations } from '../../../src/mutations/resource-mutations.js';
+import { Workspace } from '../../../src/workspace/workspace.js';
+import { SYSTEM_ACTOR } from '../../../src/utils/tx-record.js';
 
 const baseDir = import.meta.dirname;
 const testDir = join(baseDir, 'tmp-field-type-delete');
@@ -75,7 +76,7 @@ describe('FieldTypeDeleteHandler', () => {
       .createFieldType('shortText');
     expect(checkout.resources.exists(name)).toBe(true);
 
-    await new ResourceMutations(checkout).apply({
+    await Workspace.over(checkout, SYSTEM_ACTOR).updateCmd.apply({
       kind: 'delete',
       target: resourceName(name),
     });
@@ -83,7 +84,7 @@ describe('FieldTypeDeleteHandler', () => {
   });
 
   it('deletes an in-use field type resource from disk', async () => {
-    await new ResourceMutations(checkout).apply({
+    await Workspace.over(checkout, SYSTEM_ACTOR).updateCmd.apply({
       kind: 'delete',
       target: resourceName(fieldName()),
     });
@@ -97,7 +98,7 @@ describe('FieldTypeDeleteHandler', () => {
         .data?.customFields?.some((f) => f.name === fieldName()),
     ).toBe(true);
 
-    await new ResourceMutations(checkout).apply({
+    await Workspace.over(checkout, SYSTEM_ACTOR).updateCmd.apply({
       kind: 'delete',
       target: resourceName(fieldName()),
     });
@@ -118,7 +119,7 @@ describe('FieldTypeDeleteHandler', () => {
       .filter((c) => c.metadata?.[fieldName()] === 'a value');
     expect(before.length).toBeGreaterThan(0);
 
-    await new ResourceMutations(checkout).apply({
+    await Workspace.over(checkout, SYSTEM_ACTOR).updateCmd.apply({
       kind: 'delete',
       target: resourceName(fieldName()),
     });
@@ -131,7 +132,7 @@ describe('FieldTypeDeleteHandler', () => {
 
   it('rejects deleting a module-owned field type', async () => {
     await expect(
-      new ResourceMutations(checkout).apply({
+      Workspace.over(checkout, SYSTEM_ACTOR).updateCmd.apply({
         kind: 'delete',
         target: resourceName('mymod/fieldTypes/dummy'),
       }),

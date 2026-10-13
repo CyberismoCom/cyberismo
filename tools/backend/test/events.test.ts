@@ -9,7 +9,7 @@ import {
   vi,
 } from 'vitest';
 import type { MockInstance } from 'vitest';
-import { Workspace } from '@cyberismo/data-handler';
+import { type Workspace } from '@cyberismo/data-handler';
 import { X_HONO_DISABLE_SSG_HEADER_KEY } from 'hono/ssg';
 import type { SSEMessage } from 'hono/streaming';
 import { createApp } from '../src/app.js';
@@ -21,6 +21,7 @@ import type { Delivery } from '../src/domain/events/project-events.js';
 import { ProjectRegistry } from '../src/project-registry.js';
 import { UserRole } from '../src/types.js';
 import { createTempTestData, cleanupTempTestData } from './test-utils.js';
+import { openTestWorkspace } from './helpers/open-test-workspace.js';
 
 let app: ReturnType<typeof createApp>;
 let tempTestDataPath: string;
@@ -34,8 +35,8 @@ const base = '/api/projects/decision';
 beforeAll(async () => {
   process.argv = [];
   tempTestDataPath = await createTempTestData('decision-records');
-  ws = await Workspace.getInstance(tempTestDataPath);
-  registry = ProjectRegistry.fromCommandManager(ws);
+  ws = await openTestWorkspace(tempTestDataPath);
+  registry = ProjectRegistry.fromCheckout(ws.checkout);
   app = createApp(new MockAuthProvider({ roster: true }), registry);
 });
 afterEach(async () => {
@@ -247,9 +248,8 @@ describe('project event stream over HTTP', () => {
 
   test('disposal closes subscriptions', async () => {
     // Needs an instance it can dispose without touching the shared app.
-    const ownCommands = new Workspace(tempTestDataPath);
-    await ownCommands.initialize();
-    const ownRegistry = ProjectRegistry.fromCommandManager(ownCommands);
+    const ownCommands = await openTestWorkspace(tempTestDataPath);
+    const ownRegistry = ProjectRegistry.fromCheckout(ownCommands.checkout);
     const { reader } = await connect(
       'alice',
       createApp(new MockAuthProvider({ roster: true }), ownRegistry),
@@ -800,7 +800,7 @@ describe('card update notifications', () => {
     edited = scratch.key;
   });
   beforeEach(() => {
-    notify = vi.spyOn(registry.eventsFor(ws), 'cardsUpdated');
+    notify = vi.spyOn(registry.eventsFor(ws.checkout), 'cardsUpdated');
   });
   afterEach(() => notify.mockRestore());
 

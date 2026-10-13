@@ -4,9 +4,10 @@ import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { copyDir } from '../src/utils/file-utils.js';
-import { Cmd, Workspace, Commands } from '../src/command-handler.js';
+import { Cmd, Commands } from '../src/command-handler.js';
 import { Show } from '../src/commands/index.js';
 import { getTestProject } from './helpers/test-utils.js';
+import { openTestWorkspace } from './helpers/open-test-workspace.js';
 
 // Create test artifacts in a temp folder.
 const baseDir = import.meta.dirname;
@@ -25,7 +26,7 @@ describe('rank command', () => {
     mkdirSync(testDir, { recursive: true });
     await copyDir('test/test-data', testDir);
 
-    const shared = await Workspace.getInstance(decisionRecordsPath);
+    const shared = await openTestWorkspace(decisionRecordsPath);
     shared.checkout.clearCards();
     await shared.checkout.populateCaches();
 
@@ -117,7 +118,7 @@ describe('rank command', () => {
     it('reranks a sibling without validating or timestamping it', async () => {
       const sibling = 'decision_6';
       const lastUpdated = '2020-01-01T00:00:00.000Z';
-      const shared = await Workspace.getInstance(decisionRecordsPath);
+      const shared = await openTestWorkspace(decisionRecordsPath);
       const cardFile = join(
         shared.checkout.findCard(sibling).path,
         'index.json',

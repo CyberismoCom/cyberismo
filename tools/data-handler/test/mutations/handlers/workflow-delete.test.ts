@@ -5,7 +5,8 @@ import { join } from 'node:path';
 import { Checkout } from '../../../src/containers/project.js';
 import { resourceName } from '../../../src/utils/resource-utils.js';
 import { copyDir } from '../../../src/utils/file-utils.js';
-import { ResourceMutations } from '../../../src/mutations/resource-mutations.js';
+import { Workspace } from '../../../src/workspace/workspace.js';
+import { SYSTEM_ACTOR } from '../../../src/utils/tx-record.js';
 
 const FIXTURE_PATH = join(
   import.meta.dirname,
@@ -40,7 +41,7 @@ describe('WorkflowDeleteHandler', () => {
     await checkout.populateCaches();
     expect(checkout.resources.exists(unusedName)).toBe(true);
 
-    await new ResourceMutations(checkout).apply({
+    await Workspace.over(checkout, SYSTEM_ACTOR).updateCmd.apply({
       kind: 'delete',
       target: resourceName(unusedName),
     });
@@ -51,7 +52,7 @@ describe('WorkflowDeleteHandler', () => {
   it('cascade-deletes dependent card types when deleting an in-use workflow', async () => {
     expect(checkout.resources.exists(DEPENDENT_CT)).toBe(true);
 
-    await new ResourceMutations(checkout).apply({
+    await Workspace.over(checkout, SYSTEM_ACTOR).updateCmd.apply({
       kind: 'delete',
       target: resourceName(WF),
     });
@@ -67,7 +68,7 @@ describe('WorkflowDeleteHandler', () => {
       .filter((c) => c.metadata?.cardType === DEPENDENT_CT);
     expect(before.length).toBeGreaterThan(0);
 
-    await new ResourceMutations(checkout).apply({
+    await Workspace.over(checkout, SYSTEM_ACTOR).updateCmd.apply({
       kind: 'delete',
       target: resourceName(WF),
     });
@@ -81,7 +82,7 @@ describe('WorkflowDeleteHandler', () => {
 
   it('rejects deleting a module-owned workflow', async () => {
     await expect(
-      new ResourceMutations(checkout).apply({
+      Workspace.over(checkout, SYSTEM_ACTOR).updateCmd.apply({
         kind: 'delete',
         target: resourceName('mymod/workflows/dummy'),
       }),
@@ -92,7 +93,7 @@ describe('WorkflowDeleteHandler', () => {
 
   it('throws when the workflow does not exist', async () => {
     await expect(
-      new ResourceMutations(checkout).apply({
+      Workspace.over(checkout, SYSTEM_ACTOR).updateCmd.apply({
         kind: 'delete',
         target: resourceName('decision/workflows/does-not-exist'),
       }),

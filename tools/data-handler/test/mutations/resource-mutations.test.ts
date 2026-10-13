@@ -3,9 +3,10 @@ import { mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
 
 import { Checkout } from '../../src/containers/project.js';
-import { ResourceMutations } from '../../src/mutations/resource-mutations.js';
 import { resourceName } from '../../src/utils/resource-utils.js';
 import { copyDir, deleteDir } from '../../src/utils/file-utils.js';
+import { Workspace } from '../../src/workspace/workspace.js';
+import { SYSTEM_ACTOR } from '../../src/utils/tx-record.js';
 
 const testDir = join(import.meta.dirname, 'tmp-resource-mutations');
 const fixturePath = join(testDir, 'valid', 'decision-records');
@@ -24,7 +25,6 @@ describe('ResourceMutations.apply', () => {
   });
 
   it('apply() succeeds for a non-cascading edit', async () => {
-    const mutations = new ResourceMutations(checkout);
     const input = {
       kind: 'edit' as const,
       target: resourceName(`${checkout.projectPrefix}/cardTypes/decision`),
@@ -35,6 +35,8 @@ describe('ResourceMutations.apply', () => {
         to: 'New',
       },
     };
-    await expect(mutations.apply(input)).resolves.toBeUndefined();
+    await expect(
+      Workspace.over(checkout, SYSTEM_ACTOR).updateCmd.apply(input),
+    ).resolves.toBeUndefined();
   });
 });

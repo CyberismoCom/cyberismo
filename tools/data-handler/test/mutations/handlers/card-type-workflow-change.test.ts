@@ -6,7 +6,8 @@ import { copyDir } from '../../../src/utils/file-utils.js';
 import type { Checkout } from '../../../src/containers/project.js';
 import { getTestProject } from '../../helpers/test-utils.js';
 import { resourceName } from '../../../src/utils/resource-utils.js';
-import { ResourceMutations } from '../../../src/mutations/resource-mutations.js';
+import { Workspace } from '../../../src/workspace/workspace.js';
+import { SYSTEM_ACTOR } from '../../../src/utils/tx-record.js';
 
 const baseDir = import.meta.dirname;
 const testDir = join(baseDir, 'tmp-card-type-workflow');
@@ -29,9 +30,8 @@ describe('CardTypeWorkflowChangeHandler', () => {
   });
 
   it('rejects incomplete mappings the same way verifyStateMapping does', async () => {
-    const mutations = new ResourceMutations(checkout);
     await expect(
-      mutations.apply({
+      Workspace.over(checkout, SYSTEM_ACTOR).updateCmd.apply({
         kind: 'edit' as const,
         target: resourceName(cardTypeName()),
         updateKey: { key: 'workflow' },
@@ -48,8 +48,7 @@ describe('CardTypeWorkflowChangeHandler', () => {
   });
 
   it('applies the state mapping when provided', async () => {
-    const mutations = new ResourceMutations(checkout);
-    await mutations.apply({
+    await Workspace.over(checkout, SYSTEM_ACTOR).updateCmd.apply({
       kind: 'edit' as const,
       target: resourceName(cardTypeName()),
       updateKey: { key: 'workflow' },
@@ -88,9 +87,7 @@ describe('CardTypeWorkflowChangeHandler', () => {
         .filter((c) => c.metadata?.cardType === cardTypeName())
         .map((c) => [c.key, c.metadata!.workflowState]),
     );
-
-    const mutations = new ResourceMutations(checkout);
-    await mutations.apply({
+    await Workspace.over(checkout, SYSTEM_ACTOR).updateCmd.apply({
       kind: 'edit' as const,
       target: resourceName(cardTypeName()),
       updateKey: { key: 'workflow' },

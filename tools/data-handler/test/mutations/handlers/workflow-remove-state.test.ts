@@ -6,6 +6,8 @@ import { Checkout } from '../../../src/containers/project.js';
 import { resourceName } from '../../../src/utils/resource-utils.js';
 import { copyDir } from '../../../src/utils/file-utils.js';
 import { ResourceMutations } from '../../../src/mutations/resource-mutations.js';
+import { Workspace } from '../../../src/workspace/workspace.js';
+import { SYSTEM_ACTOR, SYSTEM_FRAME } from '../../../src/utils/tx-record.js';
 
 const FIXTURE_PATH = join(
   import.meta.dirname,
@@ -45,8 +47,7 @@ describe('WorkflowRemoveStateHandler', () => {
   }
 
   it('apply removes the state and strips transitions referencing it', async () => {
-    const mutations = new ResourceMutations(checkout);
-    await mutations.apply({
+    await Workspace.over(checkout, SYSTEM_ACTOR).updateCmd.apply({
       kind: 'edit',
       target: resourceName(WF),
       updateKey: { key: 'states' },
@@ -65,9 +66,7 @@ describe('WorkflowRemoveStateHandler', () => {
 
   it('apply with explicit replacementValue migrates cards to that state', async () => {
     const cardKey = await seedCardInState('Rejected');
-
-    const mutations = new ResourceMutations(checkout);
-    await mutations.apply({
+    await Workspace.over(checkout, SYSTEM_ACTOR).updateCmd.apply({
       kind: 'edit',
       target: resourceName(WF),
       updateKey: { key: 'states' },
@@ -93,24 +92,26 @@ describe('WorkflowRemoveStateHandler', () => {
     target.metadata!.workflowState = 'Rejected';
     await checkout.updateCardMetadata(target, target.metadata!);
 
-    await new ResourceMutations(checkout).apply(
-      {
-        kind: 'edit',
-        target: resourceName(WF),
-        updateKey: { key: 'states' },
-        operation: {
-          name: 'remove',
-          target: { name: 'Rejected', category: 'closed' },
-          replacementValue: { name: 'Approved', category: 'closed' },
+    await checkout.lock.write(SYSTEM_FRAME, () =>
+      new ResourceMutations(checkout).apply(
+        {
+          kind: 'edit',
+          target: resourceName(WF),
+          updateKey: { key: 'states' },
+          operation: {
+            name: 'remove',
+            target: { name: 'Rejected', category: 'closed' },
+            replacementValue: { name: 'Approved', category: 'closed' },
+          },
         },
-      },
-      {
-        kind: 'replay',
-        modulePrefix: checkout.projectPrefix,
-        cardTypeRenames: new Map([
-          ['decision/cardTypes/oldDecision', 'decision/cardTypes/decision'],
-        ]),
-      },
+        {
+          kind: 'replay',
+          modulePrefix: checkout.projectPrefix,
+          cardTypeRenames: new Map([
+            ['decision/cardTypes/oldDecision', 'decision/cardTypes/decision'],
+          ]),
+        },
+      ),
     );
 
     const refetched = checkout.cardTree
@@ -122,18 +123,20 @@ describe('WorkflowRemoveStateHandler', () => {
   it('applyCascade tolerates a bare-string replacementValue (replay shape)', async () => {
     const cardKey = await seedCardInState('Rejected');
 
-    await new ResourceMutations(checkout).apply(
-      {
-        kind: 'edit',
-        target: resourceName(WF),
-        updateKey: { key: 'states' },
-        operation: {
-          name: 'remove',
-          target: 'Rejected',
-          replacementValue: 'Approved',
+    await checkout.lock.write(SYSTEM_FRAME, () =>
+      new ResourceMutations(checkout).apply(
+        {
+          kind: 'edit',
+          target: resourceName(WF),
+          updateKey: { key: 'states' },
+          operation: {
+            name: 'remove',
+            target: 'Rejected',
+            replacementValue: 'Approved',
+          },
         },
-      },
-      { kind: 'replay', modulePrefix: checkout.projectPrefix },
+        { kind: 'replay', modulePrefix: checkout.projectPrefix },
+      ),
     );
 
     // The recorded replacement must win; falling back to the new-card state
@@ -144,9 +147,7 @@ describe('WorkflowRemoveStateHandler', () => {
 
   it('apply without replacementValue migrates cards to the new-card state', async () => {
     const cardKey = await seedCardInState('Rejected');
-
-    const mutations = new ResourceMutations(checkout);
-    await mutations.apply({
+    await Workspace.over(checkout, SYSTEM_ACTOR).updateCmd.apply({
       kind: 'edit',
       target: resourceName(WF),
       updateKey: { key: 'states' },
@@ -182,17 +183,19 @@ describe('WorkflowRemoveStateHandler', () => {
     checkout = new Checkout(projectPath);
     await checkout.populateCaches();
 
-    await new ResourceMutations(checkout).apply(
-      {
-        kind: 'edit',
-        target: resourceName(WF),
-        updateKey: { key: 'states' },
-        operation: {
-          name: 'remove',
-          target: { name: 'Rejected', category: 'closed' },
+    await checkout.lock.write(SYSTEM_FRAME, () =>
+      new ResourceMutations(checkout).apply(
+        {
+          kind: 'edit',
+          target: resourceName(WF),
+          updateKey: { key: 'states' },
+          operation: {
+            name: 'remove',
+            target: { name: 'Rejected', category: 'closed' },
+          },
         },
-      },
-      { kind: 'replay', modulePrefix: checkout.projectPrefix },
+        { kind: 'replay', modulePrefix: checkout.projectPrefix },
+      ),
     );
 
     const refetched = checkout.cardTree.cards().find((c) => c.key === cardKey)!;
@@ -220,17 +223,19 @@ describe('WorkflowRemoveStateHandler', () => {
     checkout = new Checkout(projectPath);
     await checkout.populateCaches();
 
-    await new ResourceMutations(checkout).apply(
-      {
-        kind: 'edit',
-        target: resourceName(WF),
-        updateKey: { key: 'states' },
-        operation: {
-          name: 'remove',
-          target: { name: 'Rejected', category: 'closed' },
+    await checkout.lock.write(SYSTEM_FRAME, () =>
+      new ResourceMutations(checkout).apply(
+        {
+          kind: 'edit',
+          target: resourceName(WF),
+          updateKey: { key: 'states' },
+          operation: {
+            name: 'remove',
+            target: { name: 'Rejected', category: 'closed' },
+          },
         },
-      },
-      { kind: 'replay', modulePrefix: checkout.projectPrefix },
+        { kind: 'replay', modulePrefix: checkout.projectPrefix },
+      ),
     );
 
     const refetched = checkout.cardTree.cards().find((c) => c.key === cardKey)!;
@@ -240,17 +245,19 @@ describe('WorkflowRemoveStateHandler', () => {
   it('applyCascade tolerates a missing workflow (no migration, no throw)', async () => {
     const cardKey = await seedCardInState('Rejected');
 
-    await new ResourceMutations(checkout).apply(
-      {
-        kind: 'edit',
-        target: resourceName('decision/workflows/nonexistent'),
-        updateKey: { key: 'states' },
-        operation: {
-          name: 'remove',
-          target: { name: 'Rejected', category: 'closed' },
+    await checkout.lock.write(SYSTEM_FRAME, () =>
+      new ResourceMutations(checkout).apply(
+        {
+          kind: 'edit',
+          target: resourceName('decision/workflows/nonexistent'),
+          updateKey: { key: 'states' },
+          operation: {
+            name: 'remove',
+            target: { name: 'Rejected', category: 'closed' },
+          },
         },
-      },
-      { kind: 'replay', modulePrefix: checkout.projectPrefix },
+        { kind: 'replay', modulePrefix: checkout.projectPrefix },
+      ),
     );
 
     const refetched = checkout.cardTree.cards().find((c) => c.key === cardKey)!;
