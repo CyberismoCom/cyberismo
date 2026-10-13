@@ -11,13 +11,16 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
+import { writeFile } from 'node:fs/promises';
+
 import { type Command } from 'commander';
 
 import { Cmd, type CommandOptions } from '@cyberismo/data-handler';
 
 import { CommandGroup, contextOption } from '../lib/args.js';
 import { commandHandler } from '../lib/dispatch.js';
-import { handleResponse } from '../lib/output.js';
+import { onProject } from '../lib/errors.js';
+import { handleResponse, printResult } from '../lib/output.js';
 
 export function registerCalc(program: Command) {
   const calculate = new CommandGroup('calc').description(
@@ -39,12 +42,11 @@ export function registerCalc(program: Command) {
         query: string,
         options: CommandOptions<'calc'>,
       ) => {
-        const result = await commandHandler.command(
-          Cmd.calc,
-          ['generate', destination, query],
+        await onProject(
           Object.assign({}, options, program.opts()),
+          async (ws) => writeFile(destination, await ws.queries.program(query)),
         );
-        handleResponse(result);
+        printResult();
       },
     );
 

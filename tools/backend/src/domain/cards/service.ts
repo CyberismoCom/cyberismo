@@ -16,7 +16,7 @@ import type {
   ExportPdfOptions,
   MetadataContent,
 } from '@cyberismo/model';
-import type { Workspace } from '@cyberismo/data-handler';
+import { AsciidoctorPdfError, type Workspace } from '@cyberismo/data-handler';
 import { preprocessMermaidBlocksForHtml } from '@cyberismo/data-handler/utils/mermaid-renderer';
 import { allCards } from './lib.js';
 import type { TreeOptions } from '../../types.js';
@@ -272,7 +272,14 @@ export async function findRelevantAttachments(
 export async function exportCard(
   ws: Workspace,
   options: ExportPdfOptions,
-): Promise<Buffer> {
-  const result = await ws.export.exportPdfBuffer(options);
-  return result;
+): Promise<Uint8Array> {
+  try {
+    return (await ws.export.pdf(options)).pdf;
+  } catch (error) {
+    // Diagnostics can carry server paths: logged here, never sent.
+    if (error instanceof AsciidoctorPdfError) {
+      console.error(error.message, error.diagnostics.join('\n'));
+    }
+    throw error;
+  }
 }
