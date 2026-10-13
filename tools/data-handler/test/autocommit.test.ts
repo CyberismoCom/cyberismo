@@ -54,7 +54,7 @@ describe('autocommit', () => {
 
   const writes: Record<string, Write> = {
     'card create': {
-      write: () => cm.createCmd.createCard('decision/templates/decision'),
+      write: () => cm.cards.create('decision/templates/decision'),
       message: () => 'Create card from template decision/templates/decision',
     },
     'card edit': {
@@ -68,7 +68,7 @@ describe('autocommit', () => {
     'card rank': {
       // A second root card, ranked after decision_5, to move first.
       setup: async () =>
-        (await cm.createCmd.createCard('decision/templates/decision'))[0].key,
+        (await cm.cards.create('decision/templates/decision'))[0].key,
       write: (key) => cm.cards.rankFirst(key),
       message: (key) => `Rank card ${key} first`,
     },

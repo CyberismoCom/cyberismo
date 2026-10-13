@@ -5,8 +5,9 @@ import { join } from 'node:path';
 
 import { copyDir } from '../src/utils/file-utils.js';
 import { Cmd, Commands } from '../src/command-handler.js';
-import { Show } from '../src/commands/index.js';
 import { getTestProject } from './helpers/test-utils.js';
+import { Cards } from '../src/cards/cards.js';
+import { SYSTEM_ACTOR } from '../src/utils/tx-record.js';
 
 // Create test artifacts in a temp folder.
 const baseDir = import.meta.dirname;
@@ -39,9 +40,12 @@ describe('import csv command', () => {
 
     const checkout = getTestProject(decisionRecordsPath);
     await checkout.populateCaches();
-    const show = new Show(checkout);
-    const card1 = await show.showCardDetails(key1);
-    const card2 = await show.showCardDetails(key2);
+    const card1 = await new Cards(checkout, SYSTEM_ACTOR, undefined).details(
+      key1,
+    );
+    const card2 = await new Cards(checkout, SYSTEM_ACTOR, undefined).details(
+      key2,
+    );
     expect(card1.metadata!.title).toBe('Title1');
     expect(card1.content).toBe('content1');
     expect(card1.metadata!.labels).toEqual([

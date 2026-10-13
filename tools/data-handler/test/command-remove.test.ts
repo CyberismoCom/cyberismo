@@ -20,6 +20,8 @@ import type { requestStatus } from '../src/interfaces/request-status-interfaces.
 import type * as Undici from 'undici';
 
 // Hub requests go out through egressFetch, which uses undici's fetch rather
+import { findCard } from '../src/cards/read.js';
+
 // than the global one, so the stub belongs here.
 const undiciFetch = vi.hoisted(() => vi.fn());
 vi.mock('undici', async (importOriginal) => {
@@ -648,7 +650,7 @@ describe('remove card', () => {
   it('should remove links to children when parent card is removed', async () => {
     // Create a parent+child pair from the simplepage template
     const simplePageTemplate = 'decision/templates/simplepage';
-    const createdCards = await ws.createCmd.createCard(simplePageTemplate);
+    const createdCards = await ws.cards.create(simplePageTemplate);
     const parentCard = createdCards.find(
       (card) => card.parent === 'root' && card.children.length > 0,
     );
@@ -657,14 +659,14 @@ describe('remove card', () => {
 
     // Create another card and link it to the child
     const decisionTemplate = 'decision/templates/decision';
-    const otherCards = await ws.createCmd.createCard(decisionTemplate);
+    const otherCards = await ws.cards.create(decisionTemplate);
     const otherCardKey = otherCards[0].key;
 
     const linkType = 'decision/linkTypes/test';
     await ws.cards.addLink(otherCardKey, childKey, linkType);
 
     // Verify the link exists
-    let otherCard = ws.checkout.findCard(otherCardKey);
+    let otherCard = findCard(ws.checkout, otherCardKey);
     const linksBefore = otherCard.metadata?.links?.filter(
       (l) => l.cardKey === childKey,
     );
@@ -674,7 +676,7 @@ describe('remove card', () => {
     await ws.cards.remove(parentCard!.key);
 
     // The link from otherCard to the child should also be removed
-    otherCard = ws.checkout.findCard(otherCardKey);
+    otherCard = findCard(ws.checkout, otherCardKey);
     const linksAfter = otherCard.metadata?.links?.filter(
       (l) => l.cardKey === childKey,
     );
@@ -685,9 +687,11 @@ describe('remove card', () => {
     const cardId = 'decision_5';
     await Workspace.over(ws.checkout, SYSTEM_ACTOR).cards.remove(cardId);
 
-    expect(() => ws.checkout.findCard(cardId)).toThrow(CardNotFoundError);
+    expect(() => findCard(ws.checkout, cardId)).toThrow(CardNotFoundError);
     // Since decision_6 is decision_5's child, it should have been removed as well.
-    expect(() => ws.checkout.findCard('decision_6')).toThrow(CardNotFoundError);
+    expect(() => findCard(ws.checkout, 'decision_6')).toThrow(
+      CardNotFoundError,
+    );
   });
 
   it('should not delete template cards when removing project cards', async () => {
@@ -710,25 +714,25 @@ describe('remove card', () => {
     expect(templateCardsWithChildren.length).toBeGreaterThan(0);
 
     // Create cards from template
-    const createdCards = await ws.createCmd.createCard(templateName);
+    const createdCards = await ws.cards.create(templateName);
     expect(createdCards.length).toBeGreaterThan(0);
 
     const parentCardKey = createdCards.find(
       (card) => card.parent === 'root' && card.children.length > 0,
     )!.key;
-    const parentCard = ws.checkout.findCard(parentCardKey);
+    const parentCard = findCard(ws.checkout, parentCardKey);
     expect(parentCard.children.length).toBeGreaterThan(0);
 
     // Delete the created project cards
     await ws.cards.remove(parentCardKey!);
 
     // Verify project card and its children are deleted
-    expect(() => ws.checkout.findCard(parentCardKey)).toThrow(
+    expect(() => findCard(ws.checkout, parentCardKey)).toThrow(
       CardNotFoundError,
     );
 
     for (const childKey of parentCard.children) {
-      expect(() => ws.checkout.findCard(childKey)).toThrow(CardNotFoundError);
+      expect(() => findCard(ws.checkout, childKey)).toThrow(CardNotFoundError);
     }
 
     // Verify template cards still exist and were not deleted

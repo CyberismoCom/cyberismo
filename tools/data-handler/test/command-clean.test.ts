@@ -18,6 +18,7 @@ import { Clean } from '../src/commands/clean.js';
 import { Checkout } from '../src/containers/project.js';
 import { openTestWorkspace } from './helpers/open-test-workspace.js';
 import { updateCardMetadata } from '../src/cards/update.js';
+import { allTemplateCards, findCard } from '../src/cards/read.js';
 import { buildProject } from './helpers/project-builder.js';
 
 const GHOST = 'decision/fieldTypes/ghost';
@@ -63,7 +64,7 @@ describe('clean command', () => {
     field: string,
     value: string,
   ) {
-    const card = manager.checkout.findCard(cardKey);
+    const card = findCard(manager.checkout, cardKey);
     card.metadata![field] = value;
     await updateCardMetadata(manager.checkout, card, card.metadata!);
   }
@@ -72,7 +73,7 @@ describe('clean command', () => {
     const { freshTestDir, freshCommands } =
       await freshProject('tmp-clean-dry-run');
     try {
-      const card = freshCommands.checkout.findCard('decision_6');
+      const card = findCard(freshCommands.checkout, 'decision_6');
       const file = join(card.path, 'index.json');
       const before = readFileSync(file, 'utf-8');
 
@@ -114,7 +115,7 @@ describe('clean command', () => {
       field: GHOST,
       reason: 'undeclared',
     });
-    expect(ws.checkout.findCard('decision_6').metadata!).not.toHaveProperty([
+    expect(findCard(ws.checkout, 'decision_6').metadata!).not.toHaveProperty([
       GHOST,
     ]);
   });
@@ -129,7 +130,7 @@ describe('clean command', () => {
       field: OBSOLETED_BY,
       reason: 'calculated-locked',
     });
-    expect(ws.checkout.findCard('decision_6').metadata!).not.toHaveProperty([
+    expect(findCard(ws.checkout, 'decision_6').metadata!).not.toHaveProperty([
       OBSOLETED_BY,
     ]);
   });
@@ -166,7 +167,7 @@ describe('clean command', () => {
       });
       expect(result.findings.every((f) => f.field !== OBSOLETED_BY)).toBe(true);
 
-      const cleaned = freshCommands.checkout.findCard('decision_6');
+      const cleaned = findCard(freshCommands.checkout, 'decision_6');
       expect(cleaned.metadata!).not.toHaveProperty([GHOST]);
       expect(cleaned.metadata![OBSOLETED_BY]).toBe('decision_5');
     } finally {
@@ -209,7 +210,7 @@ describe('clean command', () => {
     const git = (...args: string[]) =>
       execFileSync('git', args, { cwd: project.path, encoding: 'utf8' });
     try {
-      const card = handle.checkout.findCard(project.keys[0]);
+      const card = findCard(handle.checkout, project.keys[0]);
       appendFileSync(
         join(card.path, Checkout.cardContentFile),
         '\nAn uncommitted edit.\n',
@@ -243,7 +244,7 @@ describe('clean command', () => {
     );
     try {
       const cardFile = join(
-        freshCommands.checkout.findCard('decision_6').path,
+        findCard(freshCommands.checkout, 'decision_6').path,
         'index.json',
       );
       const before = readFileSync(cardFile, 'utf-8');
@@ -266,7 +267,7 @@ describe('clean command', () => {
     );
     try {
       const failingFile = join(
-        freshCommands.checkout.findCard('decision_6').path,
+        findCard(freshCommands.checkout, 'decision_6').path,
         'index.json',
       );
       const before = readFileSync(failingFile, 'utf-8');
@@ -312,9 +313,9 @@ describe('clean command', () => {
       await importing.modulesCmd.install(
         join(moduleTestDir, 'valid/decision-records'),
       );
-      const moduleCards = importing.checkout
-        .allTemplateCards()
-        .filter((card) => card.path.includes(join('.cards', 'modules')));
+      const moduleCards = allTemplateCards(importing.checkout).filter((card) =>
+        card.path.includes(join('.cards', 'modules')),
+      );
       expect(moduleCards.length).toBeGreaterThan(0);
       const moduleFiles = moduleCards.map((card) =>
         join(card.path, 'index.json'),
@@ -350,15 +351,15 @@ describe('clean command', () => {
       field: GHOST,
       reason: 'undeclared',
     });
-    expect(ws.checkout.findCard(templateCard.key).metadata!).not.toHaveProperty(
-      [GHOST],
-    );
+    expect(
+      findCard(ws.checkout, templateCard.key).metadata!,
+    ).not.toHaveProperty([GHOST]);
   });
 
   it('never touches predefined fields', async () => {
     await cleanCmd.clean(false);
 
-    const card = ws.checkout.findCard('decision_6');
+    const card = findCard(ws.checkout, 'decision_6');
     expect(card.metadata!.title).toBeDefined();
     expect(card.metadata!.cardType).toBe('decision/cardTypes/decision');
     expect(card.metadata!.workflowState).toBeDefined();
@@ -377,7 +378,7 @@ describe('clean command', () => {
     });
     expect(result.findings.every((f) => f.cardKey !== 'decision_6')).toBe(true);
     for (const finding of result.findings) {
-      const card = ws.checkout.findCard(finding.cardKey);
+      const card = findCard(ws.checkout, finding.cardKey);
       expect(card.metadata!.cardType).toBe('decision/cardTypes/simplepage');
     }
   });
