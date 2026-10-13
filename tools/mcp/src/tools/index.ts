@@ -184,7 +184,7 @@ export function registerTools(
     async ({ projectPrefix, cardKey, destinationKey }, extra) => {
       try {
         const ws = resolveCommands(provider, projectPrefix, extra, server);
-        await ws.moveCmd.moveCard(cardKey, destinationKey);
+        await ws.cards.move(cardKey, destinationKey);
         return toolResult({ cardKey, newParent: destinationKey });
       } catch (error) {
         return toolError('moving card', error);
@@ -556,7 +556,7 @@ export function registerTools(
     async ({ projectPrefix, cardKey }, extra) => {
       try {
         const ws = resolveCommands(provider, projectPrefix, extra, server);
-        await ws.moveCmd.rankFirst(cardKey);
+        await ws.cards.rankFirst(cardKey);
         return toolResult({ cardKey, position: 'first' });
       } catch (error) {
         return toolError('ranking card first', error);
@@ -577,7 +577,7 @@ export function registerTools(
     async ({ projectPrefix, cardKey, afterCardKey }, extra) => {
       try {
         const ws = resolveCommands(provider, projectPrefix, extra, server);
-        await ws.moveCmd.rankCard(cardKey, afterCardKey);
+        await ws.cards.rank(cardKey, afterCardKey);
         return toolResult({ cardKey, afterCardKey });
       } catch (error) {
         return toolError('ranking card', error);
@@ -598,7 +598,7 @@ export function registerTools(
     async ({ projectPrefix, cardKey, index }, extra) => {
       try {
         const ws = resolveCommands(provider, projectPrefix, extra, server);
-        await ws.moveCmd.rankByIndex(cardKey, index);
+        await ws.cards.rankAt(cardKey, index);
         return toolResult({ cardKey, index });
       } catch (error) {
         return toolError('ranking card by index', error);
