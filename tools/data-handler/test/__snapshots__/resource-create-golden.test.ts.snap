@@ -1,0 +1,259 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`resource create (golden) > calculation 1`] = `
+{
+  "files": {
+    ".cards/local/calculations/goldenCalculation.json": "{
+    "name": "decision/calculations/goldenCalculation",
+    "displayName": "",
+    "calculation": "calculation.lp"
+}",
+    ".cards/local/calculations/goldenCalculation/calculation.lp": "% add your calculations here for 'goldenCalculation'",
+  },
+  "subject": "Create calculation goldenCalculation",
+}
+`;
+
+exports[`resource create (golden) > cardType 1`] = `
+{
+  "files": {
+    ".cards/local/cardTypes/goldenCardType.json": "{
+    "name": "decision/cardTypes/goldenCardType",
+    "displayName": "",
+    "workflow": "decision/workflows/decision",
+    "customFields": [],
+    "alwaysVisibleFields": [],
+    "optionallyVisibleFields": []
+}",
+  },
+  "subject": "Create card type goldenCardType",
+}
+`;
+
+exports[`resource create (golden) > fieldType 1`] = `
+{
+  "files": {
+    ".cards/local/fieldTypes/goldenEnum.json": "{
+    "name": "decision/fieldTypes/goldenEnum",
+    "displayName": "",
+    "dataType": "enum",
+    "enumValues": [
+        {
+            "enumValue": "value1"
+        },
+        {
+            "enumValue": "value2"
+        }
+    ]
+}",
+  },
+  "subject": "Create field type goldenEnum",
+}
+`;
+
+exports[`resource create (golden) > graphModel 1`] = `
+{
+  "files": {
+    ".cards/local/graphModels/goldenGraphModel.json": "{
+    "name": "decision/graphModels/goldenGraphModel",
+    "displayName": ""
+}",
+    ".cards/local/graphModels/goldenGraphModel/model.lp": "% add your calculations here for 'goldenGraphModel'",
+  },
+  "subject": "Create graph model goldenGraphModel",
+}
+`;
+
+exports[`resource create (golden) > graphView 1`] = `
+{
+  "files": {
+    ".cards/local/graphViews/goldenGraphView.json": "{
+    "name": "decision/graphViews/goldenGraphView",
+    "displayName": ""
+}",
+    ".cards/local/graphViews/goldenGraphView/.schema": "<copy of defaultGraphView/.schema>",
+    ".cards/local/graphViews/goldenGraphView/parameterSchema.json": "<copy of defaultGraphView/parameterSchema.json>",
+    ".cards/local/graphViews/goldenGraphView/view.lp.hbs": "<copy of defaultGraphView/view.lp.hbs>",
+  },
+  "subject": "Create graph view goldenGraphView",
+}
+`;
+
+exports[`resource create (golden) > linkType 1`] = `
+{
+  "files": {
+    ".cards/local/linkTypes/goldenLinkType.json": "{
+    "name": "decision/linkTypes/goldenLinkType",
+    "displayName": "",
+    "outboundDisplayName": "decision/linkTypes/goldenLinkType",
+    "inboundDisplayName": "decision/linkTypes/goldenLinkType",
+    "sourceCardTypes": [],
+    "destinationCardTypes": [],
+    "enableLinkDescription": false
+}",
+  },
+  "subject": "Create link type goldenLinkType",
+}
+`;
+
+exports[`resource create (golden) > report 1`] = `
+{
+  "files": {
+    ".cards/local/reports/goldenReport.json": "{
+    "name": "decision/reports/goldenReport",
+    "displayName": ""
+}",
+    ".cards/local/reports/goldenReport/.schema": "<copy of defaultReport/.schema>",
+    ".cards/local/reports/goldenReport/index.adoc.hbs": "<copy of defaultReport/index.adoc.hbs>",
+    ".cards/local/reports/goldenReport/parameterSchema.json": "<copy of defaultReport/parameterSchema.json>",
+    ".cards/local/reports/goldenReport/query.lp.hbs": "<copy of defaultReport/query.lp.hbs>",
+  },
+  "subject": "Create report goldenReport",
+}
+`;
+
+exports[`resource create (golden) > skill 1`] = `
+{
+  "files": {
+    ".cards/local/skills/.schema": "[
+    {
+        "id": "skillSchema",
+        "version": 1
+    }
+]",
+    ".cards/local/skills/goldenSkill.json": "{
+    "name": "decision/skills/goldenSkill",
+    "displayName": "",
+    "relatedTools": []
+}",
+    ".cards/local/skills/goldenSkill/query.lp": "<copy of defaultSkill/query.lp>",
+    ".cards/local/skills/goldenSkill/skill.md": "<copy of defaultSkill/skill.md>",
+  },
+  "subject": "Create skill goldenSkill",
+}
+`;
+
+exports[`resource create (golden) > template 1`] = `
+{
+  "files": {
+    ".cards/local/templates/goldenTemplate.json": "{
+    "name": "decision/templates/goldenTemplate",
+    "displayName": ""
+}",
+    ".cards/local/templates/goldenTemplate/c/.schema": "[
+    {
+        "id": "cardBaseSchema",
+        "version": 1
+    }
+]",
+  },
+  "subject": "Create template goldenTemplate",
+}
+`;
+
+exports[`resource create (golden) > template with content 1`] = `
+{
+  "files": {
+    ".cards/local/templates/goldenTemplateContent.json": "{
+    "name": "decision/templates/goldenTemplateContent",
+    "displayName": "Golden template",
+    "description": "From content",
+    "category": "golden"
+}",
+    ".cards/local/templates/goldenTemplateContent/c/.schema": "[
+    {
+        "id": "cardBaseSchema",
+        "version": 1
+    }
+]",
+  },
+  "subject": "Create template goldenTemplateContent",
+}
+`;
+
+exports[`resource create (golden) > workflow 1`] = `
+{
+  "files": {
+    ".cards/local/workflows/goldenWorkflow.json": "{
+    "name": "decision/workflows/goldenWorkflow",
+    "displayName": "",
+    "states": [
+        {
+            "name": "Draft",
+            "category": "initial"
+        },
+        {
+            "name": "Approved",
+            "category": "closed"
+        },
+        {
+            "name": "Deprecated",
+            "category": "closed"
+        }
+    ],
+    "transitions": [
+        {
+            "name": "Create",
+            "fromState": [
+                ""
+            ],
+            "toState": "Draft"
+        },
+        {
+            "name": "Approve",
+            "fromState": [
+                "Draft"
+            ],
+            "toState": "Approved"
+        },
+        {
+            "name": "Archive",
+            "fromState": [
+                "*"
+            ],
+            "toState": "Deprecated"
+        }
+    ]
+}",
+  },
+  "subject": "Create workflow goldenWorkflow",
+}
+`;
+
+exports[`resource create (golden) > workflow with content 1`] = `
+{
+  "files": {
+    ".cards/local/workflows/goldenWorkflowContent.json": "{
+    "name": "decision/workflows/goldenWorkflowContent",
+    "displayName": "Golden workflow",
+    "states": [
+        {
+            "name": "Open",
+            "category": "initial"
+        },
+        {
+            "name": "Done",
+            "category": "closed"
+        }
+    ],
+    "transitions": [
+        {
+            "name": "Create",
+            "fromState": [
+                ""
+            ],
+            "toState": "Open"
+        },
+        {
+            "name": "Finish",
+            "fromState": [
+                "Open"
+            ],
+            "toState": "Done"
+        }
+    ]
+}",
+  },
+  "subject": "Create workflow goldenWorkflowContent",
+}
+`;
