@@ -63,7 +63,7 @@ import { resourceName, resourceNameToString } from './utils/resource-utils.js';
 
 import { type Level } from 'pino';
 import { type Context, type QueryName } from '@cyberismo/model';
-import { validBumps, type BumpType } from './commands/version.js';
+import { validBumps, type BumpType } from './versions/version.js';
 
 // Commands that this class supports.
 export const Cmd = {

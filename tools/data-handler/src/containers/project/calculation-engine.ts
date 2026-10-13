@@ -54,7 +54,7 @@ import {
   createWorkflowFacts,
 } from '../../utils/clingo-facts.js';
 import { ClingoContext } from '@cyberismo/node-clingo';
-import { generateReportContent } from '../../utils/report.js';
+import { generateReportContent } from '../../queries/report.js';
 import { lpFiles, graphvizReport } from '@cyberismo/assets';
 import { resourceNameToString } from '../../utils/resource-utils.js';
 

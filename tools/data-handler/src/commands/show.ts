@@ -42,7 +42,7 @@ import type { ResourceMap } from '../containers/project/resource-cache.js';
 import { read } from '../utils/rw-lock.js';
 import { projectInfo } from '../workspace/settings.js';
 import ReportMacro from '../macros/report/index.js';
-import { generateReportContent } from '../utils/report.js';
+import { generateReportContent } from '../queries/report.js';
 import TaskQueue from '../macros/task-queue.js';
 import { evaluateMacros } from '../macros/index.js';
 import { readJsonFile } from '../utils/json.js';

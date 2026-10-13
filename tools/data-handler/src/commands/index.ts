@@ -11,19 +11,19 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Calculate } from './calculate.js';
-import { Clean } from './clean.js';
+import { Calculate } from '../queries/queries.js';
+import { Clean } from '../clean/clean.js';
 import { Create } from './create.js';
-import { Export } from './export.js';
+import { Export } from '../export/export.js';
 import { Fetch } from './fetch.js';
 import { Import } from './import.js';
 import { Modules } from './modules.js';
-import { Publish } from './publish.js';
+import { Publish } from '../versions/publish.js';
 import { Remove } from './remove.js';
 import { Rename } from './rename.js';
 import { Show } from './show.js';
 import { Validate } from './validate.js';
-import { Version } from './version.js';
+import { Version } from '../versions/version.js';
 
 export {
   Calculate,
