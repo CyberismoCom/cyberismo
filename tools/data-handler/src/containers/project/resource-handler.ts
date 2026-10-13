@@ -15,8 +15,7 @@
 import { ResourceCache, type ResourceMap } from './resource-cache.js';
 import { resourceName } from '../../utils/resource-utils.js';
 import type { Checkout } from '../project.js';
-import type { ResourceFolderType } from '@cyberismo/model';
-import type { ResourceName } from '../../utils/resource-utils.js';
+import type { ResourceFolderType, ResourceName } from '@cyberismo/model';
 import { ResourcesFrom } from './resources-from.js';
 
 // Convert singular forms to plural. Uses real type, so cannot be general.

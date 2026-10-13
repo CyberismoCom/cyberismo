@@ -29,7 +29,6 @@ import {
   resourceName,
   resourceNameToPath,
   resourceNameToString,
-  type ResourceName,
 } from '../utils/resource-utils.js';
 import type {
   Card,
@@ -38,6 +37,7 @@ import type {
   UpdateKey,
   ChangeOperation,
   Operation,
+  ResourceName,
 } from '@cyberismo/model';
 import type { Logger } from 'pino';
 import type { Checkout } from '../containers/project.js';

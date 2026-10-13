@@ -32,6 +32,7 @@ import type {
   SkillMetadata,
   TemplateMetadata,
   Workflow,
+  ResourceName,
 } from '@cyberismo/model';
 import ClingoParser from '../../utils/clingo-parser.js';
 
@@ -55,10 +56,7 @@ import {
 import { ClingoContext } from '@cyberismo/node-clingo';
 import { generateReportContent } from '../../utils/report.js';
 import { lpFiles, graphvizReport } from '@cyberismo/assets';
-import {
-  type ResourceName,
-  resourceNameToString,
-} from '../../utils/resource-utils.js';
+import { resourceNameToString } from '../../utils/resource-utils.js';
 
 // Define the all category that will be used for all programs
 const ALL_CATEGORY = 'all';

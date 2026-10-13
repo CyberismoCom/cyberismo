@@ -13,7 +13,7 @@
 */
 
 import type { Handler, MutationContext } from './handler.js';
-import type { MutationInput } from './types.js';
+import type { MutationInput } from '@cyberismo/model';
 import type { ChangeClassification } from './registry.js';
 import { ROUTES } from './registry.js';
 import type { RouteKey } from './route.js';

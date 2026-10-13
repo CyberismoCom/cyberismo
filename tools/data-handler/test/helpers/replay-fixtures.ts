@@ -15,7 +15,7 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { formatSealFileName } from '../../src/mutations/replay/seal-files.js';
+import { formatSealFileName } from '../../src/infra/replay-log/seal-files.js';
 import { toVersion } from '../../src/modules/types.js';
 
 import type { ConfigurationLogEntry } from '../../src/utils/configuration-logger.js';
