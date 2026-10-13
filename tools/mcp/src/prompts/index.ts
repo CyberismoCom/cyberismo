@@ -23,7 +23,11 @@ import {
   type ListPromptsResult,
 } from '@modelcontextprotocol/sdk/types.js';
 
-import { workspaceFor, type ProjectProvider } from '../lib/resolve-project.js';
+import {
+  callerOf,
+  workspaceFor,
+  type ProjectProvider,
+} from '../lib/resolve-project.js';
 
 // Prompt arguments are untyped on the low-level handler; validate them.
 const promptArguments = z.object({ cardKey: z.string().optional() });
@@ -51,6 +55,7 @@ export function registerPrompts(
   server.server.setRequestHandler(
     ListPromptsRequestSchema,
     async (_request, extra): Promise<ListPromptsResult> => {
+      callerOf(extra);
       const perProject = await Promise.all(
         provider.list().map(({ prefix }) => {
           const checkout = provider.get(prefix);

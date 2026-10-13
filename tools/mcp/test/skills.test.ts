@@ -226,6 +226,22 @@ const promptText = (result: { messages: { content: { text?: string } }[] }) =>
   result.messages.map((m) => m.content.text ?? '').join('\n');
 
 describe('skill discovery MCP prompts', () => {
+  test('listPrompts refuses an unauthenticated caller, even with no projects', async () => {
+    const server = createMcpServer({ get: () => undefined, list: () => [] });
+    const [clientTransport, serverTransport] =
+      InMemoryTransport.createLinkedPair();
+    await server.connect(serverTransport);
+    const anonymous = new Client({ name: 'anonymous', version: '1.0.0' });
+    await anonymous.connect(clientTransport);
+    try {
+      await expect(anonymous.listPrompts()).rejects.toThrow(
+        'MCP request has no authenticated user',
+      );
+    } finally {
+      await anonymous.close();
+    }
+  });
+
   test('listPrompts exposes enabled skills, with a cardKey arg for card-scoped', async () => {
     const { prompts } = await client.listPrompts();
     const byName = new Map(prompts.map((p) => [p.name, p]));

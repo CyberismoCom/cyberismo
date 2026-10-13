@@ -11,7 +11,7 @@
 */
 
 import type { Calculate } from '../commands/calculate.js';
-import type { Clean } from '../commands/clean.js';
+import { Clean } from '../commands/clean.js';
 import { Create } from '../commands/create.js';
 import type { Edit } from '../commands/edit.js';
 import type { Export } from '../commands/export.js';
@@ -82,21 +82,12 @@ export async function openCheckout(
   return checkout;
 }
 
-// Undecorated legacy methods that write only for some arguments.
-type WritesWhen = Record<string, (...args: unknown[]) => boolean>;
-
-const WRITES_WHEN: Partial<Record<keyof SharedCommands, WritesWhen>> = {
-  // A dry run only reads.
-  cleanCmd: { clean: (dryRun) => !dryRun },
-};
-
 // A per-handle view of a shared legacy command object: its @write methods
 // open the write as the handle's actor.
 function legacyProxy<T extends object>(
   target: T,
   checkout: Checkout,
   frame: WriteFrame,
-  writesWhen: WritesWhen = {},
 ): T {
   return new Proxy(target, {
     get(object, key) {
@@ -104,19 +95,15 @@ function legacyProxy<T extends object>(
       if (typeof value !== 'function') {
         return value;
       }
-      const writes =
-        typeof key === 'string' && Object.hasOwn(writesWhen, key)
-          ? writesWhen[key]
-          : isWriteMethod(value)
-            ? () => true
-            : undefined;
-      if (!writes) {
+      // Clean.clean is undecorated: it writes unless it is a dry run.
+      const isClean = object instanceof Clean && key === 'clean';
+      if (!isClean && !isWriteMethod(value)) {
         return value.bind(object);
       }
       return (...args: unknown[]) =>
-        writes(...args)
-          ? checkout.lock.write(frame, () => value.apply(object, args))
-          : value.apply(object, args);
+        isClean && args[0]
+          ? value.apply(object, args)
+          : checkout.lock.write(frame, () => value.apply(object, args));
     },
   });
 }
@@ -156,7 +143,7 @@ export class Workspace {
     let proxy = this.proxies.get(key);
     if (!proxy) {
       const target = sharedCommands(this.checkout)[key];
-      proxy = legacyProxy(target, this.checkout, this.frame, WRITES_WHEN[key]);
+      proxy = legacyProxy(target, this.checkout, this.frame);
       this.proxies.set(key, proxy);
     }
     return proxy as SharedCommands[K];

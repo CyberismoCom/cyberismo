@@ -14,13 +14,16 @@
 */
 
 import { beforeAll, describe, expect, test } from 'vitest';
+import { execFile } from 'node:child_process';
 import path from 'node:path';
+import { promisify } from 'node:util';
 import { fileURLToPath } from 'node:url';
 import { createApp } from '../src/app.js';
 import { ProjectRegistry } from '../src/project-registry.js';
 import { MockAuthProvider } from '../src/auth/mock.js';
-import { UserRole } from '../src/types.js';
+import { UserRole, type UserInfo } from '../src/types.js';
 import type { AuthProvider } from '../src/auth/types.js';
+import { buildProject } from '../../data-handler/test/helpers/project-builder.js';
 import { openTestWorkspace } from './helpers/open-test-workspace.js';
 
 const fileUrl = fileURLToPath(import.meta.url);
@@ -73,58 +76,92 @@ describe('MCP HTTP Endpoint', () => {
     expect([200, 202]).toContain(response.status);
   });
 
-  test('a tool call on a session carries the request user', async () => {
-    const post = (body: object, sessionId?: string) =>
-      app.request('/mcp', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Accept: 'application/json, text/event-stream',
-          ...(sessionId && { 'mcp-session-id': sessionId }),
+  test('a tool call on a session is committed as the request user', async () => {
+    const project = await buildProject({
+      git: true,
+      cards: [{ title: 'Alpha' }],
+    });
+    const ws = await openTestWorkspace(project.path, { autocommit: true });
+    try {
+      // The same user, renamed after initializing the session: commits must
+      // follow each request's user, not the one the session started with.
+      let user: UserInfo = {
+        id: 'dana-1',
+        email: 'dana@example.com',
+        name: 'Dana Editor',
+        role: UserRole.Editor,
+      };
+      const sessionApp = createApp(
+        { authenticate: async () => user },
+        ProjectRegistry.fromCheckout(ws.checkout),
+      );
+      const post = (body: object, sessionId?: string) =>
+        sessionApp.request('/mcp', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Accept: 'application/json, text/event-stream',
+            ...(sessionId && { 'mcp-session-id': sessionId }),
+          },
+          body: JSON.stringify(body),
+        });
+      // The JSON-RPC message in an SSE response.
+      const message = async (response: Response) =>
+        JSON.parse(
+          (await response.text())
+            .split('\n')
+            .find((line) => line.startsWith('data: '))!
+            .slice('data: '.length),
+        );
+
+      const init = await post({
+        jsonrpc: '2.0',
+        id: 1,
+        method: 'initialize',
+        params: {
+          protocolVersion: '2024-11-05',
+          capabilities: {},
+          clientInfo: { name: 'test-client', version: '1.0.0' },
         },
-        body: JSON.stringify(body),
       });
-    // The JSON-RPC message in an SSE response.
-    const message = async (response: Response) =>
-      JSON.parse(
-        (await response.text())
-          .split('\n')
-          .find((line) => line.startsWith('data: '))!
-          .slice('data: '.length),
+      const sessionId = init.headers.get('mcp-session-id')!;
+      await post(
+        { jsonrpc: '2.0', method: 'notifications/initialized' },
+        sessionId,
       );
 
-    const init = await post({
-      jsonrpc: '2.0',
-      id: 1,
-      method: 'initialize',
-      params: {
-        protocolVersion: '2024-11-05',
-        capabilities: {},
-        clientInfo: { name: 'test-client', version: '1.0.0' },
-      },
-    });
-    const sessionId = init.headers.get('mcp-session-id')!;
-    await post(
-      { jsonrpc: '2.0', method: 'notifications/initialized' },
-      sessionId,
-    );
-
-    const call = await message(
-      await post(
-        {
-          jsonrpc: '2.0',
-          id: 2,
-          method: 'tools/call',
-          params: {
-            name: 'list_cards',
-            arguments: { projectPrefix: 'decision' },
+      user = { ...user, name: 'Dana Renamed', email: 'dana@new.example.com' };
+      const call = await message(
+        await post(
+          {
+            jsonrpc: '2.0',
+            id: 2,
+            method: 'tools/call',
+            params: {
+              name: 'edit_card_metadata',
+              arguments: {
+                projectPrefix: 'test',
+                cardKey: project.keys[0],
+                field: 'title',
+                value: 'Renamed',
+              },
+            },
           },
-        },
-        sessionId,
-      ),
-    );
-    expect(call.result.isError).toBeFalsy();
-    expect(call.result.content[0].text).toContain('decision_5');
+          sessionId,
+        ),
+      );
+      expect(call.result.isError).toBeFalsy();
+
+      const { stdout } = await promisify(execFile)(
+        'git',
+        ['log', '-1', '--format=%an <%ae>'],
+        { cwd: project.path },
+      );
+      expect(stdout.trim()).toBe('Dana Renamed <dana@new.example.com>');
+    } finally {
+      ws.checkout.dispose();
+      await project.cleanup();
+    }
   });
 
   test('DELETE /mcp without session returns success', async () => {

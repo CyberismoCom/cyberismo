@@ -103,7 +103,6 @@ export type { WorkspaceOpener } from './command-handler.js';
 export { openCheckout, type WorkspaceOptions } from './workspace/workspace.js';
 export {
   SYSTEM_ACTOR,
-  SYSTEM_FRAME,
   type CommitIdentity,
   type WriteFrame,
 } from './utils/tx-record.js';
