@@ -16,6 +16,7 @@ import type { Handler, MutationContext } from '../handler.js';
 import type { DeleteInput } from '../types.js';
 import { resourceNameToString } from '../../utils/resource-utils.js';
 import type { Card } from '@cyberismo/model';
+import { updateCardMetadata } from '../../cards/update.js';
 
 export class LinkTypeDeleteHandler implements Handler<DeleteInput> {
   async apply(ctx: MutationContext<DeleteInput>): Promise<void> {
@@ -47,7 +48,7 @@ export class LinkTypeDeleteHandler implements Handler<DeleteInput> {
       metadata.links = (metadata.links ?? []).filter(
         (l) => l.linkType !== name,
       );
-      await ctx.checkout.updateCardMetadata(card, metadata);
+      await updateCardMetadata(ctx.checkout, card, metadata);
     }
   }
 
