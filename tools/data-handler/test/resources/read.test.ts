@@ -220,15 +220,13 @@ describe('the modules the hubs offer', () => {
       JSON.stringify({ modules: offered, hubs: [] }),
     );
 
-    expect(await ws.showCmd.showImportableModules(...options)).toEqual(
-      expected,
-    );
+    expect(await ws.modules.importable(...options)).toEqual(expected);
   });
 
   it('shows none when no module list has been cached', async () => {
     const { ws } = await open(spec);
 
-    expect(await ws.showCmd.showImportableModules(true)).toEqual([]);
+    expect(await ws.modules.importable(true)).toEqual([]);
   });
 });
 
