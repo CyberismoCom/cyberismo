@@ -21,6 +21,7 @@ import {
 } from '../cascades/rewrite-refs.js';
 import type { Card } from '@cyberismo/model';
 import { updateCardMetadata } from '../../cards/update.js';
+import { allTemplateCards } from '../../cards/read.js';
 
 export class LinkTypeRenameHandler implements Handler<RenameInput> {
   async apply(ctx: MutationContext<RenameInput>): Promise<void> {
@@ -70,9 +71,9 @@ export class LinkTypeRenameHandler implements Handler<RenameInput> {
   private affectedCards(ctx: MutationContext, oldName: string): Card[] {
     const all = [
       ...ctx.checkout.cardTree.cards(),
-      ...ctx.checkout
-        .allTemplateCards()
-        .filter((card) => ctx.checkout.treeOf(card.key).writable),
+      ...allTemplateCards(ctx.checkout).filter(
+        (card) => ctx.checkout.treeOf(card.key).writable,
+      ),
     ];
     return all.filter((c) =>
       c.metadata?.links?.some((l) => l.linkType === oldName),

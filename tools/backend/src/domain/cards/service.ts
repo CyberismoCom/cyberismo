@@ -11,8 +11,11 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import type { ExportPdfOptions, MetadataContent } from '@cyberismo/model';
-import type { attachmentPayload } from '@cyberismo/data-handler';
+import type {
+  AttachmentContent,
+  ExportPdfOptions,
+  MetadataContent,
+} from '@cyberismo/model';
 import { type Workspace, evaluateMacros } from '@cyberismo/data-handler';
 import { preprocessMermaidBlocksForHtml } from '@cyberismo/data-handler/utils/mermaid-renderer';
 import { rewriteAsciidocCardXrefs } from '@cyberismo/data-handler/utils/asciidoc-xref';
@@ -91,7 +94,7 @@ export async function createCard(
   template: string,
   parentKey?: string,
 ) {
-  const result = await ws.createCmd.createCard(
+  const result = await ws.cards.create(
     template,
     parentKey === 'root' ? undefined : parentKey,
   );
@@ -242,9 +245,9 @@ export async function getAttachment(
   ws: Workspace,
   key: string,
   filename: string,
-): Promise<attachmentPayload> {
+): Promise<AttachmentContent> {
   validateAttachmentFileName(filename);
-  return ws.showCmd.showAttachment(key, filename);
+  return ws.cards.attachment(key, filename);
 }
 
 /**
@@ -272,7 +275,7 @@ export async function findRelevantAttachments(
   const cards = new Set<string>(
     (await allCards(ws, options)).map((c) => c.key),
   );
-  const attachments = await ws.showCmd.showAttachments();
+  const attachments = await ws.cards.attachments();
   return attachments
     .filter(
       (attachment) =>

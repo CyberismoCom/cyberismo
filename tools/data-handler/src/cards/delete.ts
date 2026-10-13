@@ -16,6 +16,7 @@ import type { Checkout } from '../containers/project.js';
 import { ActionGuard } from '../permissions/action-guard.js';
 import { getChildLogger } from '../utils/log-utils.js';
 import { updateCardMetadataKey } from './update.js';
+import { findCard } from './read.js';
 
 const logger = getChildLogger({ module: 'Project' });
 
@@ -35,7 +36,7 @@ export async function handleCardDeleted(checkout: Checkout, deletedCard: Card) {
   if (deletedCard.children && deletedCard.children.length > 0) {
     for (const child of deletedCard.children) {
       try {
-        const childCard = checkout.findCard(child);
+        const childCard = findCard(checkout, child);
         await handleCardDeleted(checkout, childCard);
       } catch (error) {
         logger.warn(
@@ -74,7 +75,7 @@ export async function deleteCards(checkout: Checkout, cards: Card[]) {
     }
     let card: Card;
     try {
-      card = checkout.findCard(cardKey);
+      card = findCard(checkout, cardKey);
     } catch {
       logger.debug({ cardKey }, 'Card to delete not found, skipping');
       return;
@@ -109,7 +110,7 @@ export async function deleteCards(checkout: Checkout, cards: Card[]) {
   for (const card of cards) {
     let fresh: Card;
     try {
-      fresh = checkout.findCard(card.key);
+      fresh = findCard(checkout, card.key);
     } catch {
       continue;
     }
@@ -119,7 +120,7 @@ export async function deleteCards(checkout: Checkout, cards: Card[]) {
 
 // Removes card from project or template
 export async function removeCard(checkout: Checkout, cardKey: string) {
-  const card = checkout.findCard(cardKey);
+  const card = findCard(checkout, cardKey);
 
   // Imported templates cannot be modified.
   if (!checkout.treeOf(cardKey).writable) {

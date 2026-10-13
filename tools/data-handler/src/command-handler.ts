@@ -604,7 +604,7 @@ export class Commands {
     cardKey: string,
     repeat?: number,
   ): Promise<requestStatus> {
-    const addedCards = await this.ws?.createCmd.addCards(
+    const addedCards = await this.ws?.cards.addToTemplate(
       cardTypeName,
       templateName,
       cardKey,
@@ -641,7 +641,7 @@ export class Commands {
     templateName: string,
     parentCardKey: string,
   ): Promise<requestStatus> {
-    const createdCards = await this.ws?.createCmd.createCard(
+    const createdCards = await this.ws?.cards.create(
       templateName,
       parentCardKey,
     );
@@ -1004,13 +1004,13 @@ export class Commands {
 
     switch (type) {
       case 'attachments':
-        promise = this.ws!.showCmd.showAttachments();
+        promise = this.ws!.cards.attachments();
         break;
       case 'card':
-        promise = this.ws!.showCmd.showCardDetails(detail);
+        promise = this.ws!.cards.details(detail);
         break;
       case 'cards':
-        promise = this.ws!.showCmd.showCards();
+        promise = this.ws!.cards.list();
         break;
       case 'calculation':
       case 'cardType':
@@ -1047,7 +1047,7 @@ export class Commands {
         );
         break;
       case 'labels':
-        promise = this.ws!.showCmd.showLabels();
+        promise = this.ws!.cards.labels();
         break;
       case 'module':
         promise = this.ws!.modulesCmd.show(detail);

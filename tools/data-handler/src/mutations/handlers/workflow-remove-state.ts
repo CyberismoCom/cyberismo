@@ -21,6 +21,7 @@ import {
 } from '../../utils/resource-utils.js';
 import type { RemoveOperation, Card, WorkflowState } from '@cyberismo/model';
 import { updateCardMetadata } from '../../cards/update.js';
+import { allTemplateCards } from '../../cards/read.js';
 
 /**
  * Transition rewriting (dropping transitions that reference the removed state,
@@ -114,8 +115,7 @@ export class WorkflowRemoveStateHandler implements Handler<EditInput> {
       card.metadata.workflowState === state;
 
     const projectCards = ctx.checkout.cardTree.cards().filter(matches);
-    const templateCards = ctx.checkout
-      .allTemplateCards()
+    const templateCards = allTemplateCards(ctx.checkout)
       .filter((card) => ctx.checkout.treeOf(card.key).writable)
       .filter(matches);
     return [...projectCards, ...templateCards];

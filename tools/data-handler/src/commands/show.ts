@@ -12,18 +12,12 @@
 */
 
 // node
-import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { writeFile } from 'node:fs/promises';
 
 import { type ModuleListFile, MODULE_LIST_FULL_PATH } from './fetch.js';
 
 import type {
-  CardLocation,
-  Card,
-  CardAttachment,
-  CardListContainer,
-  CardWithChildrenCards,
   Context,
   HubDetails,
   HubSetting,
@@ -41,7 +35,6 @@ import type {
   SkillContent,
 } from '@cyberismo/model';
 
-import type { attachmentPayload } from '../interfaces/request-status-interfaces.js';
 import type { Checkout } from '../containers/project.js';
 import type { ResourceName } from '../utils/resource-utils.js';
 import type { ResourceMap } from '../containers/project/resource-cache.js';
@@ -54,11 +47,7 @@ import TaskQueue from '../macros/task-queue.js';
 import { evaluateMacros } from '../macros/index.js';
 import { readJsonFile } from '../utils/json.js';
 import { getChildLogger } from '../utils/log-utils.js';
-import {
-  buildCardHierarchy,
-  compareAttachments,
-  flattenCardArray,
-} from '../utils/card-utils.js';
+import { findCard } from '../cards/read.js';
 import { CardNotFoundError } from '../exceptions/index.js';
 import type { ResourcesFrom } from '../containers/project/resources-from.js';
 
@@ -90,16 +79,6 @@ export class Show {
     });
   }
 
-  // Gets all template attachments
-  private async attachmentsFromTemplates() {
-    const templateAttachments: CardAttachment[] = [];
-    const templates = this.checkout.resources.templates();
-    for (const template of templates) {
-      templateAttachments.push(...template.cardTree.attachments());
-    }
-    return templateAttachments;
-  }
-
   // Fetch resource names as a list
   private resourceNames<T extends keyof ResourceMap>(
     resourceType: T,
@@ -108,122 +87,6 @@ export class Show {
     return this.checkout.resources
       .resourceTypes(resourceType, from)
       .map((item) => item.data?.name || '');
-  }
-
-  // Collect all labels from cards.
-  private collectLabels = (cards: Card[]): string[] => {
-    return cards.reduce<string[]>((labels, card) => {
-      // Add the labels from the current card
-      if (card.metadata?.labels) {
-        labels.push(...card.metadata.labels);
-      }
-      return labels;
-    }, []);
-  };
-
-  // Returns attachment details
-  private getAttachment(cardKey: string, filename: string) {
-    return this.checkout
-      .cardAttachments(cardKey)
-      .find((a) => a.fileName === filename);
-  }
-
-  /**
-   * Shows all template cards in a project.
-   * @returns all template cards in a project.
-   */
-  @read
-  public async showAllTemplateCards(): Promise<
-    {
-      name: string;
-      cards: CardWithChildrenCards[];
-    }[]
-  > {
-    return this.checkout.resources.templates().map((template) => {
-      const cards = template.cardTree.cards();
-      const buildCards = buildCardHierarchy(cards);
-
-      return {
-        name: template.data?.name || '',
-        cards: buildCards,
-      };
-    });
-  }
-
-  /**
-   * Shows all attachments (either template or project attachments) from a project.
-   * @returns array of card attachments, sorted by card key and file name
-   */
-  @read
-  public async showAttachments(): Promise<CardAttachment[]> {
-    const attachments = this.checkout.cardTree.attachments();
-    const templateAttachments = await this.attachmentsFromTemplates();
-    attachments.push(...templateAttachments);
-    return attachments.sort(compareAttachments);
-  }
-
-  /**
-   * Returns file buffer and mime type of an attachment. Used by app UI to download attachments.
-   * @param cardKey card key to find
-   * @param filename attachment filename
-   * @returns attachment details
-   */
-  @read
-  public async showAttachment(
-    cardKey: string,
-    filename: string,
-  ): Promise<attachmentPayload> {
-    if (!cardKey) {
-      throw new Error(`Mandatory parameter 'cardKey' missing`);
-    }
-
-    const attachment = this.getAttachment(cardKey, filename);
-
-    if (!attachment) {
-      throw new Error(`Attachment '${filename}' not found for card ${cardKey}`);
-    }
-
-    const attachmentPath = `${attachment.path}/${attachment.fileName}`;
-    const fileBuffer = readFileSync(attachmentPath);
-    const mimeType = attachment.mimeType || 'application/octet-stream';
-    const payload: attachmentPayload = { fileBuffer, mimeType };
-    return payload;
-  }
-
-  /**
-   * Shows details of a particular card (template card, or project card)
-   * @note Note that parameter 'cardKey' is optional due to technical limitations of class calling this class. It must be defined to get valid results.
-   * @param cardKey card key to find
-   * @returns card details: metadata, content, children and attachments
-   */
-  @read
-  public async showCardDetails(cardKey?: string): Promise<Card> {
-    if (!cardKey) {
-      throw new Error(`Mandatory parameter 'cardKey' missing`);
-    }
-    return this.checkout.findCard(cardKey);
-  }
-
-  /**
-   * Shows all cards (either template or project cards) from a project.
-   * @param cardsFrom - The location from which to look for cards. Either from the project, templates or both.
-   * @returns cards list array
-   */
-  @read
-  public async showCards(
-    cardsFrom?: CardLocation,
-  ): Promise<CardListContainer[]> {
-    return this.checkout.listCards(cardsFrom);
-  }
-
-  /**
-   * Shows the content of a logic program.
-   * @param cardKey The key of the card.
-   * @returns the content of the logic program.
-   */
-  @read
-  public async showCardLogicProgram(cardKey: string) {
-    return this.checkout.calculationEngine.cardLogicProgram(cardKey);
   }
 
   /**
@@ -291,22 +154,6 @@ export class Show {
   }
 
   /**
-   * Returns all unique labels in a project
-   * @returns labels in a list, sorted alphabetically
-   */
-  @read
-  public async showLabels(): Promise<string[]> {
-    const cards = flattenCardArray(
-      this.checkout.cardTree.rootCards(),
-      this.checkout,
-    );
-    const templateCards = this.checkout.allTemplateCards();
-
-    const labels = this.collectLabels([...cards, ...templateCards]);
-    return Array.from(new Set(labels)).sort();
-  }
-
-  /**
    * Shows the content of a logic program.
    * @param resource Name of the resource.
    * @returns the content of the logic program.
@@ -354,15 +201,6 @@ export class Show {
         modules: (cached?.modules ?? []) as ModuleSettingFromHub[],
       };
     });
-  }
-
-  /**
-   * Returns all project cards in the project. Cards don't have content and nor metadata.
-   * @returns array of cards
-   */
-  @read
-  public async showProjectCards(): Promise<Card[]> {
-    return this.checkout.cardTree.rootCards();
   }
 
   /**
@@ -613,7 +451,7 @@ export class Show {
 
     if (cardKey) {
       try {
-        this.checkout.findCard(cardKey);
+        findCard(this.checkout, cardKey);
       } catch (error) {
         if (error instanceof CardNotFoundError) {
           return { status: 'card-not-found' };
@@ -674,7 +512,7 @@ export class Show {
     const skill = this.checkout.resources.byType(name, 'skills').show();
 
     if (options.cardKey) {
-      this.checkout.findCard(options.cardKey);
+      findCard(this.checkout, options.cardKey);
     }
 
     return this.renderSkillTemplates(skill.content, options, context);

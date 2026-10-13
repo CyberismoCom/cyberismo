@@ -17,6 +17,7 @@ import type { Checkout } from '../containers/project.js';
 import type { CardTree } from '../containers/project/card-tree.js';
 
 import { ROOT } from '../utils/constants.js';
+import { cardNode } from './read.js';
 
 /**
  * Moves card from 'destination' to 'source'.
@@ -103,7 +104,7 @@ export async function moveCard(
 
   await relocateCard(checkout, source, newParent, targetTree.name);
 
-  await checkout.handleCardMoved(checkout.cardNode(source));
+  await checkout.handleCardMoved(cardNode(checkout, source));
 }
 
 /**

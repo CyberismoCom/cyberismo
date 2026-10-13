@@ -51,6 +51,7 @@ const SHORT_TEXT_MAX_LENGTH = 80;
 
 import * as EmailValidator from 'email-validator';
 import { evaluateMacros } from '../macros/index.js';
+import { allTemplateCards } from '../cards/read.js';
 const baseDir = import.meta.dirname ?? new URL('.', import.meta.url).pathname;
 const subFoldersToValidate = ['.cards', 'cardRoot'];
 
@@ -582,7 +583,7 @@ export class Validate {
         // errors come out in the same order on every run.
         const cards = [
           ...checkout.cardTree.cards(),
-          ...checkout.allTemplateCards(),
+          ...allTemplateCards(checkout),
         ].sort((a, b) => sortCards(a.key, b.key));
 
         const allPrefixes = checkout.allModulePrefixes();

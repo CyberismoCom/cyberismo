@@ -20,6 +20,7 @@ import type {
   CardWithChildrenCards,
 } from '@cyberismo/model';
 import type { Checkout } from '../containers/project.js';
+import { cardsByKeys } from '../cards/read.js';
 
 /**
  * Builds card hierarchy from flat card list with nested card objects.
@@ -85,9 +86,9 @@ export const flattenCardArray = (array: Card[], checkout: Checkout) => {
 
   array.forEach((item) => {
     const { key, path, parent, children, attachments, metadata } = item;
-    const childCardIds = checkout
-      .cardKeysToCards(children)
-      .map((item) => item.key);
+    const childCardIds = cardsByKeys(checkout, children).map(
+      (item) => item.key,
+    );
 
     result.push({
       key,
@@ -99,7 +100,7 @@ export const flattenCardArray = (array: Card[], checkout: Checkout) => {
     });
     if (children) {
       result.push(
-        ...flattenCardArray(checkout.cardKeysToCards(children), checkout),
+        ...flattenCardArray(cardsByKeys(checkout, children), checkout),
       );
     }
   });

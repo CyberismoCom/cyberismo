@@ -23,7 +23,7 @@ function makeCard(key: string, title: string): CardNode {
 }
 
 function makeProject(byKey: Record<string, CardNode>): Checkout {
-  // Mirror the real Project.cardNode contract: throw when the key is unknown,
+  // Mirror the real tree.node contract: throw when the key is unknown,
   // never return undefined.
   const lookup = (k: string) => {
     const card = byKey[k];
@@ -32,7 +32,9 @@ function makeProject(byKey: Record<string, CardNode>): Checkout {
     }
     return card;
   };
-  return { cardNode: lookup } as unknown as Checkout;
+  return {
+    treeOf: (k: string) => ({ node: () => lookup(k) }),
+  } as unknown as Checkout;
 }
 
 describe('rewriteAsciidocCardXrefs', () => {

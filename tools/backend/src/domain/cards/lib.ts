@@ -33,7 +33,7 @@ export async function getCardDetails(
   return ws.consistent(async () => {
     let cardDetailsResponse: Card;
     try {
-      cardDetailsResponse = await ws.showCmd.showCardDetails(key);
+      cardDetailsResponse = await ws.cards.details(key);
     } catch {
       return { status: 400, message: `Card ${key} not found from project` };
     }

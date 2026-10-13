@@ -37,8 +37,8 @@ import { getStaticDirectoryPath, pdfReport } from '@cyberismo/assets';
 import { Checkout } from '../containers/project.js';
 import { ROOT } from '../utils/constants.js';
 import { read } from '../utils/rw-lock.js';
-import type { Show } from './show.js';
 import { sortItems } from '../utils/lexorank.js';
+import { findCard, cardsByKeys } from '../cards/read.js';
 
 const attachmentFolder: string = 'a';
 const ASCIIDOCTOR_DIAGNOSTIC = /^asciidoctor: (WARNING|ERROR):/;
@@ -61,12 +61,8 @@ export class Export {
   /**
    * Creates an instance of export.
    * @param checkout Project to use
-   * @param showCmd Instance of Export command to use.
    */
-  constructor(
-    protected checkout: Checkout,
-    protected showCmd: Show,
-  ) {}
+  constructor(protected checkout: Checkout) {}
 
   // This file should set the top level items to the adoc.
   private async toAdocFile(path: string, cards: Card[]) {
@@ -269,7 +265,7 @@ export class Export {
         await this.toAdocFileAsContent(
           path,
           sortItems(
-            this.checkout.cardKeysToCards(card.children),
+            cardsByKeys(this.checkout, card.children),
             (child) => child.metadata?.rank || '1|z',
           ),
         );
@@ -340,7 +336,7 @@ export class Export {
       children: [],
       attachments: [],
     };
-    const cardDetailsResponse = await this.showCmd.showCardDetails(card.key);
+    const cardDetailsResponse = findCard(this.checkout, card.key);
     let asciiDocContent = '';
     const checkout = this.checkout;
     try {
@@ -467,7 +463,7 @@ export class Export {
     let cards: Card[] = [];
 
     // If doing a partial tree export, put the parent information as it would have already been gathered.
-    if (cardKey && this.checkout.findCard(cardKey)) {
+    if (cardKey && findCard(this.checkout, cardKey)) {
       cards.push({
         key: cardKey,
         path: sourcePath,

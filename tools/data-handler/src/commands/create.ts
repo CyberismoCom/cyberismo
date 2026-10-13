@@ -20,20 +20,12 @@ import { scanForProjects } from '../project-scanner.js';
 import { createGit, gitTimeout } from '../utils/git-config.js';
 import { pathExists } from '../utils/file-utils.js';
 import { Checkout } from '../containers/project.js';
-import {
-  addTemplateCards,
-  instantiateTemplate,
-} from '../containers/project/template-instantiation.js';
 import { Validate } from './validate.js';
 
-import { compare, EMPTY_RANK, sortItems } from '../utils/lexorank.js';
-import { ROOT } from '../utils/constants.js';
-import type { DataType, Card, ProjectFile } from '@cyberismo/model';
-import { resourceName, resourceNameToString } from '../utils/resource-utils.js';
+import type { DataType, ProjectFile } from '@cyberismo/model';
 import { write } from '../utils/rw-lock.js';
 import { writeJsonFile } from '../utils/json.js';
 import { getChildLogger } from '../utils/log-utils.js';
-import { runCreationSideEffects } from '../cards/transition.js';
 
 const logger = getChildLogger({ module: 'create' });
 
@@ -82,64 +74,6 @@ export class Create {
   ];
 
   /**
-   * Adds new cards to a template.
-   * @param cardTypeName Card type for new cards.
-   * @param templateName Template name to add cards into.
-   * @param card Optional, if defined adds a new child-card under the card.
-   * @param count How many cards to add. By default one.
-   * @returns non-empty string array with ids of added cards
-   */
-  @write(
-    (cardTypeName, templateName) =>
-      `Add cards of type ${cardTypeName} to template ${templateName}`,
-  )
-  public async addCards(
-    cardTypeName: string,
-    templateName: string,
-    card?: string,
-    count: number = 1,
-  ): Promise<string[]> {
-    if (
-      !templateName ||
-      !Validate.validateFolder(join(this.checkout.basePath, templateName))
-    ) {
-      throw new Error(
-        `Input validation error: template name is invalid '${templateName}'`,
-      );
-    }
-    if (cardTypeName === undefined) {
-      throw new Error(`Input validation error: card type cannot be empty`);
-    }
-    const templateResource = this.checkout.resources.byType(
-      templateName,
-      'templates',
-    );
-    const specificCard = card
-      ? templateResource.cardTree.card(card)
-      : undefined;
-
-    if (!templateResource.isCreated()) {
-      throw new Error(`Template '${templateResource.fullName}' does not exist`);
-    }
-
-    const cardsContainer = await addTemplateCards(
-      this.checkout,
-      templateResource.cardTree,
-      cardTypeName,
-      count,
-      specificCard,
-    );
-
-    if (cardsContainer.length === 0) {
-      throw new Error(`Invalid value for 'repeat:' "${count}"`);
-    }
-
-    await runCreationSideEffects(this.checkout, cardsContainer);
-
-    return cardsContainer;
-  }
-
-  /**
    * Adds a new hub location.
    * @param hubUrl URL of the hub
    */
@@ -157,71 +91,6 @@ export class Create {
     return this.checkout.resources
       .byType(calculationName, 'calculations')
       .create();
-  }
-
-  /**
-   * Creates card(s) to a project. All cards from template are instantiated to the project.
-   * @param templateName name of a template to use
-   * @param parentCardKey (Optional) card-key of a parent card. If missing, cards are added to the card root.
-   * @returns the cards that were created. Template root cards come first, in rank order; the rest follow, grouped by parent key and in rank order within a group.
-   */
-  @write((templateName) => `Create card from template ${templateName}`)
-  public async createCard(
-    templateName: string,
-    parentCardKey?: string,
-  ): Promise<Card[]> {
-    const templateResource = this.checkout.resources.byType(
-      templateName,
-      'templates',
-    );
-
-    Validate.getInstance().validResourceName(
-      'templates',
-      resourceNameToString(resourceName(templateName)),
-      this.checkout.allModulePrefixes(),
-    );
-
-    await templateResource.validate();
-
-    const specificCard = parentCardKey
-      ? this.checkout.findCard(parentCardKey)
-      : undefined;
-    if (!templateResource.isCreated()) {
-      throw new Error(`Template '${templateName}' not found from project`);
-    }
-
-    const createdCards = await instantiateTemplate(
-      this.checkout,
-      templateResource.cardTree,
-      specificCard,
-    );
-    if (createdCards.length > 0) {
-      await runCreationSideEffects(
-        this.checkout,
-        createdCards.map((card) => card.key),
-      );
-
-      const rootParent = specificCard?.key ?? ROOT;
-      const rootCards: Card[] = [];
-      const childCards: Card[] = [];
-      for (const card of createdCards) {
-        if (card.parent === rootParent) {
-          rootCards.push(card);
-        } else {
-          childCards.push(card);
-        }
-      }
-      const rankOf = (card: Card) => card.metadata?.rank || EMPTY_RANK;
-      return sortItems(rootCards, rankOf).concat(
-        childCards.toSorted(
-          (a, b) =>
-            compare(a.parent, b.parent) ||
-            compare(rankOf(a), rankOf(b)) ||
-            compare(a.key, b.key),
-        ),
-      );
-    }
-    return [];
   }
 
   /**

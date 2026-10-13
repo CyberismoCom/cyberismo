@@ -24,6 +24,7 @@ import { ActionGuard } from '../permissions/action-guard.js';
 import { isExternalItemKey } from '../utils/card-utils.js';
 import { isPredefinedField } from '../utils/constants.js';
 import { getChildLogger } from '../utils/log-utils.js';
+import { findCard } from './read.js';
 
 const logger = getChildLogger({ module: 'edit' });
 
@@ -76,7 +77,7 @@ export async function updateCardContent(
   cardKey: string,
   content: string,
 ) {
-  const card = checkout.findCard(cardKey);
+  const card = findCard(checkout, cardKey);
   card.content = content;
 
   // Both files, deliberately: a content edit is expected to bump
@@ -98,7 +99,7 @@ export async function updateCardMetadataKey(
   changedKey: string,
   newValue: MetadataContent,
 ) {
-  const card = checkout.findCard(cardKey);
+  const card = findCard(checkout, cardKey);
   if (!card.metadata) {
     return;
   }
@@ -165,7 +166,7 @@ export async function editCardContent(
   if (checkout.treeOf(cardKey).kind !== 'project') {
     return updateCardContent(checkout, cardKey, changedContent);
   }
-  if (checkout.findCard(cardKey)) {
+  if (findCard(checkout, cardKey)) {
     const actionGuard = new ActionGuard(checkout.calculationEngine);
     await actionGuard.checkPermission('editContent', cardKey);
     await updateCardContent(checkout, cardKey, changedContent);
@@ -188,7 +189,7 @@ export async function editCardMetadata(
     throw new Error(`Changed key cannot be empty`);
   }
 
-  const card = checkout.findCard(cardKey);
+  const card = findCard(checkout, cardKey);
   assertFieldIsEditable(checkout, card, changedKey, newValue);
 
   // A template card has no workflow state, so there is nothing to guard.
@@ -260,7 +261,7 @@ export async function addLabel(
     throw new Error(`Not a valid label name'`);
   }
 
-  const card = checkout.findCard(cardKey);
+  const card = findCard(checkout, cardKey);
   const labels = structuredClone(card.metadata?.labels) ?? [];
 
   if (labels.includes(label)) {
@@ -277,7 +278,7 @@ export async function removeLabel(
   cardKey: string,
   label: string,
 ) {
-  const card = checkout.findCard(cardKey);
+  const card = findCard(checkout, cardKey);
   let labels = card.metadata?.labels ?? [];
 
   if (!label && labels.length !== 1) {
@@ -363,8 +364,8 @@ async function createLocalLink(
   linkType: string,
   linkDescription?: string,
 ) {
-  const sourceCard = checkout.findCard(source);
-  const destinationCard = checkout.findCard(destination);
+  const sourceCard = findCard(checkout, source);
+  const destinationCard = findCard(checkout, destination);
 
   const linkTypeObject = getLinkTypeWithValidation(
     checkout,
@@ -479,7 +480,7 @@ async function createExternalLink(
     );
   }
 
-  const card = checkout.findCard(cardKey);
+  const card = findCard(checkout, cardKey);
   const linkTypeObject = getLinkTypeWithValidation(
     checkout,
     linkType,
@@ -591,7 +592,7 @@ async function removeLocalLink(
   linkType?: string,
   linkDescription?: string,
 ) {
-  const sourceCard = checkout.findCard(source);
+  const sourceCard = findCard(checkout, source);
   const link = sourceCard.metadata?.links.find(
     (l) =>
       l.cardKey === destination &&
@@ -635,7 +636,7 @@ async function removeExternalLink(
     );
   }
 
-  const card = checkout.findCard(cardKey);
+  const card = findCard(checkout, cardKey);
 
   const matches = (l: ExternalLink) =>
     l.connector === connector &&
