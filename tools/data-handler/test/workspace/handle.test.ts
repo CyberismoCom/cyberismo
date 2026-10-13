@@ -92,11 +92,11 @@ it('commits a façade write as the actor of its handle', async () => {
 
 it('commits each write as the actor of the handle it went through', async () => {
   const [key] = project.keys;
-  await Workspace.over(checkout, ann.actor, ann.identity).createCmd.createLabel(
+  await Workspace.over(checkout, ann.actor, ann.identity).cards.addLabel(
     key,
     'first',
   );
-  await Workspace.over(checkout, bob.actor, bob.identity).createCmd.createLabel(
+  await Workspace.over(checkout, bob.actor, bob.identity).cards.addLabel(
     key,
     'second',
   );

@@ -16,6 +16,7 @@ import { Cmd, Commands } from '../src/command-handler.js';
 import { Clean } from '../src/commands/clean.js';
 import { Checkout } from '../src/containers/project.js';
 import { openTestWorkspace } from './helpers/open-test-workspace.js';
+import { updateCardMetadata } from '../src/cards/update.js';
 import { buildProject } from './helpers/project-builder.js';
 
 const GHOST = 'decision/fieldTypes/ghost';
@@ -63,7 +64,7 @@ describe('clean command', () => {
   ) {
     const card = manager.checkout.findCard(cardKey);
     card.metadata![field] = value;
-    await manager.checkout.updateCardMetadata(card, card.metadata!);
+    await updateCardMetadata(manager.checkout, card, card.metadata!);
   }
 
   it('dry-run reports null-valued custom fields without writing', async () => {

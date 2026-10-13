@@ -1251,7 +1251,7 @@ describe('created cards and custom field values', () => {
     // Mutates the shared template card, so this test must stay last.
     const templateCards = ws.checkout.templateTree(templateName).cards();
     const templateCard = templateCards.at(0)!;
-    await ws.editCmd.editCardMetadata(
+    await ws.cards.editField(
       templateCard.key,
       'decision/fieldTypes/finished',
       false,

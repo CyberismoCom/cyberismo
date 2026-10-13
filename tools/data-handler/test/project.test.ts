@@ -20,6 +20,15 @@ import { Checkout } from '../src/containers/project.js';
 import { ProjectConfiguration } from '../src/project-settings.js';
 import { getTestProject } from './helpers/test-utils.js';
 import { CardNotFoundError } from '../src/exceptions/index.js';
+import {
+  updateCardContent,
+  updateCardMetadata,
+  updateCardMetadataKey,
+} from '../src/cards/update.js';
+import {
+  createCardAttachment,
+  removeCardAttachment,
+} from '../src/cards/attachments.js';
 
 describe('project', () => {
   // Create test artifacts in a temp folder.
@@ -220,7 +229,7 @@ describe('project', () => {
     const previousTitle = card?.metadata?.title;
     const previouslyUpdated = card?.metadata?.lastUpdated;
     const newTitle = 'TheTitle';
-    await checkout.updateCardMetadataKey(card?.key, 'title', newTitle);
+    await updateCardMetadataKey(checkout, card?.key, 'title', newTitle);
     const updatedCard = checkout.findCard(cardToOperateOn);
 
     // Expect that title is updated, and lastUpdated has been updated.
@@ -229,7 +238,7 @@ describe('project', () => {
     expect(updatedCard.metadata!.title).toBe(newTitle);
     expect(updatedCard.metadata!.createdAt).toBe(card.metadata!.createdAt);
     // Change the title back
-    await checkout.updateCardMetadataKey(card?.key, 'title', previousTitle);
+    await updateCardMetadataKey(checkout, card?.key, 'title', previousTitle);
   });
   it('update card metadata using full metadata (success)', async () => {
     const decisionRecordsPath = join(testDir, 'valid/decision-records');
@@ -245,7 +254,7 @@ describe('project', () => {
     const newTitle = 'TheTitle';
     const newMetaData = structuredClone(card.metadata)!;
     newMetaData.title = 'TheTitle';
-    await checkout.updateCardMetadata(card, newMetaData);
+    await updateCardMetadata(checkout, card, newMetaData);
     const updatedCard = checkout.findCard(cardToOperateOn);
 
     // Expect that title is updated, and lastUpdated has been updated.
@@ -253,7 +262,7 @@ describe('project', () => {
     expect(previouslyUpdated).not.toBe(updatedCard.metadata!.lastUpdated);
     expect(updatedCard.metadata!.title).toBe(newTitle);
     // Change the title back
-    await checkout.updateCardMetadataKey(card?.key, 'title', previousTitle);
+    await updateCardMetadataKey(checkout, card?.key, 'title', previousTitle);
   });
   it('try to update card metadata with same content again', async () => {
     const decisionRecordsPath = join(testDir, 'valid/decision-records');
@@ -267,7 +276,7 @@ describe('project', () => {
     const previousTitle = card.metadata!.title;
     const previouslyUpdated = card.metadata!.lastUpdated;
     const newTitle = 'Decision Records';
-    await checkout.updateCardMetadataKey(card.key, 'title', newTitle);
+    await updateCardMetadataKey(checkout, card.key, 'title', newTitle);
     const updatedCard = checkout.findCard(cardToOperateOn);
 
     // Expect the data be unchanged
@@ -286,7 +295,7 @@ describe('project', () => {
 
     // Trying to update wrong kind of data throws
     await expect(
-      checkout.updateCardMetadataKey(card!.key, 'workflowState', 'wrong-name'),
+      updateCardMetadataKey(checkout, card!.key, 'workflowState', 'wrong-name'),
     ).rejects.toThrow();
   });
   it('metadata should not contain Card-level fields after save', async () => {
@@ -308,7 +317,7 @@ describe('project', () => {
     badMetadata['path'] = '/test/path';
     badMetadata['children'] = ['child1', 'child2'];
     badMetadata['location'] = 'test_location';
-    await checkout.updateCardMetadataKey(card.key, 'title', newTitle);
+    await updateCardMetadataKey(checkout, card.key, 'title', newTitle);
 
     // Read the metadata file directly from disk & verify that Card properties have not been stored
     const metadataPath = join(card.path, 'index.json');
@@ -331,7 +340,7 @@ describe('project', () => {
     expect(savedMetadata).toHaveProperty('links');
 
     // Restore original title to avoid impacting other tests
-    await checkout.updateCardMetadataKey(card.key, 'title', originalTitle);
+    await updateCardMetadataKey(checkout, card.key, 'title', originalTitle);
   });
   it('update card content (success)', async () => {
     const decisionRecordsPath = join(testDir, 'valid/decision-records');
@@ -344,7 +353,7 @@ describe('project', () => {
 
     const previousContent = card.content;
     card.content += '\naddition';
-    await checkout.updateCardContent(card.key, card.content!);
+    await updateCardContent(checkout, card.key, card.content!);
     expect(card.content).not.toBe(previousContent);
   });
   it('update card content and validate (success)', async () => {
@@ -358,7 +367,7 @@ describe('project', () => {
 
     const previousContent = card.content;
     card.content += '\naddition';
-    await checkout.updateCardContent(card.key, card.content!);
+    await updateCardContent(checkout, card.key, card.content!);
     expect(card.content).not.toBe(previousContent);
   });
 
@@ -710,9 +719,10 @@ describe('project', () => {
     // Add attachment to a card
     const checkout = getTestProject(decisionRecordsPath);
     await checkout.populateCaches();
-    await checkout.createCardAttachment(
+    await createCardAttachment(
+      checkout,
       'decision_5',
-      'newAttachment.heic', // this is the file name it will use on disk
+      'newAttachment.heic',
       attachment,
     );
 
@@ -735,7 +745,7 @@ describe('project', () => {
     expect(projectAttachmentsVerified).toContain('newAttachment.heic');
 
     // Remove the attachment
-    await checkout.removeCardAttachment('decision_5', 'newAttachment.heic');
+    await removeCardAttachment(checkout, 'decision_5', 'newAttachment.heic');
     // Verify that attachment is no longer available
     const projectAttachmentsRemoved = checkout.cardTree
       .attachments()
@@ -744,7 +754,7 @@ describe('project', () => {
 
     // try to remove the same attachment again; should throw
     await expect(
-      checkout.removeCardAttachment('decision_5', 'newAttachment.heic'),
+      removeCardAttachment(checkout, 'decision_5', 'newAttachment.heic'),
     ).rejects.toThrow('Attachment not found: newAttachment.heic');
   });
 
@@ -759,7 +769,7 @@ describe('project', () => {
 
     // Attempt to delete the test file via path traversal.
     await expect(
-      checkout.removeCardAttachment('decision_5', '../test-file.txt'),
+      removeCardAttachment(checkout, 'decision_5', '../test-file.txt'),
     ).rejects.toThrow();
 
     // The test file must still exist after the rejected operation.

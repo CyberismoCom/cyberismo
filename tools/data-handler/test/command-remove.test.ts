@@ -581,20 +581,22 @@ describe('remove command', () => {
       const cardId = 'decision_5';
       const checkout = getTestProject(decisionRecordsPath);
       await checkout.populateCaches();
-      const removeCmd = Workspace.over(checkout, SYSTEM_ACTOR).removeCmd;
-
       await expect(
-        removeCmd.remove('attachment', cardId, ''),
+        Workspace.over(checkout, SYSTEM_ACTOR).cards.removeAttachment(
+          cardId,
+          '',
+        ),
       ).rejects.toThrow();
     });
     it('try to remove attachment from non-existing card', async () => {
       const cardId = 'decision_999';
       const checkout = getTestProject(decisionRecordsPath);
       await checkout.populateCaches();
-      const removeCmd = Workspace.over(checkout, SYSTEM_ACTOR).removeCmd;
-
       await expect(
-        removeCmd.remove('attachment', cardId, 'the-needle.heic'),
+        Workspace.over(checkout, SYSTEM_ACTOR).cards.removeAttachment(
+          cardId,
+          'the-needle.heic',
+        ),
       ).rejects.toThrow();
     });
     it('try to remove non-existing module', async () => {
@@ -659,7 +661,7 @@ describe('remove card', () => {
     const otherCardKey = otherCards[0].key;
 
     const linkType = 'decision/linkTypes/test';
-    await ws.createCmd.createLink(otherCardKey, childKey, linkType);
+    await ws.cards.addLink(otherCardKey, childKey, linkType);
 
     // Verify the link exists
     let otherCard = ws.checkout.findCard(otherCardKey);
@@ -669,7 +671,7 @@ describe('remove card', () => {
     expect(linksBefore).toHaveLength(1);
 
     // Remove the parent card (which also removes its children)
-    await ws.removeCmd.remove('card', parentCard!.key);
+    await ws.cards.remove(parentCard!.key);
 
     // The link from otherCard to the child should also be removed
     otherCard = ws.checkout.findCard(otherCardKey);
@@ -681,8 +683,7 @@ describe('remove card', () => {
 
   it('should remove card that has children', async () => {
     const cardId = 'decision_5';
-    const removeCmd = Workspace.over(ws.checkout, SYSTEM_ACTOR).removeCmd;
-    await removeCmd.remove('card', cardId);
+    await Workspace.over(ws.checkout, SYSTEM_ACTOR).cards.remove(cardId);
 
     expect(() => ws.checkout.findCard(cardId)).toThrow(CardNotFoundError);
     // Since decision_6 is decision_5's child, it should have been removed as well.
@@ -719,7 +720,7 @@ describe('remove card', () => {
     expect(parentCard.children.length).toBeGreaterThan(0);
 
     // Delete the created project cards
-    await ws.removeCmd.remove('card', parentCardKey!);
+    await ws.cards.remove(parentCardKey!);
 
     // Verify project card and its children are deleted
     expect(() => ws.checkout.findCard(parentCardKey)).toThrow(
