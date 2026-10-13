@@ -12,9 +12,8 @@
 */
 
 import type { Card, QueryResult } from '@cyberismo/model';
-import { type Workspace, evaluateMacros } from '@cyberismo/data-handler';
+import type { Workspace } from '@cyberismo/data-handler';
 import { preprocessMermaidBlocksForHtml } from '@cyberismo/data-handler/utils/mermaid-renderer';
-import { rewriteAsciidocCardXrefs } from '@cyberismo/data-handler/utils/asciidoc-xref';
 import { getCardQueryResult } from '../../export.js';
 import type { TreeOptions } from '../../types.js';
 
@@ -42,29 +41,23 @@ export async function getCardDetails(
       return { status: 400, message: `Card ${key} not found from project` };
     }
 
-    let asciidocContent = '';
-    try {
-      asciidocContent = await evaluateMacros(
-        cardDetailsResponse.content || '',
-        {
-          context: staticMode ? 'exportedSite' : 'localApp',
-          mode: staticMode ? 'staticSite' : 'inject',
-          checkout: ws.checkout,
-          cardKey: key,
-        },
-      );
-    } catch (error) {
-      asciidocContent = `Macro error: ${error instanceof Error ? error.message : 'Unknown error'}\n\n${asciidocContent}`;
-    }
+    let { content: asciidocContent } = await ws.render.macros(
+      cardDetailsResponse.content || '',
+      {
+        context: staticMode ? 'exportedSite' : 'localApp',
+        mode: staticMode ? 'staticSite' : 'inject',
+        cardKey: key,
+        fallback: '',
+      },
+    );
 
     // Convert [mermaid] AsciiDoc blocks to passthrough HTML before asciidoctor processes them
     asciidocContent = preprocessMermaidBlocksForHtml(asciidocContent);
 
     // Rewrite native AsciiDoc xrefs that target other cards into
     // /projects/<prefix>/cards/<key> links.
-    asciidocContent = rewriteAsciidocCardXrefs(
+    asciidocContent = await ws.render.xrefs(
       asciidocContent,
-      ws.checkout,
       staticMode ? 'staticSite' : 'inject',
     );
 
@@ -139,7 +132,7 @@ export async function getCardDetails(
 
     const card = staticMode
       ? await getCardQueryResult(ws, key)
-      : await ws.calculateCmd.runQuery('card', 'localApp', {
+      : await ws.queries.runQuery('card', 'localApp', {
           cardKey: key,
         });
 
@@ -169,7 +162,7 @@ export async function allCards(
   ws: Workspace,
   options?: TreeOptions,
 ): Promise<QueryResult<'tree'>[]> {
-  const fetchedCards = await ws.calculateCmd.runQuery(
+  const fetchedCards = await ws.queries.runQuery(
     'tree',
     'exportedSite',
     options || {},

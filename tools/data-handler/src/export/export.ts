@@ -40,6 +40,9 @@ import { read } from '../utils/rw-lock.js';
 import { sortItems } from '../utils/lexorank.js';
 import { findCard, cardsByKeys } from '../cards/read.js';
 
+// The document the PDF is rendered from.
+type PdfDocument = Omit<ExportPdfOptions, 'date'> & { date?: Date };
+
 const attachmentFolder: string = 'a';
 const ASCIIDOCTOR_DIAGNOSTIC = /^asciidoctor: (WARNING|ERROR):/;
 const FAILURE_DIAGNOSTIC_LINES = 20;
@@ -273,9 +276,7 @@ export class Export {
     }
   }
 
-  private async evaluateExportContent(
-    options: ExportPdfOptions,
-  ): Promise<string> {
+  private async evaluateExportContent(options: PdfDocument): Promise<string> {
     const result = await generateReportContent({
       calculate: this.checkout.calculationEngine,
       contentTemplate: pdfReport.content,
@@ -373,7 +374,7 @@ export class Export {
    * the order Asciidoctor expects.
    */
   protected async buildPdfAsciidocSource(
-    options: ExportPdfOptions,
+    options: PdfDocument,
     onWarning?: (message: string) => void,
   ): Promise<string> {
     const evaluated = await this.evaluateExportContent(options);
@@ -388,7 +389,7 @@ export class Export {
 
   // Builds the PDF, collecting warnings instead of printing them
   private async renderPdf(
-    options: ExportPdfOptions,
+    options: PdfDocument,
   ): Promise<{ pdf: Buffer; warnings: string[] }> {
     const warnings: string[] = [];
     const source = await this.buildPdfAsciidocSource(options, (message) =>
@@ -407,8 +408,16 @@ export class Export {
   @read
   public async exportPdf(
     destination: string,
-    options: ExportPdfOptions,
+    pdfOptions: ExportPdfOptions,
   ): Promise<string> {
+    const options = {
+      title: pdfOptions?.title || 'Title',
+      name: pdfOptions?.name || 'Name',
+      version: pdfOptions?.version || '1.0.0',
+      revremark: pdfOptions?.revremark || 'Initial version',
+      cardKey: pdfOptions.cardKey,
+      date: pdfOptions?.date ? new Date(pdfOptions.date) : new Date(),
+    };
     let rendered;
     try {
       rendered = await this.renderPdf(options);
@@ -439,7 +448,12 @@ export class Export {
   @read
   public async exportPdfBuffer(options: ExportPdfOptions): Promise<Buffer> {
     try {
-      return (await this.renderPdf(options)).pdf;
+      return (
+        await this.renderPdf({
+          ...options,
+          date: options.date ? new Date(options.date) : undefined,
+        })
+      ).pdf;
     } catch (error) {
       if (error instanceof AsciidoctorPdfError) {
         console.error(error.message, error.diagnostics.join('\n'));

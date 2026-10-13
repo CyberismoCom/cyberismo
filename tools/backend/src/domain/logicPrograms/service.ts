@@ -20,6 +20,6 @@ export async function getLogicProgram(
   if (resource.type === 'cards') {
     return ws.cards.logicProgram(resource.identifier);
   } else {
-    return ws.showCmd.showLogicProgram(resource);
+    return ws.queries.logicProgram(resource);
   }
 }

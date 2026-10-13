@@ -21,7 +21,7 @@ export async function getFieldTypes(ws: Workspace) {
   }
 
   const fieldTypes = await Promise.all(
-    response.map((fieldType: string) => ws.showCmd.showResource(fieldType)),
+    response.map((fieldType: string) => ws.resources.show(fieldType)),
   );
 
   return fieldTypes;

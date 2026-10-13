@@ -16,9 +16,8 @@ import type {
   ExportPdfOptions,
   MetadataContent,
 } from '@cyberismo/model';
-import { type Workspace, evaluateMacros } from '@cyberismo/data-handler';
+import type { Workspace } from '@cyberismo/data-handler';
 import { preprocessMermaidBlocksForHtml } from '@cyberismo/data-handler/utils/mermaid-renderer';
-import { rewriteAsciidocCardXrefs } from '@cyberismo/data-handler/utils/asciidoc-xref';
 import { allCards } from './lib.js';
 import type { TreeOptions } from '../../types.js';
 
@@ -143,28 +142,18 @@ export async function parseContent(
   content: string,
 ) {
   return ws.consistent(async () => {
-    let asciidocContent: string;
-    try {
-      asciidocContent = await evaluateMacros(content, {
-        context: 'localApp',
-        mode: 'inject',
-        checkout: ws.checkout,
-        cardKey: key,
-      });
-    } catch (error) {
-      asciidocContent = `Macro error: ${error instanceof Error ? error.message : 'Unknown error'}\n\n${content}`;
-    }
+    let { content: asciidocContent } = await ws.render.macros(content, {
+      context: 'localApp',
+      mode: 'inject',
+      cardKey: key,
+    });
 
     // Convert [mermaid] AsciiDoc blocks to passthrough HTML before asciidoctor processes them
     asciidocContent = preprocessMermaidBlocksForHtml(asciidocContent);
 
     // Rewrite native AsciiDoc xrefs that target other cards into
     // /projects/<prefix>/cards/<key> links.
-    asciidocContent = rewriteAsciidocCardXrefs(
-      asciidocContent,
-      ws.checkout,
-      'inject',
-    );
+    asciidocContent = await ws.render.xrefs(asciidocContent, 'inject');
 
     return { adocContent: asciidocContent };
   });
@@ -284,6 +273,6 @@ export async function exportCard(
   ws: Workspace,
   options: ExportPdfOptions,
 ): Promise<Buffer> {
-  const result = await ws.exportCmd.exportPdfBuffer(options);
+  const result = await ws.export.exportPdfBuffer(options);
   return result;
 }

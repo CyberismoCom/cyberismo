@@ -22,6 +22,7 @@ export * from './interfaces/operations.js';
 export * from './interfaces/project-interfaces.js';
 export * from './interfaces/resource-interfaces.js';
 export * from './interfaces/resource-name.js';
+export * from './interfaces/verbs.js';
 export * from './interfaces/version-source.js';
 export * from './macros/common.js';
 export * from './macros/types.js';
