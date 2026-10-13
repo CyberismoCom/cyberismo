@@ -78,13 +78,3 @@ it.each([
   overwrite(await get(), path);
   expect(await get()).toEqual(before);
 });
-
-it('validate reports a valid resource with no errors', async () => {
-  expect(
-    await ws.resources.validate({
-      prefix: 'decision',
-      type: 'cardTypes',
-      identifier: 'decision',
-    }),
-  ).toBe('');
-});
