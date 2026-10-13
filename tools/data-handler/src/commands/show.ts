@@ -101,7 +101,7 @@ export class Show {
         container.push(cardType.data);
       }
     }
-    return container;
+    return structuredClone(container);
   }
 
   /**
@@ -305,10 +305,11 @@ export class Show {
       );
     }
     const resource = this.checkout.resources.byType(name, type);
-    const [details, usage] = await Promise.all([
+    const [shown, usage] = await Promise.all([
       resource?.show(),
       showUse ? resource?.usage() : [],
     ]);
+    const details = structuredClone(shown);
     if (showUse) {
       return {
         ...details,
@@ -341,7 +342,7 @@ export class Show {
     for (const template of this.checkout.resources.templates()) {
       templates.push(template.show());
     }
-    return templates;
+    return structuredClone(templates);
   }
 
   /**
@@ -354,7 +355,7 @@ export class Show {
     for (const workflow of this.checkout.resources.workflows()) {
       workflows.push(workflow.data);
     }
-    return workflows;
+    return structuredClone(workflows);
   }
 
   // Maps a full skill resource to a lightweight discovery summary.
