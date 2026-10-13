@@ -57,6 +57,37 @@ it('shares the checkout, lock and commands between handles; only the actor diffe
   const probe = {};
   (a.showCmd as unknown as { probe: object }).probe = probe;
   expect((b.showCmd as unknown as { probe: object }).probe).toBe(probe);
+
+  // Façades are the handle's own: one per handle, with its actor.
+  expect(a.cards).toBe(a.cards);
+  expect(a.cards).not.toBe(b.cards);
+  expect([a.cards.actor, b.cards.actor]).toEqual([ann.actor, bob.actor]);
+});
+
+it('commits a façade write as the actor of its handle', async () => {
+  const built = await buildProject({
+    git: true,
+    cards: [{ title: 'Parent' }, { title: 'Child' }],
+  });
+  const other = await openCheckout(built.path, { autocommit: true });
+  try {
+    const [parent, child] = built.keys;
+    await Workspace.over(other, bob.actor, bob.identity).cards.move(
+      child,
+      parent,
+    );
+    const { stdout } = await promisify(execFile)(
+      'git',
+      ['log', '-1', '--format=%s|%an <%ae>|%(trailers:only,unfold)'],
+      { cwd: built.path },
+    );
+    expect(stdout.trim()).toBe(
+      `Move card ${child} to ${parent}|Bob <bob@example.com>|Cyberismo-Actor: user:bob`,
+    );
+  } finally {
+    other.dispose();
+    await built.cleanup();
+  }
 });
 
 it('commits each write as the actor of the handle it went through', async () => {

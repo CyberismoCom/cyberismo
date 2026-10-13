@@ -278,6 +278,12 @@ export function read<This extends object, Args extends unknown[], Return>(
   };
 }
 
+// A façade carries its handle's actor and identity; legacy commands do not.
+function handleFrame(instance: object): WriteFrame | undefined {
+  const { actor, identity } = instance as Partial<WriteFrame>;
+  return actor ? { actor, identity } : undefined;
+}
+
 // Marks the methods @write wraps, so a handle can open their write.
 const WRITE_METHOD = Symbol('writeMethod');
 
@@ -308,13 +314,16 @@ export function write<This extends object, Args extends unknown[], Return>(
 export function write(message?: (...args: any[]) => string): unknown {
   return function (target: (...args: unknown[]) => Promise<unknown>) {
     const method = function (this: object, ...args: unknown[]) {
+      const run = () => {
+        const fn = () => target.call(this, ...args);
+        const frame = handleFrame(this);
+        return frame ? getLock(this).write(frame, fn) : getLock(this).write(fn);
+      };
       if (!message) {
-        return getLock(this).write(() => target.call(this, ...args));
+        return run();
       }
       const label = message(...args);
-      return runWithDefaultCommitMessage(label, () =>
-        getLock(this).write(() => target.call(this, ...args)),
-      );
+      return runWithDefaultCommitMessage(label, run);
     };
     return Object.assign(method, { [WRITE_METHOD]: true });
   };
