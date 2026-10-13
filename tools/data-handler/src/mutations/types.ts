@@ -12,24 +12,12 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import type { Operation, UpdateKey } from '@cyberismo/model';
-import type { ResourceName } from '../utils/resource-utils.js';
+import type { MutationInput } from '@cyberismo/model';
 
 export type MutationKind =
   | 'edit' // sub-property add/change/rank/remove
   | 'delete' // whole-resource delete
   | 'rename'; // whole-resource rename
-
-/** Discriminated input describing the change a maintainer wants to make. */
-export type MutationInput =
-  | {
-      kind: 'edit';
-      target: ResourceName;
-      updateKey: UpdateKey<string>;
-      operation: Operation<unknown>;
-    }
-  | { kind: 'delete'; target: ResourceName }
-  | { kind: 'rename'; target: ResourceName; newIdentifier: string };
 
 export type EditInput = Extract<MutationInput, { kind: 'edit' }>;
 export type DeleteInput = Extract<MutationInput, { kind: 'delete' }>;

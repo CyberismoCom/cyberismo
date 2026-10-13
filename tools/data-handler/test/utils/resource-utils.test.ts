@@ -1,10 +1,9 @@
 import { expect, it, describe } from 'vitest';
 
 import { join, sep } from 'node:path';
-
+import type { ResourceName } from '@cyberismo/model';
 import {
   pathToResourceName,
-  type ResourceName,
   resourceNameToPath,
   resourceName,
   resourceNameToString,

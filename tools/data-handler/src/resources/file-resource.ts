@@ -19,9 +19,9 @@ import type {
   ResourceBaseMetadata,
   Operation,
   UpdateKey,
+  ResourceName,
 } from '@cyberismo/model';
 import type { Checkout } from '../containers/project.js';
-import type { ResourceName } from '../utils/resource-utils.js';
 import type { ShowReturnType } from './resource-object.js';
 
 /**

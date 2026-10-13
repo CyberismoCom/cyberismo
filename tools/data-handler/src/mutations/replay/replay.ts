@@ -20,9 +20,9 @@ import semver from 'semver';
 import { ProjectPaths } from '../../containers/project/project-paths.js';
 import { DomainError } from '../../exceptions/index.js';
 import { ResourceMutations } from '../resource-mutations.js';
-import { checkLinearity, computeChain } from './chain.js';
+import { checkLinearity, computeChain } from '../../infra/replay-log/chain.js';
 import { entryToMutationInput } from './convert.js';
-import { listSealFiles } from './seal-files.js';
+import { listSealFiles } from '../../infra/replay-log/seal-files.js';
 import { resourceName } from '../../utils/resource-utils.js';
 
 import {
@@ -32,10 +32,10 @@ import {
 
 import type { ConfigurationLogEntry } from '../../utils/configuration-logger.js';
 import type { ModuleInstallation } from '../../modules/types.js';
-import type { MutationInput } from '../types.js';
+import type { MutationInput } from '@cyberismo/model';
 import type { Checkout } from '../../containers/project.js';
 import type { ResolvedModule } from '../../modules/resolve/types.js';
-import type { SealFile } from './seal-files.js';
+import type { SealFile } from '../../infra/replay-log/seal-files.js';
 
 /** A reason one module's update cannot be replayed safely. */
 export interface ReplayConflict {

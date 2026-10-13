@@ -11,22 +11,12 @@
 import { join, parse, sep } from 'node:path';
 
 import type { Checkout } from '../containers/project.js';
-import type { WorkflowTransition } from '@cyberismo/model';
+import type { WorkflowTransition, ResourceName } from '@cyberismo/model';
 import { stripExtension } from './file-utils.js';
 
 /** The new-card transition: fromState is [''] or empty. */
 export function isInitialTransition(transition: WorkflowTransition): boolean {
   return transition.fromState.includes('') || transition.fromState.length === 0;
-}
-
-// Resource name parts are:
-// - prefix; name of the project this resource is part of
-// - type; type of resource; in plural
-// - identifier; unique name (within a project/module) for the resource
-export interface ResourceName {
-  prefix: string;
-  type: string; // todo: should be a ResourceFolderType
-  identifier: string;
 }
 
 // Indexes of resource name parts

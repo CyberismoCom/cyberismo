@@ -22,7 +22,7 @@ import { GitManager } from '../utils/git-manager.js';
 import {
   parseSealFileName,
   type SealFile,
-} from '../mutations/replay/seal-files.js';
+} from '../infra/replay-log/seal-files.js';
 import { versionToTag } from './version.js';
 import type { FetchTarget, SourceLayer } from './source.js';
 import type { Source, Version } from './types.js';

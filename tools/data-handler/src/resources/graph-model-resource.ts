@@ -19,7 +19,7 @@ import { FolderResource } from './folder-resource.js';
 import { resourceNameToString } from '../utils/resource-utils.js';
 import { sortCards } from '../utils/card-utils.js';
 import { writeFileSafe } from '../utils/file-utils.js';
-import { CONTENT_FILES } from '@cyberismo/model';
+import { CONTENT_FILES, type ResourceName } from '@cyberismo/model';
 
 import type {
   Card,
@@ -27,7 +27,6 @@ import type {
   GraphModelContent,
 } from '@cyberismo/model';
 import type { Checkout } from '../containers/project.js';
-import type { ResourceName } from '../utils/resource-utils.js';
 
 /**
  * Graph model resource class.
