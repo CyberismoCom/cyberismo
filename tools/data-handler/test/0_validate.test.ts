@@ -12,6 +12,7 @@ import { errorFunction } from '../src/utils/error-utils.js';
 import { resourceName } from '../src/utils/resource-utils.js';
 import { getTestBaseDir, getTestProject } from './helpers/test-utils.js';
 import type { Card, ResourceTypes } from '@cyberismo/model';
+import { findCard } from '../src/cards/read.js';
 
 describe('validate cmd tests', () => {
   const baseDir = getTestBaseDir(import.meta.dirname, import.meta.url);
@@ -179,7 +180,7 @@ describe('validate cmd tests', () => {
   });
 
   it('validateWorkflowState (success)', async () => {
-    const card = validProject.findCard('decision_5');
+    const card = findCard(validProject, 'decision_5');
     const valid = await validateCmd.validateWorkflowState(validProject, card);
     expect(valid.length).toBe(0);
   });
@@ -188,7 +189,7 @@ describe('validate cmd tests', () => {
       'test/test-data/invalid/invalid-card-has-wrong-state/',
     );
     await checkout.populateCaches();
-    const card = checkout.findCard('decision_6');
+    const card = findCard(checkout, 'decision_6');
     const valid = await validateCmd.validateWorkflowState(checkout, card);
     expect(valid.length).toBeGreaterThan(0);
   });
@@ -197,7 +198,7 @@ describe('validate cmd tests', () => {
       'test/test-data/invalid/invalid-card-has-wrong-state/',
     );
     await checkout.populateCaches();
-    const card = checkout.findCard('decision_5');
+    const card = findCard(checkout, 'decision_5');
     const valid = await validateCmd.validateWorkflowState(checkout, card);
     expect(valid.length).toBeGreaterThan(0);
   });
@@ -206,7 +207,7 @@ describe('validate cmd tests', () => {
       'test/test-data/invalid/invalid-card-has-wrong-state/',
     );
     await checkout.populateCaches();
-    const card = checkout.findCard('decision_7');
+    const card = findCard(checkout, 'decision_7');
     const valid = await validateCmd.validateWorkflowState(checkout, card);
     expect(valid.length).toBeGreaterThan(0);
   });
@@ -215,7 +216,7 @@ describe('validate cmd tests', () => {
       'test/test-data/invalid/invalid-card-has-wrong-state/',
     );
     await checkout.populateCaches();
-    const card = checkout.findCard('decision_8');
+    const card = findCard(checkout, 'decision_8');
     if (card) {
       const valid = await validateCmd.validateWorkflowState(checkout, card);
       expect(valid.length).toBeGreaterThan(0);
@@ -223,7 +224,7 @@ describe('validate cmd tests', () => {
   });
   it('validate card custom fields data (success)', async () => {
     // card _6 has all of the types as custom fields (with null values)
-    const card = validProject.findCard('decision_6');
+    const card = findCard(validProject, 'decision_6');
     if (card) {
       const allPrefixes = await validProject.projectPrefixes();
       const valid = await validateCmd.validateCustomFields(
@@ -239,7 +240,7 @@ describe('validate cmd tests', () => {
       'test/test-data/invalid/invalid-card-has-wrong-state/',
     );
     await checkout.populateCaches();
-    const card = checkout.findCard('decision_5');
+    const card = findCard(checkout, 'decision_5');
     if (card) {
       const allPrefixes = await checkout.projectPrefixes();
       const valid = await validateCmd.validateCustomFields(
@@ -251,7 +252,7 @@ describe('validate cmd tests', () => {
     }
   });
   it('try to validate card custom fields - no metadata for the card', async () => {
-    const card = validProject.findCard('decision_5');
+    const card = findCard(validProject, 'decision_5');
     if (card) {
       const allPrefixes = await validProject.projectPrefixes();
       await validateCmd

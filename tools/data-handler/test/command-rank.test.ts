@@ -5,9 +5,11 @@ import { join } from 'node:path';
 
 import { copyDir } from '../src/utils/file-utils.js';
 import { Cmd, Commands, type Workspace } from '../src/command-handler.js';
-import { Show } from '../src/commands/index.js';
 import { getTestProject } from './helpers/test-utils.js';
 import { openTestWorkspace } from './helpers/open-test-workspace.js';
+import { Cards } from '../src/cards/cards.js';
+import { SYSTEM_ACTOR } from '../src/utils/tx-record.js';
+import { findCard } from '../src/cards/read.js';
 
 // Create test artifacts in a temp folder.
 const baseDir = import.meta.dirname;
@@ -81,7 +83,11 @@ describe('rank command', () => {
 
       const checkout = getTestProject(options.projectPath!);
       await checkout.populateCaches();
-      const details = await new Show(checkout).showCardDetails(rankBefore);
+      const details = await new Cards(
+        checkout,
+        SYSTEM_ACTOR,
+        undefined,
+      ).details(rankBefore);
       expect(details.metadata?.rank).toBe('0|c');
     });
     it('rank card in root (success)', async () => {
@@ -98,7 +104,11 @@ describe('rank command', () => {
 
       const checkout = getTestProject(options.projectPath!);
       await checkout.populateCaches();
-      const details = await new Show(checkout).showCardDetails(rankBefore);
+      const details = await new Cards(
+        checkout,
+        SYSTEM_ACTOR,
+        undefined,
+      ).details(rankBefore);
       // Just verify that a rank was assigned (the exact value can vary based on existing cards)
       expect(details.metadata!.rank).toMatch(/^0\|[a-z0-9]+$/);
     });
@@ -113,7 +123,11 @@ describe('rank command', () => {
 
       const checkout = getTestProject(options.projectPath!);
       await checkout.populateCaches();
-      const details = await new Show(checkout).showCardDetails(key);
+      const details = await new Cards(
+        checkout,
+        SYSTEM_ACTOR,
+        undefined,
+      ).details(key);
 
       expect(details.metadata!.rank).toBe('0|a');
     });
@@ -121,7 +135,7 @@ describe('rank command', () => {
       const sibling = 'decision_6';
       const lastUpdated = '2020-01-01T00:00:00.000Z';
       const cardFile = join(
-        shared.checkout.findCard(sibling).path,
+        findCard(shared.checkout, sibling).path,
         'index.json',
       );
       const before = JSON.parse(readFileSync(cardFile, 'utf-8'));
@@ -183,7 +197,11 @@ describe('rank command', () => {
       expect(result.statusCode).toBe(200);
       const checkout = getTestProject(options.projectPath!);
       await checkout.populateCaches();
-      const details = await new Show(checkout).showCardDetails(key);
+      const details = await new Cards(
+        checkout,
+        SYSTEM_ACTOR,
+        undefined,
+      ).details(key);
       expect(details.metadata!.rank).toBe('0|a');
     });
 
@@ -197,7 +215,11 @@ describe('rank command', () => {
       expect(result.statusCode).toBe(200);
       const checkout = getTestProject(options.projectPath!);
       await checkout.populateCaches();
-      const details = await new Show(checkout).showCardDetails(key);
+      const details = await new Cards(
+        checkout,
+        SYSTEM_ACTOR,
+        undefined,
+      ).details(key);
       expect(details.metadata!.rank).toBe('0|a');
     });
   });

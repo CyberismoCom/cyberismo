@@ -34,10 +34,10 @@ const createMockCommandManager = (overrides: any = {}) => {
       showProject: vi.fn().mockResolvedValue({ prefix: 'test' }),
       showResources: vi.fn(),
       showResource: vi.fn(),
-      showAllTemplateCards: vi.fn(),
       showFileNames: vi.fn().mockResolvedValue([]),
       ...overrides.showCmd,
     },
+    cards: { templateCards: vi.fn(), ...overrides.cards },
     ...overrides,
   } as unknown as Workspace;
 };
@@ -115,7 +115,9 @@ describe('Resources Service', () => {
             return Promise.resolve([]);
           }),
           showResource: vi.fn().mockResolvedValue(mockResourceData),
-          showAllTemplateCards: vi
+        },
+        cards: {
+          templateCards: vi
             .fn()
             .mockResolvedValue([
               { name: 'test/templates/basic', cards: [mockTemplateCard] },
@@ -186,8 +188,8 @@ describe('Resources Service', () => {
               name,
             });
           }),
-          showAllTemplateCards: vi.fn().mockResolvedValue([]),
         },
+        cards: { templateCards: vi.fn().mockResolvedValue([]) },
       });
 
       const result = (await buildResourceTree(
@@ -242,7 +244,9 @@ describe('Resources Service', () => {
             return Promise.resolve([]);
           }),
           showResource: vi.fn().mockResolvedValue(mockResourceData),
-          showAllTemplateCards: vi.fn().mockResolvedValue([
+        },
+        cards: {
+          templateCards: vi.fn().mockResolvedValue([
             {
               name: 'test/templates/hierarchy',
               cards: [mockTemplateCardWithChildren],
@@ -351,7 +355,9 @@ describe('Resources Service', () => {
             ...mockResourceData,
             name,
           })),
-          showAllTemplateCards: vi.fn().mockResolvedValue([
+        },
+        cards: {
+          templateCards: vi.fn().mockResolvedValue([
             {
               name: 'test/templates/sorted',
               cards: [rootLaterByRank, rootSoonerByRank],
@@ -403,8 +409,8 @@ describe('Resources Service', () => {
               ),
             ),
           showResource: vi.fn().mockResolvedValue(mockSkillData),
-          showAllTemplateCards: vi.fn().mockResolvedValue([]),
         },
+        cards: { templateCards: vi.fn().mockResolvedValue([]) },
       });
 
       const result = (await buildResourceTree(
@@ -437,7 +443,9 @@ describe('Resources Service', () => {
             return Promise.resolve([]);
           }),
           showResource: vi.fn().mockResolvedValue(mockResourceData),
-          showAllTemplateCards: vi.fn().mockResolvedValue([
+        },
+        cards: {
+          templateCards: vi.fn().mockResolvedValue([
             { name: 'test/templates/root-template', cards: [mockTemplateCard] },
             {
               name: 'module1/templates/module-template',
@@ -481,8 +489,8 @@ describe('Resources Service', () => {
             return Promise.resolve([]);
           }),
           showResource: vi.fn().mockResolvedValue(mockResourceData),
-          showAllTemplateCards: vi.fn().mockResolvedValue([]),
         },
+        cards: { templateCards: vi.fn().mockResolvedValue([]) },
       });
 
       const result = (await buildResourceTree(
@@ -502,9 +510,9 @@ describe('Resources Service', () => {
         showCmd: {
           showProject: vi.fn().mockResolvedValue({ prefix: 'test' }),
           showResources: vi.fn().mockResolvedValue([]), // All empty
-          showResource: vi.fn().mockResolvedValue(mockResourceData),
-          showAllTemplateCards: vi.fn().mockResolvedValue([]), // Empty templates
+          showResource: vi.fn().mockResolvedValue(mockResourceData), // Empty templates
         },
+        cards: { templateCards: vi.fn().mockResolvedValue([]) },
       });
 
       const result = (await buildResourceTree(
@@ -540,9 +548,9 @@ describe('Resources Service', () => {
             ...mockResourceData,
             name,
           })),
-          showAllTemplateCards: vi.fn().mockResolvedValue([]),
           showFileNames: vi.fn().mockResolvedValue([]),
         },
+        cards: { templateCards: vi.fn().mockResolvedValue([]) },
       });
 
       const result = (await buildResourceTree(
@@ -574,7 +582,9 @@ describe('Resources Service', () => {
             return Promise.resolve([]);
           }),
           showResource: vi.fn().mockResolvedValue(mockResourceData),
-          showAllTemplateCards: vi
+        },
+        cards: {
+          templateCards: vi
             .fn()
             .mockResolvedValue([
               { name: 'test/templates/basic', cards: [mockTemplateCard] },
@@ -638,8 +648,8 @@ describe('Resources Service', () => {
           showResources: vi
             .fn()
             .mockRejectedValue(new Error('Resources not found')),
-          showAllTemplateCards: vi.fn().mockResolvedValue([]),
         },
+        cards: { templateCards: vi.fn().mockResolvedValue([]) },
       });
 
       await expect(buildResourceTree(mockCommands)).rejects.toThrow(
@@ -659,8 +669,8 @@ describe('Resources Service', () => {
           showResource: vi
             .fn()
             .mockRejectedValue(new Error('Resource details not found')),
-          showAllTemplateCards: vi.fn().mockResolvedValue([]),
         },
+        cards: { templateCards: vi.fn().mockResolvedValue([]) },
       });
 
       await expect(buildResourceTree(mockCommands)).rejects.toThrow(

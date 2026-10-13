@@ -70,10 +70,9 @@ describe('Leaf rename mutation engine end-to-end', () => {
       expect(card.path).toContain('decision-v2');
     }
 
-    const created = await Workspace.over(
-      checkout,
-      SYSTEM_ACTOR,
-    ).createCmd.createCard(newName);
+    const created = await Workspace.over(checkout, SYSTEM_ACTOR).cards.create(
+      newName,
+    );
     expect(created.length).toBe(cardsBefore.length);
   });
 

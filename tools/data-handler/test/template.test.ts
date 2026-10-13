@@ -14,7 +14,8 @@ import { TemplateResource } from '../src/resources/template-resource.js';
 import {
   addTemplateCards,
   instantiateTemplate,
-} from '../src/containers/project/template-instantiation.js';
+} from '../src/cards/instantiate.js';
+import { findCard } from '../src/cards/read.js';
 import { CardNotFoundError } from '../src/exceptions/index.js';
 import { ROOT } from '../src/utils/constants.js';
 
@@ -67,7 +68,7 @@ describe('template', () => {
   });
   it('create template card under a specific card from a project', async () => {
     // Choose specific card so that it does not have currently child cards.
-    const cardBefore = checkout.findCard('decision_6');
+    const cardBefore = findCard(checkout, 'decision_6');
     expect(cardBefore?.children?.length).toBe(0);
 
     const template = templateOf('decision/templates/simplepage');
@@ -85,7 +86,7 @@ describe('template', () => {
     ).to.have.same.members(templateCards.map((item) => item.key));
 
     // Two direct children should have been created
-    const cardAfter = checkout.findCard('decision_6');
+    const cardAfter = findCard(checkout, 'decision_6');
     expect(cardAfter?.children?.length).toBe(2);
   });
   it('throws an error when trying to create a specific card from an empty template', async () => {
