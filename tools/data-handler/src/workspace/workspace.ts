@@ -18,7 +18,6 @@ import type { Export } from '../commands/export.js';
 import type { Fetch } from '../commands/fetch.js';
 import type { Import } from '../commands/import.js';
 import type { Modules } from '../commands/modules.js';
-import type { Move } from '../commands/move.js';
 import type { Publish } from '../commands/publish.js';
 import type { Remove } from '../commands/remove.js';
 import type { Version } from '../commands/version.js';
@@ -27,6 +26,7 @@ import type { Show } from '../commands/show.js';
 import type { Transition } from '../commands/transition.js';
 import type { Update } from '../commands/update.js';
 import type { Validate } from '../commands/validate.js';
+import { Cards } from '../cards/cards.js';
 import { Checkout } from '../containers/project.js';
 import type { ActorRef } from '@cyberismo/model';
 import { runWithCommitContext } from '../utils/commit-context.js';
@@ -115,6 +115,7 @@ function legacyProxy<T extends object>(
 export class Workspace {
   private readonly frame: WriteFrame;
   private readonly proxies = new Map<keyof SharedCommands, object>();
+  private cardsFacade?: Cards;
 
   private constructor(
     public readonly checkout: Checkout,
@@ -149,6 +150,12 @@ export class Workspace {
     return proxy as SharedCommands[K];
   }
 
+  /** Card operations, as this handle's actor. */
+  get cards(): Cards {
+    this.cardsFacade ??= new Cards(this.checkout, this.actor, this.identity);
+    return this.cardsFacade;
+  }
+
   get calculateCmd(): Calculate {
     return this.legacy('calculateCmd');
   }
@@ -172,9 +179,6 @@ export class Workspace {
   }
   get modulesCmd(): Modules {
     return this.legacy('modulesCmd');
-  }
-  get moveCmd(): Move {
-    return this.legacy('moveCmd');
   }
   get publishCmd(): Publish {
     return this.legacy('publishCmd');

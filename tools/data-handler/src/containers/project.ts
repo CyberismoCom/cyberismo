@@ -711,26 +711,6 @@ export class Checkout {
   }
 
   /**
-   * Moves a card to a new position in the card tree.
-   * @param container Container the card now belongs to: 'project' or a full
-   *   template name. Defaults to the one it is in.
-   */
-  public async relocateCard(
-    cardKey: string,
-    newParent: string,
-    container?: string,
-  ) {
-    const source = this.treeOf(cardKey);
-    const destination =
-      container === undefined ? source : this.containerTree(container);
-    if (destination === source) {
-      await source.relocate(cardKey, newParent);
-      return;
-    }
-    await destination.adopt(source, cardKey, newParent);
-  }
-
-  /**
    * Runs the creation query for cards that were just added, and executes the
    * side effects it asks for.
    *
