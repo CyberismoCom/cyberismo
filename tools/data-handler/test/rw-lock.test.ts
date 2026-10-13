@@ -1,10 +1,8 @@
 import { expect, describe, it } from 'vitest';
 
 import { RWLock, read, write } from '../src/utils/rw-lock.js';
-import {
-  getCommitContext,
-  runWithCommitContext,
-} from '../src/utils/commit-context.js';
+import { runWithCommitContext } from '../src/utils/commit-context.js';
+import { MissingActorError } from '../src/exceptions/index.js';
 import type { TxRecord } from '../src/utils/tx-record.js';
 import { deferred } from './test-utils.js';
 import { SYSTEM_FRAME } from '../src/utils/tx-record.js';
@@ -588,8 +586,8 @@ describe('RWLock', () => {
       const lock = new RWLock();
       let capturedMessage: string | undefined;
 
-      lock.onAfterWrite(async () => {
-        capturedMessage = getCommitContext().message;
+      lock.onAfterWrite(async (tx) => {
+        capturedMessage = tx.message;
       });
 
       class TestCmd {
@@ -610,8 +608,8 @@ describe('RWLock', () => {
       const lock = new RWLock();
       let capturedMessage: string | undefined;
 
-      lock.onAfterWrite(async () => {
-        capturedMessage = getCommitContext().message;
+      lock.onAfterWrite(async (tx) => {
+        capturedMessage = tx.message;
       });
 
       class TestCmd {
@@ -633,8 +631,8 @@ describe('RWLock', () => {
       const lock = new RWLock();
       let capturedMessage: string | undefined;
 
-      lock.onAfterWrite(async () => {
-        capturedMessage = getCommitContext().message;
+      lock.onAfterWrite(async (tx) => {
+        capturedMessage = tx.message;
       });
 
       class TestCmd {
@@ -700,21 +698,19 @@ describe('RWLock', () => {
         seen.push(tx);
       });
 
-      await runWithCommitContext(
-        {
-          message: 'Outer',
-          author: { name: 'U', email: 'u@example.com' },
-          actor: { kind: 'user', id: 'u1', name: 'U' },
-        },
-        () =>
-          lock.write(SYSTEM_FRAME, async () => {
-            seen.push(lock.currentTx());
-            await runWithCommitContext({ message: 'Inner' }, () =>
-              lock.write(SYSTEM_FRAME, async () => {
-                seen.push(lock.currentTx());
-              }),
-            );
-          }),
+      const frame = {
+        actor: { kind: 'user', id: 'u1', name: 'U' },
+        identity: { name: 'U', email: 'u@example.com' },
+      } as const;
+      await runWithCommitContext({ message: 'Outer' }, () =>
+        lock.write(frame, async () => {
+          seen.push(lock.currentTx());
+          await runWithCommitContext({ message: 'Inner' }, () =>
+            lock.write(async () => {
+              seen.push(lock.currentTx());
+            }),
+          );
+        }),
       );
 
       expect(seen).toHaveLength(3);
@@ -735,6 +731,66 @@ describe('RWLock', () => {
         name: 'Cyberismo Bot',
       });
       expect(tx?.identity).toBeUndefined();
+    });
+
+    it('refuses an outermost write without an actor', async () => {
+      const lock = new RWLock();
+      const hooks: string[] = [];
+      lock.onAfterWrite(async () => {
+        hooks.push('after');
+      });
+      lock.onWriteError(async () => {
+        hooks.push('error');
+      });
+      let ran = false;
+
+      await expect(
+        lock.write(async () => {
+          ran = true;
+        }),
+      ).rejects.toBeInstanceOf(MissingActorError);
+      expect(ran).toBe(false);
+      expect(hooks).toEqual([]);
+      // The refusal left the lock free.
+      expect(await lock.write(SYSTEM_FRAME, async () => 'ok')).toBe('ok');
+    });
+
+    it('refuses a legacy @write called without a handle frame', async () => {
+      const lock = new RWLock();
+      let ran = false;
+      class Legacy {
+        checkout = { lock };
+
+        @write(() => 'Legacy write')
+        async change(): Promise<void> {
+          ran = true;
+        }
+      }
+
+      await expect(new Legacy().change()).rejects.toBeInstanceOf(
+        MissingActorError,
+      );
+      expect(ran).toBe(false);
+    });
+
+    it('takes the first message a nested write supplies', async () => {
+      const lock = new RWLock();
+      let message: string | undefined;
+      lock.onAfterWrite(async (tx) => {
+        message = tx.message;
+      });
+
+      await lock.write(SYSTEM_FRAME, () =>
+        runWithCommitContext({ message: 'First' }, () =>
+          lock.write(async () => {
+            await runWithCommitContext({ message: 'Second' }, () =>
+              lock.write(async () => {}),
+            );
+          }),
+        ),
+      );
+
+      expect(message).toBe('First');
     });
 
     it('hands the record to the error hooks', async () => {

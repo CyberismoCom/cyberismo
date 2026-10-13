@@ -14,7 +14,7 @@
 */
 
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import type { Workspace } from '@cyberismo/data-handler';
+import type { Checkout } from '@cyberismo/data-handler';
 import { registerResources } from './resources/index.js';
 import { registerTools } from './tools/index.js';
 import { registerPrompts } from './prompts/index.js';
@@ -29,13 +29,13 @@ export interface McpServerOptions {
 }
 
 /**
- * Wrap a single CommandManager in a minimal ProjectProvider.
+ * Wrap a single checkout in a minimal ProjectProvider.
  */
-export function singleProjectProvider(ws: Workspace): ProjectProvider {
-  const prefix = ws.checkout.configuration.cardKeyPrefix;
-  const name = ws.checkout.configuration.name;
+export function singleProjectProvider(checkout: Checkout): ProjectProvider {
+  const prefix = checkout.configuration.cardKeyPrefix;
+  const name = checkout.configuration.name;
   return {
-    get: (p: string) => (p === prefix ? ws : undefined),
+    get: (p: string) => (p === prefix ? checkout : undefined),
     list: () => [{ prefix, name }],
   };
 }

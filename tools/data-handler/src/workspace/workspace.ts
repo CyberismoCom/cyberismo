@@ -10,33 +10,33 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Calculate } from '../commands/calculate.js';
-import { Clean } from '../commands/clean.js';
+import type { Calculate } from '../commands/calculate.js';
+import type { Clean } from '../commands/clean.js';
 import { Create } from '../commands/create.js';
-import { Edit } from '../commands/edit.js';
-import { Export } from '../commands/export.js';
-import { Fetch } from '../commands/fetch.js';
-import { Import } from '../commands/import.js';
-import { Modules } from '../commands/modules.js';
-import { Move } from '../commands/move.js';
-import { Publish } from '../commands/publish.js';
-import { Remove } from '../commands/remove.js';
-import { Version } from '../commands/version.js';
-import { Rename } from '../commands/rename.js';
-import { Show } from '../commands/show.js';
-import { Transition } from '../commands/transition.js';
-import { Update } from '../commands/update.js';
-import { Validate } from '../commands/validate.js';
+import type { Edit } from '../commands/edit.js';
+import type { Export } from '../commands/export.js';
+import type { Fetch } from '../commands/fetch.js';
+import type { Import } from '../commands/import.js';
+import type { Modules } from '../commands/modules.js';
+import type { Move } from '../commands/move.js';
+import type { Publish } from '../commands/publish.js';
+import type { Remove } from '../commands/remove.js';
+import type { Version } from '../commands/version.js';
+import type { Rename } from '../commands/rename.js';
+import type { Show } from '../commands/show.js';
+import type { Transition } from '../commands/transition.js';
+import type { Update } from '../commands/update.js';
+import type { Validate } from '../commands/validate.js';
 import { Checkout } from '../containers/project.js';
 import type { ActorRef } from '@cyberismo/model';
-import {
-  type CommitIdentity,
-  runWithCommitContext,
-} from '../utils/commit-context.js';
+import { runWithCommitContext } from '../utils/commit-context.js';
+import { isWriteMethod } from '../utils/rw-lock.js';
+import type { CommitIdentity, WriteFrame } from '../utils/tx-record.js';
 import { type Level } from 'pino';
 import { join } from 'node:path';
 import { initLogger } from '../utils/log-utils.js';
 import { DEFAULT_HUB } from '@cyberismo/assets';
+import { sharedCommands, type SharedCommands } from './shared-commands.js';
 
 export interface WorkspaceOptions {
   watchResourceChanges?: boolean;
@@ -45,58 +45,173 @@ export interface WorkspaceOptions {
   autopush?: boolean;
 }
 
-// Handles commands and ensures that no extra instances are created.
+/**
+ * Opens the checkout at `path` and loads it. Its holder disposes it.
+ * @param path Project path.
+ * @param options Checkout options.
+ * @throws if the project's schema version is not supported.
+ */
+export async function openCheckout(
+  path: string,
+  options?: WorkspaceOptions,
+): Promise<Checkout> {
+  // Set up logger before constructing anything so eager child loggers work
+  if (options?.logLevel) {
+    const logPath = join(path, '.logs', 'cyberismo_data-handler.log');
+    initLogger(options.logLevel, logPath);
+  }
+  const checkout = new Checkout(path, {
+    watchResourceChanges: options?.watchResourceChanges,
+    autocommit: options?.autocommit,
+    autopush: options?.autopush,
+  });
+  const compat = checkout.configuration.checkSchemaVersion();
+  if (!compat.isCompatible) {
+    checkout.dispose();
+    throw new Error(compat.message);
+  }
+  try {
+    checkout.resources.changedModules();
+    await checkout.populateCaches();
+    await checkout.initializeGit();
+    await checkout.calculationEngine.generate();
+  } catch (error) {
+    checkout.dispose();
+    throw error;
+  }
+  return checkout;
+}
+
+// Undecorated legacy methods that write only for some arguments.
+type WritesWhen = Record<string, (...args: unknown[]) => boolean>;
+
+const WRITES_WHEN: Partial<Record<keyof SharedCommands, WritesWhen>> = {
+  // A dry run only reads.
+  cleanCmd: { clean: (dryRun) => !dryRun },
+};
+
+// A per-handle view of a shared legacy command object: its @write methods
+// open the write as the handle's actor.
+function legacyProxy<T extends object>(
+  target: T,
+  checkout: Checkout,
+  frame: WriteFrame,
+  writesWhen: WritesWhen = {},
+): T {
+  return new Proxy(target, {
+    get(object, key) {
+      const value = Reflect.get(object, key);
+      if (typeof value !== 'function') {
+        return value;
+      }
+      const writes =
+        typeof key === 'string' && Object.hasOwn(writesWhen, key)
+          ? writesWhen[key]
+          : isWriteMethod(value)
+            ? () => true
+            : undefined;
+      if (!writes) {
+        return value.bind(object);
+      }
+      return (...args: unknown[]) =>
+        writes(...args)
+          ? checkout.lock.write(frame, () => value.apply(object, args))
+          : value.apply(object, args);
+    },
+  });
+}
+
+/**
+ * One actor's handle over a shared checkout. Writes through it are the
+ * actor's. It holds no state of its own and is never disposed.
+ */
 export class Workspace {
-  private static instance: Workspace;
+  private readonly frame: WriteFrame;
+  private readonly proxies = new Map<keyof SharedCommands, object>();
 
-  public checkout: Checkout;
-  public calculateCmd: Calculate;
-  public cleanCmd: Clean;
-  public createCmd: Create;
-  public editCmd: Edit;
-  public exportCmd: Export;
-  public fetchCmd: Fetch;
-  public importCmd: Import;
-  public modulesCmd: Modules;
-  public moveCmd: Move;
-  public publishCmd: Publish;
-  public removeCmd: Remove;
-  public renameCmd: Rename;
-  public showCmd: Show;
-  public transitionCmd: Transition;
-  public updateCmd: Update;
-  public validateCmd: Validate;
-  public versionCmd: Version;
+  private constructor(
+    public readonly checkout: Checkout,
+    public readonly actor: ActorRef,
+    public readonly identity: CommitIdentity | undefined,
+  ) {
+    this.frame = { actor, identity };
+  }
 
-  constructor(path: string, options?: WorkspaceOptions) {
-    this.checkout = new Checkout(path, {
-      watchResourceChanges: options?.watchResourceChanges,
-      autocommit: options?.autocommit,
-      autopush: options?.autopush,
-    });
-    const compat = this.checkout.configuration.checkSchemaVersion();
-    if (!compat.isCompatible) {
-      this.checkout.dispose();
-      throw new Error(compat.message);
+  /**
+   * A handle over `checkout` for `actor`.
+   * @param checkout Checkout the handle works on.
+   * @param actor Who acts through the handle.
+   * @param identity Git author of the actor's commits; unset lets git
+   *   resolve it.
+   */
+  public static over(
+    checkout: Checkout,
+    actor: ActorRef,
+    identity?: CommitIdentity,
+  ): Workspace {
+    return new Workspace(checkout, actor, identity);
+  }
+
+  private legacy<K extends keyof SharedCommands>(key: K): SharedCommands[K] {
+    let proxy = this.proxies.get(key);
+    if (!proxy) {
+      const target = sharedCommands(this.checkout)[key];
+      proxy = legacyProxy(target, this.checkout, this.frame, WRITES_WHEN[key]);
+      this.proxies.set(key, proxy);
     }
-    this.validateCmd = Validate.getInstance();
+    return proxy as SharedCommands[K];
+  }
 
-    this.calculateCmd = new Calculate(this.checkout);
-    this.cleanCmd = new Clean(this.checkout);
-    this.fetchCmd = new Fetch(this.checkout);
-    this.modulesCmd = new Modules(this.checkout, this.fetchCmd);
-    this.showCmd = new Show(this.checkout);
-    this.createCmd = new Create(this.checkout);
-    this.editCmd = new Edit(this.checkout);
-    this.exportCmd = new Export(this.checkout, this.showCmd);
-    this.importCmd = new Import(this.checkout, this.createCmd);
-    this.moveCmd = new Move(this.checkout);
-    this.publishCmd = new Publish(this.checkout);
-    this.removeCmd = new Remove(this.checkout, this.fetchCmd, this.modulesCmd);
-    this.renameCmd = new Rename(this.checkout);
-    this.transitionCmd = new Transition(this.checkout);
-    this.updateCmd = new Update(this.checkout);
-    this.versionCmd = new Version(this.checkout);
+  get calculateCmd(): Calculate {
+    return this.legacy('calculateCmd');
+  }
+  get cleanCmd(): Clean {
+    return this.legacy('cleanCmd');
+  }
+  get createCmd(): Create {
+    return this.legacy('createCmd');
+  }
+  get editCmd(): Edit {
+    return this.legacy('editCmd');
+  }
+  get exportCmd(): Export {
+    return this.legacy('exportCmd');
+  }
+  get fetchCmd(): Fetch {
+    return this.legacy('fetchCmd');
+  }
+  get importCmd(): Import {
+    return this.legacy('importCmd');
+  }
+  get modulesCmd(): Modules {
+    return this.legacy('modulesCmd');
+  }
+  get moveCmd(): Move {
+    return this.legacy('moveCmd');
+  }
+  get publishCmd(): Publish {
+    return this.legacy('publishCmd');
+  }
+  get removeCmd(): Remove {
+    return this.legacy('removeCmd');
+  }
+  get renameCmd(): Rename {
+    return this.legacy('renameCmd');
+  }
+  get showCmd(): Show {
+    return this.legacy('showCmd');
+  }
+  get transitionCmd(): Transition {
+    return this.legacy('transitionCmd');
+  }
+  get updateCmd(): Update {
+    return this.legacy('updateCmd');
+  }
+  get validateCmd(): Validate {
+    return this.legacy('validateCmd');
+  }
+  get versionCmd(): Version {
+    return this.legacy('versionCmd');
   }
 
   /**
@@ -110,27 +225,12 @@ export class Workspace {
   }
 
   /**
-   * Run a function with the given author and actor set in async-local context.
-   * Git commits made during the function use this author and record the actor.
-   * @param author Commit author.
-   * @param fn Function to run.
-   * @param actor Who acted, recorded as commit trailers.
-   */
-  public runAsAuthor<T>(
-    author: CommitIdentity,
-    fn: () => Promise<T>,
-    actor: ActorRef,
-  ): Promise<T> {
-    return runWithCommitContext({ author, actor }, fn);
-  }
-
-  /**
    * Execute multiple commands as a single atomic write transaction.
    * All inner @write/@read calls reuse the same lock context.
    * Git commit fires once on success; rollback on any error.
    */
   public async atomic<T>(fn: () => Promise<T>, message: string): Promise<T> {
-    const run = () => this.checkout.lock.write(fn);
+    const run = () => this.checkout.lock.write(this.frame, fn);
     return runWithCommitContext({ message }, run);
   }
 
@@ -144,53 +244,14 @@ export class Workspace {
   }
 
   /**
-   * Some commands needs initialization that cannot be performed inside constructor.
-   * Add such calls here.
-   */
-  public async initialize() {
-    this.checkout.resources.changedModules();
-    await this.checkout.populateCaches();
-    await this.checkout.initializeGit();
-    await this.checkout.calculationEngine.generate();
-  }
-
-  /**
-   * Either creates a new instance, or passes the current one.
-   * New instance is created, if path differs, or there is no previous instance.
-   * @param path Project path.
-   * @param watchResourceChanges Optional. If true, file changes are watched.
-   * @returns Instance of this class.
-   */
-  public static async getInstance(
-    path: string,
-    options?: WorkspaceOptions,
-  ): Promise<Workspace> {
-    // Set up logger before constructing anything so eager child loggers work
-    if (options?.logLevel) {
-      const logPath = join(path, '.logs', 'cyberismo_data-handler.log');
-      initLogger(options.logLevel, logPath);
-    }
-
-    if (Workspace.instance && Workspace.instance.checkout.basePath !== path) {
-      Workspace.instance.checkout.dispose();
-      Workspace.instance = new Workspace(path, options);
-      await Workspace.instance.initialize();
-    }
-    if (!Workspace.instance) {
-      Workspace.instance = new Workspace(path, options);
-      await Workspace.instance.initialize();
-    }
-
-    return Workspace.instance;
-  }
-
-  /**
    * Creates a new project with default configuration.
    * Sets up the project files, initializes git, and adds the default hub.
    * @param projectPath Path where the project will be created
    * @param params Project parameters (name, prefix, category, description)
-   * @param options Optional settings for the command manager and git user
-   * @returns Initialized CommandManager for the new project
+   * @param actor Who creates the project.
+   * @param identity Git author of the project's first commits.
+   * @param options Optional checkout options
+   * @returns The actor's handle over the new project's checkout
    */
   public static async createProjectWithDefaults(
     projectPath: string,
@@ -200,9 +261,9 @@ export class Workspace {
       category?: string;
       description?: string;
     },
-    options?: WorkspaceOptions & {
-      gitUser?: { name: string; email: string };
-    },
+    actor: ActorRef,
+    identity: CommitIdentity | undefined,
+    options?: WorkspaceOptions,
   ): Promise<Workspace> {
     await Create.createProject(
       projectPath,
@@ -212,14 +273,13 @@ export class Workspace {
       params.description ?? '',
     );
 
-    const ws = new Workspace(projectPath, options);
-    await ws.initialize();
-
-    await ws.checkout.git.initialize(
-      options?.gitUser
-        ? { name: options.gitUser.name, email: options.gitUser.email }
-        : undefined,
+    const ws = Workspace.over(
+      await openCheckout(projectPath, options),
+      actor,
+      identity,
     );
+
+    await ws.checkout.git.initialize(identity);
 
     // Add default hub and fetch module data
     try {

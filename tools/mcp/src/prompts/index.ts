@@ -23,7 +23,7 @@ import {
   type ListPromptsResult,
 } from '@modelcontextprotocol/sdk/types.js';
 
-import type { ProjectProvider } from '../lib/resolve-project.js';
+import { workspaceFor, type ProjectProvider } from '../lib/resolve-project.js';
 
 // Prompt arguments are untyped on the low-level handler; validate them.
 const promptArguments = z.object({ cardKey: z.string().optional() });
@@ -50,11 +50,13 @@ export function registerPrompts(
 
   server.server.setRequestHandler(
     ListPromptsRequestSchema,
-    async (): Promise<ListPromptsResult> => {
+    async (_request, extra): Promise<ListPromptsResult> => {
       const perProject = await Promise.all(
         provider.list().map(({ prefix }) => {
-          const ws = provider.get(prefix);
-          return ws ? ws.showCmd.listSkills() : [];
+          const checkout = provider.get(prefix);
+          return checkout
+            ? workspaceFor(checkout, extra, server).showCmd.listSkills()
+            : [];
         }),
       );
       const prompts: ListPromptsResult['prompts'] = perProject.flatMap(
@@ -81,7 +83,7 @@ export function registerPrompts(
 
   server.server.setRequestHandler(
     GetPromptRequestSchema,
-    async (request): Promise<GetPromptResult> => {
+    async (request, extra): Promise<GetPromptResult> => {
       const { name } = request.params;
       const { cardKey } = promptArguments.parse(request.params.arguments ?? {});
 
@@ -90,10 +92,11 @@ export function registerPrompts(
       // resolve by asking each project rather than parsing the name's prefix.
       let anyDisabled = false;
       for (const { prefix } of provider.list()) {
-        const ws = provider.get(prefix);
-        if (!ws) {
+        const checkout = provider.get(prefix);
+        if (!checkout) {
           continue;
         }
+        const ws = workspaceFor(checkout, extra, server);
         const result = await ws.showCmd.getSkill(name, { cardKey });
         if (result.status === 'ok') {
           const { skill } = result;

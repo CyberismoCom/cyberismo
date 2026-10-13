@@ -48,7 +48,6 @@ import { getChildLogger } from '../utils/log-utils.js';
 import { RWLock } from '../utils/rw-lock.js';
 import { GitSync } from '../utils/git-sync.js';
 import { GitManager } from '../utils/git-manager.js';
-import { getCommitContext } from '../utils/commit-context.js';
 import { commitTrailers } from '../utils/tx-record.js';
 
 import type { TemplateResource } from '../resources/template-resource.js';
@@ -885,7 +884,7 @@ export class Checkout {
    */
   public async initializeGit(): Promise<void> {
     if (this.options.autocommit) {
-      await this.gitManager.initialize(getCommitContext().author);
+      await this.gitManager.initialize();
     }
     if (this.options.autopush) void this.gitSync.push();
   }

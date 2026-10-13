@@ -37,13 +37,16 @@ vi.mock('undici', async (importOriginal) => {
 const baseDir = import.meta.dirname;
 const testDir = join(baseDir, 'tmp-command-handler-fetch-tests');
 const decisionRecordsPath = join(testDir, 'valid/decision-records');
-const commandHandler: Commands = new Commands();
+// The dispatcher runs on the handle the tests set up.
+let manager: Workspace;
+const commandHandler: Commands = new Commands(async () => manager);
 const options = { projectPath: decisionRecordsPath };
 
 describe('fetch command', () => {
   beforeAll(async () => {
     mkdirSync(testDir, { recursive: true });
     await copyDir('test/test-data', testDir);
+    manager = await openTestWorkspace(decisionRecordsPath);
   });
 
   afterAll(() => {
@@ -64,7 +67,6 @@ describe('fetch command', () => {
   });
 
   describe('fetch hubs command', () => {
-    let manager: Workspace;
     let originalHubs: HubSetting[];
     const fetchStub = undiciFetch;
 

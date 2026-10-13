@@ -1,0 +1,86 @@
+/**
+  Cyberismo
+  Copyright © Cyberismo Ltd and contributors 2026
+  This program is free software: you can redistribute it and/or modify it under
+  the terms of the GNU Affero General Public License version 3 as published by
+  the Free Software Foundation. This program is distributed in the hope that it
+  will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty
+  of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+  See the GNU Affero General Public License for more details.
+  You should have received a copy of the GNU Affero General Public
+  License along with this program. If not, see <https://www.gnu.org/licenses/>.
+*/
+
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
+import { afterEach, beforeEach, expect, it } from 'vitest';
+
+import type { Checkout } from '../../src/containers/project.js';
+import { openCheckout, Workspace } from '../../src/workspace/workspace.js';
+import { sharedCommands } from '../../src/workspace/shared-commands.js';
+import { buildProject, type BuiltProject } from '../helpers/project-builder.js';
+
+const ann = {
+  actor: { kind: 'user', id: 'ann', name: 'Ann' },
+  identity: { name: 'Ann', email: 'ann@example.com' },
+} as const;
+const bob = {
+  actor: { kind: 'user', id: 'bob', name: 'Bob' },
+  identity: { name: 'Bob', email: 'bob@example.com' },
+} as const;
+
+let project: BuiltProject;
+let checkout: Checkout;
+
+beforeEach(async () => {
+  project = await buildProject({ git: true, cards: [{ title: 'Alpha' }] });
+  checkout = await openCheckout(project.path, { autocommit: true });
+});
+
+afterEach(async () => {
+  checkout.dispose();
+  await project.cleanup();
+});
+
+it('shares the checkout, lock and commands between handles; only the actor differs', () => {
+  const a = Workspace.over(checkout, ann.actor, ann.identity);
+  const b = Workspace.over(checkout, bob.actor, bob.identity);
+
+  expect(a.checkout).toBe(b.checkout);
+  expect(a.checkout.lock).toBe(b.checkout.lock);
+  expect(sharedCommands(a.checkout)).toBe(sharedCommands(b.checkout));
+  expect([a.actor, b.actor]).toEqual([ann.actor, bob.actor]);
+
+  // Each handle has its own view of a command ...
+  expect(a.createCmd).not.toBe(b.createCmd);
+  // ... over one shared object: what one handle sets, the other sees.
+  const probe = {};
+  (a.showCmd as unknown as { probe: object }).probe = probe;
+  expect((b.showCmd as unknown as { probe: object }).probe).toBe(probe);
+});
+
+it('commits each write as the actor of the handle it went through', async () => {
+  const [key] = project.keys;
+  await Workspace.over(checkout, ann.actor, ann.identity).createCmd.createLabel(
+    key,
+    'first',
+  );
+  await Workspace.over(checkout, bob.actor, bob.identity).createCmd.createLabel(
+    key,
+    'second',
+  );
+
+  const { stdout } = await promisify(execFile)(
+    'git',
+    [
+      'log',
+      '-2',
+      '--format=%s|%an <%ae>|%(trailers:only,unfold,separator=%x2C)',
+    ],
+    { cwd: project.path },
+  );
+  expect(stdout.trim().split('\n')).toEqual([
+    `Add label second to ${key}|Bob <bob@example.com>|Cyberismo-Actor: user:bob`,
+    `Add label first to ${key}|Ann <ann@example.com>|Cyberismo-Actor: user:ann`,
+  ]);
+});

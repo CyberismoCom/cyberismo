@@ -13,18 +13,9 @@
 */
 
 import { AsyncLocalStorage } from 'node:async_hooks';
-import type { ActorRef } from '@cyberismo/model';
-
-/** Git author of a commit. Internal: never serialised into events. */
-export interface CommitIdentity {
-  name: string;
-  email: string;
-}
 
 export interface CommitContext {
   message?: string;
-  author?: CommitIdentity;
-  actor?: ActorRef;
 }
 
 const context = new AsyncLocalStorage<CommitContext>();
@@ -34,7 +25,6 @@ export function runWithCommitContext<T>(
   fn: () => Promise<T>,
 ): Promise<T> {
   const current = context.getStore();
-  // Merge with any existing context (e.g. author set at middleware level, message set at decorator level)
   const merged = { ...current, ...ctx };
   return context.run(merged, fn);
 }

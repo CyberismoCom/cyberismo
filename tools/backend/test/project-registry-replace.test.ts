@@ -25,7 +25,7 @@ describe('ProjectRegistry.replace', () => {
 
     expect(oldCmd.checkout.dispose).toHaveBeenCalledOnce();
     expect(registry.get('old')).toBeUndefined();
-    expect(registry.get('new')).toBe(newCmd);
+    expect(registry.get('new')).toBe(newCmd.checkout);
   });
 
   it('handles replace with empty array', async () => {

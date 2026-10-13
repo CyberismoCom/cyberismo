@@ -73,6 +73,60 @@ describe('MCP HTTP Endpoint', () => {
     expect([200, 202]).toContain(response.status);
   });
 
+  test('a tool call on a session carries the request user', async () => {
+    const post = (body: object, sessionId?: string) =>
+      app.request('/mcp', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json, text/event-stream',
+          ...(sessionId && { 'mcp-session-id': sessionId }),
+        },
+        body: JSON.stringify(body),
+      });
+    // The JSON-RPC message in an SSE response.
+    const message = async (response: Response) =>
+      JSON.parse(
+        (await response.text())
+          .split('\n')
+          .find((line) => line.startsWith('data: '))!
+          .slice('data: '.length),
+      );
+
+    const init = await post({
+      jsonrpc: '2.0',
+      id: 1,
+      method: 'initialize',
+      params: {
+        protocolVersion: '2024-11-05',
+        capabilities: {},
+        clientInfo: { name: 'test-client', version: '1.0.0' },
+      },
+    });
+    const sessionId = init.headers.get('mcp-session-id')!;
+    await post(
+      { jsonrpc: '2.0', method: 'notifications/initialized' },
+      sessionId,
+    );
+
+    const call = await message(
+      await post(
+        {
+          jsonrpc: '2.0',
+          id: 2,
+          method: 'tools/call',
+          params: {
+            name: 'list_cards',
+            arguments: { projectPrefix: 'decision' },
+          },
+        },
+        sessionId,
+      ),
+    );
+    expect(call.result.isError).toBeFalsy();
+    expect(call.result.content[0].text).toContain('decision_5');
+  });
+
   test('DELETE /mcp without session returns success', async () => {
     const response = await app.request('/mcp', {
       method: 'DELETE',

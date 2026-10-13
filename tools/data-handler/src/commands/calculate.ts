@@ -98,13 +98,16 @@ export class Calculate {
    * @param options Any object that contains state for handlebars
    * @returns parsed program output
    */
+  @read
   public async runQuery<T extends QueryName>(
     queryName: T,
     context: Context = 'localApp',
     options?: unknown,
   ): Promise<QueryResult<T>[]> {
-    return this.checkout.lock.read(async () =>
-      this.checkout.calculationEngine.runQuery(queryName, context, options),
+    return this.checkout.calculationEngine.runQuery(
+      queryName,
+      context,
+      options,
     );
   }
 }

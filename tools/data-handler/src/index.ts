@@ -90,6 +90,7 @@ export {
   DomainError,
   DuplicateCardKeyError,
   MacroError,
+  MissingActorError,
   ModuleRequestError,
   PermissionDeniedError,
   ReadOnlyContainerError,
@@ -97,3 +98,12 @@ export {
   SchemaNotFound,
   WorkspaceDisposedError,
 } from './exceptions/index.js';
+export type { Checkout } from './containers/project.js';
+export type { WorkspaceOpener } from './command-handler.js';
+export { openCheckout, type WorkspaceOptions } from './workspace/workspace.js';
+export {
+  SYSTEM_ACTOR,
+  SYSTEM_FRAME,
+  type CommitIdentity,
+  type WriteFrame,
+} from './utils/tx-record.js';
