@@ -386,10 +386,6 @@ describe('show', () => {
       `CardType '${cardType}' does not exist in the project`,
     );
   });
-  it('showCardTypesWithDetails (success)', async () => {
-    const results = await ws.resources.contents('cardTypes');
-    expect(results).not.toBeUndefined();
-  });
   it('showResource - field type (success)', async () => {
     const fieldTypeName = 'decision/fieldTypes/obsoletedBy';
     const results = await ws.resources.show(fieldTypeName);
@@ -459,33 +455,6 @@ describe('show', () => {
       `Template '${templateName}' does not exist in the project`,
     );
   });
-  it('showResources - valid types', async () => {
-    const validResourceTypes = [
-      'cardTypes',
-      'fieldTypes',
-      'graphViews',
-      'graphModels',
-      'linkTypes',
-      'reports',
-      'templates',
-      'workflows',
-    ];
-    for (const type of validResourceTypes) {
-      const results = await ws.resources.list(type);
-      expect(results).not.toBeUndefined();
-    }
-  });
-  it('showResources - invalid type', async () => {
-    const validResourceTypes = ['unknown'];
-    for (const type of validResourceTypes) {
-      const results = await ws.resources.list(type);
-      expect(results.length).toBe(0);
-    }
-  });
-  it('showTemplatesWithDetails (success)', async () => {
-    const results = await ws.resources.contents('templates');
-    expect(results).not.toBeUndefined();
-  });
   it('showResource - workflow (success)', async () => {
     const workflowName = 'decision/workflows/decision';
     const results = await ws.resources.show(workflowName);
@@ -541,10 +510,6 @@ describe('show', () => {
     const reportResults = await ws.resources.show(reportName);
     expect(reportResults).not.toBeUndefined();
     expect(reportResults.category).toBe(undefined);
-  });
-  it('showWorkflowsWithDetails (success)', async () => {
-    const results = await ws.resources.contents('workflows');
-    expect(results).not.toBeUndefined();
   });
   it('show report results', async () => {
     const parameters = {

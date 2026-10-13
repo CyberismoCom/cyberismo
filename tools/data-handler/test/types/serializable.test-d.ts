@@ -150,8 +150,12 @@ export const resources: FacadeSerializable<Resources> = {
   create: true,
   validate: true,
   show: true,
+  list: true,
+  usage: true,
+  contents: true,
   skills: true,
   skill: true,
+  skillPreview: true,
 };
 
 export const queries: FacadeSerializable<Queries> = {
