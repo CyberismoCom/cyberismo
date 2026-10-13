@@ -120,7 +120,7 @@ describe('adoc export section order', () => {
     const lastCreated = (
       await ws.createCmd.createCard(template, 'decision_6')
     )[0].key;
-    await ws.moveCmd.rankFirst(lastCreated);
+    await ws.cards.rankFirst(lastCreated);
 
     const rankOrder = [lastCreated, firstCreated];
     expect(ws.checkout.findCard('decision_6').children).not.toEqual(rankOrder);
