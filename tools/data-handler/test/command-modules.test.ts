@@ -997,11 +997,11 @@ describe('module update — spec behaviours', () => {
     // A template card and a project card of the consumer type; the delete
     // cascade must remove the card type and both cards.
     await ws.createCmd.createTemplate('rdel/templates/seed', '');
-    await ws.createCmd.addCards(
+    await ws.cards.addToTemplate(
       'rdel/cardTypes/consumer',
       'rdel/templates/seed',
     );
-    const created = await ws.createCmd.createCard('rdel/templates/seed');
+    const created = await ws.cards.create('rdel/templates/seed');
     expect(created.length).toBeGreaterThan(0);
 
     // Upstream 2.0.0 deletes the workflow; its own card type moves to the
@@ -1053,9 +1053,7 @@ describe('module update — spec behaviours', () => {
     // A project card of the MODULE's own card type. The delete cascade only
     // repairs LOCAL card types, so this card's type survives pointing at the
     // deleted workflow and card-level validation must fail.
-    const created = await ws.createCmd.createCard(
-      'decision/templates/decision',
-    );
+    const created = await ws.cards.create('decision/templates/decision');
     expect(created.length).toBeGreaterThan(0);
 
     // Upstream ships a broken 2.0.0: the workflow is deleted but the

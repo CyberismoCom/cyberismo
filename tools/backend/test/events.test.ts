@@ -788,12 +788,12 @@ describe('card update notifications', () => {
   let edited: string;
 
   beforeAll(async () => {
-    const [target] = await ws.createCmd.createCard(
+    const [target] = await ws.cards.create(
       'decision/templates/decision',
       'decision_5',
     );
     retargeted = target.key;
-    const [scratch] = await ws.createCmd.createCard(
+    const [scratch] = await ws.cards.create(
       'decision/templates/decision',
       'decision_5',
     );
