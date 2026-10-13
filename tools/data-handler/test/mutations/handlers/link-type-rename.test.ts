@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 
-import { Project } from '../../../src/containers/project.js';
+import { Checkout } from '../../../src/containers/project.js';
 import { ResourceMutations } from '../../../src/mutations/resource-mutations.js';
 import { resourceName } from '../../../src/utils/resource-utils.js';
 import { copyDir, deleteDir } from '../../../src/utils/file-utils.js';
@@ -11,24 +11,24 @@ import { createLinkSeededProject } from '../helpers.js';
 const tmpDir = join(import.meta.dirname, 'tmp-link-type-rename');
 
 describe('LinkTypeRenameHandler', () => {
-  let project: Project;
+  let checkout: Checkout;
 
   beforeEach(async () => {
-    project = await createLinkSeededProject(tmpDir);
+    checkout = await createLinkSeededProject(tmpDir);
   });
   afterEach(async () => {
     await deleteDir(tmpDir);
   });
 
   it('applying rewrites every card that referenced the old link type', async () => {
-    await new ResourceMutations(project).apply({
+    await new ResourceMutations(checkout).apply({
       kind: 'rename' as const,
-      target: resourceName(`${project.projectPrefix}/linkTypes/test`),
+      target: resourceName(`${checkout.projectPrefix}/linkTypes/test`),
       newIdentifier: 'is-caused-by',
     });
-    const cards = project.cardTree.cards();
-    const oldRef = `${project.projectPrefix}/linkTypes/test`;
-    const newRef = `${project.projectPrefix}/linkTypes/is-caused-by`;
+    const cards = checkout.cardTree.cards();
+    const oldRef = `${checkout.projectPrefix}/linkTypes/test`;
+    const newRef = `${checkout.projectPrefix}/linkTypes/is-caused-by`;
     for (const card of cards) {
       for (const link of card.metadata?.links ?? []) {
         expect(link.linkType).not.toBe(oldRef);
@@ -43,7 +43,7 @@ describe('LinkTypeRenameHandler', () => {
 describe('LinkTypeRenameHandler module scope', () => {
   const moduleTmpDir = join(import.meta.dirname, 'tmp-link-type-rename-module');
   const projectPath = join(moduleTmpDir, 'proj');
-  let project: Project;
+  let checkout: Checkout;
   let moduleCardMetadataFile: string;
 
   beforeEach(async () => {
@@ -96,23 +96,23 @@ describe('LinkTypeRenameHandler module scope', () => {
     );
     await writeFile(join(moduleCardDir, 'index.adoc'), 'Module card\n');
 
-    project = new Project(projectPath);
-    await project.populateCaches();
+    checkout = new Checkout(projectPath);
+    await checkout.populateCaches();
   });
   afterEach(async () => {
     await deleteDir(moduleTmpDir);
   });
 
   it('leaves module template card links untouched by the cascade', async () => {
-    await new ResourceMutations(project).apply({
+    await new ResourceMutations(checkout).apply({
       kind: 'rename' as const,
-      target: resourceName(`${project.projectPrefix}/linkTypes/test`),
+      target: resourceName(`${checkout.projectPrefix}/linkTypes/test`),
       newIdentifier: 'is-caused-by',
     });
 
     expect(
-      project.resources.exists(
-        `${project.projectPrefix}/linkTypes/is-caused-by`,
+      checkout.resources.exists(
+        `${checkout.projectPrefix}/linkTypes/is-caused-by`,
       ),
     ).toBe(true);
     const moduleCard = JSON.parse(

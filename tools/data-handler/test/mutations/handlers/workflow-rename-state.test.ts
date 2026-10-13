@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { mkdir, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 
-import { Project } from '../../../src/containers/project.js';
+import { Checkout } from '../../../src/containers/project.js';
 import { route } from '../../../src/mutations/route.js';
 import { resourceName } from '../../../src/utils/resource-utils.js';
 import { copyDir } from '../../../src/utils/file-utils.js';
@@ -21,14 +21,14 @@ const tmpDir = join(import.meta.dirname, 'tmp-workflow-rename-state');
 const WF = 'decision/workflows/decision';
 
 describe('WorkflowRenameStateHandler', () => {
-  let project: Project;
+  let checkout: Checkout;
 
   beforeEach(async () => {
     const projectPath = join(tmpDir, `proj-${Date.now()}-${Math.random()}`);
     await mkdir(projectPath, { recursive: true });
     await copyDir(FIXTURE_PATH, projectPath);
-    project = new Project(projectPath);
-    await project.populateCaches();
+    checkout = new Checkout(projectPath);
+    await checkout.populateCaches();
   });
   afterEach(async () => {
     await rm(tmpDir, { recursive: true, force: true });
@@ -64,13 +64,13 @@ describe('WorkflowRenameStateHandler', () => {
 
   it('apply rewrites workflowState on affected cards and transitions', async () => {
     // Place a card in 'Draft'.
-    const target = project.cardTree
+    const target = checkout.cardTree
       .cards()
       .find((c) => c.metadata?.cardType === 'decision/cardTypes/decision')!;
     target.metadata!.workflowState = 'Draft';
-    await project.updateCardMetadata(target, target.metadata!);
+    await checkout.updateCardMetadata(target, target.metadata!);
 
-    const mutations = new ResourceMutations(project);
+    const mutations = new ResourceMutations(checkout);
     await mutations.apply({
       kind: 'edit',
       target: resourceName(WF),
@@ -82,12 +82,12 @@ describe('WorkflowRenameStateHandler', () => {
       },
     });
 
-    const refetched = project.cardTree
+    const refetched = checkout.cardTree
       .cards()
       .find((c) => c.key === target.key)!;
     expect(refetched.metadata?.workflowState).toBe('DraftNew');
 
-    const wf = project.resources.byType(WF, 'workflows')!;
+    const wf = checkout.resources.byType(WF, 'workflows')!;
     expect(wf.data!.states.map((s) => s.name)).toContain('DraftNew');
     expect(wf.data!.states.map((s) => s.name)).not.toContain('Draft');
     for (const t of wf.data!.transitions) {

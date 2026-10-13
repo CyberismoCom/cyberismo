@@ -31,7 +31,7 @@ import type {
 import ClingoParser from '../../utils/clingo-parser.js';
 
 import Handlebars from 'handlebars';
-import type { Project } from '../../containers/project.js';
+import type { Checkout } from '../../containers/project.js';
 import { getChildLogger } from '../../utils/log-utils.js';
 import {
   createCalculatedFieldRules,
@@ -68,7 +68,7 @@ import {
 const ALL_CATEGORY = 'all';
 
 export class CalculationEngine {
-  constructor(private project: Project) {}
+  constructor(private checkout: Checkout) {}
 
   private clingo = new ClingoContext();
 
@@ -84,8 +84,8 @@ export class CalculationEngine {
    * @returns The logic program content for the card
    */
   public async cardLogicProgram(cardKey: string): Promise<string> {
-    const tree = this.project.treeOf(cardKey);
-    return createCardFacts(tree.node(cardKey), this.project, tree.factContext);
+    const tree = this.checkout.treeOf(cardKey);
+    return createCardFacts(tree.node(cardKey), this.checkout, tree.factContext);
   }
 
   /**
@@ -134,24 +134,24 @@ export class CalculationEngine {
   private async setCardContent(card: CardNode) {
     const cardContent = await createCardFacts(
       card,
-      this.project,
-      this.project.treeOf(card.key).factContext,
+      this.checkout,
+      this.checkout.treeOf(card.key).factContext,
     );
     this.clingo.setProgram(card.key, cardContent, [ALL_CATEGORY]);
   }
 
   // Generates logic programs related to modules (and project itself).
   private async generateModules() {
-    const modules = this.project.resources.moduleNames();
+    const modules = this.checkout.resources.moduleNames();
     let content = '';
     for (const module of await Promise.all(
-      modules.map((mod) => this.project.module(mod)),
+      modules.map((mod) => this.checkout.module(mod)),
     )) {
       if (!module) continue;
       const moduleContent = createModuleFacts(module);
       content = content.concat(moduleContent);
     }
-    const projectContent = createProjectFacts(this.project.projectPrefix);
+    const projectContent = createProjectFacts(this.checkout.projectPrefix);
     content = content.concat(projectContent);
     return content;
   }
@@ -159,7 +159,7 @@ export class CalculationEngine {
   // Sets individual CardType programs, plus the calculated field rules that are
   // derived from all of them together.
   private async setCardTypesPrograms() {
-    const cardTypes = this.project.resources
+    const cardTypes = this.checkout.resources
       .cardTypes()
       .map((cardType) => cardType.show());
     for (const cardType of cardTypes) {
@@ -175,7 +175,7 @@ export class CalculationEngine {
 
   // Sets individual FieldType programs
   private async setFieldTypesPrograms() {
-    const fieldTypes = this.project.resources.fieldTypes();
+    const fieldTypes = this.checkout.resources.fieldTypes();
     for (const fieldType of fieldTypes) {
       const ft = fieldType.show();
       const fieldTypeContent = createFieldTypeFacts(ft);
@@ -185,7 +185,7 @@ export class CalculationEngine {
 
   // Sets individual LinkType programs
   private async setLinkTypesPrograms() {
-    const linkTypes = this.project.resources.linkTypes();
+    const linkTypes = this.checkout.resources.linkTypes();
     for (const linkType of linkTypes) {
       const lt = linkType.show();
       const linkTypeContent = createLinkTypeFacts(lt);
@@ -195,7 +195,7 @@ export class CalculationEngine {
 
   // Sets individual Workflow programs
   private async setWorkflowsPrograms() {
-    const workflows = this.project.resources.workflows();
+    const workflows = this.checkout.resources.workflows();
     for (const workflow of workflows) {
       const wf = workflow.show();
       const workflowContent = createWorkflowFacts(wf);
@@ -205,7 +205,7 @@ export class CalculationEngine {
 
   // Sets individual Report programs
   private async setReportsPrograms() {
-    const reports = this.project.resources.reports();
+    const reports = this.checkout.resources.reports();
     for (const report of reports) {
       const rep = report.show();
       const reportContent = createReportFacts(rep);
@@ -215,7 +215,7 @@ export class CalculationEngine {
 
   // Sets individual Skill programs
   private async setSkillsPrograms() {
-    const skills = this.project.resources.skills();
+    const skills = this.checkout.resources.skills();
     for (const skill of skills) {
       const skl = skill.show();
       const skillContent = createSkillFacts(skl);
@@ -225,7 +225,7 @@ export class CalculationEngine {
 
   // Sets individual Template programs
   private async setTemplatesPrograms() {
-    const templates = this.project.resources.templates();
+    const templates = this.checkout.resources.templates();
     for (const template of templates) {
       const tem = template.show();
       const templateContent = createTemplateFacts(tem);
@@ -238,7 +238,7 @@ export class CalculationEngine {
 
   // Sets individual Calculation programs
   private async setCalculationsPrograms() {
-    const calculations = this.project.resources.calculations();
+    const calculations = this.checkout.resources.calculations();
     for (const calculation of calculations) {
       try {
         const content = calculation.contentData();
@@ -266,8 +266,8 @@ export class CalculationEngine {
   // Gets either all the cards (no parent), or a subtree.
   private getCards(templateName?: string): CardNode[] {
     return templateName
-      ? this.project.templateTree(templateName).nodes()
-      : this.project.cardTree.nodes();
+      ? this.checkout.templateTree(templateName).nodes()
+      : this.checkout.cardTree.nodes();
   }
 
   // Checks that Clingo successfully returned result.
@@ -432,7 +432,7 @@ export class CalculationEngine {
   ): Promise<string> {
     let resource;
     try {
-      resource = this.project.resources.byType(resourceName).data;
+      resource = this.checkout.resources.byType(resourceName).data;
     } catch {
       resource = undefined;
     }

@@ -40,7 +40,7 @@ export default class ImageMacro extends BaseMacro {
     cardKey: string,
     filename: string,
   ) {
-    const attachment = context.project
+    const attachment = context.checkout
       .cardAttachments(cardKey)
       .find((a) => a.fileName === filename);
     if (!attachment) {
@@ -106,7 +106,7 @@ export default class ImageMacro extends BaseMacro {
     const attributes = this.buildImageAttributes(options);
 
     // In inject mode, always use the API path for consistency
-    const projectPrefix = context.project.projectPrefix;
+    const projectPrefix = context.checkout.projectPrefix;
     return `image::/api/projects/${projectPrefix}/cards/${cardKey}/a/${options.fileName}[${attributes}]`;
   };
 }

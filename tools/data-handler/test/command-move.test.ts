@@ -3,7 +3,7 @@ import { expect, it, describe, beforeEach, afterEach } from 'vitest';
 import { existsSync, mkdirSync, readFileSync, rmSync } from 'node:fs';
 import { join, sep } from 'node:path';
 
-import { Cmd, CommandManager, Commands } from '../src/command-handler.js';
+import { Cmd, Workspace, Commands } from '../src/command-handler.js';
 import { copyDir } from '../src/utils/file-utils.js';
 import { Show } from '../src/commands/index.js';
 import { getTestBaseDir, getTestProject } from './helpers/test-utils.js';
@@ -80,9 +80,9 @@ describe('move command', () => {
   });
 
   it('move card to root (success)', async () => {
-    const project = getTestProject(options.projectPath!);
-    await project.populateCaches();
-    const cards = await new Show(project).showProjectCards();
+    const checkout = getTestProject(options.projectPath!);
+    await checkout.populateCaches();
+    const cards = await new Show(checkout).showProjectCards();
 
     // Use the card created in beforeEach
     const sourceId = createdCardKey;
@@ -96,9 +96,9 @@ describe('move command', () => {
     expect(result.statusCode).toBe(200);
   });
   it('move card to another card (success)', async () => {
-    const project = getTestProject(options.projectPath!);
-    await project.populateCaches();
-    const cards = await new Show(project).showProjectCards();
+    const checkout = getTestProject(options.projectPath!);
+    await checkout.populateCaches();
+    const cards = await new Show(checkout).showProjectCards();
     expect(cards.map((card) => card.key).sort()).toEqual(
       [createdCardKey, 'decision_5'].sort(),
     );
@@ -183,12 +183,10 @@ describe('move command', () => {
     );
     const child = childResult.affectsCards!.at(0) as string;
 
-    const commandManager = await CommandManager.getInstance(
-      options.projectPath!,
+    const ws = await Workspace.getInstance(options.projectPath!);
+    await expect(ws.moveCmd.moveCard(parent, child)).rejects.toThrow(
+      'Card cannot be moved to inside itself',
     );
-    await expect(
-      commandManager.moveCmd.moveCard(parent, child),
-    ).rejects.toThrow('Card cannot be moved to inside itself');
   });
   it('try to move card - project missing', async () => {
     const sourceId = 'decision_11';
@@ -305,12 +303,10 @@ describe('move command', () => {
     );
     expect(moveResult.statusCode).toBe(200);
 
-    const commandManager = await CommandManager.getInstance(
-      options.projectPath!,
-    );
+    const ws = await Workspace.getInstance(options.projectPath!);
 
     await expect(
-      commandManager.moveCmd.rankByIndex('decision_1', 2),
+      ws.moveCmd.rankByIndex('decision_1', 2),
     ).resolves.not.toThrow();
   });
 
@@ -382,18 +378,16 @@ describe('move command', () => {
       JSON.parse(readFileSync(join(folder, 'index.json'), 'utf-8')).rank;
 
     // The same instance the command handler uses.
-    const commandManager = await CommandManager.getInstance(
-      options.projectPath!,
-    );
-    const project = commandManager.project;
+    const ws = await Workspace.getInstance(options.projectPath!);
+    const checkout = ws.checkout;
     // What the move will rank the card as: last under the destination, which
     // a failed attempt must not change.
-    const expectedRank = project.cardTree.rankBlock('root', 1)[0];
+    const expectedRank = checkout.cardTree.rankBlock('root', 1)[0];
     const rankBefore = rankAt(join(childFolder, child));
     expect(expectedRank).not.toBe(rankBefore);
 
     // One failed rank write; the retry below runs against the real thing.
-    const tree = project.cardTree as unknown as {
+    const tree = checkout.cardTree as unknown as {
       writeRank: (cardKey: string, rank: string) => Promise<void>;
     };
     const writeRank = tree.writeRank.bind(tree);
@@ -431,8 +425,8 @@ describe('move command', () => {
     );
     expect(retried.statusCode).toBe(200);
     expect(existsSync(join(cardRoot, child))).toBe(true);
-    expect(project.cardTree.childrenOf(parent)).not.toContain(child);
-    expect(project.cardTree.childrenOf('root')).toContain(child);
+    expect(checkout.cardTree.childrenOf(parent)).not.toContain(child);
+    expect(checkout.cardTree.childrenOf('root')).toContain(child);
     expect(rankAt(join(cardRoot, child))).toBe(expectedRank);
   });
 
@@ -441,10 +435,8 @@ describe('move command', () => {
     await commandHandler.command(Cmd.show, ['project'], options);
 
     // Get the CommandManager instance to access its project
-    const commandManager = await CommandManager.getInstance(
-      options.projectPath!,
-    );
-    const project = commandManager.project;
+    const ws = await Workspace.getInstance(options.projectPath!);
+    const checkout = ws.checkout;
 
     // Create two cards - parent and child
     const template = 'decision/templates/decision';
@@ -465,9 +457,9 @@ describe('move command', () => {
     expect(childCardKey).toBeTypeOf('string');
 
     // Verify initial state - both cards should be findable in the same project instance used by commandHandler
-    const parentBefore = project.findCard(parentCardKey!);
-    const childBefore = project.findCard(childCardKey!);
-    const allCardsBefore = project.cardTree.cards();
+    const parentBefore = checkout.findCard(parentCardKey!);
+    const childBefore = checkout.findCard(childCardKey!);
+    const allCardsBefore = checkout.cardTree.cards();
 
     expect(
       parentBefore,
@@ -492,9 +484,9 @@ describe('move command', () => {
     expect(result.statusCode).toBe(200);
 
     // Verify state after move
-    const parentAfter = project.findCard(parentCardKey!);
-    const childAfter = project.findCard(childCardKey!);
-    const allCardsAfter = project.cardTree.cards();
+    const parentAfter = checkout.findCard(parentCardKey!);
+    const childAfter = checkout.findCard(childCardKey!);
+    const allCardsAfter = checkout.cardTree.cards();
 
     // Verify expectations
     expect(
@@ -523,10 +515,8 @@ describe('move command', () => {
     // This prevents operations on descendants from targeting non-existent paths.
 
     // Get the CommandManager instance to access its project
-    const commandManager = await CommandManager.getInstance(
-      options.projectPath!,
-    );
-    const project = commandManager.project;
+    const ws = await Workspace.getInstance(options.projectPath!);
+    const checkout = ws.checkout;
 
     const template = 'decision/templates/decision';
 
@@ -566,7 +556,7 @@ describe('move command', () => {
     // Add an attachment to the child card
     const attachmentName = 'test-attachment.txt';
     const attachmentContent = Buffer.from('test attachment content');
-    await commandManager.createCmd.createAttachment(
+    await ws.createCmd.createAttachment(
       childKey!,
       attachmentName,
       attachmentContent,
@@ -582,10 +572,10 @@ describe('move command', () => {
     expect(destinationKey).toBeTypeOf('string');
 
     // Get paths before move
-    const grandparentBefore = project.findCard(grandparentKey!);
-    const parentBefore = project.findCard(parentKey!);
-    const childBefore = project.findCard(childKey!);
-    const grandchildBefore = project.findCard(grandchildKey!);
+    const grandparentBefore = checkout.findCard(grandparentKey!);
+    const parentBefore = checkout.findCard(parentKey!);
+    const childBefore = checkout.findCard(childKey!);
+    const grandchildBefore = checkout.findCard(grandchildKey!);
 
     // Verify child has our attachment before move
     const ourAttachmentBefore = childBefore.attachments.find(
@@ -613,10 +603,10 @@ describe('move command', () => {
     expect(result.statusCode).toBe(200);
 
     // Verify all descendant paths are updated in cache
-    const grandparentAfter = project.findCard(grandparentKey!);
-    const parentAfterMove = project.findCard(parentKey!);
-    const childAfterMove = project.findCard(childKey!);
-    const grandchildAfterMove = project.findCard(grandchildKey!);
+    const grandparentAfter = checkout.findCard(grandparentKey!);
+    const parentAfterMove = checkout.findCard(parentKey!);
+    const childAfterMove = checkout.findCard(childKey!);
+    const grandchildAfterMove = checkout.findCard(grandchildKey!);
 
     // Grandparent should have new path under destination
     expect(grandparentAfter.path).toContain(

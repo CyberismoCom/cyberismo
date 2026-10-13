@@ -16,22 +16,22 @@ import type {
   MetadataContent,
 } from '@cyberismo/data-handler/interfaces/project-interfaces';
 import type { attachmentPayload } from '@cyberismo/data-handler/interfaces/request-status-interfaces';
-import { type CommandManager, evaluateMacros } from '@cyberismo/data-handler';
+import { type Workspace, evaluateMacros } from '@cyberismo/data-handler';
 import { preprocessMermaidBlocksForHtml } from '@cyberismo/data-handler/utils/mermaid-renderer';
 import { rewriteAsciidocCardXrefs } from '@cyberismo/data-handler/utils/asciidoc-xref';
 import { allCards } from './lib.js';
 import type { TreeOptions } from '../../types.js';
 
-export async function getProjectInfo(commands: CommandManager) {
-  return commands.consistent(async () => {
-    const projectResponse = await commands.showCmd.showProject();
+export async function getProjectInfo(ws: Workspace) {
+  return ws.consistent(async () => {
+    const projectResponse = await ws.showCmd.showProject();
 
-    const workflowsResponse = await commands.showCmd.showWorkflowsWithDetails();
+    const workflowsResponse = await ws.showCmd.showWorkflowsWithDetails();
     if (!workflowsResponse) {
       throw new Error('No workflows found');
     }
 
-    const cardTypesResponse = await commands.showCmd.showCardTypesWithDetails();
+    const cardTypesResponse = await ws.showCmd.showCardTypesWithDetails();
     if (!cardTypesResponse) {
       throw new Error('No card types found');
     }
@@ -46,26 +46,26 @@ export async function getProjectInfo(commands: CommandManager) {
 }
 
 export async function updateCard(
-  commands: CommandManager,
+  ws: Workspace,
   key: string,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   body: any,
 ): Promise<boolean> {
   let written = false;
-  await commands.atomic(async () => {
+  await ws.atomic(async () => {
     if (body.state) {
-      await commands.transitionCmd.cardTransition(key, body.state);
+      await ws.transitionCmd.cardTransition(key, body.state);
       written = true;
     }
     if (body.content != null) {
-      await commands.editCmd.editCardContent(key, body.content);
+      await ws.editCmd.editCardContent(key, body.content);
       written = true;
     }
     if (body.metadata) {
       for (const [metadataKey, metadataValue] of Object.entries(
         body.metadata,
       )) {
-        await commands.editCmd.editCardMetadata(
+        await ws.editCmd.editCardMetadata(
           key,
           metadataKey,
           metadataValue as MetadataContent,
@@ -74,27 +74,27 @@ export async function updateCard(
       }
     }
     if (body.parent) {
-      await commands.moveCmd.moveCard(key, body.parent);
+      await ws.moveCmd.moveCard(key, body.parent);
       written = true;
     }
     if (body.index != null) {
-      await commands.moveCmd.rankByIndex(key, body.index);
+      await ws.moveCmd.rankByIndex(key, body.index);
       written = true;
     }
   }, `Update card ${key}`);
   return written;
 }
 
-export async function deleteCard(commands: CommandManager, key: string) {
-  await commands.removeCmd.remove('card', key);
+export async function deleteCard(ws: Workspace, key: string) {
+  await ws.removeCmd.remove('card', key);
 }
 
 export async function createCard(
-  commands: CommandManager,
+  ws: Workspace,
   template: string,
   parentKey?: string,
 ) {
-  const result = await commands.createCmd.createCard(
+  const result = await ws.createCmd.createCard(
     template,
     parentKey === 'root' ? undefined : parentKey,
   );
@@ -106,16 +106,16 @@ export async function createCard(
 }
 
 export async function uploadAttachments(
-  commands: CommandManager,
+  ws: Workspace,
   key: string,
   files: File[],
 ) {
   const succeeded: string[] = [];
-  await commands.atomic(async () => {
+  await ws.atomic(async () => {
     for (const file of files) {
       if (file instanceof File) {
         const buffer = await file.arrayBuffer();
-        await commands.createCmd.createAttachment(
+        await ws.createCmd.createAttachment(
           key,
           file.name,
           Buffer.from(buffer),
@@ -139,27 +139,27 @@ function validateAttachmentFileName(filename: string): void {
 }
 
 export async function removeAttachment(
-  commands: CommandManager,
+  ws: Workspace,
   key: string,
   filename: string,
 ) {
   validateAttachmentFileName(filename);
-  await commands.removeCmd.remove('attachment', key, filename);
+  await ws.removeCmd.remove('attachment', key, filename);
   return { message: 'Attachment removed successfully' };
 }
 
 export async function parseContent(
-  commands: CommandManager,
+  ws: Workspace,
   key: string,
   content: string,
 ) {
-  return commands.consistent(async () => {
+  return ws.consistent(async () => {
     let asciidocContent: string;
     try {
       asciidocContent = await evaluateMacros(content, {
         context: 'localApp',
         mode: 'inject',
-        project: commands.project,
+        checkout: ws.checkout,
         cardKey: key,
       });
     } catch (error) {
@@ -173,7 +173,7 @@ export async function parseContent(
     // /projects/<prefix>/cards/<key> links.
     asciidocContent = rewriteAsciidocCardXrefs(
       asciidocContent,
-      commands.project,
+      ws.checkout,
       'inject',
     );
 
@@ -182,7 +182,7 @@ export async function parseContent(
 }
 
 export async function createLink(
-  commands: CommandManager,
+  ws: Workspace,
   key: string,
   target: string,
   linkType: string,
@@ -194,7 +194,7 @@ export async function createLink(
   const source = direction === 'outbound' ? key : target;
   const destination = direction === 'outbound' ? target : key;
 
-  await commands.createCmd.createLink(
+  await ws.createCmd.createLink(
     source,
     destination,
     linkType,
@@ -206,7 +206,7 @@ export async function createLink(
 }
 
 export async function removeLink(
-  commands: CommandManager,
+  ws: Workspace,
   key: string,
   target: string,
   linkType: string,
@@ -217,18 +217,12 @@ export async function removeLink(
   // For inbound: target is source, key is destination
   const source = direction === 'outbound' ? key : target;
   const destination = direction === 'outbound' ? target : key;
-  await commands.removeCmd.remove(
-    'link',
-    source,
-    destination,
-    linkType,
-    description,
-  );
+  await ws.removeCmd.remove('link', source, destination, linkType, description);
   return { message: 'Link removed successfully' };
 }
 
 export async function updateLink(
-  commands: CommandManager,
+  ws: Workspace,
   key: string,
   toCard: string,
   linkType: string,
@@ -241,18 +235,11 @@ export async function updateLink(
 ) {
   // For simplicity create the new link first so that duplicate-link validation runs before
   // the old link is removed. This also handles direction changes.
-  return commands.atomic(async () => {
-    await createLink(
-      commands,
-      key,
-      toCard,
-      linkType,
-      direction,
-      linkDescription,
-    );
+  return ws.atomic(async () => {
+    await createLink(ws, key, toCard, linkType, direction, linkDescription);
 
     await removeLink(
-      commands,
+      ws,
       key,
       previousToCard,
       previousLinkType,
@@ -265,12 +252,12 @@ export async function updateLink(
 }
 
 export async function getAttachment(
-  commands: CommandManager,
+  ws: Workspace,
   key: string,
   filename: string,
 ): Promise<attachmentPayload> {
   validateAttachmentFileName(filename);
-  return commands.showCmd.showAttachment(key, filename);
+  return ws.showCmd.showAttachment(key, filename);
 }
 
 /**
@@ -280,25 +267,25 @@ export async function getAttachment(
  * @returns all cards in a flattened array
  */
 export async function findAllCards(
-  commands: CommandManager,
+  ws: Workspace,
   options?: TreeOptions,
 ): ReturnType<typeof allCards> {
-  return allCards(commands, options);
+  return allCards(ws, options);
 }
 /**
  * Gets all attachments that are required for rendering the wanted cards
- * @param commands the command manager used for the query
+ * @param ws the command manager used for the query
  * @param options optional tree query options
  * @returns all attachments for cards returned by the tree query
  */
 export async function findRelevantAttachments(
-  commands: CommandManager,
+  ws: Workspace,
   options?: TreeOptions,
 ) {
   const cards = new Set<string>(
-    (await allCards(commands, options)).map((c) => c.key),
+    (await allCards(ws, options)).map((c) => c.key),
   );
-  const attachments = await commands.showCmd.showAttachments();
+  const attachments = await ws.showCmd.showAttachments();
   return attachments
     .filter(
       (attachment) =>
@@ -311,9 +298,9 @@ export async function findRelevantAttachments(
 }
 
 export async function exportCard(
-  commands: CommandManager,
+  ws: Workspace,
   options: ExportPdfOptions,
 ): Promise<Buffer> {
-  const result = await commands.exportCmd.exportPdfBuffer(options);
+  const result = await ws.exportCmd.exportPdfBuffer(options);
   return result;
 }

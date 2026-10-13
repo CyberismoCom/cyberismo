@@ -50,10 +50,10 @@ router.post(
   requireRole(UserRole.Admin),
   zValidator('json', createReportSchema),
   async (c) => {
-    const commands = c.get('commands');
+    const ws = c.get('ws');
     const { identifier } = c.req.valid('json');
 
-    await reportService.createReport(commands, identifier);
+    await reportService.createReport(ws, identifier);
     return c.json({ message: 'Report created successfully' });
   },
 );

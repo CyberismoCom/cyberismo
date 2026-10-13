@@ -3,7 +3,7 @@ import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { copyDir } from '../../../src/utils/file-utils.js';
-import type { Project } from '../../../src/containers/project.js';
+import type { Checkout } from '../../../src/containers/project.js';
 import { getTestProject } from '../../helpers/test-utils.js';
 import { resourceName } from '../../../src/utils/resource-utils.js';
 import { ResourceMutations } from '../../../src/mutations/resource-mutations.js';
@@ -11,14 +11,14 @@ import { ResourceMutations } from '../../../src/mutations/resource-mutations.js'
 const baseDir = import.meta.dirname;
 const testDir = join(baseDir, 'tmp-field-type-rename');
 const decisionRecordsPath = join(testDir, 'valid/decision-records');
-let project: Project;
+let checkout: Checkout;
 
 describe('FieldTypeRenameHandler', () => {
   beforeEach(async () => {
     mkdirSync(testDir, { recursive: true });
     await copyDir(join(baseDir, '..', '..', 'test-data'), testDir);
-    project = getTestProject(decisionRecordsPath);
-    await project.populateCaches();
+    checkout = getTestProject(decisionRecordsPath);
+    await checkout.populateCaches();
   });
   afterEach(() => {
     rmSync(testDir, { recursive: true, force: true });
@@ -28,22 +28,22 @@ describe('FieldTypeRenameHandler', () => {
     // Rename an unused field type. (An authoring rename of a field referenced
     // by a local card type is rejected by the explicit guard in apply(), so
     // the happy path renames an unreferenced field.)
-    const oldName = `${project.projectPrefix}/fieldTypes/spare`;
-    const newName = `${project.projectPrefix}/fieldTypes/spareRenamed`;
-    await project.resources
+    const oldName = `${checkout.projectPrefix}/fieldTypes/spare`;
+    const newName = `${checkout.projectPrefix}/fieldTypes/spareRenamed`;
+    await checkout.resources
       .byType(oldName, 'fieldTypes')
       .createFieldType('shortText');
 
-    const mutations = new ResourceMutations(project);
+    const mutations = new ResourceMutations(checkout);
     await mutations.apply({
       kind: 'rename' as const,
       target: resourceName(oldName),
       newIdentifier: 'spareRenamed',
     });
 
-    const renamed = project.resources.byType(newName, 'fieldTypes').show();
+    const renamed = checkout.resources.byType(newName, 'fieldTypes').show();
     expect(renamed.name).toBe(newName);
-    expect(project.resources.exists(oldName)).toBe(false);
+    expect(checkout.resources.exists(oldName)).toBe(false);
   });
 
   it('leaves module card types untouched by the cascade', async () => {
@@ -52,8 +52,8 @@ describe('FieldTypeRenameHandler', () => {
     // on local resources), but it pins the enumeration scope: the cascade and
     // the authoring guard must consider LOCAL card types only, so the module
     // file stays as-is and the rename is not rejected.
-    const oldName = `${project.projectPrefix}/fieldTypes/spare`;
-    const newName = `${project.projectPrefix}/fieldTypes/spareRenamed`;
+    const oldName = `${checkout.projectPrefix}/fieldTypes/spare`;
+    const newName = `${checkout.projectPrefix}/fieldTypes/spareRenamed`;
     const moduleCardTypesDir = join(
       decisionRecordsPath,
       '.cards',
@@ -100,8 +100,8 @@ describe('FieldTypeRenameHandler', () => {
     // 'finished' is referenced by the decision card type's customFields. The
     // explicit guard in apply() refuses the authoring rename before touching
     // the resource.
-    const oldName = `${project.projectPrefix}/fieldTypes/finished`;
-    const mutations = new ResourceMutations(project);
+    const oldName = `${checkout.projectPrefix}/fieldTypes/finished`;
+    const mutations = new ResourceMutations(checkout);
     await expect(
       mutations.apply({
         kind: 'rename' as const,
@@ -109,7 +109,7 @@ describe('FieldTypeRenameHandler', () => {
         newIdentifier: 'completed',
       }),
     ).rejects.toThrow(/referenced by card type/);
-    expect(project.resources.exists(oldName)).toBe(true);
+    expect(checkout.resources.exists(oldName)).toBe(true);
   });
 
   it('applyCascade rewrites local references when the old field type is gone (replay)', async () => {
@@ -196,7 +196,7 @@ describe('FieldTypeRenameHandler', () => {
     // Neither the old nor the new field type exists and nothing references
     // either name; the cascade must still resolve.
     await expect(
-      new ResourceMutations(project).apply(
+      new ResourceMutations(checkout).apply(
         {
           kind: 'rename' as const,
           target: resourceName('mymod/fieldTypes/ghost'),

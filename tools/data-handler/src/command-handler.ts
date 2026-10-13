@@ -50,12 +50,12 @@ import type { requestStatus } from './interfaces/request-status-interfaces.js';
 import { Create } from './commands/create.js';
 import { migrate as migrateProject } from './commands/migrate.js';
 import { Validate } from './commands/validate.js';
-import { CommandManager } from './command-manager.js';
+import { Workspace } from './workspace/workspace.js';
 import type {
   Operation,
   UpdateOperations,
 } from './resources/resource-object.js';
-import { Project } from './containers/project.js';
+import { Checkout } from './containers/project.js';
 
 import { pathExists, resolveTilde } from './utils/file-utils.js';
 import { ModuleRequestError } from './exceptions/index.js';
@@ -104,13 +104,13 @@ export enum ExportFormats {
   pdf = 'pdf',
 }
 
-export { CommandManager } from './command-manager.js';
+export { Workspace } from './workspace/workspace.js';
 
 /**
  * Class that handles all CLI commands.
  */
 export class Commands {
-  private commands?: CommandManager;
+  private ws?: Workspace;
   private projectPath: string;
   private validateCmd: Validate;
   private level?: Level;
@@ -197,14 +197,14 @@ export class Commands {
   private async doSetProject(options: AllCommandOptions) {
     await this.resolveProjectPath(options);
 
-    this.commands = await CommandManager.getInstance(this.projectPath, {
+    this.ws = await Workspace.getInstance(this.projectPath, {
       logLevel: options.logLevel,
       watchResourceChanges: (options as StartCommandOptions)
         .watchResourceChanges,
       autocommit: options.autocommit,
       autopush: options.autopush,
     });
-    if (!this.commands) {
+    if (!this.ws) {
       throw new Error('Cannot get instance of CommandManager');
     }
   }
@@ -255,34 +255,31 @@ export class Commands {
         }
         if (target === 'attachment') {
           const [cardKey, attachment] = rest;
-          await this.commands?.createCmd.createAttachment(cardKey, attachment);
+          await this.ws?.createCmd.createAttachment(cardKey, attachment);
         } else if (target === 'card') {
           const [template, parent] = rest;
           return await this.createCard(template, parent);
         } else if (target === 'cardType') {
           const [name, workflow] = rest;
-          await this.commands?.createCmd.createCardType(name, workflow);
+          await this.ws?.createCmd.createCardType(name, workflow);
         } else if (target === 'fieldType') {
           const [name, datatype] = rest;
-          await this.commands?.createCmd.createFieldType(
-            name,
-            datatype as DataType,
-          );
+          await this.ws?.createCmd.createFieldType(name, datatype as DataType);
         } else if (target === 'graphModel') {
           const [name] = rest;
-          await this.commands?.createCmd.createGraphModel(name);
+          await this.ws?.createCmd.createGraphModel(name);
         } else if (target === 'graphView') {
           const [name] = rest;
-          await this.commands?.createCmd.createGraphView(name);
+          await this.ws?.createCmd.createGraphView(name);
         } else if (target === 'calculation') {
           const [name] = rest;
-          await this.commands?.createCmd.createCalculation(name);
+          await this.ws?.createCmd.createCalculation(name);
         } else if (target === 'label') {
           const [cardKey, label] = rest;
-          await this.commands?.createCmd.createLabel(cardKey, label);
+          await this.ws?.createCmd.createLabel(cardKey, label);
         } else if (target === 'link') {
           const [source, destination, linkType, linkDescription] = rest;
-          await this.commands?.createCmd.createLink(
+          await this.ws?.createCmd.createLink(
             source,
             destination,
             linkType,
@@ -290,7 +287,7 @@ export class Commands {
           );
         } else if (target === 'linkType') {
           const [name] = rest;
-          await this.commands?.createCmd.createLinkType(name);
+          await this.ws?.createCmd.createLinkType(name);
         } else if (target === 'project') {
           // 3rd parameter - path - is skipped it is used in general command handling
           // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -304,22 +301,22 @@ export class Commands {
           );
         } else if (target === 'report') {
           const [name] = rest;
-          await this.commands?.createCmd.createReport(name);
+          await this.ws?.createCmd.createReport(name);
         } else if (target === 'skill') {
           const [name] = rest;
-          await this.commands?.createCmd.createSkill(name);
+          await this.ws?.createCmd.createSkill(name);
         } else if (target === 'template') {
           const [name, content] = rest;
-          await this.commands?.createCmd.createTemplate(name, content);
+          await this.ws?.createCmd.createTemplate(name, content);
         } else if (target === 'workflow') {
           const [name, content] = rest;
-          await this.commands?.createCmd.createWorkflow(name, content);
+          await this.ws?.createCmd.createWorkflow(name, content);
         } else {
           throw new Error(`Unknown type to create: '${target}'`);
         }
       } else if (command === Cmd.edit) {
         const [cardKey] = args;
-        await this.commands?.editCmd.editCard(cardKey);
+        await this.ws?.editCmd.editCard(cardKey);
       } else if (command === Cmd.export) {
         const [format, output, cardKey] = args;
         return await this.export(
@@ -335,7 +332,7 @@ export class Commands {
         }
         // An explicit fetch always contacts the hubs; the version-checked path
         // is for callers that only need the cache to be current.
-        const failures = (await this.commands?.fetchCmd.fetchHubs(true)) ?? [];
+        const failures = (await this.ws?.fetchCmd.fetchHubs(true)) ?? [];
         if (failures.length > 0) {
           return {
             statusCode: 500,
@@ -370,7 +367,7 @@ export class Commands {
         return await this.migrate();
       } else if (command === Cmd.move) {
         const [source, destination] = args;
-        await this.commands?.moveCmd.moveCard(source, destination);
+        await this.ws?.moveCmd.moveCard(source, destination);
       } else if (command === Cmd.publish) {
         return this.publish(args);
       } else if (command === Cmd.version) {
@@ -380,16 +377,16 @@ export class Commands {
         if (target === 'card') {
           const [card, before] = args;
           if (before === 'first') {
-            await this.commands?.moveCmd.rankFirst(card);
+            await this.ws?.moveCmd.rankFirst(card);
           } else {
-            await this.commands?.moveCmd.rankCard(card, before);
+            await this.ws?.moveCmd.rankCard(card, before);
           }
         } else if (target === 'rebalance') {
           const [cardKey] = args;
           if (cardKey) {
-            await this.commands?.moveCmd.rebalanceChildren(cardKey);
+            await this.ws?.moveCmd.rebalanceChildren(cardKey);
           } else {
-            await this.commands?.moveCmd.rebalanceProject();
+            await this.ws?.moveCmd.rebalanceProject();
           }
         }
       } else if (command === Cmd.remove) {
@@ -409,8 +406,8 @@ export class Commands {
       } else if (command === Cmd.rename) {
         const [to] = args;
         const { force } = options as RenameCommandOptions;
-        const published = this.commands?.project.configuration.version;
-        await this.commands?.renameCmd.rename(to, force);
+        const published = this.ws?.checkout.configuration.version;
+        await this.ws?.renameCmd.rename(to, force);
         if (published) {
           return {
             statusCode: 200,
@@ -437,7 +434,7 @@ export class Commands {
         );
       } else if (command === Cmd.transition) {
         const [cardKey, state] = args;
-        await this.commands?.transitionCmd.cardTransition(cardKey, state);
+        await this.ws?.transitionCmd.cardTransition(cardKey, state);
       } else if (command === Cmd.update) {
         const [resource, operation, key, value, newValue] = args;
         let parsedValue = '';
@@ -489,7 +486,7 @@ export class Commands {
         }
 
         const target = resourceName(resource);
-        await this.commands?.updateCmd.apply({
+        await this.ws?.updateCmd.apply({
           kind: 'edit',
           target,
           updateKey: parseUpdateKey(key),
@@ -526,13 +523,10 @@ export class Commands {
         if ((options as UpdateModulesCommandOptions).dryRun) {
           return {
             statusCode: 200,
-            payload: await this.commands?.modulesCmd.planUpdate(
-              target,
-              credentials,
-            ),
+            payload: await this.ws?.modulesCmd.planUpdate(target, credentials),
           };
         }
-        await this.commands?.modulesCmd.update(target, credentials);
+        await this.ws?.modulesCmd.update(target, credentials);
         return {
           statusCode: 200,
           note: await this.cleanRecommendation(),
@@ -570,7 +564,7 @@ export class Commands {
     }
 
     if (!path) {
-      path = await Project.findProjectRoot(process.cwd());
+      path = await Checkout.findProjectRoot(process.cwd());
       if (path === '') {
         console.error(
           'No path defined with "-p" flag and could not find project. Sorry.',
@@ -589,7 +583,7 @@ export class Commands {
     cardKey: string,
     repeat?: number,
   ): Promise<requestStatus> {
-    const addedCards = await this.commands?.createCmd.addCards(
+    const addedCards = await this.ws?.createCmd.addCards(
       cardTypeName,
       templateName,
       cardKey,
@@ -614,7 +608,7 @@ export class Commands {
 
   // Adds a hub to the project.
   private async addHub(name: string) {
-    await this.commands?.createCmd.addHubLocation(name);
+    await this.ws?.createCmd.addHubLocation(name);
     return {
       statusCode: 200,
       message: `Hub '${name}' was added to the project`,
@@ -626,7 +620,7 @@ export class Commands {
     templateName: string,
     parentCardKey: string,
   ): Promise<requestStatus> {
-    const createdCards = await this.commands?.createCmd.createCard(
+    const createdCards = await this.ws?.createCmd.createCard(
       templateName,
       parentCardKey,
     );
@@ -639,7 +633,7 @@ export class Commands {
 
   // Bumps project version in cardsConfig.json.
   private async version(args: string[]): Promise<requestStatus> {
-    if (!this.commands) {
+    if (!this.ws) {
       return { statusCode: 500, message: 'Commands not initialized' };
     }
 
@@ -663,9 +657,7 @@ export class Commands {
       };
     }
 
-    const result = await this.commands.versionCmd.bumpVersion(
-      bumpType as BumpType,
-    );
+    const result = await this.ws.versionCmd.bumpVersion(bumpType as BumpType);
 
     const previousInfo = result.previousVersion
       ? ` (was v${result.previousVersion})`
@@ -686,11 +678,11 @@ export class Commands {
   private async cleanRecommendation(
     cardType?: string,
   ): Promise<string | undefined> {
-    if (!this.commands) {
+    if (!this.ws) {
       return undefined;
     }
     try {
-      const result = await this.commands.cleanCmd.clean(true, cardType);
+      const result = await this.ws.cleanCmd.clean(true, cardType);
       if (result.findings.length === 0) {
         return undefined;
       }
@@ -711,14 +703,14 @@ export class Commands {
 
   // Removes field values that are not used by card types.
   private async clean(args: string[]): Promise<requestStatus> {
-    if (!this.commands) {
+    if (!this.ws) {
       return { statusCode: 500, message: 'Commands not initialized' };
     }
 
     const [dryRunFlag] = args;
     const dryRun = dryRunFlag === 'true';
 
-    const result = await this.commands.cleanCmd.clean(dryRun);
+    const result = await this.ws.cleanCmd.clean(dryRun);
 
     const skipped = result.skippedCards.length
       ? `\nSkipped ${result.skippedCards.length} card(s) with unresolvable card types: ${result.skippedCards.join(', ')}`
@@ -751,14 +743,14 @@ export class Commands {
 
   // Publishes the current version by creating a git tag and pushing.
   private async publish(args: string[]): Promise<requestStatus> {
-    if (!this.commands) {
+    if (!this.ws) {
       return { statusCode: 500, message: 'Commands not initialized' };
     }
 
     const [dryRunFlag, remote] = args;
     const dryRun = dryRunFlag === 'true';
 
-    const result = await this.commands.publishCmd.publishVersion(
+    const result = await this.ws.publishCmd.publishVersion(
       dryRun,
       remote || undefined,
     );
@@ -783,7 +775,7 @@ export class Commands {
     parentCardKey?: string,
     pdfOptions?: ExportCommandOptions,
   ): Promise<requestStatus> {
-    if (!this.commands) {
+    if (!this.ws) {
       return { statusCode: 500 };
     }
     let message: string;
@@ -796,9 +788,9 @@ export class Commands {
         cardKey: parentCardKey,
         date: pdfOptions?.date ? new Date(pdfOptions.date) : new Date(),
       };
-      message = await this.commands?.exportCmd.exportPdf(destination, options);
+      message = await this.ws?.exportCmd.exportPdf(destination, options);
     } else {
-      message = await this.commands?.exportCmd.exportToADoc(
+      message = await this.ws?.exportCmd.exportToADoc(
         destination,
         parentCardKey,
       );
@@ -811,7 +803,7 @@ export class Commands {
     query?: string,
   ): Promise<requestStatus> {
     try {
-      await this.commands?.calculateCmd.exportLogicProgram(
+      await this.ws?.calculateCmd.exportLogicProgram(
         destination,
         ['all'],
         query as QueryName, // TODO: validate with zod
@@ -829,7 +821,7 @@ export class Commands {
     credentials?: Credentials,
     version?: string,
   ) {
-    return this.commands?.modulesCmd.install(source, {
+    return this.ws?.modulesCmd.install(source, {
       private: useCredentials,
       credentials,
       version,
@@ -841,10 +833,7 @@ export class Commands {
     filePath: string,
     parentCardKey: string,
   ): Promise<requestStatus> {
-    const cards = await this.commands?.importCmd.importCsv(
-      filePath,
-      parentCardKey,
-    );
+    const cards = await this.ws?.importCmd.importCsv(filePath, parentCardKey);
     return {
       statusCode: 200,
       message: `Imported cards:`,
@@ -858,7 +847,7 @@ export class Commands {
     targetName: string,
     args: string[],
   ): Promise<void> {
-    return await this.commands?.removeCmd.remove(type, targetName, ...args);
+    return await this.ws?.removeCmd.remove(type, targetName, ...args);
   }
 
   // Runs a given logic program along with the query-language
@@ -867,7 +856,7 @@ export class Commands {
     context: Context,
   ): Promise<requestStatus> {
     try {
-      const res = await this.commands?.calculateCmd.runLogicProgram(
+      const res = await this.ws?.calculateCmd.runLogicProgram(
         readFileSync(filePath, 'utf-8'),
         context,
       );
@@ -914,7 +903,7 @@ export class Commands {
     const { name, parameters } = parametersFile;
     let result: string | undefined;
     try {
-      result = await this.commands?.showCmd.showReportResults(
+      result = await this.ws?.showCmd.showReportResults(
         name,
         parameters.cardKey,
         parameters,
@@ -952,13 +941,13 @@ export class Commands {
 
     switch (type) {
       case 'attachments':
-        promise = this.commands!.showCmd.showAttachments();
+        promise = this.ws!.showCmd.showAttachments();
         break;
       case 'card':
-        promise = this.commands!.showCmd.showCardDetails(detail);
+        promise = this.ws!.showCmd.showCardDetails(detail);
         break;
       case 'cards':
-        promise = this.commands!.showCmd.showCards();
+        promise = this.ws!.showCmd.showCards();
         break;
       case 'calculation':
       case 'cardType':
@@ -970,7 +959,7 @@ export class Commands {
       case 'skill':
       case 'template':
       case 'workflow':
-        promise = this.commands!.showCmd.showResource(detail, options.showUse);
+        promise = this.ws!.showCmd.showResource(detail, options.showUse);
         break;
       case 'calculations':
       case 'cardTypes':
@@ -982,34 +971,34 @@ export class Commands {
       case 'skills':
       case 'templates':
       case 'workflows':
-        promise = this.commands!.showCmd.showResources(type);
+        promise = this.ws!.showCmd.showResources(type);
         break;
       case 'importableModules':
         // The show commands read cached hub data; on the command line a stale
         // listing is never what the user asked for, so refresh it first.
-        promise = this.commands!.fetchCmd.ensureModuleListUpToDate().then(() =>
-          this.commands!.showCmd.showImportableModules(
+        promise = this.ws!.fetchCmd.ensureModuleListUpToDate().then(() =>
+          this.ws!.showCmd.showImportableModules(
             options?.showAll,
             options?.details,
           ),
         );
         break;
       case 'labels':
-        promise = this.commands!.showCmd.showLabels();
+        promise = this.ws!.showCmd.showLabels();
         break;
       case 'module':
-        promise = this.commands!.modulesCmd.show(detail);
+        promise = this.ws!.modulesCmd.show(detail);
         break;
       case 'hubs':
-        promise = this.commands!.fetchCmd.ensureModuleListUpToDate().then(() =>
-          this.commands!.showCmd.showHubs(),
+        promise = this.ws!.fetchCmd.ensureModuleListUpToDate().then(() =>
+          this.ws!.showCmd.showHubs(),
         );
         break;
       case 'modules':
-        promise = this.commands!.modulesCmd.list();
+        promise = this.ws!.modulesCmd.list();
         break;
       case 'project':
-        promise = this.commands!.showCmd.showProject();
+        promise = this.ws!.showCmd.showProject();
         break;
       case 'attachment': // fallthrough - not implemented yet
       case 'link': // fallthrough - not implemented yet
@@ -1033,12 +1022,12 @@ export class Commands {
 
   // Validates that a given path conforms to schema. Validates both file/folder structure and file content.
   private async validate(): Promise<requestStatus> {
-    if (!this.commands) {
+    if (!this.ws) {
       return { statusCode: 500, message: 'Commands not initialized' };
     }
     const result = await this.validateCmd.validate(
       this.projectPath,
-      () => this.commands!.project,
+      () => this.ws!.checkout,
     );
     return {
       statusCode: 200,

@@ -1,7 +1,7 @@
 import { expect, test, beforeAll } from 'vitest';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { CommandManager } from '@cyberismo/data-handler';
+import { Workspace } from '@cyberismo/data-handler';
 import { createApp } from '../src/app.js';
 import { ProjectRegistry } from '../src/project-registry.js';
 import { MockAuthProvider } from '../src/auth/mock.js';
@@ -12,7 +12,7 @@ const dirname = path.dirname(fileUrl);
 let app: ReturnType<typeof createApp>;
 
 beforeAll(async () => {
-  const commands = await CommandManager.getInstance(
+  const ws = await Workspace.getInstance(
     path.resolve(
       dirname,
       '../../data-handler/test/test-data/valid/decision-records',
@@ -20,7 +20,7 @@ beforeAll(async () => {
   );
   app = createApp(
     new MockAuthProvider(),
-    ProjectRegistry.fromCommandManager(commands),
+    ProjectRegistry.fromCommandManager(ws),
   );
 });
 

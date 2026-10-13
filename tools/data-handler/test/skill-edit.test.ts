@@ -2,7 +2,7 @@ import { expect, it, describe, beforeEach, afterEach } from 'vitest';
 import { join } from 'node:path';
 import { mkdirSync, rmSync } from 'node:fs';
 
-import { CommandManager } from '../src/command-manager.js';
+import { Workspace } from '../src/workspace/workspace.js';
 import { copyDir } from '../src/utils/file-utils.js';
 import { resourceName } from '../src/utils/resource-utils.js';
 
@@ -16,31 +16,31 @@ const projectPath = join(testDir, 'valid/decision-records');
 const SKILL = 'decision/skills/riskRegister';
 
 describe('edit skill', () => {
-  let commands: CommandManager;
+  let ws: Workspace;
 
   beforeEach(async () => {
     mkdirSync(testDir, { recursive: true });
     await copyDir('test/test-data/', testDir);
-    commands = new CommandManager(projectPath, {
+    ws = new Workspace(projectPath, {
       autoSaveConfiguration: false,
     });
-    await commands.initialize();
-    await commands.createCmd.createSkill(SKILL);
+    await ws.initialize();
+    await ws.createCmd.createSkill(SKILL);
   });
 
   afterEach(() => {
-    commands.project.dispose();
+    ws.checkout.dispose();
     rmSync(testDir, { recursive: true, force: true });
   });
 
   // Reads the stored metadata back through the same path the app uses.
   async function relatedTools(): Promise<string[]> {
-    const skill = (await commands.showCmd.showResource(SKILL)) as Skill;
+    const skill = (await ws.showCmd.showResource(SKILL)) as Skill;
     return skill.relatedTools;
   }
 
   async function edit(operation: Operation<string>) {
-    await commands.updateCmd.apply({
+    await ws.updateCmd.apply({
       kind: 'edit',
       target: resourceName(SKILL),
       updateKey: { key: 'relatedTools' },
@@ -81,15 +81,15 @@ describe('edit skill', () => {
 
   it('keeps the project valid after editing relatedTools', async () => {
     await edit({ name: 'add', target: 'query_cards' });
-    const errors = await commands.validateCmd.validate(
+    const errors = await ws.validateCmd.validate(
       projectPath,
-      () => commands.project,
+      () => ws.checkout,
     );
     expect(errors).toBe('');
   });
 
   it('still rejects a property the skill does not own', async () => {
-    const skill = commands.project.resources.byType(SKILL, 'skills');
+    const skill = ws.checkout.resources.byType(SKILL, 'skills');
     await expect(
       skill.update({ key: 'notASkillProperty' }, { name: 'add', target: 'x' }),
     ).rejects.toThrow(

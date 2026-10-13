@@ -31,8 +31,8 @@ router.get('/', requireRole(UserRole.Reader), async (c) => {
   if (isSSGContext(c)) {
     return c.json([]);
   }
-  const commands = c.get('commands');
-  const connectors = await connectorsService.getConnectors(commands);
+  const ws = c.get('ws');
+  const connectors = await connectorsService.getConnectors(ws);
   return c.json(connectors);
 });
 

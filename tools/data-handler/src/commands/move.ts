@@ -12,14 +12,14 @@
 */
 
 import { ActionGuard } from '../permissions/action-guard.js';
-import type { Project } from '../containers/project.js';
+import type { Checkout } from '../containers/project.js';
 import type { CardTree } from '../containers/project/card-tree.js';
 import { write } from '../utils/rw-lock.js';
 
 import { ROOT } from '../utils/constants.js';
 
 export class Move {
-  constructor(private project: Project) {}
+  constructor(private checkout: Checkout) {}
 
   /**
    * Moves card from 'destination' to 'source'.
@@ -35,7 +35,7 @@ export class Move {
       throw new Error(`Card cannot be moved to itself`);
     }
 
-    const sourceTree = this.project.treeOf(source);
+    const sourceTree = this.checkout.treeOf(source);
     const sourceCard = sourceTree.card(source);
     const sourceIsTemplate = sourceTree.name !== 'project';
 
@@ -61,7 +61,7 @@ export class Move {
 
     const destinationTree = movingToRoot
       ? undefined
-      : this.project.treeOf(destination);
+      : this.checkout.treeOf(destination);
 
     // Prevent moving card to inside its descendants
     if (destinationTree?.ancestorsOf(destination).includes(source)) {
@@ -78,7 +78,7 @@ export class Move {
     // read-only.
     let targetTemplateTree: CardTree | undefined;
     if (targetTemplateName) {
-      const template = this.project.templateResource(targetTemplateName);
+      const template = this.checkout.templateResource(targetTemplateName);
       if (!template) {
         throw new Error(
           `Template ${targetTemplateName} not found in this project`,
@@ -106,7 +106,7 @@ export class Move {
     }
 
     const targetTree =
-      targetTemplateTree ?? destinationTree ?? this.project.cardTree;
+      targetTemplateTree ?? destinationTree ?? this.checkout.cardTree;
     const newParent = movingToRoot ? ROOT : destination;
 
     // if the card is already in the destination, do nothing
@@ -115,12 +115,12 @@ export class Move {
     }
 
     // make sure source card can be moved
-    const actionGuard = new ActionGuard(this.project.calculationEngine);
+    const actionGuard = new ActionGuard(this.checkout.calculationEngine);
     await actionGuard.checkPermission('move', source);
 
-    await this.project.relocateCard(source, newParent, targetTree.name);
+    await this.checkout.relocateCard(source, newParent, targetTree.name);
 
-    await this.project.handleCardMoved(this.project.cardNode(source));
+    await this.checkout.handleCardMoved(this.checkout.cardNode(source));
   }
 
   /**
@@ -138,7 +138,7 @@ export class Move {
       return;
     }
 
-    const siblings = this.project.treeOf(cardKey).siblingsOf(cardKey);
+    const siblings = this.checkout.treeOf(cardKey).siblingsOf(cardKey);
     if (siblings.length < index) {
       throw new Error(`Index ${index} is out of bounds`);
     }
@@ -156,11 +156,11 @@ export class Move {
       throw new Error(`Card cannot be ranked after itself`);
     }
 
-    const tree = this.project.treeOf(cardKey);
+    const tree = this.checkout.treeOf(cardKey);
     // Same tree and same parent: a rank only orders siblings, and two cards
     // in different containers are never siblings even when both sit at 'root'.
     if (
-      tree !== this.project.treeOf(beforeCardKey) ||
+      tree !== this.checkout.treeOf(beforeCardKey) ||
       tree.node(beforeCardKey).parent !== tree.node(cardKey).parent
     ) {
       throw new Error(`Cards must be from the same parent`);
@@ -175,7 +175,7 @@ export class Move {
    */
   @write((cardKey) => `Rank card ${cardKey} first`)
   public async rankFirst(cardKey: string) {
-    await this.project.treeOf(cardKey).reorderFirst(cardKey);
+    await this.checkout.treeOf(cardKey).reorderFirst(cardKey);
   }
 
   /**
@@ -184,7 +184,7 @@ export class Move {
    */
   @write((parentCardKey) => `Rebalance children of ${parentCardKey}`)
   public async rebalanceChildren(parentCardKey: string) {
-    await this.project.treeOf(parentCardKey).rebalanceChildren(parentCardKey);
+    await this.checkout.treeOf(parentCardKey).rebalanceChildren(parentCardKey);
   }
 
   /**
@@ -194,8 +194,8 @@ export class Move {
   @write(() => 'Rebalance project')
   public async rebalanceProject() {
     for (const tree of [
-      this.project.cardTree,
-      ...this.project.templateTrees(),
+      this.checkout.cardTree,
+      ...this.checkout.templateTrees(),
     ]) {
       if (tree.writable) {
         await tree.rebalanceAll();

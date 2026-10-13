@@ -11,26 +11,23 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import type { CommandManager } from '@cyberismo/data-handler';
+import type { Workspace } from '@cyberismo/data-handler';
 import { resourceName } from '@cyberismo/data-handler';
 
-export async function getTemplatesWithDetails(commands: CommandManager) {
-  const response = await commands.showCmd.showTemplatesWithDetails();
+export async function getTemplatesWithDetails(ws: Workspace) {
+  const response = await ws.showCmd.showTemplatesWithDetails();
   if (!response) {
     throw new Error('No templates found');
   }
   return response;
 }
 
-export async function createTemplate(
-  commands: CommandManager,
-  templateName: string,
-) {
-  await commands.createCmd.createTemplate(templateName, '');
+export async function createTemplate(ws: Workspace, templateName: string) {
+  await ws.createCmd.createTemplate(templateName, '');
 }
 
 export async function addTemplateCard(
-  commands: CommandManager,
+  ws: Workspace,
   template: string,
   cardType: string,
   parentKey?: string,
@@ -40,7 +37,7 @@ export async function addTemplateCard(
   if (type !== 'templates') {
     throw new Error('Invalid template resource');
   }
-  const added = await commands.createCmd.addCards(
+  const added = await ws.createCmd.addCards(
     cardType,
     identifier,
     parentKey,

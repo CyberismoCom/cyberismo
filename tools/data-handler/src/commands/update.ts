@@ -10,7 +10,7 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import type { Project } from '../containers/project.js';
+import type { Checkout } from '../containers/project.js';
 import { ResourceMutations } from '../mutations/resource-mutations.js';
 import type { MutationInput } from '../mutations/types.js';
 
@@ -22,10 +22,10 @@ export class Update {
 
   /**
    * Creates an instance of Update command.
-   * @param project Project to use.
+   * @param checkout Project to use.
    */
-  constructor(private project: Project) {
-    this.mutations = new ResourceMutations(project);
+  constructor(private checkout: Checkout) {
+    this.mutations = new ResourceMutations(checkout);
   }
 
   /**

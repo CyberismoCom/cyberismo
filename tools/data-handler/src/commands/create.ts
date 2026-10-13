@@ -20,7 +20,7 @@ import { scanForProjects } from '../project-scanner.js';
 import { errorFunction } from '../utils/error-utils.js';
 import { createGit, gitTimeout } from '../utils/git-config.js';
 import { pathExists } from '../utils/file-utils.js';
-import { Project } from '../containers/project.js';
+import { Checkout } from '../containers/project.js';
 import {
   addTemplateCards,
   instantiateTemplate,
@@ -49,13 +49,13 @@ const logger = getChildLogger({ module: 'create' });
  * Handles all create commands.
  */
 export class Create {
-  constructor(private project: Project) {}
+  constructor(private checkout: Checkout) {}
 
   static JSONFileContent: ProjectFile[] = [
     {
       path: '.cards/local',
       content: [{ id: 'cardsConfigSchema', version: 1 }],
-      name: Project.schemaContentFile,
+      name: Checkout.schemaContentFile,
     },
     {
       path: '.cards/local',
@@ -67,7 +67,7 @@ export class Create {
         modules: [],
         hubs: [],
       },
-      name: Project.projectConfigFileName,
+      name: Checkout.projectConfigFileName,
     },
   ];
 
@@ -106,7 +106,7 @@ export class Create {
   ): Promise<string[]> {
     if (
       !templateName ||
-      !Validate.validateFolder(join(this.project.basePath, templateName))
+      !Validate.validateFolder(join(this.checkout.basePath, templateName))
     ) {
       throw new Error(
         `Input validation error: template name is invalid '${templateName}'`,
@@ -115,7 +115,7 @@ export class Create {
     if (cardTypeName === undefined) {
       throw new Error(`Input validation error: card type cannot be empty`);
     }
-    const templateResource = this.project.resources.byType(
+    const templateResource = this.checkout.resources.byType(
       templateName,
       'templates',
     );
@@ -135,7 +135,7 @@ export class Create {
     }
 
     const cardsContainer = await addTemplateCards(
-      this.project,
+      this.checkout,
       templateResource.cardTree,
       cardTypeName,
       count,
@@ -146,7 +146,7 @@ export class Create {
       throw new Error(`Invalid value for 'repeat:' "${count}"`);
     }
 
-    await this.project.runCreationSideEffects(cardsContainer);
+    await this.checkout.runCreationSideEffects(cardsContainer);
 
     return cardsContainer;
   }
@@ -157,7 +157,7 @@ export class Create {
    */
   @write((hubUrl) => `Add hub ${hubUrl}`)
   public async addHubLocation(hubUrl: string) {
-    return this.project.configuration.addHub(hubUrl);
+    return this.checkout.configuration.addHub(hubUrl);
   }
 
   /**
@@ -173,7 +173,7 @@ export class Create {
     buffer?: Buffer,
   ) {
     try {
-      await this.project.createCardAttachment(
+      await this.checkout.createCardAttachment(
         cardKey,
         attachment,
         buffer || attachment,
@@ -189,7 +189,7 @@ export class Create {
    */
   @write((calculationName) => `Create calculation ${calculationName}`)
   public async createCalculation(calculationName: string) {
-    return this.project.resources
+    return this.checkout.resources
       .byType(calculationName, 'calculations')
       .create();
   }
@@ -205,7 +205,7 @@ export class Create {
     templateName: string,
     parentCardKey?: string,
   ): Promise<Card[]> {
-    const templateResource = this.project.resources.byType(
+    const templateResource = this.checkout.resources.byType(
       templateName,
       'templates',
     );
@@ -213,25 +213,25 @@ export class Create {
     Validate.getInstance().validResourceName(
       'templates',
       resourceNameToString(resourceName(templateName)),
-      this.project.allModulePrefixes(),
+      this.checkout.allModulePrefixes(),
     );
 
     await templateResource.validate();
 
     const specificCard = parentCardKey
-      ? this.project.findCard(parentCardKey)
+      ? this.checkout.findCard(parentCardKey)
       : undefined;
     if (!templateResource.isCreated()) {
       throw new Error(`Template '${templateName}' not found from project`);
     }
 
     const createdCards = await instantiateTemplate(
-      this.project,
+      this.checkout,
       templateResource.cardTree,
       specificCard,
     );
     if (createdCards.length > 0) {
-      await this.project.runCreationSideEffects(
+      await this.checkout.runCreationSideEffects(
         createdCards.map((card) => card.key),
       );
 
@@ -265,7 +265,7 @@ export class Create {
    */
   @write((cardTypeName) => `Create card type ${cardTypeName}`)
   public async createCardType(cardTypeName: string, workflowName: string) {
-    return this.project.resources
+    return this.checkout.resources
       .byType(cardTypeName, 'cardTypes')
       .createCardType(workflowName);
   }
@@ -277,7 +277,7 @@ export class Create {
    */
   @write((fieldTypeName) => `Create field type ${fieldTypeName}`)
   public async createFieldType(fieldTypeName: string, dataType: DataType) {
-    return this.project.resources
+    return this.checkout.resources
       .byType(fieldTypeName, 'fieldTypes')
       .createFieldType(dataType);
   }
@@ -288,7 +288,7 @@ export class Create {
    */
   @write((graphModelName) => `Create graph model ${graphModelName}`)
   public async createGraphModel(graphModelName: string) {
-    return this.project.resources
+    return this.checkout.resources
       .byType(graphModelName, 'graphModels')
       .create();
   }
@@ -299,7 +299,7 @@ export class Create {
    */
   @write((graphViewName) => `Create graph view ${graphViewName}`)
   public async createGraphView(graphViewName: string) {
-    return this.project.resources.byType(graphViewName, 'graphViews').create();
+    return this.checkout.resources.byType(graphViewName, 'graphViews').create();
   }
 
   /**
@@ -313,7 +313,7 @@ export class Create {
       throw new Error(`Not a valid label name'`);
     }
 
-    const card = this.project.findCard(cardKey);
+    const card = this.checkout.findCard(cardKey);
     const labels = structuredClone(card.metadata?.labels) ?? [];
 
     if (labels.includes(label)) {
@@ -321,7 +321,7 @@ export class Create {
     }
 
     labels.push(label);
-    return this.project.updateCardMetadataKey(cardKey, 'labels', labels);
+    return this.checkout.updateCardMetadataKey(cardKey, 'labels', labels);
   }
 
   /**
@@ -330,7 +330,7 @@ export class Create {
    */
   @write((linkTypeName) => `Create link type ${linkTypeName}`)
   public async createLinkType(linkTypeName: string) {
-    return this.project.resources.byType(linkTypeName, 'linkTypes').create();
+    return this.checkout.resources.byType(linkTypeName, 'linkTypes').create();
   }
 
   /**
@@ -394,8 +394,8 @@ export class Create {
     linkType: string,
     linkDescription?: string,
   ) {
-    const sourceCard = this.project.findCard(source);
-    const destinationCard = this.project.findCard(destination);
+    const sourceCard = this.checkout.findCard(source);
+    const destinationCard = this.checkout.findCard(destination);
 
     const linkTypeObject = this.getLinkTypeWithValidation(
       linkType,
@@ -434,7 +434,7 @@ export class Create {
       linkDescription,
     });
 
-    await this.project.updateCardMetadataKey(source, 'links', links);
+    await this.checkout.updateCardMetadataKey(source, 'links', links);
   }
 
   /**
@@ -444,7 +444,7 @@ export class Create {
     linkType: string,
     linkDescription?: string,
   ) {
-    const linkTypeObject = this.project.resources
+    const linkTypeObject = this.checkout.resources
       .byType(linkType, 'linkTypes')
       .show();
 
@@ -509,7 +509,7 @@ export class Create {
       );
     }
 
-    const card = this.project.findCard(cardKey);
+    const card = this.checkout.findCard(cardKey);
     const linkTypeObject = this.getLinkTypeWithValidation(
       linkType,
       linkDescription,
@@ -559,7 +559,7 @@ export class Create {
       linkDescription,
     });
 
-    await this.project.updateCardMetadataKey(
+    await this.checkout.updateCardMetadataKey(
       cardKey,
       'externalLinks',
       externalLinks,
@@ -616,7 +616,7 @@ export class Create {
       );
     }
 
-    if (Project.isCreated(projectPath)) {
+    if (Checkout.isCreated(projectPath)) {
       throw new Error('Project already exists');
     }
 
@@ -741,7 +741,7 @@ export class Create {
    */
   @write((name) => `Create report ${name}`)
   public async createReport(name: string) {
-    return this.project.resources.byType(name, 'reports').createReport();
+    return this.checkout.resources.byType(name, 'reports').createReport();
   }
 
   /**
@@ -750,7 +750,7 @@ export class Create {
    */
   @write((name) => `Create skill ${name}`)
   public async createSkill(name: string) {
-    return this.project.resources.byType(name, 'skills').createSkill();
+    return this.checkout.resources.byType(name, 'skills').createSkill();
   }
 
   /**
@@ -760,7 +760,7 @@ export class Create {
    */
   @write((templateName) => `Create template ${templateName}`)
   public async createTemplate(templateName: string, templateContent: string) {
-    return this.project.resources
+    return this.checkout.resources
       .byType(templateName, 'templates')
       .create(templateContent ? JSON.parse(templateContent) : undefined);
   }
@@ -772,7 +772,7 @@ export class Create {
    */
   @write((workflowName) => `Create workflow ${workflowName}`)
   public async createWorkflow(workflowName: string, workflowContent: string) {
-    return this.project.resources
+    return this.checkout.resources
       .byType(workflowName, 'workflows')
       .create(workflowContent ? JSON.parse(workflowContent) : undefined);
   }

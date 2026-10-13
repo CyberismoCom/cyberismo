@@ -15,7 +15,7 @@ import {
   CmdKey,
   CmdValue,
   Commands,
-  CommandManager,
+  Workspace,
   ExportFormats,
 } from './command-handler.js';
 import { Validate } from './commands/validate.js';
@@ -55,7 +55,7 @@ export {
   Cmd,
   CmdKey,
   CmdValue,
-  CommandManager,
+  Workspace,
   Commands,
   Create,
   ExportFormats,

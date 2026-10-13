@@ -64,7 +64,7 @@ import { isPredefinedField } from '../utils/constants.js';
  * autopush - Also push each autocommit to the remote, in the background.
  *   Requires autocommit; see the note in the constructor.
  */
-export interface ProjectOptions {
+export interface CheckoutOptions {
   watchResourceChanges?: boolean;
   autocommit?: boolean;
   autopush?: boolean;
@@ -73,7 +73,7 @@ export interface ProjectOptions {
 /**
  * Represents project folder.
  */
-export class Project {
+export class Checkout {
   public static cardContentFile = 'index.adoc';
   public static cardMetadataFile = 'index.json';
   public static projectConfigFileName = 'cardsConfig.json';
@@ -98,12 +98,12 @@ export class Project {
 
   constructor(
     path: string,
-    private options: ProjectOptions = {
+    private options: CheckoutOptions = {
       watchResourceChanges: false,
     },
   ) {
     const settings = new ProjectConfiguration(
-      join(path, '.cards', 'local', Project.projectConfigFileName),
+      join(path, '.cards', 'local', Checkout.projectConfigFileName),
     );
     this.basePath = path;
     this.settings = settings;
@@ -584,7 +584,7 @@ export class Project {
       return '';
     }
 
-    return Project.findProjectRoot(parentPath);
+    return Checkout.findProjectRoot(parentPath);
   }
 
   private async saveCardContent(card: Card): Promise<void> {
@@ -829,7 +829,7 @@ export class Project {
     if (module && module.path) {
       const modulePath = module.path;
       const moduleConfig = await readCardsConfig(
-        join(modulePath, Project.projectConfigFileName),
+        join(modulePath, Checkout.projectConfigFileName),
       );
       return {
         name: moduleConfig.name,

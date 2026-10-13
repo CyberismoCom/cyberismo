@@ -11,7 +11,7 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import type { Project } from '../containers/project.js';
+import type { Checkout } from '../containers/project.js';
 import type { Mode } from '../interfaces/macros.js';
 import { moduleNameFromCardKey } from './card-utils.js';
 
@@ -42,7 +42,7 @@ function isRewriteMode(mode: Mode): mode is RewriteMode {
  */
 export function rewriteAsciidocCardXrefs(
   content: string,
-  project: Project,
+  checkout: Checkout,
   mode: Mode,
   onWarning: (message: string) => void = console.warn,
 ): string {
@@ -59,7 +59,7 @@ export function rewriteAsciidocCardXrefs(
       let card;
 
       try {
-        card = project.cardNode(cardKey);
+        card = checkout.cardNode(cardKey);
       } catch {
         card = undefined;
       }

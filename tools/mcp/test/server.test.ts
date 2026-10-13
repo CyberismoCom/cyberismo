@@ -14,30 +14,30 @@
 */
 
 import { beforeAll, afterAll, describe, expect, test } from 'vitest';
-import { CommandManager } from '@cyberismo/data-handler';
+import { Workspace } from '@cyberismo/data-handler';
 import { createMcpServer, singleProjectProvider } from '../src/server.js';
 import { testDataPath } from './test-utils.js';
 
-let commands: CommandManager;
+let ws: Workspace;
 
 // Fixes weird issue with asciidoctor
 beforeAll(async () => {
   process.argv = [];
-  commands = await CommandManager.getInstance(testDataPath);
+  ws = await Workspace.getInstance(testDataPath);
 });
 
 afterAll(async () => {
-  commands.project.dispose();
+  ws.checkout.dispose();
 });
 
 describe('createMcpServer', () => {
   test('creates an MCP server instance with default options', () => {
-    const server = createMcpServer(singleProjectProvider(commands));
+    const server = createMcpServer(singleProjectProvider(ws));
     expect(server).toBeDefined();
   });
 
   test('creates server with custom name and version', () => {
-    const server = createMcpServer(singleProjectProvider(commands), {
+    const server = createMcpServer(singleProjectProvider(ws), {
       name: 'test-server',
       version: '2.0.0',
     });

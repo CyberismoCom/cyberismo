@@ -7,7 +7,7 @@ import { join } from 'node:path';
 
 // cyberismo
 import { Cmd } from '../src/command-handler.js';
-import { CommandManager } from '../src/command-manager.js';
+import { Workspace } from '../src/workspace/workspace.js';
 import { copyDir } from '../src/utils/file-utils.js';
 import {
   cardState,
@@ -56,23 +56,20 @@ describe('creation side effects', () => {
 // created batch, after the batch's facts have been projected.
 describe('creation query batching', () => {
   const batchingDir = join(testDir, 'batching');
-  let commands: CommandManager;
+  let ws: Workspace;
 
   beforeAll(async () => {
     mkdirSync(batchingDir, { recursive: true });
     await copyDir('test/test-data', batchingDir);
-    commands = new CommandManager(
-      join(batchingDir, 'valid', 'decision-records'),
-      {},
-    );
-    await commands.initialize();
+    ws = new Workspace(join(batchingDir, 'valid', 'decision-records'), {});
+    await ws.initialize();
   });
 
   it('runs the creation query once for a batch of instantiated cards', async () => {
-    const spy = vi.spyOn(commands.project.calculationEngine, 'creationQuery');
+    const spy = vi.spyOn(ws.checkout.calculationEngine, 'creationQuery');
 
     // The simplepage template holds two cards, so this is a real batch.
-    const created = await commands.createCmd.createCard(
+    const created = await ws.createCmd.createCard(
       'decision/templates/simplepage',
       undefined,
     );
@@ -86,9 +83,9 @@ describe('creation query batching', () => {
   });
 
   it('runs the creation query once for a batch of added template cards', async () => {
-    const spy = vi.spyOn(commands.project.calculationEngine, 'creationQuery');
+    const spy = vi.spyOn(ws.checkout.calculationEngine, 'creationQuery');
 
-    const added = await commands.createCmd.addCards(
+    const added = await ws.createCmd.addCards(
       'decision/cardTypes/decision',
       'decision/templates/decision',
       undefined,

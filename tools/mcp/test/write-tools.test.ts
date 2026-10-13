@@ -24,7 +24,7 @@ import { promisify } from 'node:util';
 import { afterEach, beforeEach, describe, expect, test } from 'vitest';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
-import { resourceName, CommandManager } from '@cyberismo/data-handler';
+import { resourceName, Workspace } from '@cyberismo/data-handler';
 import { createMcpServer, singleProjectProvider } from '../src/server.js';
 import {
   buildProject,
@@ -37,7 +37,7 @@ const COMMIT_AUTHOR = 'Cyberismo Bot <bot@cyberismo.com>';
 const run = promisify(execFile);
 
 let project: BuiltProject;
-let ws: CommandManager;
+let ws: Workspace;
 const savedEnv = new Map<string, string | undefined>();
 let configDir: string;
 let client: Client;
@@ -74,7 +74,7 @@ beforeEach(async () => {
     ],
   });
   [alpha, child, beta, gamma, labelled] = project.keys;
-  ws = new CommandManager(project.path, { autocommit: true });
+  ws = new Workspace(project.path, { autocommit: true });
   await ws.initialize();
   const [clientTransport, serverTransport] =
     InMemoryTransport.createLinkedPair();
@@ -90,7 +90,7 @@ afterEach(async () => {
   }
   savedEnv.clear();
   await client.close();
-  ws.project.dispose();
+  ws.checkout.dispose();
   await project.cleanup();
   await rm(configDir, { recursive: true, force: true });
 });

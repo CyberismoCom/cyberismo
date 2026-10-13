@@ -11,11 +11,8 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import type { CommandManager } from '@cyberismo/data-handler';
+import type { Workspace } from '@cyberismo/data-handler';
 
-export async function createWorkflow(
-  commands: CommandManager,
-  workflowName: string,
-) {
-  await commands.createCmd.createWorkflow(workflowName, '');
+export async function createWorkflow(ws: Workspace, workflowName: string) {
+  await ws.createCmd.createWorkflow(workflowName, '');
 }

@@ -69,7 +69,7 @@ import type {
 } from '../interfaces/project-interfaces.js';
 import type { Source } from '../modules/types.js';
 import type { Fetch } from './fetch.js';
-import type { Project } from '../containers/project.js';
+import type { Checkout } from '../containers/project.js';
 import type {
   ResolveConflict,
   ResolvedModule,
@@ -122,17 +122,17 @@ export class Modules {
 
   /**
    * Creates an instance of Modules.
-   * @param project Project to use.
+   * @param checkout Project to use.
    * @param fetchCmd Instance of Fetch to use.
    */
   constructor(
-    private project: Project,
+    private checkout: Checkout,
     private fetchCmd: Fetch,
   ) {}
 
   /** Temp directory shared between the resolver and the applier. */
   private get tempModulesDir(): string {
-    return join(this.project.paths.tempFolder, 'modules');
+    return join(this.checkout.paths.tempFolder, 'modules');
   }
 
   /**
@@ -151,14 +151,14 @@ export class Modules {
     // staging); a newer or unversioned tree aborts before any disk change.
     await ensureStagedSchemas(resolved);
 
-    const installedBefore = await installedModulesWithSources(this.project);
+    const installedBefore = await installedModulesWithSources(this.checkout);
     const steps = await planModuleReplays(resolved, installedBefore);
 
-    const appliedModules = await applyModules(this.project, resolved, {
+    const appliedModules = await applyModules(this.checkout, resolved, {
       tempDir: this.tempModulesDir,
       backfill,
     });
-    await cleanOrphans(this.project);
+    await cleanOrphans(this.checkout);
 
     if (steps.length === 0) return;
 
@@ -174,7 +174,7 @@ export class Modules {
     }
     if (executable.length === 0) return;
 
-    await executeModuleReplays(this.project, executable);
+    await executeModuleReplays(this.checkout, executable);
     for (const step of executable) {
       console.log(
         `Replayed migrations for module '${step.modulePrefix}': ` +
@@ -184,8 +184,8 @@ export class Modules {
     }
 
     const validationErrors = await Validate.getInstance().validate(
-      this.project.basePath,
-      () => this.project,
+      this.checkout.basePath,
+      () => this.checkout,
     );
     if (validationErrors.trim().length > 0) {
       throw new ModuleValidationFailedError(validationErrors, executable);
@@ -210,8 +210,8 @@ export class Modules {
     await this.fetchCmd.ensureModuleListUpToDate();
 
     const beforeImportValidateErrors = await Validate.getInstance().validate(
-      this.project.basePath,
-      () => this.project,
+      this.checkout.basePath,
+      () => this.checkout,
     );
 
     const location = normaliseLocation(source);
@@ -283,7 +283,7 @@ export class Modules {
     }
 
     const { plan, resolved, backfill } = await resolveForApply(
-      this.project,
+      this.checkout,
       {
         kind: 'add',
         name: resolvedName,
@@ -297,8 +297,8 @@ export class Modules {
 
     // Validate the project after module has been installed.
     const afterImportValidateErrors = await Validate.getInstance().validate(
-      this.project.basePath,
-      () => this.project,
+      this.checkout.basePath,
+      () => this.checkout,
     );
     if (afterImportValidateErrors.length > beforeImportValidateErrors.length) {
       console.error(
@@ -320,11 +320,11 @@ export class Modules {
   ): Promise<UpdatePlan> {
     const source = createSourceLayer();
     try {
-      const resolution = await resolveUpdate(this.project, target, {
+      const resolution = await resolveUpdate(this.checkout, target, {
         source,
         credentials,
       });
-      return await toUpdatePlan(this.project, resolution);
+      return await toUpdatePlan(this.checkout, resolution);
     } finally {
       await source.dispose?.();
     }
@@ -346,7 +346,7 @@ export class Modules {
 
     const source = createSourceLayer();
     try {
-      const resolution = await resolveUpdate(this.project, target, {
+      const resolution = await resolveUpdate(this.checkout, target, {
         source,
         credentials,
       });
@@ -354,7 +354,7 @@ export class Modules {
         throw resolutionConflictError(resolution.result.conflicts);
       }
       const { resolved, backfill } = await stageResolution(
-        this.project,
+        this.checkout,
         resolution,
         {
           source,
@@ -376,11 +376,11 @@ export class Modules {
    */
   @write((moduleName) => `Remove module ${moduleName}`)
   public async remove(moduleName: string) {
-    const declaration = declaredModules(this.project).find(
+    const declaration = declaredModules(this.checkout).find(
       (d) => d.name === moduleName,
     );
     if (!declaration) {
-      const installations = await installedModules(this.project);
+      const installations = await installedModules(this.checkout);
       const parents = installations
         .filter((m) => m.declaredDependencies.includes(moduleName))
         .map((m) => m.name);
@@ -394,11 +394,11 @@ export class Modules {
     }
 
     // Delete the top-level declaration from cardsConfig.json.
-    await this.project.configuration.removeModule(moduleName);
+    await this.checkout.configuration.removeModule(moduleName);
 
     // Removes this module's installation (now orphaned) plus any
     // transitives it owned that nothing else references.
-    await cleanOrphans(this.project);
+    await cleanOrphans(this.checkout);
 
     this.logger.info(`Removed module '${moduleName}'`);
   }
@@ -409,7 +409,7 @@ export class Modules {
    */
   @read
   public async list(): Promise<ModuleInfo[]> {
-    return moduleInfos(this.project);
+    return moduleInfos(this.checkout);
   }
 
   /**
@@ -418,7 +418,7 @@ export class Modules {
    */
   @read
   public async inventory(): Promise<ProjectModuleInfo[]> {
-    return projectModules(this.project);
+    return projectModules(this.checkout);
   }
 
   /**
@@ -437,7 +437,7 @@ export class Modules {
     if ('source' in target) {
       source = { location: normaliseLocation(target.source), private: false };
     } else {
-      source = (await requireDeclared(this.project, target.module)).source;
+      source = (await requireDeclared(this.checkout, target.module)).source;
     }
     const layer = createSourceLayer();
     try {
@@ -464,7 +464,7 @@ export class Modules {
    */
   @read
   public async show(moduleName: string): Promise<ModuleContent> {
-    const moduleDetails = await this.project.module(moduleName);
+    const moduleDetails = await this.checkout.module(moduleName);
     if (!moduleDetails) {
       throw new Error(`Module '${moduleName}' does not exist in the project`);
     }

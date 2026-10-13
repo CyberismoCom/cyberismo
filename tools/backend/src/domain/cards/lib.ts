@@ -12,7 +12,7 @@
 */
 
 import type { Card } from '@cyberismo/data-handler/interfaces/project-interfaces';
-import { type CommandManager, evaluateMacros } from '@cyberismo/data-handler';
+import { type Workspace, evaluateMacros } from '@cyberismo/data-handler';
 import { preprocessMermaidBlocksForHtml } from '@cyberismo/data-handler/utils/mermaid-renderer';
 import { rewriteAsciidocCardXrefs } from '@cyberismo/data-handler/utils/asciidoc-xref';
 import { getCardQueryResult } from '../../export.js';
@@ -26,15 +26,15 @@ interface result {
 }
 
 export async function getCardDetails(
-  commands: CommandManager,
+  ws: Workspace,
   key: string,
   staticMode: boolean,
   raw: boolean,
 ): Promise<result> {
-  return commands.consistent(async () => {
+  return ws.consistent(async () => {
     let cardDetailsResponse: Card;
     try {
-      cardDetailsResponse = await commands.showCmd.showCardDetails(key);
+      cardDetailsResponse = await ws.showCmd.showCardDetails(key);
     } catch {
       return { status: 400, message: `Card ${key} not found from project` };
     }
@@ -50,7 +50,7 @@ export async function getCardDetails(
         {
           context: staticMode ? 'exportedSite' : 'localApp',
           mode: staticMode ? 'staticSite' : 'inject',
-          project: commands.project,
+          checkout: ws.checkout,
           cardKey: key,
         },
       );
@@ -65,7 +65,7 @@ export async function getCardDetails(
     // /projects/<prefix>/cards/<key> links.
     asciidocContent = rewriteAsciidocCardXrefs(
       asciidocContent,
-      commands.project,
+      ws.checkout,
       staticMode ? 'staticSite' : 'inject',
     );
 
@@ -73,7 +73,7 @@ export async function getCardDetails(
       if (!cardDetailsResponse.metadata) {
         throw new Error('Card has no metadata');
       }
-      const cardType = await commands.showCmd.showResource(
+      const cardType = await ws.showCmd.showResource(
         cardDetailsResponse.metadata.cardType,
         'cardTypes',
       );
@@ -81,7 +81,7 @@ export async function getCardDetails(
       const fields = [];
       let i = 0;
       for (const customField of cardType.customFields) {
-        const fieldType = await commands.showCmd.showResource(
+        const fieldType = await ws.showCmd.showResource(
           customField.name,
           'fieldTypes',
         );
@@ -139,8 +139,8 @@ export async function getCardDetails(
     }
 
     const card = staticMode
-      ? await getCardQueryResult(commands, key)
-      : await commands.calculateCmd.runQuery('card', 'localApp', {
+      ? await getCardQueryResult(ws, key)
+      : await ws.calculateCmd.runQuery('card', 'localApp', {
           cardKey: key,
         });
 
@@ -162,15 +162,15 @@ export async function getCardDetails(
 }
 /**
  * Returns all cards from a tree query, flattened.
- * @param commands the command manager used for the query
+ * @param ws the command manager used for the query
  * @param options optional tree query options
  * @returns a promise that resolves to an array of all cards
  */
 export async function allCards(
-  commands: CommandManager,
+  ws: Workspace,
   options?: TreeOptions,
 ): Promise<QueryResult<'tree'>[]> {
-  const fetchedCards = await commands.calculateCmd.runQuery(
+  const fetchedCards = await ws.calculateCmd.runQuery(
     'tree',
     'exportedSite',
     options || {},

@@ -11,7 +11,7 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import type { CommandManager } from '@cyberismo/data-handler';
+import type { Workspace } from '@cyberismo/data-handler';
 import { updateResourceWithOperation } from '../resources/service.js';
 
 /**
@@ -22,17 +22,14 @@ function capitalize(str: string): string {
   return str.charAt(0).toUpperCase() + str.slice(1);
 }
 
-export async function createCalculation(
-  commands: CommandManager,
-  identifier: string,
-) {
-  await commands.atomic(async () => {
-    await commands.createCmd.createCalculation(identifier);
+export async function createCalculation(ws: Workspace, identifier: string) {
+  await ws.atomic(async () => {
+    await ws.createCmd.createCalculation(identifier);
 
     // Set displayName to capitalized version of identifier
-    const project = await commands.showCmd.showProject();
+    const project = await ws.showCmd.showProject();
     await updateResourceWithOperation(
-      commands,
+      ws,
       { prefix: project.prefix, type: 'calculations', identifier },
       {
         updateKey: { key: 'displayName' },

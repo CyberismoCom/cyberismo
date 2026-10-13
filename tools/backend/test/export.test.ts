@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { getCardQueryResult, reset, exportSite } from '../src/export.js';
 import { ProjectRegistry } from '../src/project-registry.js';
-import { CommandManager } from '@cyberismo/data-handler';
+import { Workspace } from '@cyberismo/data-handler';
 import type * as Utils from '../src/utils.js';
 
 // The built frontend does not exist when tests run from source.
@@ -30,11 +30,11 @@ describe('export module', () => {
   describe('getCardQueryResult', () => {
     function createMockCommands(mockCards: { key: string; title: string }[]) {
       const runQuery = vi.fn().mockResolvedValue(mockCards);
-      const commands = {
+      const ws = {
         calculateCmd: { runQuery },
-        project: { configuration: { cardKeyPrefix: 'TEST' } },
-      } as unknown as CommandManager;
-      return { commands, runQuery };
+        checkout: { configuration: { cardKeyPrefix: 'TEST' } },
+      } as unknown as Workspace;
+      return { ws, runQuery };
     }
 
     test('should return all cards when no cardKey is provided', async () => {
@@ -43,9 +43,9 @@ describe('export module', () => {
         { key: 'card2', title: 'Card 2' },
       ];
 
-      const { commands, runQuery } = createMockCommands(mockCards);
+      const { ws, runQuery } = createMockCommands(mockCards);
 
-      const result = await getCardQueryResult(commands);
+      const result = await getCardQueryResult(ws);
 
       expect(result).toEqual(mockCards);
       expect(runQuery).toHaveBeenCalledWith('card', 'exportedSite', {});
@@ -57,9 +57,9 @@ describe('export module', () => {
         { key: 'card2', title: 'Card 2' },
       ];
 
-      const { commands } = createMockCommands(mockCards);
+      const { ws } = createMockCommands(mockCards);
 
-      const result = await getCardQueryResult(commands, 'card1');
+      const result = await getCardQueryResult(ws, 'card1');
 
       expect(result).toEqual([{ key: 'card1', title: 'Card 1' }]);
     });
@@ -67,9 +67,9 @@ describe('export module', () => {
     test('should throw error when card is not found', async () => {
       const mockCards = [{ key: 'card1', title: 'Card 1' }];
 
-      const { commands } = createMockCommands(mockCards);
+      const { ws } = createMockCommands(mockCards);
 
-      await expect(getCardQueryResult(commands, 'nonexistent')).rejects.toThrow(
+      await expect(getCardQueryResult(ws, 'nonexistent')).rejects.toThrow(
         'Card nonexistent not found',
       );
     });
@@ -77,20 +77,20 @@ describe('export module', () => {
     test('should cache query results for subsequent calls', async () => {
       const mockCards = [{ key: 'card1', title: 'Card 1' }];
 
-      const { commands, runQuery } = createMockCommands(mockCards);
+      const { ws, runQuery } = createMockCommands(mockCards);
 
       // First call
-      await getCardQueryResult(commands);
+      await getCardQueryResult(ws);
       // Second call
-      await getCardQueryResult(commands, 'card1');
+      await getCardQueryResult(ws, 'card1');
 
-      await getCardQueryResult(commands, 'card1');
+      await getCardQueryResult(ws, 'card1');
 
-      await getCardQueryResult(commands, 'card1');
+      await getCardQueryResult(ws, 'card1');
 
-      await getCardQueryResult(commands, 'card1');
+      await getCardQueryResult(ws, 'card1');
 
-      await getCardQueryResult(commands, 'card1');
+      await getCardQueryResult(ws, 'card1');
 
       // calculate cmd should be only called once
       expect(runQuery).toHaveBeenCalledTimes(1);
@@ -100,17 +100,15 @@ describe('export module', () => {
       const cardsA = [{ key: 'alpha_1', title: 'Alpha Card' }];
       const cardsB = [{ key: 'beta_1', title: 'Beta Card' }];
 
-      const { commands: commandsA, runQuery: runQueryA } =
-        createMockCommands(cardsA);
-      const { commands: commandsB, runQuery: runQueryB } =
-        createMockCommands(cardsB);
+      const { ws: commandsA, runQuery: runQueryA } = createMockCommands(cardsA);
+      const { ws: commandsB, runQuery: runQueryB } = createMockCommands(cardsB);
 
       // Override prefix so they differ
       (
-        commandsA.project as { configuration: { cardKeyPrefix: string } }
+        commandsA.checkout as { configuration: { cardKeyPrefix: string } }
       ).configuration.cardKeyPrefix = 'alpha';
       (
-        commandsB.project as { configuration: { cardKeyPrefix: string } }
+        commandsB.checkout as { configuration: { cardKeyPrefix: string } }
       ).configuration.cardKeyPrefix = 'beta';
 
       const resultA = await getCardQueryResult(commandsA);
@@ -129,14 +127,14 @@ describe('export module', () => {
       ];
       const cardsB = [{ key: 'beta_1', title: 'B1' }];
 
-      const { commands: commandsA } = createMockCommands(cardsA);
-      const { commands: commandsB } = createMockCommands(cardsB);
+      const { ws: commandsA } = createMockCommands(cardsA);
+      const { ws: commandsB } = createMockCommands(cardsB);
 
       (
-        commandsA.project as { configuration: { cardKeyPrefix: string } }
+        commandsA.checkout as { configuration: { cardKeyPrefix: string } }
       ).configuration.cardKeyPrefix = 'alpha';
       (
-        commandsB.project as { configuration: { cardKeyPrefix: string } }
+        commandsB.checkout as { configuration: { cardKeyPrefix: string } }
       ).configuration.cardKeyPrefix = 'beta';
 
       // Cache both
@@ -176,15 +174,15 @@ describe('export module', () => {
     });
 
     test('should throw with available prefixes in the error message', async () => {
-      const commands = {
+      const ws = {
         calculateCmd: { runQuery: vi.fn().mockResolvedValue([]) },
-        project: {
+        checkout: {
           basePath: '/tmp/proj',
           configuration: { cardKeyPrefix: 'foo', name: 'Foo' },
         },
-      } as unknown as CommandManager;
+      } as unknown as Workspace;
 
-      const registry = ProjectRegistry.fromCommandManager(commands);
+      const registry = ProjectRegistry.fromCommandManager(ws);
 
       await expect(
         exportSite(registry, tempDir, {
@@ -212,11 +210,11 @@ describe('export module', () => {
     });
 
     test('reports a failing card under its own project only', async () => {
-      const decision = await CommandManager.getInstance(decisionPath);
-      const minimal = await CommandManager.getInstance(minimalPath);
+      const decision = await Workspace.getInstance(decisionPath);
+      const minimal = await Workspace.getInstance(minimalPath);
       const registry = new ProjectRegistry([
-        { prefix: 'mini', commands: minimal },
-        { prefix: 'decision', commands: decision },
+        { prefix: 'mini', ws: minimal },
+        { prefix: 'decision', ws: decision },
       ]);
       vi.spyOn(decision.showCmd, 'showCardDetails').mockRejectedValue(
         new Error('boom'),
