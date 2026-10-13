@@ -17,7 +17,7 @@
 
 import { execFile } from 'node:child_process';
 import { realpathSync } from 'node:fs';
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterAll, afterEach, beforeAll, beforeEach } from 'vitest';
@@ -270,6 +270,109 @@ describe('CLI transcripts', { timeout: 30000 }, () => {
         fail("Card '<card3>' does not exist in the project\n"),
       );
       expect(await cli('remove', 'card', 'test_nope')).toEqual(missing);
+    });
+
+    it('export adoc', async () => {
+      expect(await cli('export', 'adoc', 'out')).toEqual(
+        ok(`Creating output file '${join('out', 'index.adoc')}'\n`),
+      );
+      expect(await cli('export', 'adoc', 'out', '<card1>')).toEqual(
+        ok(`Using existing output file '${join('out', 'index.adoc')}'\n`),
+      );
+      const document = await readFile(
+        join(project.path, 'out', 'index.adoc'),
+        'utf-8',
+      );
+      expect(document).toMatch(/^:imagesdir: \.\/a\/\n== Alpha\n/);
+      expect(document).not.toContain('== Beta');
+      expect((await stat(join(project.path, 'out', 'a'))).isDirectory()).toBe(
+        true,
+      );
+      expect(await cli('export', 'adoc', 'out', 'test_nope')).toEqual(missing);
+    });
+
+    // A stub asciidoctor-pdf that echoes its AsciiDoc source as the "PDF", or
+    // fails with a server path in its diagnostics.
+    it.runIf(process.platform === 'linux')('export pdf', async () => {
+      const binDir = await mkdtemp(join(tmpdir(), 'cyberismo-pdf-stub-'));
+      const stub = (script: string) =>
+        writeFile(join(binDir, 'asciidoctor-pdf'), `#!/bin/sh\n${script}`, {
+          mode: 0o755,
+        });
+      const originalPath = process.env.PATH;
+      process.env.PATH = `${binDir}:${originalPath}`;
+      try {
+        await stub('cat\n');
+        expect(await cli('export', 'pdf', 'out.pdf', '<card1>')).toEqual(
+          ok('Content exported as PDF to out.pdf\n'),
+        );
+        const source = await readFile(join(project.path, 'out.pdf'), 'utf-8');
+        expect(source).toMatch(/^= Title\nName\n/);
+        expect(source).toContain(':revremark: Initial version\n');
+
+        await stub(
+          'cat > /dev/null\necho "asciidoctor: ERROR: /srv/secret/path" >&2\nexit 1\n',
+        );
+        expect(await cli('export', 'pdf', 'out.pdf', '<card1>')).toEqual(
+          fail(
+            'Asciidoctor-pdf failed with code 1\nasciidoctor: ERROR: /srv/secret/path\n',
+          ),
+        );
+      } finally {
+        process.env.PATH = originalPath;
+        await rm(binDir, { recursive: true, force: true });
+      }
+    });
+
+    it('calc generate', async () => {
+      expect(await cli('calc', 'generate', 'all.lp')).toEqual(ok('Done\n'));
+      expect(await cli('calc', 'generate', 'tree.lp', 'tree')).toEqual(
+        ok('Done\n'),
+      );
+      const program = (file: string) =>
+        readFile(join(project.path, file), 'utf-8');
+      expect((await program('tree.lp')).endsWith(await program('all.lp'))).toBe(
+        true,
+      );
+      expect(await cli('calc', 'generate', 'x.lp', 'bogus')).toEqual(
+        fail(
+          "Unknown query 'bogus'. Must be one of: card, connectors, enabledSkills, onCreation, onTransition, tree\n",
+        ),
+      );
+    });
+
+    it('report', async () => {
+      expect(await cli('create', 'report', 'children')).toEqual(ok('Done\n'));
+      const parameters = (value: object) =>
+        writeFile(join(project.path, 'report.json'), JSON.stringify(value));
+      await parameters({
+        name: 'test/reports/children',
+        parameters: { cardKey: project.keys[0] },
+      });
+      const report = await cli('report', 'report.json');
+      expect({
+        ...report,
+        stdout: report.stdout.replaceAll('\r\n', '\n'),
+      }).toEqual(ok('* Child\n\n'));
+      expect(await cli('report', 'report.json', 'out.txt')).toEqual(
+        ok('Done\n'),
+      );
+      const written = await readFile(join(project.path, 'out.txt'), 'utf-8');
+      expect(written.replaceAll('\r\n', '\n')).toBe('* Child\n');
+
+      await parameters({
+        name: 'test/reports/children',
+        parameters: { cardKey: project.keys[2] },
+      });
+      expect(await cli('report', 'report.json')).toEqual(
+        ok('No report results\n'),
+      );
+      await parameters({ name: 'test/reports/children', parameters: {} });
+      expect(await cli('report', 'report.json')).toEqual(
+        fail(
+          'The parameters file must include a "cardKey" field included in the "parameters".\n',
+        ),
+      );
     });
 
     it('validate an invalid project', async () => {

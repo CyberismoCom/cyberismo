@@ -26,7 +26,8 @@ import { entryToMutationInput } from '../mutations/replay/convert.js';
 import { recordSettingsChange } from '../utils/change-feed.js';
 import { write } from '../utils/rw-lock.js';
 import type { CommitIdentity } from '../utils/tx-record.js';
-import { publishVersion } from './publish.js';
+import { tagVersion } from './publish.js';
+import { errorFunction } from '../utils/error-utils.js';
 
 export const validBumps = ['patch', 'minor', 'major'] as const;
 export type BumpType = (typeof validBumps)[number];
@@ -111,16 +112,32 @@ export class Versions {
   }
 
   /**
-   * Publishes the current version: tags it and pushes the tag.
-   * @throws if there is no version, it is already published, or the push
-   *   fails (the tag is then removed).
+   * Publishes the current version: tags it, and pushes the tag once the
+   * write is over.
+   * @throws if there is no version or it is already published; or, with the
+   *   tag kept, if the push fails.
    */
-  @write(() => 'Publish version')
   public async publish(
     dryRun: boolean,
     remote?: string,
   ): Promise<PublishResult> {
-    return publishVersion(this.checkout, dryRun, remote);
+    const result = await this.tag(dryRun, remote);
+    if (!dryRun) {
+      try {
+        await this.checkout.git.push({ tags: true, remote: result.remote });
+      } catch (error) {
+        throw new Error(
+          `Tagged v${result.version}, but could not push it to '${result.remote}': ${errorFunction(error)}; push it with 'git push ${result.remote} v${result.version}'`,
+          { cause: error },
+        );
+      }
+    }
+    return result;
+  }
+
+  @write(() => 'Publish version')
+  private async tag(dryRun: boolean, remote?: string): Promise<PublishResult> {
+    return tagVersion(this.checkout, dryRun, remote);
   }
 
   @write((bumpType) => `Version ${bumpType} bump`)

@@ -100,6 +100,7 @@ export {
   WorkspaceDisposedError,
 } from './exceptions/index.js';
 export type { Checkout } from './containers/project.js';
+export { AsciidoctorPdfError } from './export/export.js';
 export type { WorkspaceOpener } from './command-handler.js';
 export { openCheckout, type WorkspaceOptions } from './workspace/workspace.js';
 export {
