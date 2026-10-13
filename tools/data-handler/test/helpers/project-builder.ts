@@ -15,7 +15,7 @@
 // Test-only: builds a project on disk from a declarative spec. Not exported
 // from the package; other packages' tests import it by relative path.
 
-import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { simpleGit } from 'simple-git';
@@ -35,6 +35,26 @@ export interface CardTypeSpec {
   name: string;
   /** Workflow short name or full resource name; defaults to the first workflow. */
   workflow?: string;
+  /** Field type short names or full names; a calculated field may allow override. */
+  customFields?: {
+    name: string;
+    isCalculated?: boolean;
+    enableOverride?: boolean;
+  }[];
+}
+
+export interface FieldTypeSpec {
+  name: string;
+  dataType: string;
+}
+
+export interface LinkTypeSpec {
+  name: string;
+  /** Card type names; empty or absent allows every card type. */
+  sourceCardTypes?: string[];
+  destinationCardTypes?: string[];
+  enableLinkDescription?: boolean;
+  destinationConnectors?: string[];
 }
 
 export interface CardSpec {
@@ -45,6 +65,10 @@ export interface CardSpec {
   workflowState?: string;
   labels?: string[];
   content?: string;
+  /** Custom field values, written into the card's metadata. */
+  fields?: Record<string, unknown>;
+  /** Links to project cards; `to` indexes the depth-first project card keys. */
+  links?: { linkType: string; to: number; linkDescription?: string }[];
   children?: CardSpec[];
 }
 
@@ -57,6 +81,8 @@ export interface TemplateSpec {
 export interface ResourceSpec {
   workflows?: WorkflowSpec[];
   cardTypes?: CardTypeSpec[];
+  fieldTypes?: FieldTypeSpec[];
+  linkTypes?: LinkTypeSpec[];
   templates?: TemplateSpec[];
   /** Calculation name → logic program appended as its own calculation file. */
   calculations?: Record<string, string>;
@@ -97,6 +123,7 @@ const SCHEMA_IDS: Record<string, string> = {
   calculations: 'calculationSchema',
   cardTypes: 'cardTypeSchema',
   fieldTypes: 'fieldTypeSchema',
+  linkTypes: 'linkTypeSchema',
   templates: 'templateSchema',
   workflows: 'workflowSchema',
 };
@@ -135,6 +162,10 @@ class Builder {
   private usedKeys = new Set<string>();
   private initialStates = new Map<string, string>();
   private cardTypeWorkflows = new Map<string, string>();
+  private pendingLinks: {
+    file: string;
+    links: NonNullable<CardSpec['links']>;
+  }[] = [];
   readonly keys: string[] = [];
   readonly templateKeys: Record<string, string[]> = {};
 
@@ -213,6 +244,33 @@ class Builder {
         name,
         displayName: cardType.name,
         workflow,
+        customFields: cardType.customFields?.map((field) => ({
+          ...field,
+          name: fullName(prefix, 'fieldTypes', field.name),
+        })),
+      });
+    }
+
+    for (const fieldType of spec.fieldTypes ?? []) {
+      await writeJson(join(folder, 'fieldTypes', `${fieldType.name}.json`), {
+        name: fullName(prefix, 'fieldTypes', fieldType.name),
+        displayName: fieldType.name,
+        dataType: fieldType.dataType,
+      });
+    }
+
+    for (const linkType of spec.linkTypes ?? []) {
+      const qualify = (names: string[] = []) =>
+        names.map((name) => fullName(prefix, 'cardTypes', name));
+      await writeJson(join(folder, 'linkTypes', `${linkType.name}.json`), {
+        name: fullName(prefix, 'linkTypes', linkType.name),
+        displayName: linkType.name,
+        outboundDisplayName: `${linkType.name} out`,
+        inboundDisplayName: `${linkType.name} in`,
+        sourceCardTypes: qualify(linkType.sourceCardTypes),
+        destinationCardTypes: qualify(linkType.destinationCardTypes),
+        destinationConnectors: linkType.destinationConnectors,
+        enableLinkDescription: linkType.enableLinkDescription ?? false,
       });
     }
 
@@ -282,7 +340,14 @@ class Builder {
         lastUpdated: TIMESTAMP,
         labels: card.labels ?? [],
         links: [],
+        ...card.fields,
       });
+      if (card.links?.length) {
+        this.pendingLinks.push({
+          file: join(folder, key, 'index.json'),
+          links: card.links,
+        });
+      }
       await writeFile(join(folder, key, 'index.adoc'), card.content ?? '');
       if (card.children?.length) {
         await this.writeCards(
@@ -336,6 +401,15 @@ class Builder {
       local,
       this.keys,
     );
+    for (const { file, links } of this.pendingLinks) {
+      const metadata = JSON.parse(await readFile(file, 'utf-8'));
+      metadata.links = links.map((link) => ({
+        linkType: fullName(this.prefix, 'linkTypes', link.linkType),
+        cardKey: this.keys[link.to] ?? fail(`link target ${link.to} missing`),
+        linkDescription: link.linkDescription,
+      }));
+      await writeJson(file, metadata);
+    }
     await writeFile(join(this.path, '.gitignore'), '.calc\n.temp\n.logs\n');
   }
 
