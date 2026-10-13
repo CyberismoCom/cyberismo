@@ -25,8 +25,8 @@ import { readJsonFile } from '../src/utils/json.js';
 import { CardNameRegEx } from '@cyberismo/model';
 import { CardNotFoundError } from '../src/exceptions/index.js';
 import type { TemplateResource } from '../src/resources/template-resource.js';
-import { instantiateTemplate } from '../src/containers/project/template-instantiation.js';
-
+import { instantiateTemplate } from '../src/cards/instantiate.js';
+import { findCard } from '../src/cards/read.js';
 import type { Checkout } from '../src/containers/project.js';
 
 const baseDir = import.meta.dirname;
@@ -152,7 +152,7 @@ describe('instantiateTemplate', () => {
   // children.
   it('deletes only what it created when instantiating under a parent card', async () => {
     const template = templateOf('decision/templates/simplepage');
-    const parentCard = checkout.findCard('decision_5');
+    const parentCard = findCard(checkout, 'decision_5');
     const childrenBefore = parentCard.children;
     expect(childrenBefore.length).toBeGreaterThan(0);
 
@@ -163,7 +163,7 @@ describe('instantiateTemplate', () => {
     ).rejects.toThrow(/ENOENT/);
 
     // The parent and its existing children are untouched.
-    const parentAfter = checkout.findCard('decision_5');
+    const parentAfter = findCard(checkout, 'decision_5');
     expect(parentAfter.children).to.deep.equal(childrenBefore);
     for (const childKey of childrenBefore) {
       expect(
@@ -284,7 +284,7 @@ describe('instantiateTemplate', () => {
   it('caches the content it actually wrote', async () => {
     const template = templateOf('decision/templates/simplepage');
 
-    const cached = checkout.findCard(await instantiateAttachedCard(template));
+    const cached = findCard(checkout, await instantiateAttachedCard(template));
 
     const contentOnDisk = await readFile(
       join(cached.path, 'index.adoc'),
@@ -297,7 +297,7 @@ describe('instantiateTemplate', () => {
   it('caches the attachments it actually wrote', async () => {
     const template = templateOf('decision/templates/simplepage');
 
-    const cached = checkout.findCard(await instantiateAttachedCard(template));
+    const cached = findCard(checkout, await instantiateAttachedCard(template));
     const expectedFileName = `${cached.key}-${ATTACHMENT}`;
     const expectedFolder = join(cached.path, 'a');
 

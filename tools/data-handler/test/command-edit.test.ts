@@ -9,6 +9,7 @@ import { type Edit } from '../src/commands/index.js';
 import { CardNotFoundError } from '../src/exceptions/index.js';
 import type { Card } from '@cyberismo/model';
 import { openTestWorkspace } from './helpers/open-test-workspace.js';
+import { findCard } from '../src/cards/read.js';
 
 describe('edit card', () => {
   const baseDir = import.meta.dirname;
@@ -36,7 +37,7 @@ describe('edit card', () => {
     await ws.cards.edit(firstCard.key, 'whoopie');
 
     // Fetch the changed card again
-    const changedCard = ws.checkout.findCard(firstCard.key);
+    const changedCard = findCard(ws.checkout, firstCard.key);
     expect(changedCard.content).toBe('whoopie');
     expect(changedCard.metadata!.lastUpdated).not.toBe(
       firstCard.metadata!.lastUpdated,
@@ -49,7 +50,7 @@ describe('edit card', () => {
     const firstCard = templateCards.at(0) as Card;
 
     await ws.cards.edit(firstCard.key, 'whoopie');
-    const changedCard = ws.checkout.findCard(firstCard.key);
+    const changedCard = findCard(ws.checkout, firstCard.key);
     expect(changedCard.content).toBe('whoopie');
   });
 
@@ -82,7 +83,7 @@ describe('edit card', () => {
     ).resolves.not.toThrow();
 
     // Fetch the changed card again
-    const changedCard = ws.checkout.findCard(firstCard.key);
+    const changedCard = findCard(ws.checkout, firstCard.key);
     expect(changedCard.metadata!.title).to.equal('new name');
   });
   it('edit card metadata - template card', async () => {
@@ -102,7 +103,7 @@ describe('edit card', () => {
 
     await freshCommands.cards.editField(firstCard.key, 'title', 'new name');
 
-    const changedCard = freshCommands.checkout.findCard(firstCard.key);
+    const changedCard = findCard(freshCommands.checkout, firstCard.key);
     expect(changedCard.metadata?.title).to.equal('new name');
 
     rmSync(freshTestDir, { recursive: true, force: true });
@@ -205,7 +206,7 @@ describe('edit card', () => {
         ),
       ).resolves.not.toThrow();
 
-      const changed = freshCommands.checkout.findCard('decision_6');
+      const changed = findCard(freshCommands.checkout, 'decision_6');
       expect(changed.metadata!['decision/fieldTypes/obsoletedBy']).toBe(
         'decision_999',
       );
@@ -219,7 +220,7 @@ describe('edit card', () => {
         ),
       ).resolves.not.toThrow();
 
-      const cleared = freshCommands.checkout.findCard('decision_6');
+      const cleared = findCard(freshCommands.checkout, 'decision_6');
       expect(cleared.metadata!).not.toHaveProperty([
         'decision/fieldTypes/obsoletedBy',
       ]);
@@ -326,7 +327,7 @@ describe('edit card', () => {
       'tmp-edit-override-noop-test',
     );
     try {
-      const card = freshCommands.checkout.findCard('decision_6');
+      const card = findCard(freshCommands.checkout, 'decision_6');
       const metadataFile = join(card.path, 'index.json');
       const before = readFileSync(metadataFile, 'utf-8');
       expect(JSON.parse(before)).not.toHaveProperty([
@@ -376,7 +377,7 @@ describe('edit card', () => {
         RESPONSIBLE,
         'someone@example.com',
       );
-      const card = clearCommands.checkout.findCard('decision_6');
+      const card = findCard(clearCommands.checkout, 'decision_6');
       expect(card.metadata![RESPONSIBLE]).toBeTruthy();
       return card;
     }
@@ -387,7 +388,7 @@ describe('edit card', () => {
 
       await clearCommands.cards.editField(card.key, RESPONSIBLE, null);
 
-      const changed = clearCommands.checkout.findCard(card.key);
+      const changed = findCard(clearCommands.checkout, card.key);
       expect(changed.metadata!).not.toHaveProperty([RESPONSIBLE]);
       const onDisk = readFileSync(join(changed.path, 'index.json'), 'utf-8');
       expect(onDisk).not.toContain(RESPONSIBLE);
@@ -403,7 +404,7 @@ describe('edit card', () => {
 
       await clearCommands.cards.editField(card.key, RESPONSIBLE, undefined);
 
-      const changed = clearCommands.checkout.findCard(card.key);
+      const changed = findCard(clearCommands.checkout, card.key);
       expect(changed.metadata!).not.toHaveProperty([RESPONSIBLE]);
       const onDisk = readFileSync(join(changed.path, 'index.json'), 'utf-8');
       expect(onDisk).not.toContain(RESPONSIBLE);
@@ -419,7 +420,7 @@ describe('edit card', () => {
       // Key deletion covers custom fields; predefined fields are out of scope.
       await clearCommands.cards.editField('decision_6', 'title', null);
 
-      const changed = clearCommands.checkout.findCard('decision_6');
+      const changed = findCard(clearCommands.checkout, 'decision_6');
       expect('title' in changed.metadata!).toBe(true);
       expect(changed.metadata!.title).toBeNull();
       const onDisk = JSON.parse(
@@ -437,7 +438,7 @@ describe('edit card', () => {
 
       await clearCommands.cards.editField('decision_6', 'title', undefined);
 
-      const changed = clearCommands.checkout.findCard('decision_6');
+      const changed = findCard(clearCommands.checkout, 'decision_6');
       expect('title' in changed.metadata!).toBe(true);
       expect(changed.metadata!.title).toBeNull();
       const onDisk = JSON.parse(

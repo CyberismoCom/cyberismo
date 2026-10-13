@@ -15,6 +15,7 @@ import {
   afterEach,
 } from 'vitest';
 import { openTestWorkspace } from './helpers/open-test-workspace.js';
+import { findCard } from '../src/cards/read.js';
 
 const baseDir = import.meta.dirname;
 const testDir = join(baseDir, 'tmp-export-tests');
@@ -114,16 +115,12 @@ describe('adoc export section order', () => {
 
     // Two cards below the level the tree query orders, cached in creation
     // order and ranked the other way around.
-    const firstCreated = (
-      await ws.createCmd.createCard(template, 'decision_6')
-    )[0].key;
-    const lastCreated = (
-      await ws.createCmd.createCard(template, 'decision_6')
-    )[0].key;
+    const firstCreated = (await ws.cards.create(template, 'decision_6'))[0].key;
+    const lastCreated = (await ws.cards.create(template, 'decision_6'))[0].key;
     await ws.cards.rankFirst(lastCreated);
 
     const rankOrder = [lastCreated, firstCreated];
-    expect(ws.checkout.findCard('decision_6').children).not.toEqual(rankOrder);
+    expect(findCard(ws.checkout, 'decision_6').children).not.toEqual(rankOrder);
 
     await ws.checkout.calculationEngine.generate();
     const output = join(orderTestDir, 'output');

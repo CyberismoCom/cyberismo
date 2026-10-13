@@ -72,7 +72,7 @@ describe('creation query batching', () => {
     const spy = vi.spyOn(ws.checkout.calculationEngine, 'creationQuery');
 
     // The simplepage template holds two cards, so this is a real batch.
-    const created = await ws.createCmd.createCard(
+    const created = await ws.cards.create(
       'decision/templates/simplepage',
       undefined,
     );
@@ -88,7 +88,7 @@ describe('creation query batching', () => {
   it('runs the creation query once for a batch of added template cards', async () => {
     const spy = vi.spyOn(ws.checkout.calculationEngine, 'creationQuery');
 
-    const added = await ws.createCmd.addCards(
+    const added = await ws.cards.addToTemplate(
       'decision/cardTypes/decision',
       'decision/templates/decision',
       undefined,

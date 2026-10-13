@@ -27,6 +27,7 @@ import {
   type BuiltProject,
   type ProjectSpec,
 } from './project-builder.js';
+import { allTemplateCards, findCard } from '../../src/cards/read.js';
 
 // Wrapped so a test can see which directory the builder created.
 vi.mock('node:fs/promises', async (importOriginal) => {
@@ -137,7 +138,7 @@ describe('buildProject', () => {
           .workflow,
       ).toBe('flow/workflows/review');
       expect(
-        keys.map((key) => checkout.findCard(key).metadata?.workflowState),
+        keys.map((key) => findCard(checkout, key).metadata?.workflowState),
       ).toEqual(['Approved', 'Draft']);
     });
   });
@@ -161,12 +162,12 @@ describe('buildProject', () => {
     expect(await validate(path)).toBe('');
     const [parent, child1, child2, sibling] = keys;
     await withProject(path, (checkout) => {
-      const card = checkout.findCard(parent);
+      const card = findCard(checkout, parent);
       expect(card.metadata?.title).toBe('Parent');
       expect(card.metadata?.labels).toEqual(['a']);
       expect(card.content).toBe('Hello');
       expect(card.children).toEqual([child1, child2]);
-      expect(checkout.findCard(sibling).parent).toBe('root');
+      expect(findCard(checkout, sibling).parent).toBe('root');
     });
   });
 
@@ -181,8 +182,7 @@ describe('buildProject', () => {
     expect(await validate(path)).toBe('');
     await withProject(path, (checkout) => {
       expect(
-        checkout
-          .allTemplateCards()
+        allTemplateCards(checkout)
           .map((card) => card.key)
           .sort(),
       ).toEqual([...templateKeys['test/templates/tpl']].sort());
@@ -214,10 +214,10 @@ describe('buildProject', () => {
     expect(moduleCard).toMatch(/^mod_/);
     await withProject(path, (checkout) => {
       expect(checkout.allModulePrefixes()).toEqual(['test', 'mod']);
-      expect(checkout.findCard(projectCard).metadata?.workflowState).toBe(
+      expect(findCard(checkout, projectCard).metadata?.workflowState).toBe(
         'Open',
       );
-      expect(checkout.allTemplateCards().map((card) => card.key)).toEqual([
+      expect(allTemplateCards(checkout).map((card) => card.key)).toEqual([
         moduleCard,
       ]);
     });
