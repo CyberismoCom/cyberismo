@@ -1,7 +1,11 @@
 import { expect, describe, it } from 'vitest';
 
 import { RWLock, read, write } from '../src/utils/rw-lock.js';
-import { getCommitContext } from '../src/utils/commit-context.js';
+import {
+  getCommitContext,
+  runWithCommitContext,
+} from '../src/utils/commit-context.js';
+import type { TxRecord } from '../src/utils/tx-record.js';
 import { deferred } from './test-utils.js';
 
 describe('RWLock', () => {
@@ -684,6 +688,83 @@ describe('RWLock', () => {
       await Promise.all([p1, p2]);
 
       expect(log.indexOf('slow-end')).toBeLessThan(log.indexOf('fast-start'));
+    });
+  });
+
+  describe('transaction record', () => {
+    it('shares one record across nested writes and hands it to the hooks', async () => {
+      const lock = new RWLock();
+      const seen: (TxRecord | undefined)[] = [];
+      lock.onAfterWrite(async (tx) => {
+        seen.push(tx);
+      });
+
+      await runWithCommitContext(
+        {
+          message: 'Outer',
+          author: { name: 'U', email: 'u@example.com' },
+          actor: { kind: 'user', id: 'u1', name: 'U' },
+        },
+        () =>
+          lock.write(async () => {
+            seen.push(lock.currentTx());
+            await runWithCommitContext({ message: 'Inner' }, () =>
+              lock.write(async () => {
+                seen.push(lock.currentTx());
+              }),
+            );
+          }),
+      );
+
+      expect(seen).toHaveLength(3);
+      expect(new Set(seen).size).toBe(1);
+      expect(seen[0]).toMatchObject({
+        actor: { kind: 'user', id: 'u1' },
+        identity: { name: 'U', email: 'u@example.com' },
+        message: 'Outer',
+      });
+    });
+
+    it('defaults to the system actor and leaves the author to git', async () => {
+      const lock = new RWLock();
+      const tx = await lock.write(async () => lock.currentTx());
+      expect(tx?.actor).toEqual({
+        kind: 'system',
+        id: 'cyberismo',
+        name: 'Cyberismo Bot',
+      });
+      expect(tx?.identity).toBeUndefined();
+    });
+
+    it('hands the record to the error hooks', async () => {
+      const lock = new RWLock();
+      let inside: TxRecord | undefined;
+      let failed: TxRecord | undefined;
+      lock.onWriteError(async (_error, tx) => {
+        failed = tx;
+      });
+
+      await expect(
+        lock.write(async () => {
+          inside = lock.currentTx();
+          throw new Error('fail');
+        }),
+      ).rejects.toThrow('fail');
+
+      expect(failed).toBeDefined();
+      expect(failed).toBe(inside);
+    });
+
+    it('is gone after release, also for leaked continuations', async () => {
+      const lock = new RWLock();
+      const leaked = deferred<TxRecord | undefined>();
+
+      await lock.write(async () => {
+        setTimeout(() => leaked.resolve(lock.currentTx()), 0);
+      });
+
+      expect(lock.currentTx()).toBeUndefined();
+      expect(await leaked.promise).toBeUndefined();
     });
   });
 });

@@ -12,12 +12,18 @@
 */
 
 import { AsyncLocalStorage } from 'node:async_hooks';
-import { runWithDefaultCommitMessage } from './commit-context.js';
+import {
+  getCommitContext,
+  runWithDefaultCommitMessage,
+} from './commit-context.js';
 import { getChildLogger } from './log-utils.js';
+import { createTxRecord, type TxRecord } from './tx-record.js';
 
 interface LockContext {
   mode: 'read' | 'write';
   active: boolean;
+  /** Record of the outermost write; shared by the writes nested in it. */
+  tx?: TxRecord;
 }
 
 /**
@@ -29,6 +35,7 @@ interface LockContext {
  * - Reentrancy via AsyncLocalStorage: nested lock calls within the same
  *   async context are no-ops.
  * - After-write hooks fire after the outermost write completes successfully.
+ * - The outermost write creates a TxRecord; the hooks receive it.
  */
 export class RWLock {
   private readers = 0;
@@ -36,8 +43,9 @@ export class RWLock {
   private readerQueue: (() => void)[] = [];
   private writerQueue: (() => void)[] = [];
   private context = new AsyncLocalStorage<LockContext>();
-  private afterWriteHooks: (() => Promise<void>)[] = [];
-  private writeErrorHooks: ((error: unknown) => Promise<void>)[] = [];
+  private afterWriteHooks: ((tx: TxRecord) => Promise<void>)[] = [];
+  private writeErrorHooks: ((error: unknown, tx: TxRecord) => Promise<void>)[] =
+    [];
   private readonly logger;
 
   constructor(private readonly name: string = 'RWLock') {
@@ -48,7 +56,7 @@ export class RWLock {
    * Register a callback that fires after the outermost write completes
    * successfully. Hooks run while still holding the write lock.
    */
-  onAfterWrite(hook: () => Promise<void>): void {
+  onAfterWrite(hook: (tx: TxRecord) => Promise<void>): void {
     this.afterWriteHooks.push(hook);
   }
 
@@ -56,8 +64,14 @@ export class RWLock {
    * Register a callback that fires when the outermost write fails.
    * Hooks run while still holding the write lock.
    */
-  onWriteError(hook: (error: unknown) => Promise<void>): void {
+  onWriteError(hook: (error: unknown, tx: TxRecord) => Promise<void>): void {
     this.writeErrorHooks.push(hook);
+  }
+
+  /** Record of the write being run in this async context, if any. */
+  currentTx(): TxRecord | undefined {
+    const current = this.context.getStore();
+    return current?.active ? current.tx : undefined;
   }
 
   /**
@@ -94,18 +108,19 @@ export class RWLock {
     }
 
     await this.acquireWrite();
-    const ctx: LockContext = { mode: 'write', active: true };
+    const tx = createTxRecord(getCommitContext());
+    const ctx: LockContext = { mode: 'write', active: true, tx };
     try {
       const result = await this.context.run(ctx, fn);
       // Fire after-write hooks while still holding the lock
       for (const hook of this.afterWriteHooks) {
-        await this.context.run(ctx, hook);
+        await this.context.run(ctx, () => hook(tx));
       }
       return result;
     } catch (error) {
       // Run rollback hooks on error (outermost write only)
       for (const hook of this.writeErrorHooks) {
-        await this.context.run(ctx, () => hook(error));
+        await this.context.run(ctx, () => hook(error, tx));
       }
       throw error;
     } finally {
