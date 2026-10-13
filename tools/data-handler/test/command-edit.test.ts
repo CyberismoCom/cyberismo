@@ -5,8 +5,6 @@ import { mkdirSync, rmSync, readFileSync, writeFileSync } from 'node:fs';
 import { copyDir } from '../src/utils/file-utils.js';
 import { resourceName } from '../src/utils/resource-utils.js';
 import { type Workspace } from '../src/workspace/workspace.js';
-import { type Edit } from '../src/commands/index.js';
-import { CardNotFoundError } from '../src/exceptions/index.js';
 import type { Card } from '@cyberismo/model';
 import { openTestWorkspace } from './helpers/open-test-workspace.js';
 import { findCard } from '../src/cards/read.js';
@@ -16,13 +14,11 @@ describe('edit card', () => {
   const testDir = join(baseDir, 'tmp-edit-tests');
   const decisionRecordsPath = join(testDir, 'valid/decision-records');
   let ws: Workspace;
-  let editCmd: Edit;
 
   beforeAll(async () => {
     mkdirSync(testDir, { recursive: true });
     await copyDir('test/test-data/', testDir);
     ws = await openTestWorkspace(decisionRecordsPath, {});
-    editCmd = ws.editCmd;
   });
 
   afterAll(() => {
@@ -66,13 +62,6 @@ describe('edit card', () => {
     ).rejects.toThrow();
   });
 
-  it('try to edit card from CLI - no project', async () => {
-    const cards = ws.checkout.cardTree.cards();
-    const firstCard = cards.at(0) as Card;
-    await expect(editCmd.editCard(firstCard.key + 1)).rejects.toThrow(
-      CardNotFoundError,
-    );
-  });
   it('edit card metadata (success)', async () => {
     const cards = ws.checkout.cardTree.cards();
     const firstCard = cards.at(0) as Card;

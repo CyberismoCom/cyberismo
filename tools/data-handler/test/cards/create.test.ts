@@ -207,10 +207,16 @@ describe('cards.addToTemplate', () => {
         c.addToTemplate('mod/cardTypes/page', 'mod/templates/mt'),
       /imported|read-only/i,
     ],
+    [
+      'a parent card from an imported template',
+      (c: Workspace['cards'], t: Record<string, string[]>) =>
+        c.addToTemplate('test/cardTypes/page', tpl, t['mod/templates/mt'][0]),
+      /is not part of template 'test\/templates\/tpl'/,
+    ],
   ])('refuses %s', async (_name, operation, error) => {
-    const { cards, path } = await open(spec);
+    const { cards, path, templateKeys } = await open(spec);
 
-    await expectRefused(path, () => operation(cards), error);
+    await expectRefused(path, () => operation(cards, templateKeys), error);
   });
 });
 

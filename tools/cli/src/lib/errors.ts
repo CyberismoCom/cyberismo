@@ -11,10 +11,15 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { DomainError } from '@cyberismo/data-handler';
+import {
+  DomainError,
+  type AllCommandOptions,
+  type Workspace,
+} from '@cyberismo/data-handler';
 import type { ErrorCode } from '@cyberismo/model';
 
 import { program } from './dispatch.js';
+import { openWorkspace } from './open.js';
 
 // Shown when a failure carries no message of its own.
 export const GENERIC_FAILURE_MESSAGE = 'Command failed';
@@ -51,4 +56,16 @@ export function failWith(error: unknown): never {
     return fail(error.message, exitCodeFor(error.code));
   }
   return fail(error instanceof Error ? error.message : String(error));
+}
+
+// Runs an operation on the command's project; a failure exits with its code.
+export async function onProject<T>(
+  options: AllCommandOptions,
+  operation: (ws: Workspace) => Promise<T>,
+): Promise<T> {
+  try {
+    return await operation(await openWorkspace(options));
+  } catch (error) {
+    return failWith(error);
+  }
 }

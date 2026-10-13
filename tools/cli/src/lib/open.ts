@@ -16,7 +16,9 @@ import { join, resolve } from 'node:path';
 import {
   openCheckout,
   SYSTEM_ACTOR,
+  Validate,
   Workspace,
+  type AllCommandOptions,
   type Checkout,
   type CommitIdentity,
   type WorkspaceOptions,
@@ -111,4 +113,29 @@ export async function openProject(
   }
   const { actor, identity } = await gitAuthor(projectPath);
   return Workspace.over(checkout, actor, identity);
+}
+
+// The handle for a command's project; refuses a path the way the dispatcher does.
+export async function openWorkspace(
+  options: AllCommandOptions,
+): Promise<Workspace> {
+  const path = options.projectPath || '';
+  const projectPath = resolveTilde(projectRoot(options));
+  if (!Validate.validateFolder(projectPath)) {
+    const errorMessage =
+      path === '' || path === undefined
+        ? `No 'cardRoot' in the current folder`
+        : `Input validation error: folder name '${path}' is invalid`;
+    throw new Error(errorMessage);
+  }
+
+  if (!pathExists(projectPath)) {
+    throw new Error(`Input validation error: cannot find project '${path}'`);
+  }
+  return openProject({
+    projectPath,
+    logLevel: options.logLevel,
+    autocommit: options.autocommit,
+    autopush: options.autopush,
+  });
 }

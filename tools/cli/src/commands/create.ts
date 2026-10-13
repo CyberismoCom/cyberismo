@@ -18,7 +18,8 @@ import { Cmd, type CommandOptions, validBumps } from '@cyberismo/data-handler';
 
 import { CommandGroup, nameGuideline } from '../lib/args.js';
 import { commandHandler } from '../lib/dispatch.js';
-import { handleResponse } from '../lib/output.js';
+import { onProject } from '../lib/errors.js';
+import { handleResponse, printResult } from '../lib/output.js';
 import { checkbox } from '../lib/prompts.js';
 import { importableModules } from './module.js';
 
@@ -40,12 +41,10 @@ export function registerCreate(program: Command) {
         filename: string,
         options: CommandOptions<'create'>,
       ) => {
-        const result = await commandHandler.command(
-          Cmd.create,
-          ['attachment', cardKey, filename],
-          Object.assign({}, options, program.opts()),
+        await onProject(Object.assign({}, options, program.opts()), (ws) =>
+          ws.cards.addAttachment(cardKey, filename),
         );
-        handleResponse(result);
+        printResult();
       },
     );
 
@@ -67,12 +66,17 @@ export function registerCreate(program: Command) {
         parentCardKey: string | undefined,
         options: CommandOptions<'create'>,
       ) => {
-        const result = await commandHandler.command(
-          Cmd.create,
-          ['card', template, parentCardKey].filter(Boolean) as string[],
+        // Empty arguments are dropped, shifting the rest left, as ever.
+        const [templateName, parent] = [template, parentCardKey].filter(
+          Boolean,
+        ) as string[];
+        const createdCards = await onProject(
           Object.assign({}, options, program.opts()),
+          (ws) => ws.cards.create(templateName, parent),
         );
-        handleResponse(result);
+        printResult(
+          `Created cards ${JSON.stringify(createdCards.map((card) => card.key))}`,
+        );
       },
     );
 
@@ -178,12 +182,10 @@ export function registerCreate(program: Command) {
         labelName: string,
         options: CommandOptions<'create'>,
       ) => {
-        const result = await commandHandler.command(
-          Cmd.create,
-          ['label', cardKey, labelName],
-          Object.assign({}, options, program.opts()),
+        await onProject(Object.assign({}, options, program.opts()), (ws) =>
+          ws.cards.addLabel(cardKey, labelName),
         );
-        handleResponse(result);
+        printResult();
       },
     );
 
@@ -213,14 +215,17 @@ export function registerCreate(program: Command) {
         description: string | undefined,
         options: CommandOptions<'create'>,
       ) => {
-        const result = await commandHandler.command(
-          Cmd.create,
-          ['link', source, destination, linkType, description].filter(
-            Boolean,
-          ) as string[],
-          Object.assign({}, options, program.opts()),
+        // Empty arguments are dropped, shifting the rest left, as ever.
+        const [from, to, type, linkDescription] = [
+          source,
+          destination,
+          linkType,
+          description,
+        ].filter(Boolean) as string[];
+        await onProject(Object.assign({}, options, program.opts()), (ws) =>
+          ws.cards.addLink(from, to, type, linkDescription),
         );
-        handleResponse(result);
+        printResult();
       },
     );
 
