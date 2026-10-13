@@ -22,6 +22,7 @@ import { resourceName } from '../src/utils/resource-utils.js';
 
 const fixture = join(import.meta.dirname, 'test-data/valid/decision-records');
 const author = { name: 'Writer', email: 'writer@example.com' };
+const actor = { kind: 'user', id: 'writer', name: 'Writer' } as const;
 
 // Each outermost write under autocommit makes exactly one commit of its own.
 describe('autocommit', () => {
@@ -97,7 +98,7 @@ describe('autocommit', () => {
     const setupResult = setup ? await setup() : '';
     const before = (await git.log()).total;
 
-    await cm.runAsAuthor(author, () => write(setupResult));
+    await cm.runAsAuthor(author, () => write(setupResult), actor);
 
     const log = await git.log();
     expect(log.total).toBe(before + 1);
