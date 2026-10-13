@@ -1,19 +1,15 @@
 import { expect, it, describe, beforeEach, afterEach } from 'vitest';
-import { mkdirSync, rmSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, rmSync } from 'node:fs';
 import { readFile, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import { InstallSkills } from '../src/install-skills/install-skills.js';
 
-const testDir = join(tmpdir(), `cyberismo-install-skills-tests-${process.pid}`);
-
-const skillPath = join(
-  testDir,
-  '.claude/skills/dynamic-skill-discovery/SKILL.md',
-);
-const mcpPath = join(testDir, '.mcp.json');
-const claudeMdPath = join(testDir, 'CLAUDE.md');
+let testDir: string;
+let skillPath: string;
+let mcpPath: string;
+let claudeMdPath: string;
 
 async function readMcp(): Promise<{
   mcpServers?: Record<string, { type?: string; url?: string }>;
@@ -24,8 +20,13 @@ async function readMcp(): Promise<{
 
 describe('install-skills command', () => {
   beforeEach(() => {
-    rmSync(testDir, { recursive: true, force: true });
-    mkdirSync(testDir, { recursive: true });
+    testDir = mkdtempSync(join(tmpdir(), 'cyberismo-install-skills-'));
+    skillPath = join(
+      testDir,
+      '.claude/skills/dynamic-skill-discovery/SKILL.md',
+    );
+    mcpPath = join(testDir, '.mcp.json');
+    claudeMdPath = join(testDir, 'CLAUDE.md');
   });
   afterEach(() => {
     rmSync(testDir, { recursive: true, force: true });
