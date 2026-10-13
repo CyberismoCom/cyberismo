@@ -71,11 +71,11 @@ export async function updateCard(
       }
     }
     if (body.parent) {
-      await ws.moveCmd.moveCard(key, body.parent);
+      await ws.cards.move(key, body.parent);
       written = true;
     }
     if (body.index != null) {
-      await ws.moveCmd.rankByIndex(key, body.index);
+      await ws.cards.rankAt(key, body.index);
       written = true;
     }
   }, `Update card ${key}`);

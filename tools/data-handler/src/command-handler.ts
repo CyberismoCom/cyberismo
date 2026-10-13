@@ -388,7 +388,7 @@ export class Commands {
         return await this.migrate();
       } else if (command === Cmd.move) {
         const [source, destination] = args;
-        await this.ws?.moveCmd.moveCard(source, destination);
+        await this.ws?.cards.move(source, destination);
       } else if (command === Cmd.publish) {
         return this.publish(args);
       } else if (command === Cmd.version) {
@@ -398,16 +398,16 @@ export class Commands {
         if (target === 'card') {
           const [card, before] = args;
           if (before === 'first') {
-            await this.ws?.moveCmd.rankFirst(card);
+            await this.ws?.cards.rankFirst(card);
           } else {
-            await this.ws?.moveCmd.rankCard(card, before);
+            await this.ws?.cards.rank(card, before);
           }
         } else if (target === 'rebalance') {
           const [cardKey] = args;
           if (cardKey) {
-            await this.ws?.moveCmd.rebalanceChildren(cardKey);
+            await this.ws?.cards.rebalance(cardKey);
           } else {
-            await this.ws?.moveCmd.rebalanceProject();
+            await this.ws?.cards.rebalanceAll();
           }
         }
       } else if (command === Cmd.remove) {

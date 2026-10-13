@@ -19,7 +19,6 @@ import { Export } from './export.js';
 import { Fetch } from './fetch.js';
 import { Import } from './import.js';
 import { Modules } from './modules.js';
-import { Move } from './move.js';
 import { Publish } from './publish.js';
 import { Remove } from './remove.js';
 import { Rename } from './rename.js';
@@ -38,7 +37,6 @@ export {
   Fetch,
   Import,
   Modules,
-  Move,
   Publish,
   Remove,
   Rename,

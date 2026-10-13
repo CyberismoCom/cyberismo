@@ -19,7 +19,6 @@ import { Export } from '../commands/export.js';
 import { Fetch } from '../commands/fetch.js';
 import { Import } from '../commands/import.js';
 import { Modules } from '../commands/modules.js';
-import { Move } from '../commands/move.js';
 import { Publish } from '../commands/publish.js';
 import { Remove } from '../commands/remove.js';
 import { Rename } from '../commands/rename.js';
@@ -43,7 +42,6 @@ export class SharedCommands {
   public fetchCmd: Fetch;
   public importCmd: Import;
   public modulesCmd: Modules;
-  public moveCmd: Move;
   public publishCmd: Publish;
   public removeCmd: Remove;
   public renameCmd: Rename;
@@ -65,7 +63,6 @@ export class SharedCommands {
     this.editCmd = new Edit(checkout);
     this.exportCmd = new Export(checkout, this.showCmd);
     this.importCmd = new Import(checkout, this.createCmd);
-    this.moveCmd = new Move(checkout);
     this.publishCmd = new Publish(checkout);
     this.removeCmd = new Remove(checkout, this.fetchCmd, this.modulesCmd);
     this.renameCmd = new Rename(checkout);
