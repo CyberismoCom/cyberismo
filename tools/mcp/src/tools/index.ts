@@ -106,7 +106,7 @@ export function registerTools(
     async ({ projectPrefix, cardKey, content }, extra) => {
       try {
         const ws = resolveCommands(provider, projectPrefix, extra, server);
-        await ws.editCmd.editCardContent(cardKey, content);
+        await ws.cards.edit(cardKey, content);
         return toolResult({ cardKey });
       } catch (error) {
         return toolError('editing content', error);
@@ -138,7 +138,7 @@ export function registerTools(
     async ({ projectPrefix, cardKey, field, value }, extra) => {
       try {
         const ws = resolveCommands(provider, projectPrefix, extra, server);
-        await ws.editCmd.editCardMetadata(cardKey, field, value);
+        await ws.cards.editField(cardKey, field, value);
         return toolResult({ cardKey, field, value });
       } catch (error) {
         return toolError('editing metadata', error);
@@ -161,7 +161,7 @@ export function registerTools(
     async ({ projectPrefix, cardKey, transition }, extra) => {
       try {
         const ws = resolveCommands(provider, projectPrefix, extra, server);
-        await ws.transitionCmd.cardTransition(cardKey, transition);
+        await ws.cards.transition(cardKey, transition);
         return toolResult({ cardKey, transition });
       } catch (error) {
         return toolError('transitioning card', error);
@@ -215,7 +215,7 @@ export function registerTools(
     ) => {
       try {
         const ws = resolveCommands(provider, projectPrefix, extra, server);
-        await ws.createCmd.createLink(
+        await ws.cards.addLink(
           sourceKey,
           destinationKey,
           linkType,
@@ -242,7 +242,7 @@ export function registerTools(
     async ({ projectPrefix, sourceKey, destinationKey, linkType }, extra) => {
       try {
         const ws = resolveCommands(provider, projectPrefix, extra, server);
-        await ws.removeCmd.remove('link', sourceKey, destinationKey, linkType);
+        await ws.cards.removeLink(sourceKey, destinationKey, linkType);
         return toolResult({ sourceKey, destinationKey, linkType });
       } catch (error) {
         return toolError('removing link', error);
@@ -265,7 +265,7 @@ export function registerTools(
       try {
         const ws = resolveCommands(provider, projectPrefix, extra, server);
         const buffer = Buffer.from(content, 'base64');
-        await ws.createCmd.createAttachment(cardKey, filename, buffer);
+        await ws.cards.addAttachment(cardKey, filename, buffer);
         return toolResult({ cardKey, filename });
       } catch (error) {
         return toolError('creating attachment', error);
@@ -285,7 +285,7 @@ export function registerTools(
     async ({ projectPrefix, cardKey }, extra) => {
       try {
         const ws = resolveCommands(provider, projectPrefix, extra, server);
-        await ws.removeCmd.remove('card', cardKey);
+        await ws.cards.remove(cardKey);
         return toolResult({ removed: cardKey });
       } catch (error) {
         return toolError('removing card', error);
@@ -306,7 +306,7 @@ export function registerTools(
     async ({ projectPrefix, cardKey, label }, extra) => {
       try {
         const ws = resolveCommands(provider, projectPrefix, extra, server);
-        await ws.createCmd.createLabel(cardKey, label);
+        await ws.cards.addLabel(cardKey, label);
         return toolResult({ cardKey, label });
       } catch (error) {
         return toolError('creating label', error);
@@ -327,7 +327,7 @@ export function registerTools(
     async ({ projectPrefix, cardKey, label }, extra) => {
       try {
         const ws = resolveCommands(provider, projectPrefix, extra, server);
-        await ws.removeCmd.remove('label', cardKey, label);
+        await ws.cards.removeLabel(cardKey, label);
         return toolResult({ cardKey, label });
       } catch (error) {
         return toolError('removing label', error);
@@ -517,7 +517,7 @@ export function registerTools(
     async ({ projectPrefix, cardKey, filename }, extra) => {
       try {
         const ws = resolveCommands(provider, projectPrefix, extra, server);
-        await ws.removeCmd.remove('attachment', cardKey, filename);
+        await ws.cards.removeAttachment(cardKey, filename);
         return toolResult({ cardKey, filename });
       } catch (error) {
         return toolError('removing attachment', error);

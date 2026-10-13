@@ -10,12 +10,12 @@ import {
 } from 'vitest';
 
 // node
-import { mkdirSync, rmSync } from 'node:fs';
+import { chmodSync, mkdirSync, readFileSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 
 // cyberismo
 import { Cmd } from '../src/command-handler.js';
-import { Checkout } from '../src/containers/project.js';
+import type { Workspace } from '../src/workspace/workspace.js';
 import {
   cardState,
   setupSideEffectProject,
@@ -81,15 +81,26 @@ describe('transition side effects', () => {
     // the whole write+query chain, so a failed metadata write was silently
     // dropped and the command reported success anyway.
     const { commands, options } = await setup('write-failure', '% no facts');
-    vi.spyOn(Checkout.prototype, 'updateCardMetadata').mockRejectedValueOnce(
-      new Error('disk full'),
+    // A read-only metadata file makes the state write fail.
+    const file = join(
+      options.projectPath,
+      'cardRoot',
+      'decision_5',
+      'index.json',
     );
-    const result = await commands.command(
-      Cmd.transition,
-      ['decision_5', 'Approve'],
-      options,
-    );
-    expect(result.statusCode).not.toBe(200);
+    const before = readFileSync(file, 'utf-8');
+    chmodSync(file, 0o444);
+    try {
+      const result = await commands.command(
+        Cmd.transition,
+        ['decision_5', 'Approve'],
+        options,
+      );
+      expect(result.statusCode).not.toBe(200);
+      expect(readFileSync(file, 'utf-8')).toBe(before);
+    } finally {
+      chmodSync(file, 0o644);
+    }
   });
 
   it('cascades through a chain, allowing two different transitions on one card', async () => {
@@ -134,7 +145,14 @@ describe('transition side effects', () => {
       'cycle-self',
       'onTransitionExecuteTransition(decision_6, "Reject", decision_6, "Reject").',
     );
-    const perform = vi.spyOn(Checkout.prototype, 'performTransition');
+    // Open the project, then count the metadata writes of the looping card.
+    await state(commands, options, 'decision_6');
+    const writes = vi.spyOn(
+      (commands as unknown as { ws: Workspace }).ws.checkout.treeOf(
+        'decision_6',
+      ),
+      'writeMetadata',
+    );
     const result = await commands.command(
       Cmd.transition,
       ['decision_6', 'Reject'],
@@ -144,7 +162,7 @@ describe('transition side effects', () => {
     expect(await state(commands, options, 'decision_6')).toBe('Rejected');
     // The self-loop side effect must be deduped by the visited set before
     // it's ever invoked, not executed and merely converged to the same state.
-    expect(perform).toHaveBeenCalledTimes(1);
+    expect(writes).toHaveBeenCalledTimes(1);
   });
 
   it('skips a side effect filtered out by transitionDenied', async () => {

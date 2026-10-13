@@ -15,6 +15,7 @@
 import type { MutationContext } from '../handler.js';
 import { ResourcesFrom } from '../../containers/project/resources-from.js';
 import type { Card, Operation } from '@cyberismo/model';
+import { deleteCards } from '../../cards/delete.js';
 
 // Cards using this card type: local project cards plus local template cards.
 function affectedCards(ctx: MutationContext, cardTypeName: string): Card[] {
@@ -55,7 +56,7 @@ export async function deleteCardTypeCascade(
   // 2. Delete every local card of this type, along with their subtrees and any
   //    links pointing at them. deleteCards handles the cascade; no per-card
   //    permission check applies to a structural cardType deletion.
-  await ctx.checkout.deleteCards(affectedCards(ctx, cardTypeName));
+  await deleteCards(ctx.checkout, affectedCards(ctx, cardTypeName));
 }
 
 /**

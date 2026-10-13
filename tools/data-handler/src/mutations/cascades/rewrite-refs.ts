@@ -16,6 +16,7 @@ import { ResourcesFrom } from '../../containers/project/resources-from.js';
 import { filename } from '@cyberismo/model';
 
 import type { Checkout } from '../../containers/project.js';
+import { updateCardContent } from '../../cards/update.js';
 
 /**
  * Update the content files of every local folder resource (calculations,
@@ -95,7 +96,7 @@ export async function rewriteCardContentRefs(
     cardsToUpdate.map(async (card) => {
       if (card.content) {
         const updatedContent = card.content.replaceAll(from, to);
-        await checkout.updateCardContent(card.key, updatedContent);
+        await updateCardContent(checkout, card.key, updatedContent);
       }
     }),
   );

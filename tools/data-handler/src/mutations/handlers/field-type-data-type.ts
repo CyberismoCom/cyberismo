@@ -17,6 +17,7 @@ import type { EditInput } from '../types.js';
 import { resourceNameToString } from '../../utils/resource-utils.js';
 import { fromDate, fromNumber, fromString } from '../../utils/value-utils.js';
 import type { Card, MetadataContent, DataType } from '@cyberismo/model';
+import { updateCardMetadata } from '../../cards/update.js';
 
 const SHORT_TEXT_MAX_LENGTH = 80;
 
@@ -61,7 +62,7 @@ export class FieldTypeDataTypeHandler implements Handler<EditInput> {
         // Conversion indeterminate — leave the card untouched.
         if (converted === null || converted === undefined) continue;
         metadata[fieldName] = converted as MetadataContent;
-        await ctx.checkout.updateCardMetadata(card, metadata);
+        await updateCardMetadata(ctx.checkout, card, metadata);
       } catch (error) {
         console.error(
           `In card '${card.key}': ${error instanceof Error ? error.message : String(error)}`,
