@@ -62,7 +62,6 @@ const TABLE: [string, string, unknown[], unknown, string][] = [
     'Done',
   ],
   ['create link a b t d', 'addLink', ['a', 'b', 't', 'd'], undefined, 'Done'],
-  ['create attachment a f', 'addAttachment', ['a', 'f'], undefined, 'Done'],
   [
     'create card tpl',
     'create',
@@ -176,6 +175,42 @@ describe('card commands', () => {
       stdout: '',
       stderr: `${error.message}\n`,
     });
+  });
+});
+
+describe('create attachment', () => {
+  it("passes the file's bytes under its path", async () => {
+    const file = join(home, 'note.txt');
+    writeFileSync(file, 'bytes');
+    ws.cards.addAttachment = vi.fn(async () => undefined);
+
+    expect(await cli(`create attachment a ${file}`)).toBe(0);
+    expect(ws.cards.addAttachment).toHaveBeenCalledExactlyOnceWith(
+      'a',
+      file,
+      Buffer.from('bytes'),
+    );
+    expect(stdout).toBe('Done\n');
+  });
+
+  it('fails with the error of addAttachment', async () => {
+    const file = join(home, 'note.txt');
+    writeFileSync(file, 'bytes');
+    const error = new CardNotFoundError('a');
+    ws.cards.addAttachment = vi.fn(async () => {
+      throw error;
+    });
+    expect(await cli(`create attachment a ${file}`)).toBe(1);
+    expect(stderr).toBe(`${error.message}\n`);
+  });
+
+  it('refuses a file it cannot read', async () => {
+    const file = join(home, 'nope.txt');
+    ws.cards.addAttachment = vi.fn();
+
+    expect(await cli(`create attachment a ${file}`)).toBe(1);
+    expect(stderr).toBe(`Attachment file not found: ${file}\n`);
+    expect(ws.cards.addAttachment).not.toHaveBeenCalled();
   });
 });
 
