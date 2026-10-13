@@ -14,5 +14,5 @@
 import type { Workspace } from '@cyberismo/data-handler';
 
 export async function createReport(ws: Workspace, reportName: string) {
-  await ws.createCmd.createReport(reportName);
+  await ws.resources.create(reportName, 'reports', {});
 }

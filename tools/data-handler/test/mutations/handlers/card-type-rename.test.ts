@@ -29,7 +29,7 @@ describe('CardTypeRenameHandler', () => {
   it('rewrites cardType in every affected card after apply', async () => {
     const oldName = `${checkout.projectPrefix}/cardTypes/decision`;
     const newName = `${checkout.projectPrefix}/cardTypes/choice`;
-    await Workspace.over(checkout, SYSTEM_ACTOR).updateCmd.apply({
+    await Workspace.over(checkout, SYSTEM_ACTOR).changes.apply({
       kind: 'rename' as const,
       target: resourceName(oldName),
       newIdentifier: 'choice',
@@ -45,7 +45,7 @@ describe('CardTypeRenameHandler', () => {
 
   it('rewrites occurrences in link-type sourceCardTypes/destinationCardTypes', async () => {
     const oldName = `${checkout.projectPrefix}/cardTypes/decision`;
-    await Workspace.over(checkout, SYSTEM_ACTOR).updateCmd.apply({
+    await Workspace.over(checkout, SYSTEM_ACTOR).changes.apply({
       kind: 'rename' as const,
       target: resourceName(oldName),
       newIdentifier: 'choice',
@@ -113,7 +113,7 @@ describe('CardTypeRenameHandler module scope', () => {
 
   it('rejects a module card-type rename before rewriting local card metadata', async () => {
     await expect(
-      Workspace.over(moduleProject, SYSTEM_ACTOR).updateCmd.apply({
+      Workspace.over(moduleProject, SYSTEM_ACTOR).changes.apply({
         kind: 'rename' as const,
         target: resourceName('mymod/cardTypes/dummy'),
         newIdentifier: 'renamed',

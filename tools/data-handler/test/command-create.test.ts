@@ -284,6 +284,18 @@ describe('create command', () => {
     expect(result.statusCode).toBe(400);
   });
 
+  it('linkType with a dotted name fails and creates nothing', async () => {
+    const before = await countOfResources(['linkTypes'], optionsMini);
+    const result = await commandHandler.command(
+      Cmd.create,
+      ['linkType', 'a.b.c'],
+      optionsMini,
+    );
+    expect(result.statusCode).toBe(400);
+    expect(result.message).toContain('ENOENT');
+    expect(await countOfResources(['linkTypes'], optionsMini)).toBe(before);
+  });
+
   // project
   it('project (success)', async () => {
     const prefix = 'proj';

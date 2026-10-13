@@ -81,7 +81,7 @@ describe('FieldTypeEnumRemoveHandler', () => {
   });
 
   it('removes the value from the field definition', async () => {
-    await Workspace.over(checkout, SYSTEM_ACTOR).updateCmd.apply({
+    await Workspace.over(checkout, SYSTEM_ACTOR).changes.apply({
       kind: 'edit' as const,
       target: resourceName(fieldName()),
       updateKey: { key: 'enumValues' as const },
@@ -93,7 +93,7 @@ describe('FieldTypeEnumRemoveHandler', () => {
   });
 
   it('rewrites card values when a replacementValue is provided', async () => {
-    await Workspace.over(checkout, SYSTEM_ACTOR).updateCmd.apply({
+    await Workspace.over(checkout, SYSTEM_ACTOR).changes.apply({
       kind: 'edit' as const,
       target: resourceName(fieldName()),
       updateKey: { key: 'enumValues' as const },
@@ -142,7 +142,7 @@ describe('FieldTypeEnumRemoveHandler', () => {
   });
 
   it('leaves card values untouched when no replacement is given', async () => {
-    await Workspace.over(checkout, SYSTEM_ACTOR).updateCmd.apply({
+    await Workspace.over(checkout, SYSTEM_ACTOR).changes.apply({
       kind: 'edit' as const,
       target: resourceName(fieldName()),
       updateKey: { key: 'enumValues' as const },

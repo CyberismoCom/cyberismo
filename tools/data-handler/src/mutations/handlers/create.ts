@@ -1,0 +1,70 @@
+/**
+  Cyberismo
+  Copyright © Cyberismo Ltd and contributors 2026
+
+  This program is free software: you can redistribute it and/or modify it under
+  the terms of the GNU Affero General Public License version 3 as published by
+  the Free Software Foundation. This program is distributed in the hope that it
+  will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty
+  of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+  See the GNU Affero General Public License for more details.
+  You should have received a copy of the GNU Affero General Public
+  License along with this program. If not, see <https://www.gnu.org/licenses/>.
+*/
+
+import type { CreateParamsByType } from '@cyberismo/model';
+import type { Handler, MutationContext } from '../handler.js';
+import type { CreateInput } from '../types.js';
+
+export class CreateHandler implements Handler<CreateInput> {
+  async apply(ctx: MutationContext<CreateInput>): Promise<void> {
+    const { target } = ctx.input;
+    const resources = ctx.checkout.resources;
+    switch (target.type) {
+      case 'calculations': {
+        const { content } = params<'calculations'>(ctx);
+        return resources.byType<'calculations'>(target).create(content);
+      }
+      case 'cardTypes': {
+        const { workflow } = params<'cardTypes'>(ctx);
+        return resources.byType<'cardTypes'>(target).createCardType(workflow);
+      }
+      case 'fieldTypes': {
+        const { dataType } = params<'fieldTypes'>(ctx);
+        return resources.byType<'fieldTypes'>(target).createFieldType(dataType);
+      }
+      case 'graphModels': {
+        const { content } = params<'graphModels'>(ctx);
+        return resources.byType<'graphModels'>(target).create(content);
+      }
+      case 'graphViews':
+        return resources.byType<'graphViews'>(target).create();
+      case 'linkTypes': {
+        const { content } = params<'linkTypes'>(ctx);
+        return resources.byType<'linkTypes'>(target).create(content);
+      }
+      case 'reports':
+        return resources.byType<'reports'>(target).createReport();
+      case 'skills':
+        return resources.byType<'skills'>(target).createSkill();
+      case 'templates': {
+        const { content } = params<'templates'>(ctx);
+        return resources.byType<'templates'>(target).create(content);
+      }
+      case 'workflows': {
+        const { content } = params<'workflows'>(ctx);
+        return resources.byType<'workflows'>(target).create(content);
+      }
+    }
+    throw new Error(`Cannot create resources of type '${target.type}'`);
+  }
+
+  async applyCascade(): Promise<void> {}
+}
+
+// The route guarantees the params match the target's type.
+function params<T extends keyof CreateParamsByType>(
+  ctx: MutationContext<CreateInput>,
+): CreateParamsByType[T] {
+  return ctx.input.params as CreateParamsByType[T];
+}

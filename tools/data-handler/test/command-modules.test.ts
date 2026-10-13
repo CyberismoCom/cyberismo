@@ -809,10 +809,9 @@ describe('module update — spec behaviours', () => {
     const ws = await openTestWorkspace(projectDir, {});
     await ws.modulesCmd.install(moduleSource);
 
-    await ws.createCmd.createCardType(
-      `${prefix}/cardTypes/consumer`,
-      'decision/workflows/decision',
-    );
+    await ws.resources.create(`${prefix}/cardTypes/consumer`, 'cardTypes', {
+      workflow: 'decision/workflows/decision',
+    });
 
     const installedConfigPath = join(
       projectDir,
@@ -934,7 +933,7 @@ describe('module update — spec behaviours', () => {
 
     // A template card and a project card of the consumer type; the delete
     // cascade must remove the card type and both cards.
-    await ws.createCmd.createTemplate('rdel/templates/seed', '');
+    await ws.resources.create('rdel/templates/seed', 'templates', {});
     await ws.cards.addToTemplate(
       'rdel/cardTypes/consumer',
       'rdel/templates/seed',

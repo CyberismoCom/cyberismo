@@ -14,5 +14,5 @@
 import type { Workspace } from '@cyberismo/data-handler';
 
 export async function createWorkflow(ws: Workspace, workflowName: string) {
-  await ws.createCmd.createWorkflow(workflowName, '');
+  await ws.resources.create(workflowName, 'workflows', {});
 }

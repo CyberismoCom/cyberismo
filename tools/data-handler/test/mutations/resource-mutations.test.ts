@@ -36,7 +36,7 @@ describe('ResourceMutations.apply', () => {
       },
     };
     await expect(
-      Workspace.over(checkout, SYSTEM_ACTOR).updateCmd.apply(input),
+      Workspace.over(checkout, SYSTEM_ACTOR).changes.apply(input),
     ).resolves.toBeUndefined();
   });
 });

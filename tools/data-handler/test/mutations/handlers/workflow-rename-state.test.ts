@@ -71,7 +71,7 @@ describe('WorkflowRenameStateHandler', () => {
       .find((c) => c.metadata?.cardType === 'decision/cardTypes/decision')!;
     target.metadata!.workflowState = 'Draft';
     await updateCardMetadata(checkout, target, target.metadata!);
-    await Workspace.over(checkout, SYSTEM_ACTOR).updateCmd.apply({
+    await Workspace.over(checkout, SYSTEM_ACTOR).changes.apply({
       kind: 'edit',
       target: resourceName(WF),
       updateKey: { key: 'states' },
