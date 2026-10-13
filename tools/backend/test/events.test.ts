@@ -9,7 +9,7 @@ import {
   vi,
 } from 'vitest';
 import type { MockInstance } from 'vitest';
-import { type Workspace } from '@cyberismo/data-handler';
+import { type Checkout, type Workspace } from '@cyberismo/data-handler';
 import { X_HONO_DISABLE_SSG_HEADER_KEY } from 'hono/ssg';
 import type { SSEMessage } from 'hono/streaming';
 import { createApp } from '../src/app.js';
@@ -398,15 +398,15 @@ describe('presence bookkeeping', () => {
       events.dispose();
     }
 
-    const one = {} as Workspace;
-    const two = {} as Workspace;
+    const one = {} as Checkout;
+    const two = {} as Checkout;
     const projects = new ProjectRegistry();
     projects.add('one', one);
     projects.add('two', two);
     try {
       expect(projects.eventsFor(one)).toBe(projects.eventsFor(one));
       expect(projects.eventsFor(one)).not.toBe(projects.eventsFor(two));
-      expect(() => projects.eventsFor({} as Workspace)).toThrow();
+      expect(() => projects.eventsFor({} as Checkout)).toThrow();
     } finally {
       projects.eventsFor(one).dispose();
       projects.eventsFor(two).dispose();

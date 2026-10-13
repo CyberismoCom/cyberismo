@@ -207,3 +207,15 @@ export class WorkspaceDisposedError extends DomainError {
     this.name = 'WorkspaceDisposedError';
   }
 }
+
+/**
+ * Thrown when a write starts with no actor: every outermost write is opened
+ * by a workspace handle, or by internal code as the system.
+ */
+export class MissingActorError extends DomainError {
+  readonly code = 'internal';
+  constructor() {
+    super('A write must be opened with an actor');
+    this.name = 'MissingActorError';
+  }
+}

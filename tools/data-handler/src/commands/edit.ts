@@ -19,7 +19,7 @@ import { spawnSync } from 'node:child_process';
 import { ActionGuard } from '../permissions/action-guard.js';
 import { Checkout } from '../containers/project.js';
 import { UserPreferences } from '../utils/user-preferences.js';
-import { write } from '../utils/rw-lock.js';
+import { read, write } from '../utils/rw-lock.js';
 import { getChildLogger } from '../utils/log-utils.js';
 
 import type { Card, MetadataContent, CustomField } from '@cyberismo/model';
@@ -37,7 +37,8 @@ export class Edit {
    * Opens the content and metadata files for a card in the code editor
    * @param cardKey - The key of the card to open. Required.
    */
-  public editCard(cardKey: string) {
+  @read
+  public async editCard(cardKey: string) {
     const card = this.checkout.findCard(cardKey);
 
     // Read the user preferences
