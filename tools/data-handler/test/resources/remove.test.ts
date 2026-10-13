@@ -11,10 +11,13 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
+import { execFile } from 'node:child_process';
 import { existsSync } from 'node:fs';
+import { promisify } from 'node:util';
 import { describe, expect, it } from 'vitest';
 
 import { ResourceNotFoundError } from '../../src/exceptions/index.js';
+import { removeResource } from '../../src/utils/remove-resource.js';
 import {
   expectRefused,
   local,
@@ -55,19 +58,34 @@ describe('removing a resource', () => {
     ['skill', 'skills'],
     ['template', 'templates'],
     ['workflow', 'workflows'],
-  ] as const)(
-    'removes a %s by its bare identifier through the remove command',
-    async (singular, type) => {
-      const { ws } = await open(spec);
-      await ws.resources.create('x', type, newParams[type]);
+  ] as const)('removes a %s by its bare identifier', async (singular, type) => {
+    const { ws } = await open(spec);
+    await ws.resources.create('x', type, newParams[type]);
 
-      await ws.removeCmd.remove(singular, 'x');
+    await removeResource(ws, singular, 'x');
 
-      await expect(ws.resources.show(`test/${type}/x`)).rejects.toBeInstanceOf(
-        ResourceNotFoundError,
-      );
-    },
-  );
+    await expect(ws.resources.show(`test/${type}/x`)).rejects.toBeInstanceOf(
+      ResourceNotFoundError,
+    );
+  });
+
+  it('is one commit under autocommit, subject Remove <type> <name>', async () => {
+    const { ws, path } = await open(
+      { ...spec, git: true },
+      { autocommit: true },
+    );
+    await ws.resources.create('x', 'workflows', newParams.workflows);
+
+    await removeResource(ws, 'workflow', 'x');
+
+    expect(
+      (
+        await promisify(execFile)('git', ['log', '-1', '--format=%s'], {
+          cwd: path,
+        })
+      ).stdout.trim(),
+    ).toBe('Remove workflow x');
+  });
 
   it('refuses a type the remove command does not know, changing nothing', async () => {
     const { ws, path } = await open(spec);
