@@ -2722,7 +2722,7 @@ describe('resources', function () {
       let card = findCard(checkout, cardKey);
       expect(card.content).toContain(linkTypeName);
 
-      const update = Workspace.over(checkout, SYSTEM_ACTOR).updateCmd;
+      const update = Workspace.over(checkout, SYSTEM_ACTOR).changes;
       await update.apply({
         kind: 'edit',
         target: resourceName(linkTypeName),
@@ -2923,7 +2923,7 @@ describe('resources', function () {
       expect(card1.metadata?.links).to.have.lengthOf(1);
       expect(card1.metadata?.links[0].linkType).toBe(linkTypeName);
 
-      const update = Workspace.over(checkout, SYSTEM_ACTOR).updateCmd;
+      const update = Workspace.over(checkout, SYSTEM_ACTOR).changes;
       await update.apply({
         kind: 'rename',
         target: resourceName(linkTypeName),

@@ -152,9 +152,9 @@ const resourceNames = (type: string) => ws.showCmd.showResources(type);
 const resource = (name: string) => ws.showCmd.showResource(name);
 
 async function addLinkType(description = false) {
-  await ws.createCmd.createLinkType('related');
+  await ws.resources.create('related', 'linkTypes', {});
   if (description) {
-    await ws.updateCmd.apply({
+    await ws.changes.apply({
       kind: 'edit',
       target: resourceName('test/linkTypes/related'),
       updateKey: { key: 'enableLinkDescription' },

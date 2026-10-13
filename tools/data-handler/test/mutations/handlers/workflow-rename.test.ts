@@ -35,7 +35,7 @@ describe('WorkflowRenameHandler', () => {
   it('apply rewrites the workflow reference in dependent card types', async () => {
     const oldName = 'decision/workflows/decision';
     const newName = 'decision/workflows/decision-v2';
-    await Workspace.over(checkout, SYSTEM_ACTOR).updateCmd.apply({
+    await Workspace.over(checkout, SYSTEM_ACTOR).changes.apply({
       kind: 'rename',
       target: resourceName(oldName),
       newIdentifier: 'decision-v2',
@@ -60,7 +60,7 @@ describe('WorkflowRenameHandler', () => {
 
   it('throws when the workflow does not exist', async () => {
     await expect(
-      Workspace.over(checkout, SYSTEM_ACTOR).updateCmd.apply({
+      Workspace.over(checkout, SYSTEM_ACTOR).changes.apply({
         kind: 'rename',
         target: resourceName('decision/workflows/does-not-exist'),
         newIdentifier: 'whatever',

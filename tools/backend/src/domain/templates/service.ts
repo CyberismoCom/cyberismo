@@ -23,7 +23,7 @@ export async function getTemplatesWithDetails(ws: Workspace) {
 }
 
 export async function createTemplate(ws: Workspace, templateName: string) {
-  await ws.createCmd.createTemplate(templateName, '');
+  await ws.resources.create(templateName, 'templates', {});
 }
 
 export async function addTemplateCard(

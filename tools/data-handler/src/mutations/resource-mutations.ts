@@ -39,8 +39,31 @@ function normalized(input: MutationInput): MutationInput {
   return input;
 }
 
+const createLabels: Record<string, string> = {
+  calculations: 'calculation',
+  cardTypes: 'card type',
+  fieldTypes: 'field type',
+  graphModels: 'graph model',
+  graphViews: 'graph view',
+  linkTypes: 'link type',
+  reports: 'report',
+  skills: 'skill',
+  templates: 'template',
+  workflows: 'workflow',
+};
+
+/** Commit subject of creating `name`, a resource of `type`. */
+export function createSubject(type: string, name: string): string {
+  return `Create ${createLabels[type]} ${name}`;
+}
+
 function defaultCommitMessage(input: MutationInput): string {
   switch (input.kind) {
+    case 'create':
+      return createSubject(
+        input.target.type,
+        resourceNameToString(input.target),
+      );
     case 'edit':
       return `Update ${resourceNameToString(input.target)}`;
     case 'delete':

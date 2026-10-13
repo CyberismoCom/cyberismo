@@ -22,7 +22,7 @@ describe('LinkTypeRenameHandler', () => {
   });
 
   it('applying rewrites every card that referenced the old link type', async () => {
-    await Workspace.over(checkout, SYSTEM_ACTOR).updateCmd.apply({
+    await Workspace.over(checkout, SYSTEM_ACTOR).changes.apply({
       kind: 'rename' as const,
       target: resourceName(`${checkout.projectPrefix}/linkTypes/test`),
       newIdentifier: 'is-caused-by',
@@ -105,7 +105,7 @@ describe('LinkTypeRenameHandler module scope', () => {
   });
 
   it('leaves module template card links untouched by the cascade', async () => {
-    await Workspace.over(checkout, SYSTEM_ACTOR).updateCmd.apply({
+    await Workspace.over(checkout, SYSTEM_ACTOR).changes.apply({
       kind: 'rename' as const,
       target: resourceName(`${checkout.projectPrefix}/linkTypes/test`),
       newIdentifier: 'is-caused-by',

@@ -35,7 +35,7 @@ describe('FieldTypeRenameHandler', () => {
     await checkout.resources
       .byType(oldName, 'fieldTypes')
       .createFieldType('shortText');
-    await Workspace.over(checkout, SYSTEM_ACTOR).updateCmd.apply({
+    await Workspace.over(checkout, SYSTEM_ACTOR).changes.apply({
       kind: 'rename' as const,
       target: resourceName(oldName),
       newIdentifier: 'spareRenamed',
@@ -81,7 +81,7 @@ describe('FieldTypeRenameHandler', () => {
     await moduleProject.resources
       .byType(oldName, 'fieldTypes')
       .createFieldType('shortText');
-    await Workspace.over(moduleProject, SYSTEM_ACTOR).updateCmd.apply({
+    await Workspace.over(moduleProject, SYSTEM_ACTOR).changes.apply({
       kind: 'rename' as const,
       target: resourceName(oldName),
       newIdentifier: 'spareRenamed',
@@ -100,7 +100,7 @@ describe('FieldTypeRenameHandler', () => {
     // the resource.
     const oldName = `${checkout.projectPrefix}/fieldTypes/finished`;
     await expect(
-      Workspace.over(checkout, SYSTEM_ACTOR).updateCmd.apply({
+      Workspace.over(checkout, SYSTEM_ACTOR).changes.apply({
         kind: 'rename' as const,
         target: resourceName(oldName),
         newIdentifier: 'completed',
