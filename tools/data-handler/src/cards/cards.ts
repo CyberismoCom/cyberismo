@@ -251,14 +251,14 @@ export class Cards {
   /**
    * Adds an attachment to a card.
    * @param cardKey Card to attach to.
-   * @param attachment Path to an attachment file, or the attachment name if buffer is given.
-   * @param buffer Optional attachment data.
+   * @param attachment Attachment name; its base name names the file.
+   * @param buffer Attachment data.
    */
   @write((cardKey, attachment) => `Add attachment ${attachment} to ${cardKey}`)
   public async addAttachment(
     cardKey: string,
     attachment: string,
-    buffer?: Buffer,
+    buffer: Buffer,
   ): Promise<void> {
     await addAttachment(this.checkout, cardKey, attachment, buffer);
   }
