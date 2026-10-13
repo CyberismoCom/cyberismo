@@ -18,7 +18,7 @@ import { readdirSync } from 'node:fs';
 
 import { CalculationEngine } from './project/calculation-engine.js';
 import { CardKeyRegistry } from './project/card-keys.js';
-import { CardTree } from './project/card-tree.js';
+import { CardTree, type CardTreeChange } from './project/card-tree.js';
 import {
   CardNotFoundError,
   DuplicateCardKeyError,
@@ -37,6 +37,8 @@ import { RWLock } from '../utils/rw-lock.js';
 import { GitSync } from '../utils/git-sync.js';
 import { GitManager } from '../utils/git-manager.js';
 import { commitTrailers } from '../utils/tx-record.js';
+import { ChangeFeed, changedAnything } from '../utils/change-feed.js';
+import { Validate } from '../commands/validate.js';
 
 import type { TemplateResource } from '../resources/template-resource.js';
 
@@ -67,6 +69,7 @@ export class Checkout {
 
   public basePath: string;
   public readonly lock = new RWLock();
+  public readonly changeFeed = new ChangeFeed();
   public calculationEngine: CalculationEngine;
   private projectCardTree: CardTree;
   // Kept here because a TemplateResource does not survive resources.changed().
@@ -99,6 +102,7 @@ export class Checkout {
       kind: 'project',
       writable: true,
       keys: this.keyRegistry,
+      onChange: (change) => this.recordCardChange(change),
     });
 
     // Pushing only makes sense for commits this process makes, and both
@@ -152,7 +156,7 @@ export class Checkout {
     if (this.options.autocommit) {
       // Commit after successful writes
       this.lock.onAfterWrite(async (tx) => {
-        await this.gitManager.commit(
+        tx.commit = await this.gitManager.commit(
           tx.message ?? 'Autocommit',
           tx.identity,
           commitTrailers(tx.actor),
@@ -163,13 +167,64 @@ export class Checkout {
       // Rollback on failed writes
       this.lock.onWriteError(async () => {
         await this.gitManager.rollback();
-        // Invalidate caches after rollback since filesystem state changed
-        this.clearCards();
-        await this.populateCardsCache();
-        this.resources.changed();
-        await this.calculationEngine.generate();
+        await this.repopulate();
+      });
+    } else {
+      // Without a rollback, a failed write that changed something may leave
+      // the caches and the files apart; clients are told to reload.
+      this.lock.onWriteError(async (_error, tx) => {
+        if (!changedAnything(tx)) {
+          return;
+        }
+        try {
+          await this.repopulate();
+        } catch (repopulateError) {
+          // The write's own error is the one its caller needs.
+          this.logger.error({ error: repopulateError }, 'Repopulate failed');
+          return;
+        }
+        tx.cause = 'failed-write';
+        this.changeFeed.seal(tx, this.projectPrefix);
       });
     }
+
+    // Registered last: a write is numbered only once every hook before it,
+    // the commit included, has succeeded.
+    this.lock.onAfterWrite(async (tx) => {
+      this.changeFeed.seal(tx, this.projectPrefix);
+    });
+    this.lock.onReleased((tx) => this.changeFeed.publish(tx));
+  }
+
+  // Records a tree mutation into the write running it; outside a write
+  // (loading, direct tree use) there is nothing to record into.
+  private recordCardChange({ updated = [], removed = [] }: CardTreeChange) {
+    const cards = this.lock.currentTx()?.touched.cards;
+    if (!cards) {
+      return;
+    }
+    for (const key of updated) {
+      cards.removed.delete(key);
+      cards.updated.add(key);
+    }
+    for (const key of removed) {
+      cards.updated.delete(key);
+      cards.removed.add(key);
+    }
+  }
+
+  // Re-reads settings, modules, resources, cards and facts from disk, in
+  // place, so handles over the checkout stay valid.
+  private async repopulate() {
+    // In place: the key registry reads the prefix from this object.
+    this.settings.reload();
+    this.refreshAllModulePrefixes();
+    this.resources.changed();
+    this.resources.changedModules();
+    this.clearCards();
+    await this.populateCardsCache();
+    Validate.getInstance().clearCaches();
+    await this.calculationEngine.generate();
   }
 
   /** The tree holding the project's own cards. */
@@ -208,6 +263,7 @@ export class Checkout {
       kind: 'template',
       writable: !isModulePath(rootPath),
       keys: this.keyRegistry,
+      onChange: (change) => this.recordCardChange(change),
     });
     this.templateCardTrees.set(templateName, tree);
     return tree;

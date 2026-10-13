@@ -50,16 +50,13 @@ export async function updateCard(
   key: string,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   body: any,
-): Promise<boolean> {
-  let written = false;
+): Promise<void> {
   await ws.atomic(async () => {
     if (body.state) {
       await ws.cards.transition(key, body.state);
-      written = true;
     }
     if (body.content != null) {
       await ws.cards.edit(key, body.content);
-      written = true;
     }
     if (body.metadata) {
       for (const [metadataKey, metadataValue] of Object.entries(
@@ -70,19 +67,15 @@ export async function updateCard(
           metadataKey,
           metadataValue as Exclude<MetadataContent, bigint>,
         );
-        written = true;
       }
     }
     if (body.parent) {
       await ws.cards.move(key, body.parent);
-      written = true;
     }
     if (body.index != null) {
       await ws.cards.rankAt(key, body.index);
-      written = true;
     }
   }, `Update card ${key}`);
-  return written;
 }
 
 export async function deleteCard(ws: Workspace, key: string) {
