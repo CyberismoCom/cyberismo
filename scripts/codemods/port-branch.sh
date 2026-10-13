@@ -74,12 +74,8 @@ if [ -n "$HAVE_A2" ]; then
 else
   echo "port-branch: no a2-model.cjs here or in refs/archive/api/a2; A2 skipped"
 fi
-(cd "$WT" && pnpm exec prettier --write . --log-level warn)
+(cd "$WT" && pnpm exec prettier --write tools/ --log-level warn)
 
-if ! git -C "$WT" diff --quiet -- pnpm-lock.yaml; then
-  echo "port-branch: pnpm-lock.yaml changed; inspect $WT before committing" >&2
-  exit 1
-fi
 git -C "$WT" add -A tools/
 if git -C "$WT" diff --cached --quiet; then
   echo "port-branch: nothing to port"

@@ -23,7 +23,8 @@
  * Then format the tree (scripts/codemods/port-branch.sh does both):
  *   pnpm prettier-fix
  *
- * Pinned: ts-morph 28.0.0 (TypeScript 6.0.2).
+ * Pinned: ts-morph 28.0.0 (bundles @ts-morph/common 0.29.0, TypeScript
+ * 6.0.2).
  * Deterministic, and re-running on already converted code is a no-op.
  *
  * What it does, over tools/{data-handler,backend,mcp,cli}/{src,test}, with
@@ -49,6 +50,26 @@
  *        project-registry-replace tests on the A1 base).
  *
  * Hand edits it does not make: none.
+ *
+ * Type resolution: renames follow types, so a tree whose modules don't
+ * resolve (no node_modules) would get a partial, valid-looking rename. The
+ * script refuses to run when the target packages report an unresolved
+ * module or type definition, other than unbuilt `@cyberismo/*` workspace
+ * packages outside the `paths` map (nothing to rename there), and when
+ * `ContextVariableMap.commands` exists but no Hono key was renamed.
+ *
+ * Compiler options are hard-coded, not read from each package's
+ * tsconfig.json: one program spans the four packages and takes one option
+ * set. The package tsconfigs agree on what matters here (strict, NodeNext,
+ * es2023); they differ only in allowJs/sourceMap/outDir and cli's missing
+ * `types`, which don't change how the .ts sources resolve. Drift that does
+ * break resolution is caught by the check above.
+ *
+ * Known limits (tsc and the test suite catch what slips through):
+ *   - renames don't check for name collisions; `ws` is a common WebSocket
+ *     identifier, so a scope holding both is renamed into a clash;
+ *   - the mock rule matches the literal type text `as unknown as Workspace`;
+ *     casts via `as never` or an aliased import keep their `project:` key.
  */
 'use strict';
 
@@ -110,6 +131,50 @@ function loadProject() {
     ]);
   }
   return mp;
+}
+
+// TS2307 "Cannot find module", TS2688 "Cannot find type definition file",
+// TS7016 "Could not find a declaration file for module".
+const UNRESOLVED_CODES = new Set([2307, 2688, 7016]);
+
+function messageText(d) {
+  const m = d.getMessageText();
+  return typeof m === 'string' ? m : m.getMessageText();
+}
+
+function checkResolution(mp) {
+  const mapped = Object.keys(mp.getCompilerOptions().paths || {});
+  const pkgDirs = PACKAGES.map((p) => path.join(ROOT, 'tools', p) + path.sep);
+  const bad = [];
+  for (const d of mp.getPreEmitDiagnostics()) {
+    if (!UNRESOLVED_CODES.has(d.getCode())) continue;
+    const sf = d.getSourceFile();
+    const file = sf ? sf.getFilePath() : '';
+    if (sf && !pkgDirs.some((dir) => file.startsWith(dir))) continue;
+    if (sf && sf.isInNodeModules()) continue;
+    const text = messageText(d);
+    const mod = (/'([^']+)'/.exec(text) || [])[1] || '';
+    if (
+      mod.startsWith('@cyberismo/') &&
+      !mapped.some((m) =>
+        m.endsWith('*') ? mod.startsWith(m.slice(0, -1)) : mod === m,
+      )
+    ) {
+      continue;
+    }
+    bad.push(
+      `  TS${d.getCode()} ${file ? path.relative(ROOT, file) : '(options)'}: ${text}`,
+    );
+  }
+  if (bad.length) {
+    throw new Error(
+      `${bad.length} unresolved modules or types in ${ROOT}; ` +
+        'run pnpm install there first. The renames follow types and ' +
+        'would be incomplete:\n' +
+        bad.slice(0, 10).join('\n') +
+        (bad.length > 10 ? '\n  ...' : ''),
+    );
+  }
 }
 
 const RENAME_OPTS = {
@@ -329,11 +394,14 @@ function honoKeys(mp, ws) {
   // The map entry and its keys change together so `c.get(...)` stays typed
   // while the identifier passes run.
   const entries = [];
+  let declared = false;
   for (const sf of mp.getSourceFiles()) {
     for (const i of sf.getDescendantsOfKind(SyntaxKind.InterfaceDeclaration)) {
       if (i.getName() !== 'ContextVariableMap') continue;
       const prop = i.getProperty('commands');
-      if (prop && isTargetType(prop.getType(), ws)) entries.push(prop);
+      if (!prop) continue;
+      declared = true;
+      if (isTargetType(prop.getType(), ws)) entries.push(prop);
     }
   }
   for (const sf of mp.getSourceFiles()) {
@@ -349,6 +417,12 @@ function honoKeys(mp, ws) {
       key.setLiteralValue('ws');
       n++;
     }
+  }
+  if (declared && !n) {
+    throw new Error(
+      'ContextVariableMap declares `commands` but no Hono key was renamed; ' +
+        'is hono resolvable from the target tree?',
+    );
   }
   for (const prop of entries) prop.rename('ws', RENAME_OPTS);
   return n;
@@ -513,6 +587,7 @@ function phaseSpecial(mp) {
 
 async function main() {
   const mp = loadProject();
+  checkResolution(mp);
   if (phaseArg === 'types' || phaseArg === 'all') {
     phaseTypes(mp);
   }
