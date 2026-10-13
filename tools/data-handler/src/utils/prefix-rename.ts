@@ -21,7 +21,7 @@ import {
 } from 'node:fs/promises';
 
 import type { Checkout } from '../containers/project.js';
-import type { Card } from '../interfaces/project-interfaces.js';
+import type { Card } from '@cyberismo/model';
 import { resourceName } from './resource-utils.js';
 import { ResourcesFrom } from '../containers/project/resources-from.js';
 

@@ -12,7 +12,7 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import type { Credentials } from '../interfaces/project-interfaces.js';
+import type { Credentials } from '@cyberismo/model';
 import type { Source } from './types.js';
 
 const HTTPS_PROTOCOL = 'https:';

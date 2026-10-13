@@ -23,17 +23,19 @@ import {
 import { dirname, join } from 'node:path';
 import { spawn } from 'node:child_process';
 
-import type { Card } from '../interfaces/project-interfaces.js';
-import type { CardType } from '../interfaces/resource-interfaces.js';
+import type {
+  Card,
+  CardType,
+  ExportPdfOptions,
+  QueryResult,
+} from '@cyberismo/model';
 import { evaluateMacros } from '../macros/index.js';
-import type { ExportPdfOptions } from '../interfaces/project-interfaces.js';
 import { generateReportContent } from '../utils/report.js';
 import { preprocessMermaidBlocksForPdf } from '../utils/mermaid-renderer.js';
 import { rewriteAsciidocCardXrefs } from '../utils/asciidoc-xref.js';
 import { getStaticDirectoryPath, pdfReport } from '@cyberismo/assets';
 import { Checkout } from '../containers/project.js';
 import { ROOT } from '../utils/constants.js';
-import type { QueryResult } from '../types/queries.js';
 import { read } from '../utils/rw-lock.js';
 import type { Show } from './show.js';
 import { sortItems } from '../utils/lexorank.js';

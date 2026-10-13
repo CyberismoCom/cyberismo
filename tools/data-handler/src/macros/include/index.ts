@@ -13,9 +13,9 @@
 
 import { evaluateMacros, validateMacroContent } from '../index.js';
 
-import type { IncludeMacroOptions } from './types.js';
+import type { IncludeMacroOptions } from '@cyberismo/model';
 import type { MacroGenerationContext } from '../../interfaces/macros.js';
-import macroMetadata from './metadata.js';
+import macroMetadata from '@cyberismo/model/macros/include/metadata';
 import BaseMacro from '../base-macro.js';
 import type TaskQueue from '../task-queue.js';
 import { MAX_LEVEL_OFFSET } from '../../utils/constants.js';

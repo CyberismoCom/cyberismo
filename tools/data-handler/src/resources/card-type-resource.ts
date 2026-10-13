@@ -19,13 +19,14 @@ import { sortCards } from '../utils/card-utils.js';
 import { removeValue } from '../utils/common-utils.js';
 import { Validate } from '../commands/validate.js';
 
-import type { Operation, RemoveOperation } from './resource-object.js';
-import type { Card } from '../interfaces/project-interfaces.js';
 import type {
+  Operation,
+  RemoveOperation,
+  Card,
   CardType,
   CustomField,
   UpdateKey,
-} from '../interfaces/resource-interfaces.js';
+} from '@cyberismo/model';
 import type { Checkout } from '../containers/project.js';
 import type { ResourceName } from '../utils/resource-utils.js';
 

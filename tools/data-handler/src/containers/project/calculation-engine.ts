@@ -22,12 +22,17 @@ import type {
   ParseResult,
   QueryName,
   QueryResult,
-} from '../../types/queries.js';
-import type {
   Card,
   CardNode,
   Context,
-} from '../../interfaces/project-interfaces.js';
+  CardType,
+  FieldType,
+  LinkType,
+  ReportMetadata,
+  SkillMetadata,
+  TemplateMetadata,
+  Workflow,
+} from '@cyberismo/model';
 import ClingoParser from '../../utils/clingo-parser.js';
 
 import Handlebars from 'handlebars';
@@ -47,15 +52,6 @@ import {
   createTemplateFacts,
   createWorkflowFacts,
 } from '../../utils/clingo-facts.js';
-import type {
-  CardType,
-  FieldType,
-  LinkType,
-  ReportMetadata,
-  SkillMetadata,
-  TemplateMetadata,
-  Workflow,
-} from '../../interfaces/resource-interfaces.js';
 import { ClingoContext } from '@cyberismo/node-clingo';
 import { generateReportContent } from '../../utils/report.js';
 import { lpFiles, graphvizReport } from '@cyberismo/assets';

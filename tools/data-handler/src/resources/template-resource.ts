@@ -21,14 +21,14 @@ import { sortCards } from '../utils/card-utils.js';
 import { writeJsonFileIfAbsent } from '../utils/json.js';
 import { pathExists } from '../utils/file-utils.js';
 
-import type { Card } from '../interfaces/project-interfaces.js';
+import type {
+  Card,
+  TemplateConfiguration,
+  TemplateMetadata,
+} from '@cyberismo/model';
 import type { CardTree } from '../containers/project/card-tree.js';
 import type { Checkout } from '../containers/project.js';
 import type { ResourceName } from '../utils/resource-utils.js';
-import type {
-  TemplateConfiguration,
-  TemplateMetadata,
-} from '../interfaces/resource-interfaces.js';
 
 /**
  * Template resource class.

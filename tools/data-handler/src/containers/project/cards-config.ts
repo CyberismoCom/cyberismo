@@ -15,7 +15,7 @@
 import { readJsonFile, readJsonFileSync } from '../../utils/json.js';
 import { ProjectPaths } from './project-paths.js';
 
-import type { ProjectSettings } from '../../interfaces/project-interfaces.js';
+import type { ProjectSettings } from '@cyberismo/model';
 
 /**
  * Filesystem-safe component: alphanumerics, underscore and hyphen, starting

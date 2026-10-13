@@ -34,11 +34,7 @@ import {
 } from './version.js';
 
 import type { Checkout } from '../containers/project.js';
-import type {
-  Credentials,
-  UpdatePlan,
-  UpdateTarget,
-} from '../interfaces/project-interfaces.js';
+import type { Credentials, UpdatePlan, UpdateTarget } from '@cyberismo/model';
 import type { UpdateRequest } from './resolve/types.js';
 
 /** The declared root `module` names; a transitive or unknown module is refused. */

@@ -3,15 +3,15 @@ import { Workspace } from '@cyberismo/data-handler';
 import { createApp } from '../src/app.js';
 import { ProjectRegistry } from '../src/project-registry.js';
 import { MockAuthProvider } from '../src/auth/mock.js';
-import { type QueryResult } from '@cyberismo/data-handler/types/queries';
+import { type QueryResult } from '@cyberismo/model';
 import type {
   CardType,
   FieldType,
   LinkType,
   TemplateConfiguration,
   Workflow,
-} from '@cyberismo/data-handler/interfaces/resource-interfaces';
-import type { CardAttachment } from '@cyberismo/data-handler/interfaces/project-interfaces';
+  CardAttachment,
+} from '@cyberismo/model';
 import { createTempTestData, cleanupTempTestData } from './test-utils.js';
 
 let app: ReturnType<typeof createApp>;

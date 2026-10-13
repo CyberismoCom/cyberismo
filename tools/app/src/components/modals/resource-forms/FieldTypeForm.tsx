@@ -21,7 +21,7 @@ import {
   FormHelperText,
 } from '@mui/joy';
 import { useTranslation } from 'react-i18next';
-import type { DataType } from '@cyberismo/data-handler/interfaces/resource-interfaces';
+import type { DataType } from '@cyberismo/model';
 import type { ResourceFormProps } from './BaseResourceModal';
 import { DATA_TYPES } from '@/lib/constants';
 import BaseCreateForm from './BaseCreateForm';

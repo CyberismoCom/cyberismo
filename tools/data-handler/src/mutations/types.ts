@@ -12,8 +12,7 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import type { Operation } from '../resources/resource-object.js';
-import type { UpdateKey } from '../interfaces/resource-interfaces.js';
+import type { Operation, UpdateKey } from '@cyberismo/model';
 import type { ResourceName } from '../utils/resource-utils.js';
 
 export type MutationKind =

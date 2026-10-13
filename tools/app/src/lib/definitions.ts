@@ -18,9 +18,9 @@ import type {
   Link,
   LinkType,
   Workflow,
-} from '@cyberismo/data-handler/interfaces/resource-interfaces';
-import type { CardAttachment } from '@cyberismo/data-handler/interfaces/project-interfaces';
-import type { LinkDirection } from '@cyberismo/data-handler/types/queries';
+  CardAttachment,
+  LinkDirection,
+} from '@cyberismo/model';
 
 // These are exported as-is.
 export {
@@ -31,8 +31,8 @@ export {
   type Workflow,
   type WorkflowState,
   type WorkflowTransition,
-} from '@cyberismo/data-handler/interfaces/resource-interfaces';
-export { type CardAttachment } from '@cyberismo/data-handler/interfaces/project-interfaces';
+} from '@cyberismo/model';
+export { type CardAttachment } from '@cyberismo/model';
 
 /**
  * App wide configuration which is static and should not be changed at runtime.

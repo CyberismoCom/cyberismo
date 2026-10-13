@@ -16,9 +16,7 @@ import type { Handler, MutationContext } from '../handler.js';
 import type { EditInput } from '../types.js';
 import { resourceNameToString } from '../../utils/resource-utils.js';
 import { ResourcesFrom } from '../../containers/project/resources-from.js';
-import type { Card } from '../../interfaces/project-interfaces.js';
-import type { ChangeOperation } from '../../resources/resource-object.js';
-import type { EnumDefinition } from '../../interfaces/resource-interfaces.js';
+import type { Card, ChangeOperation, EnumDefinition } from '@cyberismo/model';
 
 /**
  * FieldTypeResource.update renames the value in the enum definition; the

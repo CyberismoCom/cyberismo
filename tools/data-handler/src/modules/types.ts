@@ -70,9 +70,6 @@ export function toDeclaredRange(input: string): VersionRange {
   }
 }
 
-/** Where a module's versions come from, as reported to callers. */
-export type VersionSource = 'git' | 'file' | 'private';
-
 /**
  * Range assumed for a dependency declared without a version: bound to 1.x,
  * never floated across majors. Compat guard for configs written before

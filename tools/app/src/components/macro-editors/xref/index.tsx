@@ -16,7 +16,7 @@ import { useEffect } from 'react';
 import { Controller, useForm, useWatch } from 'react-hook-form';
 import { Autocomplete, FormControl, FormHelperText, FormLabel } from '@mui/joy';
 import { useTranslation } from 'react-i18next';
-import type { XrefMacroOptions } from '@cyberismo/data-handler';
+import type { XrefMacroOptions } from '@cyberismo/model';
 import {
   DEFAULT_XREF_FORM_VALUES,
   type MacroModalProps,

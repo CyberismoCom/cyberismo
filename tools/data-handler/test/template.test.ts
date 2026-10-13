@@ -5,7 +5,7 @@ import { expect, describe, it, afterAll, beforeAll } from 'vitest';
 import { mkdirSync, rmSync } from 'node:fs';
 import { join, sep } from 'node:path';
 
-import type { Card } from '../src/interfaces/project-interfaces.js';
+import type { Card } from '@cyberismo/model';
 import { copyDir } from '../src/utils/file-utils.js';
 import { getTestProject } from './helpers/test-utils.js';
 import type { Checkout } from '../src/containers/project.js';

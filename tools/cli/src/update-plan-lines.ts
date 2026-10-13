@@ -12,7 +12,7 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import type { UpdatePlan } from '@cyberismo/data-handler';
+import type { UpdatePlan } from '@cyberismo/model';
 
 // Left-aligns module names within one block.
 const pad = (names: string[]) => (n: string) =>

@@ -16,7 +16,7 @@ import type { NodeRendererProps, NodeApi } from 'react-arborist';
 import FiberManualRecord from '@mui/icons-material/FiberManualRecord';
 import ErrorIcon from '@mui/icons-material/Error';
 import { getStateColor } from '../../lib/utils';
-import type { QueryResult } from '@cyberismo/data-handler/types/queries';
+import type { QueryResult } from '@cyberismo/model';
 import { BaseTreeNode } from './BaseTreeNode';
 
 interface CardTreeNodeProps extends NodeRendererProps<QueryResult<'tree'>> {

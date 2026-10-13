@@ -15,7 +15,7 @@ import { Command } from 'commander';
 import dotenv from 'dotenv';
 
 import { Commands } from '@cyberismo/data-handler';
-import type { Credentials } from '@cyberismo/data-handler';
+import type { Credentials } from '@cyberismo/model';
 
 // Load environment variables from .env file
 dotenv.config({ quiet: true });

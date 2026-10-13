@@ -13,7 +13,7 @@
 
 import { Box, Checkbox, Stack, Typography } from '@mui/joy';
 import { useTranslation } from 'react-i18next';
-import type { ModuleSettingFromHub } from '@cyberismo/data-handler';
+import type { ModuleSettingFromHub } from '@cyberismo/model';
 import { OptionCard, OptionCardGrid } from '@/components/OptionCard';
 
 interface ModulesStepProps {

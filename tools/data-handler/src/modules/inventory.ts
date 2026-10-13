@@ -28,15 +28,15 @@ import {
   type Source,
   type Version,
   type VersionRange,
-  type VersionSource,
 } from './types.js';
+import { type VersionSource } from '@cyberismo/model';
 
 import type { Checkout } from '../containers/project.js';
 import type {
   ModuleInfo,
   ModuleSetting,
   ProjectModuleInfo,
-} from '../interfaces/project-interfaces.js';
+} from '@cyberismo/model';
 
 const logger = getChildLogger({ module: 'inventory' });
 

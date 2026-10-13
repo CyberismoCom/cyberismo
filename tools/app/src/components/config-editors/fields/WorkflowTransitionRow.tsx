@@ -27,10 +27,7 @@ import { formKeyHandler } from '@/lib/hooks/utils';
 import { EditableRowActions } from './EditableRowActions';
 import { ListRow } from './ListRow';
 import { ReorderButton, ReorderButtonContainer } from './ReorderButtons';
-import type {
-  WorkflowState,
-  WorkflowTransition,
-} from '@cyberismo/data-handler/interfaces/resource-interfaces';
+import type { WorkflowState, WorkflowTransition } from '@cyberismo/model';
 import { ANY_STATE, NEW_CARD } from '@/lib/constants';
 
 export interface TransitionFormData {

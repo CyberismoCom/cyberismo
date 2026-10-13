@@ -12,7 +12,7 @@
 */
 
 import semver from 'semver';
-import type { UpdatePlan } from '@cyberismo/data-handler';
+import type { UpdatePlan } from '@cyberismo/model';
 import type { ProjectModule } from './api/types';
 
 export interface ModuleRow {

@@ -6,7 +6,7 @@ import {
   fromNumber,
   fromString,
 } from '../../src/utils/value-utils.js';
-import type { DataType } from '../../src/interfaces/resource-interfaces.js';
+import type { DataType } from '@cyberismo/model';
 
 describe('data type conversions', () => {
   const dataTypes: DataType[] = [
