@@ -13,6 +13,7 @@
 
 import { randomUUID } from 'node:crypto';
 import type { SSEMessage } from 'hono/streaming';
+import type { ActorRef, ChangeEvent } from '@cyberismo/model';
 
 const LEASE_MS = 90_000;
 const EXPIRY_INTERVAL_MS = 30_000;
@@ -52,14 +53,23 @@ interface Connection {
   lastSent: string | null;
 }
 
+/** Where a project's change events come from. */
+export interface ChangeSource {
+  subscribe(listener: (event: ChangeEvent) => void): () => void;
+}
+
 /** The open subscriptions of one project and the presence leases they hold. */
 export class ProjectEvents {
   private connections = new Map<string, Connection>();
   private expiryTimer: ReturnType<typeof setInterval>;
+  private unsubscribe: () => void;
 
-  constructor() {
+  /** Announces the cards each of `changes`' events names, whoever wrote them. */
+  constructor(changes?: ChangeSource) {
     this.expiryTimer = setInterval(() => this.expire(), EXPIRY_INTERVAL_MS);
     this.expiryTimer.unref();
+    this.unsubscribe =
+      changes?.subscribe((event) => this.changed(event)) ?? (() => {});
   }
 
   connect(
@@ -155,12 +165,22 @@ export class ProjectEvents {
     );
   }
 
-  cardsUpdated(cardKeys: string[], user: Connection['user']): void {
+  // Only card changes go on the wire; a removed card is announced as updated.
+  private changed(event: ChangeEvent): void {
+    const cardKeys = event.changes.flatMap((change) =>
+      change.kind === 'card.updated' || change.kind === 'card.removed'
+        ? [change.key]
+        : [],
+    );
+    if (cardKeys.length > 0) this.cardsUpdated(cardKeys, event.actor);
+  }
+
+  cardsUpdated(cardKeys: string[], actor: ActorRef): void {
     for (const cardKey of new Set(cardKeys)) {
       const withIdentity = this.encode('card.updated', {
         cardKey,
-        userId: user.id,
-        userName: user.name,
+        userId: actor.id,
+        userName: actor.name,
       });
       const withoutIdentity = this.encode('card.updated', { cardKey });
       for (const [connectionId, connection] of this.onCard(cardKey)) {
@@ -175,6 +195,7 @@ export class ProjectEvents {
   }
 
   dispose(): void {
+    this.unsubscribe();
     clearInterval(this.expiryTimer);
     const connections = [...this.connections.values()];
     this.connections.clear();
