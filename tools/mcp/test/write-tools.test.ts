@@ -222,7 +222,7 @@ describe('MCP card write tools', () => {
 
   test('remove_link', async () => {
     const linkType = await addLinkType();
-    await ws.createCmd.createLink(alpha, beta, linkType);
+    await ws.cards.addLink(alpha, beta, linkType);
     await write('remove_link', {
       sourceKey: alpha,
       destinationKey: beta,
@@ -235,7 +235,7 @@ describe('MCP card write tools', () => {
     // Current behaviour: the tool takes no description, so it can match only
     // links without one; the call fails and nothing is committed.
     const linkType = await addLinkType(true);
-    await ws.createCmd.createLink(alpha, beta, linkType, 'why');
+    await ws.cards.addLink(alpha, beta, linkType, 'why');
     const before = await commitCount();
     const result = await callTool('remove_link', {
       sourceKey: alpha,
@@ -261,7 +261,7 @@ describe('MCP card write tools', () => {
   test('remove_label of a missing label removes the only label', async () => {
     // Current behaviour: a card with exactly one label loses it whatever
     // label is named.
-    await ws.removeCmd.remove('label', labelled, 'drop');
+    await ws.cards.removeLabel(labelled, 'drop');
     await write('remove_label', { cardKey: labelled, label: 'missing' });
     expect((await card(labelled)).metadata.labels).toEqual([]);
   });
@@ -279,7 +279,7 @@ describe('MCP card write tools', () => {
   });
 
   test('remove_attachment', async () => {
-    await ws.createCmd.createAttachment(beta, 'note.txt', Buffer.from('hi'));
+    await ws.cards.addAttachment(beta, 'note.txt', Buffer.from('hi'));
     await write('remove_attachment', { cardKey: beta, filename: 'note.txt' });
     expect((await card(beta)).attachments).toEqual([]);
   });

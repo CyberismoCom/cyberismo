@@ -8,6 +8,7 @@ import { getTestProject } from '../../helpers/test-utils.js';
 import { resourceName } from '../../../src/utils/resource-utils.js';
 import { Workspace } from '../../../src/workspace/workspace.js';
 import { SYSTEM_ACTOR } from '../../../src/utils/tx-record.js';
+import { updateCardMetadata } from '../../../src/cards/update.js';
 
 const baseDir = import.meta.dirname;
 const testDir = join(baseDir, 'tmp-field-type-delete');
@@ -52,7 +53,7 @@ async function seedCardTypeAndCardValues() {
     .filter((c) => c.metadata?.cardType === cardTypeName());
   for (const card of cards) {
     card.metadata![fieldName()] = 'a value';
-    await checkout.updateCardMetadata(card, card.metadata!);
+    await updateCardMetadata(checkout, card, card.metadata!);
   }
 }
 
