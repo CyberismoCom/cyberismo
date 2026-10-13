@@ -27,7 +27,7 @@ import type { ClingoValidationResult } from '@cyberismo/node-clingo';
 import type { CalculationContent } from '../interfaces/folder-content-interfaces.js';
 import type { CalculationMetadata } from '../interfaces/resource-interfaces.js';
 import type { Card } from '../interfaces/project-interfaces.js';
-import type { Project } from '../containers/project.js';
+import type { Checkout } from '../containers/project.js';
 import type { ResourceName } from '../utils/resource-utils.js';
 
 /**
@@ -39,11 +39,11 @@ export class CalculationResource extends FolderResource<
 > {
   /**
    * Creates instance of CalculationResource
-   * @param project Project to use
+   * @param checkout Project to use
    * @param name Resource name
    */
-  constructor(project: Project, name: ResourceName) {
-    super(project, name, 'calculations');
+  constructor(checkout: Checkout, name: ResourceName) {
+    super(checkout, name, 'calculations');
 
     this.contentSchemaId = 'calculationSchema';
     this.contentSchema = super.contentSchemaContent(this.contentSchemaId);

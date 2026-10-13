@@ -39,10 +39,10 @@ const router = new Hono();
  *         description: project_path not set or other internal error
  */
 router.get('/', requireRole(UserRole.Reader), async (c) => {
-  const commands = c.get('commands');
+  const ws = c.get('ws');
 
   try {
-    const cardTypes = await cardTypeService.getCardTypes(commands);
+    const cardTypes = await cardTypeService.getCardTypes(ws);
     return c.json(cardTypes);
   } catch (error) {
     return c.json(
@@ -87,11 +87,11 @@ router.post(
   requireRole(UserRole.Admin),
   zValidator('json', createCardTypeSchema),
   async (c) => {
-    const commands = c.get('commands');
+    const ws = c.get('ws');
     const { identifier, workflowName } = c.req.valid('json');
 
     try {
-      await cardTypeService.createCardType(commands, identifier, workflowName);
+      await cardTypeService.createCardType(ws, identifier, workflowName);
       return c.json({ message: 'Card type created successfully' });
     } catch (error) {
       return c.json(
@@ -153,12 +153,12 @@ router.patch(
   zValidator('param', cardTypeNameParamSchema),
   zValidator('json', fieldVisibilityBodySchema),
   async (c) => {
-    const commands = c.get('commands');
+    const ws = c.get('ws');
     const { cardTypeName } = c.req.valid('param');
     const body = c.req.valid('json');
 
     try {
-      await cardTypeService.updateFieldVisibility(commands, cardTypeName, body);
+      await cardTypeService.updateFieldVisibility(ws, cardTypeName, body);
       return c.json({ message: 'Field visibility updated successfully' });
     } catch (error) {
       // TODO: Implement NotFoundError etc and handle them globally

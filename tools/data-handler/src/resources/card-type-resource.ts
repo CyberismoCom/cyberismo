@@ -26,7 +26,7 @@ import type {
   CustomField,
   UpdateKey,
 } from '../interfaces/resource-interfaces.js';
-import type { Project } from '../containers/project.js';
+import type { Checkout } from '../containers/project.js';
 import type { ResourceName } from '../utils/resource-utils.js';
 
 /**
@@ -35,11 +35,11 @@ import type { ResourceName } from '../utils/resource-utils.js';
 export class CardTypeResource extends FileResource<CardType> {
   /**
    * Creates instance of CardTypeResource
-   * @param project Project to use
+   * @param checkout Project to use
    * @param name Resource name
    */
-  constructor(project: Project, name: ResourceName) {
-    super(project, name, 'cardTypes');
+  constructor(checkout: Checkout, name: ResourceName) {
+    super(checkout, name, 'cardTypes');
 
     this.contentSchemaId = 'cardTypeSchema';
     this.contentSchema = super.contentSchemaContent(this.contentSchemaId);
@@ -58,7 +58,7 @@ export class CardTypeResource extends FileResource<CardType> {
   // Checks if field type exists in the project.
   private async fieldTypeExists(field: Partial<CustomField>) {
     return field && field.name
-      ? this.project.resources.exists(field.name)
+      ? this.checkout.resources.exists(field.name)
       : false;
   }
 
@@ -72,7 +72,7 @@ export class CardTypeResource extends FileResource<CardType> {
   // Return link types that use this card type.
   private relevantLinkTypes(): string[] {
     const resourceName = resourceNameToString(this.resourceName);
-    const allLinkTypes = this.project.resources.linkTypes();
+    const allLinkTypes = this.checkout.resources.linkTypes();
     const references: string[] = [];
 
     for (const linkType of allLinkTypes) {
@@ -175,9 +175,9 @@ export class CardTypeResource extends FileResource<CardType> {
     const validWorkflowName = Validate.getInstance().validResourceName(
       'workflows',
       resourceNameToString(resourceName(workflowName)),
-      this.project.projectPrefixes(),
+      this.checkout.projectPrefixes(),
     );
-    const workflow = this.project.resources
+    const workflow = this.checkout.resources
       .byType(workflowName, 'workflows')
       .show();
     if (!workflow) {

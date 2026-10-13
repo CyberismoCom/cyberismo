@@ -9,7 +9,7 @@ import {
   vi,
 } from 'vitest';
 import type { MockInstance } from 'vitest';
-import { CommandManager } from '@cyberismo/data-handler';
+import { Workspace } from '@cyberismo/data-handler';
 import { X_HONO_DISABLE_SSG_HEADER_KEY } from 'hono/ssg';
 import type { SSEMessage } from 'hono/streaming';
 import { createApp } from '../src/app.js';
@@ -24,7 +24,7 @@ import { createTempTestData, cleanupTempTestData } from './test-utils.js';
 
 let app: ReturnType<typeof createApp>;
 let tempTestDataPath: string;
-let commands: CommandManager;
+let ws: Workspace;
 let registry: ProjectRegistry;
 // Not exported by hono; the env key toSSG sets on the requests it makes.
 const SSG_CONTEXT = 'HONO_SSG_CONTEXT';
@@ -34,8 +34,8 @@ const base = '/api/projects/decision';
 beforeAll(async () => {
   process.argv = [];
   tempTestDataPath = await createTempTestData('decision-records');
-  commands = await CommandManager.getInstance(tempTestDataPath);
-  registry = ProjectRegistry.fromCommandManager(commands);
+  ws = await Workspace.getInstance(tempTestDataPath);
+  registry = ProjectRegistry.fromCommandManager(ws);
   app = createApp(new MockAuthProvider({ roster: true }), registry);
 });
 afterEach(async () => {
@@ -247,7 +247,7 @@ describe('project event stream over HTTP', () => {
 
   test('disposal closes subscriptions', async () => {
     // Needs an instance it can dispose without touching the shared app.
-    const ownCommands = new CommandManager(tempTestDataPath);
+    const ownCommands = new Workspace(tempTestDataPath);
     await ownCommands.initialize();
     const ownRegistry = ProjectRegistry.fromCommandManager(ownCommands);
     const { reader } = await connect(
@@ -398,15 +398,15 @@ describe('presence bookkeeping', () => {
       events.dispose();
     }
 
-    const one = {} as CommandManager;
-    const two = {} as CommandManager;
+    const one = {} as Workspace;
+    const two = {} as Workspace;
     const projects = new ProjectRegistry();
     projects.add('one', one);
     projects.add('two', two);
     try {
       expect(projects.eventsFor(one)).toBe(projects.eventsFor(one));
       expect(projects.eventsFor(one)).not.toBe(projects.eventsFor(two));
-      expect(() => projects.eventsFor({} as CommandManager)).toThrow();
+      expect(() => projects.eventsFor({} as Workspace)).toThrow();
     } finally {
       projects.eventsFor(one).dispose();
       projects.eventsFor(two).dispose();
@@ -788,19 +788,19 @@ describe('card update notifications', () => {
   let edited: string;
 
   beforeAll(async () => {
-    const [target] = await commands.createCmd.createCard(
+    const [target] = await ws.createCmd.createCard(
       'decision/templates/decision',
       'decision_5',
     );
     retargeted = target.key;
-    const [scratch] = await commands.createCmd.createCard(
+    const [scratch] = await ws.createCmd.createCard(
       'decision/templates/decision',
       'decision_5',
     );
     edited = scratch.key;
   });
   beforeEach(() => {
-    notify = vi.spyOn(registry.eventsFor(commands), 'cardsUpdated');
+    notify = vi.spyOn(registry.eventsFor(ws), 'cardsUpdated');
   });
   afterEach(() => notify.mockRestore());
 

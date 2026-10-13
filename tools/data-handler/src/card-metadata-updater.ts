@@ -15,7 +15,7 @@
 import type { CardMetadata } from './interfaces/project-interfaces.js';
 import { FieldTypeResource } from './resources/field-type-resource.js';
 import { getChildLogger } from './utils/log-utils.js';
-import type { Project } from './containers/project.js';
+import type { Checkout } from './containers/project.js';
 import type { UpdateField } from './types/queries.js';
 
 /**
@@ -40,11 +40,11 @@ export class CardMetadataUpdater {
   }
   /**
    * Applies a given array of changes to card(s).
-   * @param project Current project.
+   * @param checkout Current project.
    * @param fieldsToUpdate Array of field updates. Each update consists of cardKey, fieldName and new value.
    */
   public static async apply(
-    project: Project,
+    checkout: Checkout,
     fieldsToUpdate: UpdateField[],
   ): Promise<void> {
     if (!fieldsToUpdate || fieldsToUpdate.length === 0) {
@@ -55,7 +55,7 @@ export class CardMetadataUpdater {
 
     for (const [cardKey, changes] of updates.entries()) {
       updatePromises.push(
-        CardMetadataUpdater.updateCardMetadata(project, cardKey, changes),
+        CardMetadataUpdater.updateCardMetadata(checkout, cardKey, changes),
       );
     }
 
@@ -65,7 +65,7 @@ export class CardMetadataUpdater {
 
   // Applies a single field change to a card's metadata.
   private static async applyFieldChange(
-    project: Project,
+    checkout: Checkout,
     metadata: CardMetadata,
     change: UpdateField,
   ): Promise<CardUpdateResult> {
@@ -92,7 +92,7 @@ export class CardMetadataUpdater {
 
     let fieldType;
     try {
-      fieldType = project.resources.byType(change.field, 'fieldTypes').show();
+      fieldType = checkout.resources.byType(change.field, 'fieldTypes').show();
     } catch {
       fieldType = undefined;
     }
@@ -151,7 +151,7 @@ export class CardMetadataUpdater {
 
   // Updates a single card's metadata with the provided changes.
   private static async updateCardMetadata(
-    project: Project,
+    checkout: Checkout,
     cardKey: string,
     changes: UpdateField[],
   ): Promise<CardUpdateResult> {
@@ -160,7 +160,7 @@ export class CardMetadataUpdater {
       errors: [],
     };
 
-    const card = project.findCard(cardKey);
+    const card = checkout.findCard(cardKey);
     if (!card || !card.metadata) {
       result.success = false;
       result.errors.push(
@@ -170,7 +170,7 @@ export class CardMetadataUpdater {
     }
 
     const updatePromises = changes.map((change) =>
-      CardMetadataUpdater.applyFieldChange(project, card.metadata!, change),
+      CardMetadataUpdater.applyFieldChange(checkout, card.metadata!, change),
     );
     const updateResults = await Promise.all(updatePromises);
 
@@ -182,7 +182,7 @@ export class CardMetadataUpdater {
     }
 
     if (result.success) {
-      await project.updateCardMetadata(card, card.metadata);
+      await checkout.updateCardMetadata(card, card.metadata);
     }
     return result;
   }

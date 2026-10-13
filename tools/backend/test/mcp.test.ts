@@ -16,7 +16,7 @@
 import { beforeAll, describe, expect, test } from 'vitest';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { CommandManager } from '@cyberismo/data-handler';
+import { Workspace } from '@cyberismo/data-handler';
 import { createApp } from '../src/app.js';
 import { ProjectRegistry } from '../src/project-registry.js';
 import { MockAuthProvider } from '../src/auth/mock.js';
@@ -31,7 +31,7 @@ let app: ReturnType<typeof createApp>;
 beforeAll(async () => {
   // Fixes weird issue with asciidoctor
   process.argv = [];
-  const commands = await CommandManager.getInstance(
+  const ws = await Workspace.getInstance(
     path.resolve(
       dirname,
       '../../data-handler/test/test-data/valid/decision-records',
@@ -39,7 +39,7 @@ beforeAll(async () => {
   );
   app = createApp(
     new MockAuthProvider(),
-    ProjectRegistry.fromCommandManager(commands),
+    ProjectRegistry.fromCommandManager(ws),
   );
 });
 
@@ -84,7 +84,7 @@ describe('MCP HTTP Endpoint', () => {
     let sessionApp: ReturnType<typeof createApp>;
 
     beforeAll(async () => {
-      const commands = await CommandManager.getInstance(
+      const ws = await Workspace.getInstance(
         path.resolve(
           dirname,
           '../../data-handler/test/test-data/valid/decision-records',
@@ -94,7 +94,7 @@ describe('MCP HTTP Endpoint', () => {
         {
           authenticate: async () => ({ ...user, exp: Number.MAX_SAFE_INTEGER }),
         },
-        ProjectRegistry.fromCommandManager(commands),
+        ProjectRegistry.fromCommandManager(ws),
       );
     });
 
@@ -221,7 +221,7 @@ describe('MCP HTTP Endpoint', () => {
       }),
     };
 
-    const commands = await CommandManager.getInstance(
+    const ws = await Workspace.getInstance(
       path.resolve(
         dirname,
         '../../data-handler/test/test-data/valid/decision-records',
@@ -229,7 +229,7 @@ describe('MCP HTTP Endpoint', () => {
     );
     const readerApp = createApp(
       readerProvider,
-      ProjectRegistry.fromCommandManager(commands),
+      ProjectRegistry.fromCommandManager(ws),
     );
 
     const response = await readerApp.request('/mcp', {

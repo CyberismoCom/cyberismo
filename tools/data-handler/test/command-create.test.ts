@@ -11,7 +11,7 @@ import {
 } from 'node:fs';
 import { join } from 'node:path';
 
-import { Cmd, Commands, CommandManager } from '../src/command-handler.js';
+import { Cmd, Commands, Workspace } from '../src/command-handler.js';
 import { copyDir, deleteDir, resolveTilde } from '../src/utils/file-utils.js';
 import { DefaultContent } from '../src/resources/create-defaults.js';
 import { FieldTypeResource } from '../src/resources/field-type-resource.js';
@@ -22,7 +22,7 @@ import type {
   Card,
   CardListContainer,
 } from '../src/interfaces/project-interfaces.js';
-import { Project } from '../src/containers/project.js';
+import { Checkout } from '../src/containers/project.js';
 import { Validate } from '../src/commands/index.js';
 
 // Create test artifacts in a temp folder.
@@ -229,9 +229,9 @@ describe('create command', () => {
   it('card with parent returns root cards sorted first by rank', async () => {
     const parentCard = 'decision_5';
     const templateName = 'decision/templates/simplepage';
-    const commands = new CommandManager(decisionRecordsPath, {});
-    await commands.initialize();
-    const createdCards = await commands.createCmd.createCard(
+    const ws = new Workspace(decisionRecordsPath, {});
+    await ws.initialize();
+    const createdCards = await ws.createCmd.createCard(
       templateName,
       parentCard,
     );
@@ -881,7 +881,7 @@ describe('create command', () => {
     const validator = new Validate();
     const validationResult = await validator.validate(
       projectDir,
-      () => new Project(projectDir),
+      () => new Checkout(projectDir),
     );
     expect(validationResult.length).equals(0);
   });
@@ -1169,9 +1169,9 @@ describe('create command', () => {
     );
     expect(result.statusCode).toBe(200);
 
-    const project = getTestProject(minimalPath);
-    await project.populateCaches();
-    const workflow = project.resources.byType(
+    const checkout = getTestProject(minimalPath);
+    await checkout.populateCaches();
+    const workflow = checkout.resources.byType(
       `mini/workflows/${workflowName}`,
       'workflows',
     );
@@ -1197,13 +1197,13 @@ describe('created cards and custom field values', () => {
   const testRoot = join(import.meta.dirname, 'tmp-create-no-nulls-tests');
   const projectPath = join(testRoot, 'valid/decision-records');
   const templateName = 'decision/templates/decision';
-  let commands: CommandManager;
+  let ws: Workspace;
 
   beforeAll(async () => {
     mkdirSync(testRoot, { recursive: true });
     await copyDir('test/test-data/', testRoot);
-    commands = new CommandManager(projectPath, {});
-    await commands.initialize();
+    ws = new Workspace(projectPath, {});
+    await ws.initialize();
   });
 
   afterAll(() => {
@@ -1211,11 +1211,8 @@ describe('created cards and custom field values', () => {
   });
 
   it('new cards do not contain null custom-field placeholders', async () => {
-    const created = await commands.createCmd.createCard(
-      templateName,
-      undefined,
-    );
-    const card = commands.project.findCard(created[0].key);
+    const created = await ws.createCmd.createCard(templateName, undefined);
+    const card = ws.checkout.findCard(created[0].key);
     const nullCustomFieldKeys = (metadata: object) =>
       Object.entries(metadata)
         .filter(([key, value]) => value === null && key.includes('/'))
@@ -1232,11 +1229,11 @@ describe('created cards and custom field values', () => {
   it('cards added to a template get no null placeholders', async () => {
     // 'decision/cardTypes/decision' declares eight non-calculated custom fields;
     // the empty template keeps this out of the way of the tests below.
-    const added = await commands.createCmd.addCards(
+    const added = await ws.createCmd.addCards(
       'decision/cardTypes/decision',
       'decision/templates/empty',
     );
-    const card = commands.project.findCard(added[0]);
+    const card = ws.checkout.findCard(added[0]);
     const customFieldKeys = Object.keys(card.metadata!).filter((key) =>
       key.includes('/'),
     );
@@ -1245,7 +1242,7 @@ describe('created cards and custom field values', () => {
 
   it('reports a card the template does not hold as not part of it', async () => {
     await expect(
-      commands.createCmd.addCards(
+      ws.createCmd.addCards(
         'decision/cardTypes/decision',
         'decision/templates/decision',
         'idontexist',
@@ -1255,19 +1252,16 @@ describe('created cards and custom field values', () => {
 
   it('falsy template values survive instantiation', async () => {
     // Mutates the shared template card, so this test must stay last.
-    const templateCards = commands.project.templateTree(templateName).cards();
+    const templateCards = ws.checkout.templateTree(templateName).cards();
     const templateCard = templateCards.at(0)!;
-    await commands.editCmd.editCardMetadata(
+    await ws.editCmd.editCardMetadata(
       templateCard.key,
       'decision/fieldTypes/finished',
       false,
     );
 
-    const created = await commands.createCmd.createCard(
-      templateName,
-      undefined,
-    );
-    const card = commands.project.findCard(created[0].key);
+    const created = await ws.createCmd.createCard(templateName, undefined);
+    const card = ws.checkout.findCard(created[0].key);
     expect(card.metadata!['decision/fieldTypes/finished']).toBe(false);
   });
 });
@@ -1288,21 +1282,18 @@ describe('CommandManager.createProjectWithDefaults', () => {
   });
 
   it('creates a project with correct configuration', async () => {
-    const commands = await CommandManager.createProjectWithDefaults(
-      projectPath,
-      {
-        name: 'Test Defaults',
-        prefix: 'testdef',
-        category: 'Test',
-        description: 'A test',
-      },
-    );
+    const ws = await Workspace.createProjectWithDefaults(projectPath, {
+      name: 'Test Defaults',
+      prefix: 'testdef',
+      category: 'Test',
+      description: 'A test',
+    });
 
-    expect(commands).toBeInstanceOf(CommandManager);
-    expect(commands.project.configuration.name).toBe('Test Defaults');
-    expect(commands.project.configuration.cardKeyPrefix).toBe('testdef');
-    expect(commands.project.configuration.category).toBe('Test');
-    expect(commands.project.configuration.description).toBe('A test');
+    expect(ws).toBeInstanceOf(Workspace);
+    expect(ws.checkout.configuration.name).toBe('Test Defaults');
+    expect(ws.checkout.configuration.cardKeyPrefix).toBe('testdef');
+    expect(ws.checkout.configuration.category).toBe('Test');
+    expect(ws.checkout.configuration.description).toBe('A test');
 
     // Check project structure exists
     await expect(access(projectPath, fsConstants.F_OK)).resolves.not.toThrow();
@@ -1317,14 +1308,14 @@ describe('CommandManager.createProjectWithDefaults', () => {
   it('accepts git user option', async () => {
     const userProjectPath = join(testRoot, 'createWithDefaults-user-test');
     try {
-      const commands = await CommandManager.createProjectWithDefaults(
+      const ws = await Workspace.createProjectWithDefaults(
         userProjectPath,
         { name: 'User Project', prefix: 'userproj' },
         { gitUser: { name: 'Test User', email: 'test@example.com' } },
       );
 
-      expect(commands).toBeInstanceOf(CommandManager);
-      expect(commands.project.configuration.name).toBe('User Project');
+      expect(ws).toBeInstanceOf(Workspace);
+      expect(ws.checkout.configuration.name).toBe('User Project');
     } finally {
       await deleteDir(userProjectPath);
     }

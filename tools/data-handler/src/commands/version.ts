@@ -12,7 +12,7 @@
 */
 
 import semver from 'semver';
-import type { Project } from '../containers/project.js';
+import type { Checkout } from '../containers/project.js';
 import type { ConfigurationLogEntry } from '../utils/configuration-logger.js';
 import {
   ConfigurationLogger,
@@ -72,7 +72,7 @@ function describeEntries(entries: ClassifiedEntry[]): string {
  * Handles version bumping commands.
  */
 export class Version {
-  constructor(private project: Project) {}
+  constructor(private checkout: Checkout) {}
 
   /**
    * Bumps the project version in cardsConfig.json, snapshots the migration log, and commits.
@@ -84,7 +84,7 @@ export class Version {
   public async bumpVersion(
     bumpType: BumpType,
   ): Promise<{ previousVersion: string | undefined; newVersion: string }> {
-    const { git } = this.project;
+    const { git } = this.checkout;
 
     // Guard: refuse to version with uncommitted changes
     if (await git.hasUncommittedChanges()) {
@@ -93,16 +93,16 @@ export class Version {
       );
     }
 
-    const currentVersion = this.project.configuration.version;
+    const currentVersion = this.checkout.configuration.version;
 
     // Skipped for the first version — there is no predecessor to break against.
     if (
       currentVersion &&
       bumpType !== 'major' &&
-      ConfigurationLogger.hasPendingChanges(this.project.basePath)
+      ConfigurationLogger.hasPendingChanges(this.checkout.basePath)
     ) {
       const entries = (
-        await ConfigurationLogger.entries(this.project.basePath)
+        await ConfigurationLogger.entries(this.checkout.basePath)
       ).map(classifyEntry);
       const breaking = entries.filter(
         (entry) => entry.classification === 'breaking',
@@ -139,13 +139,13 @@ export class Version {
     // existing version never seal; they must keep a clean log (guarded above).
     if (!currentVersion || bumpType !== 'patch') {
       await ConfigurationLogger.createVersion(
-        this.project.basePath,
+        this.checkout.basePath,
         newVersion,
       );
     }
 
     // Write new version to cardsConfig
-    await this.project.configuration.setVersion(newVersion);
+    await this.checkout.configuration.setVersion(newVersion);
 
     return { previousVersion: currentVersion, newVersion };
   }

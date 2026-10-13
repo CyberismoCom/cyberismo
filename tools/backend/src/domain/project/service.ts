@@ -13,7 +13,7 @@
 
 import {
   type CleanResult,
-  type CommandManager,
+  type Workspace,
   type HubFetchFailure,
   type ModuleSettingFromHub,
   type ProjectModuleInfo,
@@ -59,11 +59,11 @@ export interface HubInfo {
 }
 
 async function toModuleInfo(
-  commands: CommandManager,
+  ws: Workspace,
   row: ProjectModuleInfo,
 ): Promise<ProjectModule> {
   try {
-    const data = await commands.modulesCmd.show(row.name);
+    const data = await ws.modulesCmd.show(row.name);
     return {
       ...row,
       name: data.name || row.name,
@@ -74,17 +74,15 @@ async function toModuleInfo(
   }
 }
 
-export async function getProject(
-  commands: CommandManager,
-): Promise<ProjectInfo> {
-  return commands.consistent(async () => {
-    const project = await commands.showCmd.showProject();
-    const modules = await commands.modulesCmd.inventory();
+export async function getProject(ws: Workspace): Promise<ProjectInfo> {
+  return ws.consistent(async () => {
+    const project = await ws.showCmd.showProject();
+    const modules = await ws.modulesCmd.inventory();
     const moduleDetails = await Promise.all(
-      modules.map((row) => toModuleInfo(commands, row)),
+      modules.map((row) => toModuleInfo(ws, row)),
     );
 
-    const gitRemoteUrl = (await commands.showCmd.showGitRemoteUrl()) ?? null;
+    const gitRemoteUrl = (await ws.showCmd.showGitRemoteUrl()) ?? null;
 
     return {
       name: project.name,
@@ -98,71 +96,69 @@ export async function getProject(
 }
 
 export async function updateProject(
-  commands: CommandManager,
+  ws: Workspace,
   updates: ProjectUpdatePayload,
 ): Promise<ProjectInfo> {
   const { name, cardKeyPrefix, description, category, gitRemoteUrl } = updates;
 
-  await commands.atomic(async () => {
+  await ws.atomic(async () => {
     if (cardKeyPrefix) {
-      await commands.renameCmd.rename(cardKeyPrefix);
+      await ws.renameCmd.rename(cardKeyPrefix);
     }
     if (name) {
-      await commands.project.configuration.setProjectName(name);
+      await ws.checkout.configuration.setProjectName(name);
     }
     if (description !== undefined) {
-      await commands.project.configuration.setDescription(description);
+      await ws.checkout.configuration.setDescription(description);
     }
     if (category !== undefined) {
-      await commands.project.configuration.setCategory(category);
+      await ws.checkout.configuration.setCategory(category);
     }
   }, 'Update project settings');
 
   if (gitRemoteUrl !== undefined) {
-    await commands.editCmd.setGitRemoteUrl(gitRemoteUrl);
+    await ws.editCmd.setGitRemoteUrl(gitRemoteUrl);
   }
 
-  return getProject(commands);
+  return getProject(ws);
 }
 
 export async function updateModule(
-  commands: CommandManager,
+  ws: Workspace,
   module: string,
   range?: string,
 ) {
-  await commands.modulesCmd.update(range ? { module, range } : { module });
+  await ws.modulesCmd.update(range ? { module, range } : { module });
 }
 
-export async function updateAllModules(commands: CommandManager) {
-  await commands.modulesCmd.update({});
+export async function updateAllModules(ws: Workspace) {
+  await ws.modulesCmd.update({});
 }
 
-export async function getUpdatePlan(
-  commands: CommandManager,
-): Promise<UpdatePlan> {
-  return commands.modulesCmd.planUpdate({});
+export async function getUpdatePlan(ws: Workspace): Promise<UpdatePlan> {
+  return ws.modulesCmd.planUpdate({});
 }
 
 export async function listModuleVersions(
-  commands: CommandManager,
+  ws: Workspace,
   target: { module?: string; source?: string },
 ): Promise<string[]> {
-  return commands.modulesCmd.listVersions(
+  return ws.modulesCmd.listVersions(
     target.source !== undefined
       ? { source: target.source }
       : { module: target.module! },
   );
 }
 
-export async function deleteModule(commands: CommandManager, module: string) {
-  await commands.removeCmd.remove('module', module);
+export async function deleteModule(ws: Workspace, module: string) {
+  await ws.removeCmd.remove('module', module);
 }
 
 // Hub data is only refreshed on demand, so a project that has never fetched
 // would otherwise show an empty catalogue until the user asks for a refresh.
-async function populateHubCache(commands: CommandManager) {
+async function populateHubCache(ws: Workspace) {
   try {
-    await commands.fetchCmd.ensureModuleListExists();
+    await ws.fetchCmd.ensureModuleListExists();
   } catch (error) {
     // An unreachable hub must not fail listing the hubs we already know about.
     console.warn('Failed to populate the hub cache', error);
@@ -170,28 +166,25 @@ async function populateHubCache(commands: CommandManager) {
 }
 
 export async function getImportableModules(
-  commands: CommandManager,
+  ws: Workspace,
 ): Promise<ModuleSettingFromHub[]> {
-  await populateHubCache(commands);
-  return commands.showCmd.showImportableModules(false, true);
+  await populateHubCache(ws);
+  return ws.showCmd.showImportableModules(false, true);
 }
 
 export async function importModule(
-  commands: CommandManager,
+  ws: Workspace,
   source: string,
   range?: string,
 ): Promise<void> {
-  await commands.modulesCmd.install(
-    source,
-    range ? { version: range } : undefined,
-  );
+  await ws.modulesCmd.install(source, range ? { version: range } : undefined);
 }
 
-export async function getHubs(commands: CommandManager): Promise<HubInfo[]> {
-  await populateHubCache(commands);
-  const hubs = await commands.showCmd.showHubDetails();
+export async function getHubs(ws: Workspace): Promise<HubInfo[]> {
+  await populateHubCache(ws);
+  const hubs = await ws.showCmd.showHubDetails();
   const importedModules = new Set(
-    (await commands.modulesCmd.list()).map((mod) => mod.name),
+    (await ws.modulesCmd.list()).map((mod) => mod.name),
   );
   return hubs.map((hub) => ({
     location: hub.location,
@@ -207,28 +200,26 @@ export async function getHubs(commands: CommandManager): Promise<HubInfo[]> {
 }
 
 export async function addHub(
-  commands: CommandManager,
+  ws: Workspace,
   location: string,
 ): Promise<HubFetchFailure[]> {
-  await commands.createCmd.addHubLocation(location);
+  await ws.createCmd.addHubLocation(location);
   // The hub is configured even when it cannot be reached right now; its
   // modules appear once a later refresh succeeds.
-  return commands.fetchCmd.fetchHubs(true);
+  return ws.fetchCmd.fetchHubs(true);
 }
 
-export async function removeHub(commands: CommandManager, location: string) {
-  await commands.removeCmd.remove('hub', location);
+export async function removeHub(ws: Workspace, location: string) {
+  await ws.removeCmd.remove('hub', location);
 }
 
-export async function fetchHubs(
-  commands: CommandManager,
-): Promise<HubFetchFailure[]> {
-  return commands.fetchCmd.fetchHubs(true);
+export async function fetchHubs(ws: Workspace): Promise<HubFetchFailure[]> {
+  return ws.fetchCmd.fetchHubs(true);
 }
 
 export async function cleanProject(
-  commands: CommandManager,
+  ws: Workspace,
   dryRun: boolean,
 ): Promise<CleanResult> {
-  return commands.cleanCmd.clean(dryRun);
+  return ws.cleanCmd.clean(dryRun);
 }

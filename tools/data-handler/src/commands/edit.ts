@@ -17,7 +17,7 @@ import { homedir } from 'node:os';
 import { spawnSync } from 'node:child_process';
 
 import { ActionGuard } from '../permissions/action-guard.js';
-import { Project } from '../containers/project.js';
+import { Checkout } from '../containers/project.js';
 import { UserPreferences } from '../utils/user-preferences.js';
 import { write } from '../utils/rw-lock.js';
 import { getChildLogger } from '../utils/log-utils.js';
@@ -31,10 +31,10 @@ import type { CustomField } from '../interfaces/resource-interfaces.js';
 const logger = getChildLogger({ module: 'edit' });
 
 export class Edit {
-  private project: Project;
+  private checkout: Checkout;
 
-  constructor(project: Project) {
-    this.project = project;
+  constructor(checkout: Checkout) {
+    this.checkout = checkout;
   }
 
   /**
@@ -42,7 +42,7 @@ export class Edit {
    * @param cardKey - The key of the card to open. Required.
    */
   public editCard(cardKey: string) {
-    const card = this.project.findCard(cardKey);
+    const card = this.checkout.findCard(cardKey);
 
     // Read the user preferences
     const prefs = new UserPreferences(
@@ -50,8 +50,8 @@ export class Edit {
     ).getPreferences();
 
     // Construct paths for the card components (json and adoc)
-    const cardContentPath = join(card.path, Project.cardContentFile);
-    const cardJsonPath = join(card.path, Project.cardMetadataFile);
+    const cardContentPath = join(card.path, Checkout.cardContentFile);
+    const cardJsonPath = join(card.path, Checkout.cardMetadataFile);
 
     // Extract the editor settings from the preferences.
     const editorPrefs = prefs.editCommand[process.platform];
@@ -87,13 +87,13 @@ export class Edit {
   @write((cardKey) => `Edit content of ${cardKey}`)
   public async editCardContent(cardKey: string, changedContent: string) {
     // A template card has no workflow state, so there is nothing to guard.
-    if (this.project.treeOf(cardKey).kind !== 'project') {
-      return this.project.updateCardContent(cardKey, changedContent);
+    if (this.checkout.treeOf(cardKey).kind !== 'project') {
+      return this.checkout.updateCardContent(cardKey, changedContent);
     }
-    if (this.project.findCard(cardKey)) {
-      const actionGuard = new ActionGuard(this.project.calculationEngine);
+    if (this.checkout.findCard(cardKey)) {
+      const actionGuard = new ActionGuard(this.checkout.calculationEngine);
       await actionGuard.checkPermission('editContent', cardKey);
-      await this.project.updateCardContent(cardKey, changedContent);
+      await this.checkout.updateCardContent(cardKey, changedContent);
     }
   }
 
@@ -113,18 +113,18 @@ export class Edit {
       throw new Error(`Changed key cannot be empty`);
     }
 
-    const card = this.project.findCard(cardKey);
+    const card = this.checkout.findCard(cardKey);
     this.assertFieldIsEditable(card, changedKey, newValue);
 
     // A template card has no workflow state, so there is nothing to guard.
-    if (this.project.treeOf(cardKey).kind !== 'project') {
-      return this.project.updateCardMetadataKey(cardKey, changedKey, newValue);
+    if (this.checkout.treeOf(cardKey).kind !== 'project') {
+      return this.checkout.updateCardMetadataKey(cardKey, changedKey, newValue);
     }
 
     // check for editing rights
-    const actionGuard = new ActionGuard(this.project.calculationEngine);
+    const actionGuard = new ActionGuard(this.checkout.calculationEngine);
     await actionGuard.checkPermission('editField', cardKey, changedKey);
-    await this.project.updateCardMetadataKey(cardKey, changedKey, newValue);
+    await this.checkout.updateCardMetadataKey(cardKey, changedKey, newValue);
   }
 
   /**
@@ -151,7 +151,7 @@ export class Edit {
     }
     let customField: CustomField | undefined;
     try {
-      const cardType = this.project.resources
+      const cardType = this.checkout.resources
         .byType(card.metadata.cardType, 'cardTypes')
         .show();
       customField = cardType.customFields.find((f) => f.name === fieldName);
@@ -176,6 +176,6 @@ export class Edit {
    */
   @write(() => 'Set git remote URL')
   public async setGitRemoteUrl(url: string): Promise<void> {
-    await this.project.git.setRemoteUrl(url);
+    await this.checkout.git.setRemoteUrl(url);
   }
 }

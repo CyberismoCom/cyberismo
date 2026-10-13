@@ -29,7 +29,7 @@ export class CardTypeRenameHandler implements Handler<RenameInput> {
     const oldName = resourceNameToString(ctx.input.target);
 
     // Interactive rename of a module-owned card type is not allowed.
-    if (ctx.input.target.prefix !== ctx.project.projectPrefix) {
+    if (ctx.input.target.prefix !== ctx.checkout.projectPrefix) {
       throw new Error(
         `Cannot rename resource ${oldName}: It is a module resource`,
       );
@@ -41,7 +41,7 @@ export class CardTypeRenameHandler implements Handler<RenameInput> {
     await this.applyCascade(ctx);
 
     // Rename the resource itself.
-    const resource = ctx.project.resources.byType(oldName, 'cardTypes');
+    const resource = ctx.checkout.resources.byType(oldName, 'cardTypes');
     if (!resource) {
       throw new Error(`CardType '${oldName}' not found`);
     }
@@ -57,15 +57,15 @@ export class CardTypeRenameHandler implements Handler<RenameInput> {
     for (const card of cards) {
       const metadata = card.metadata!;
       metadata.cardType = newName;
-      await ctx.project.updateCardMetadata(card, metadata);
+      await ctx.checkout.updateCardMetadata(card, metadata);
     }
 
     // 2. Rewrite the cascading references: folder-resource content files
     //    (calculations, report/graph templates), card content and the
     //    source/destination card-type lists of every link type that
     //    referenced this card type.
-    await rewriteContentFileRefs(ctx.project, oldName, newName);
-    await rewriteCardContentRefs(ctx.project, oldName, newName);
+    await rewriteContentFileRefs(ctx.checkout, oldName, newName);
+    await rewriteCardContentRefs(ctx.checkout, oldName, newName);
     await this.updateLinkTypes(ctx, oldName, newName);
   }
 
@@ -76,7 +76,7 @@ export class CardTypeRenameHandler implements Handler<RenameInput> {
     oldName: string,
     newName: string,
   ): Promise<void> {
-    const linkTypes = ctx.project.resources.linkTypes(ResourcesFrom.localOnly);
+    const linkTypes = ctx.checkout.resources.linkTypes(ResourcesFrom.localOnly);
     const cardTypeFields: Array<
       keyof Pick<LinkType, 'destinationCardTypes' | 'sourceCardTypes'>
     > = ['destinationCardTypes', 'sourceCardTypes'];
@@ -104,8 +104,8 @@ export class CardTypeRenameHandler implements Handler<RenameInput> {
 
   // Cards using this card type: local project cards plus local template cards.
   private affectedCards(ctx: MutationContext, oldName: string): Card[] {
-    const project = [...ctx.project.cardTree.cards()];
-    const templates = ctx.project.resources
+    const project = [...ctx.checkout.cardTree.cards()];
+    const templates = ctx.checkout.resources
       .templates(ResourcesFrom.localOnly)
       .flatMap((t) => t.cardTree.cards());
     return [...project, ...templates].filter(

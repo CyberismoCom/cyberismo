@@ -11,7 +11,7 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import type { Project } from '../containers/project.js';
+import type { Checkout } from '../containers/project.js';
 import { GitManager } from '../utils/git-manager.js';
 import { write } from '../utils/rw-lock.js';
 
@@ -20,7 +20,7 @@ import { write } from '../utils/rw-lock.js';
  * Creates a git tag from the version in cardsConfig and pushes to remote.
  */
 export class Publish {
-  constructor(private project: Project) {}
+  constructor(private checkout: Checkout) {}
 
   /**
    * Publishes the current project version by creating a git tag and pushing.
@@ -33,8 +33,8 @@ export class Publish {
     dryRun: boolean,
     remote?: string,
   ): Promise<{ version: string; remote: string; dryRun: boolean }> {
-    const { git } = this.project;
-    const version = this.project.configuration.version;
+    const { git } = this.checkout;
+    const version = this.checkout.configuration.version;
     const resolvedRemote = remote || GitManager.DEFAULT_REMOTE;
 
     // Guard: no version set

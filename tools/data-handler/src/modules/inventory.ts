@@ -31,7 +31,7 @@ import {
   type VersionSource,
 } from './types.js';
 
-import type { Project } from '../containers/project.js';
+import type { Checkout } from '../containers/project.js';
 import type {
   ModuleInfo,
   ModuleSetting,
@@ -41,15 +41,15 @@ import type {
 const logger = getChildLogger({ module: 'inventory' });
 
 /** Top-level declarations persisted in `project.configuration.modules`. */
-export function declaredModules(project: Project): ModuleDeclaration[] {
-  const settings: ModuleSetting[] = project.configuration.modules;
-  return settings.map((setting) => toDeclaration(project, setting));
+export function declaredModules(checkout: Checkout): ModuleDeclaration[] {
+  const settings: ModuleSetting[] = checkout.configuration.modules;
+  return settings.map((setting) => toDeclaration(checkout, setting));
 }
 
 export async function installedModules(
-  project: Project,
+  checkout: Checkout,
 ): Promise<ModuleInstallation[]> {
-  const modulesFolder = project.paths.modulesFolder;
+  const modulesFolder = checkout.paths.modulesFolder;
 
   let entries: string[];
   try {
@@ -63,13 +63,13 @@ export async function installedModules(
   }
 
   const declaredByName = new Map<string, ModuleSetting>(
-    project.configuration.modules.map((m) => [m.name, m]),
+    checkout.configuration.modules.map((m) => [m.name, m]),
   );
 
   const installations: ModuleInstallation[] = [];
   for (const name of entries) {
     const installation = await toInstallation(
-      project,
+      checkout,
       name,
       declaredByName.get(name),
     );
@@ -92,8 +92,8 @@ export async function installedModules(
  * keeps its empty location.
  */
 /** Installed modules as name/version pairs, sorted by name. */
-export async function moduleInfos(project: Project): Promise<ModuleInfo[]> {
-  const installed = await installedModules(project);
+export async function moduleInfos(checkout: Checkout): Promise<ModuleInfo[]> {
+  const installed = await installedModules(checkout);
   return installed
     .map((m) => ({ name: m.name, version: m.version }))
     .sort((a, b) => a.name.localeCompare(b.name));
@@ -106,10 +106,10 @@ export function versionSourceOf(source: Source): VersionSource {
 
 /** Installed modules with their declared range, dependents and version source. */
 export async function projectModules(
-  project: Project,
+  checkout: Checkout,
 ): Promise<ProjectModuleInfo[]> {
-  const installed = await installedModulesWithSources(project);
-  const declared = new Map(declaredModules(project).map((d) => [d.name, d]));
+  const installed = await installedModulesWithSources(checkout);
+  const declared = new Map(declaredModules(checkout).map((d) => [d.name, d]));
   return installed
     .map((m) => ({
       name: m.name,
@@ -127,15 +127,15 @@ export async function projectModules(
 }
 
 export async function installedModulesWithSources(
-  project: Project,
+  checkout: Checkout,
 ): Promise<ModuleInstallation[]> {
-  const installations = await installedModules(project);
+  const installations = await installedModules(checkout);
   if (installations.every((i) => i.source.location !== '')) {
     return installations;
   }
 
   const sourceByName = new Map<string, Source>();
-  for (const setting of project.configuration.modules) {
+  for (const setting of checkout.configuration.modules) {
     if (!sourceByName.has(setting.name)) {
       sourceByName.set(setting.name, {
         location: setting.location,
@@ -144,7 +144,7 @@ export async function installedModulesWithSources(
     }
   }
   for (const installation of installations) {
-    for (const dep of await declaredDependencySources(project, installation)) {
+    for (const dep of await declaredDependencySources(checkout, installation)) {
       if (!sourceByName.has(dep.name)) {
         sourceByName.set(dep.name, dep.source);
       }
@@ -162,13 +162,13 @@ export async function installedModulesWithSources(
 
 /** Dependency declarations (with locations) from one installation's own config. */
 async function declaredDependencySources(
-  project: Project,
+  checkout: Checkout,
   installation: ModuleInstallation,
 ): Promise<Array<{ name: string; source: Source }>> {
   let config: InstallationConfig | undefined;
   try {
     config = await readJsonFile(
-      project.paths.moduleConfigurationFile(installation.name),
+      checkout.paths.moduleConfigurationFile(installation.name),
     );
   } catch {
     return [];
@@ -192,7 +192,7 @@ async function declaredDependencySources(
 }
 
 function toDeclaration(
-  project: Project,
+  checkout: Checkout,
   setting: ModuleSetting,
 ): ModuleDeclaration {
   const source: Source = {
@@ -213,7 +213,7 @@ function toDeclaration(
   }
 
   return {
-    project: project.basePath,
+    project: checkout.basePath,
     name: setting.name,
     source,
     versionRange,
@@ -222,12 +222,12 @@ function toDeclaration(
 }
 
 async function toInstallation(
-  project: Project,
+  checkout: Checkout,
   name: string,
   declaredSetting: ModuleSetting | undefined,
 ): Promise<ModuleInstallation | undefined> {
-  const path = join(project.paths.modulesFolder, name);
-  const configPath = project.paths.moduleConfigurationFile(name);
+  const path = join(checkout.paths.modulesFolder, name);
+  const configPath = checkout.paths.moduleConfigurationFile(name);
 
   let config: InstallationConfig | undefined;
   try {
@@ -267,7 +267,7 @@ async function toInstallation(
   const declaredDependencies = extractDependencyNames(config.modules);
 
   return {
-    project: project.basePath,
+    project: checkout.basePath,
     name,
     source,
     version,

@@ -12,7 +12,7 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import type { Project } from '../containers/project.js';
+import type { Checkout } from '../containers/project.js';
 import { dispatch } from './dispatcher.js';
 import type { MutationContext, MutationOrigin } from './handler.js';
 import type { MutationInput } from './types.js';
@@ -52,7 +52,7 @@ function defaultCommitMessage(input: MutationInput): string {
 }
 
 export class ResourceMutations {
-  constructor(private project: Project) {}
+  constructor(private checkout: Checkout) {}
 
   async apply(
     rawInput: MutationInput,
@@ -60,7 +60,7 @@ export class ResourceMutations {
   ): Promise<void> {
     const input = normalized(rawInput);
     const ctx: MutationContext = {
-      project: this.project,
+      checkout: this.checkout,
       input,
       cardTypeRenames:
         origin.kind === 'replay' ? origin.cardTypeRenames : undefined,
@@ -73,7 +73,7 @@ export class ResourceMutations {
       // are never recorded in the host project's log (the host's own
       // consumers replay the module chain themselves).
       await runWithDefaultCommitMessage(defaultCommitMessage(input), () =>
-        this.project.lock.write(async () => {
+        this.checkout.lock.write(async () => {
           await handler.applyCascade(ctx);
         }),
       );
@@ -81,7 +81,7 @@ export class ResourceMutations {
     }
 
     await runWithDefaultCommitMessage(defaultCommitMessage(input), () =>
-      this.project.lock.write(async () => {
+      this.checkout.lock.write(async () => {
         await handler.apply(ctx);
         if (classification !== 'none') {
           await this.recordLogEntry(input);
@@ -92,7 +92,7 @@ export class ResourceMutations {
 
   private async recordLogEntry(input: MutationInput): Promise<void> {
     if (input.kind === 'edit') {
-      await ConfigurationLogger.log(this.project.basePath, {
+      await ConfigurationLogger.log(this.checkout.basePath, {
         operation: 'resource_update',
         target: `${input.target.prefix}/${input.target.type}/${input.target.identifier}`,
         parameters: {
@@ -102,7 +102,7 @@ export class ResourceMutations {
         },
       });
     } else if (input.kind === 'delete') {
-      await ConfigurationLogger.log(this.project.basePath, {
+      await ConfigurationLogger.log(this.checkout.basePath, {
         operation: 'resource_delete',
         target: `${input.target.prefix}/${input.target.type}/${input.target.identifier}`,
         parameters: { type: input.target.type },
@@ -110,7 +110,7 @@ export class ResourceMutations {
     } else if (input.kind === 'rename') {
       const oldName = `${input.target.prefix}/${input.target.type}/${input.target.identifier}`;
       const newName = `${input.target.prefix}/${input.target.type}/${input.newIdentifier}`;
-      await ConfigurationLogger.log(this.project.basePath, {
+      await ConfigurationLogger.log(this.checkout.basePath, {
         operation: 'resource_rename',
         target: oldName,
         parameters: {

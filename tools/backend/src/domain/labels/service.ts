@@ -11,13 +11,13 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import type { CommandManager } from '@cyberismo/data-handler';
+import type { Workspace } from '@cyberismo/data-handler';
 
 /**
  * Returns all unique labels available in the project.
- * @param commands command manager used for the query
+ * @param ws command manager used for the query
  * @returns a list of labels
  */
-export async function getLabels(commands: CommandManager): Promise<string[]> {
-  return (await commands.showCmd.showLabels()).sort();
+export async function getLabels(ws: Workspace): Promise<string[]> {
+  return (await ws.showCmd.showLabels()).sort();
 }

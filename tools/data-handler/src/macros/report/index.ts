@@ -32,7 +32,7 @@ class ReportMacro extends BaseMacro {
 
   handleStatic = async (context: MacroGenerationContext, data: unknown) => {
     const options = this.validate(data);
-    const report = context.project.resources
+    const report = context.checkout.resources
       .byType(options.name, 'reports')
       .show();
 
@@ -43,7 +43,7 @@ class ReportMacro extends BaseMacro {
     }
     try {
       return await generateReportContent({
-        calculate: context.project.calculationEngine,
+        calculate: context.checkout.calculationEngine,
         contentTemplate: report.content.contentTemplate,
         queryTemplate: report.content.queryTemplate,
         options: {

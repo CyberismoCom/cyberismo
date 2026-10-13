@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 
-import { Project } from '../../../src/containers/project.js';
+import { Checkout } from '../../../src/containers/project.js';
 import { ResourceMutations } from '../../../src/mutations/resource-mutations.js';
 import { copyDir, deleteDir } from '../../../src/utils/file-utils.js';
 import { resourceName } from '../../../src/utils/resource-utils.js';
@@ -11,34 +11,34 @@ import { createLinkSeededProject } from '../helpers.js';
 const tmpDir = join(import.meta.dirname, 'tmp-link-type-delete');
 
 describe('LinkTypeDeleteHandler', () => {
-  let project: Project;
+  let checkout: Checkout;
 
   beforeEach(async () => {
-    project = await createLinkSeededProject(tmpDir);
+    checkout = await createLinkSeededProject(tmpDir);
   });
   afterEach(async () => {
     await deleteDir(tmpDir);
   });
 
   it('apply strips matching links and deletes the resource', async () => {
-    const linkTypeName = `${project.projectPrefix}/linkTypes/test`;
-    await new ResourceMutations(project).apply({
+    const linkTypeName = `${checkout.projectPrefix}/linkTypes/test`;
+    await new ResourceMutations(checkout).apply({
       kind: 'delete',
       target: resourceName(linkTypeName),
     });
 
-    for (const card of project.cardTree.cards()) {
+    for (const card of checkout.cardTree.cards()) {
       const links = card.metadata?.links ?? [];
       expect(links.some((l) => l.linkType === linkTypeName)).toBe(false);
     }
-    expect(project.resources.exists(linkTypeName)).toBe(false);
+    expect(checkout.resources.exists(linkTypeName)).toBe(false);
   });
 });
 
 describe('LinkTypeDeleteHandler module scope', () => {
   const moduleTmpDir = join(import.meta.dirname, 'tmp-link-type-delete-module');
   const projectPath = join(moduleTmpDir, 'proj');
-  let project: Project;
+  let checkout: Checkout;
   let moduleCardMetadataFile: string;
   let localCardMetadataFile: string;
 
@@ -110,8 +110,8 @@ describe('LinkTypeDeleteHandler module scope', () => {
     ];
     await writeFile(localCardMetadataFile, JSON.stringify(localCard, null, 4));
 
-    project = new Project(projectPath);
-    await project.populateCaches();
+    checkout = new Checkout(projectPath);
+    await checkout.populateCaches();
   });
   afterEach(async () => {
     await deleteDir(moduleTmpDir);
@@ -120,9 +120,9 @@ describe('LinkTypeDeleteHandler module scope', () => {
   // The cascade is local-only: deleting a local link type strips it from local
   // cards but must leave module-owned card links untouched.
   it('local delete leaves module template card links untouched', async () => {
-    await new ResourceMutations(project).apply({
+    await new ResourceMutations(checkout).apply({
       kind: 'delete',
-      target: resourceName(`${project.projectPrefix}/linkTypes/test`),
+      target: resourceName(`${checkout.projectPrefix}/linkTypes/test`),
     });
 
     const localCard = JSON.parse(
@@ -141,7 +141,7 @@ describe('LinkTypeDeleteHandler module scope', () => {
 
   it('rejects a module link-type delete before stripping local card links', async () => {
     await expect(
-      new ResourceMutations(project).apply({
+      new ResourceMutations(checkout).apply({
         kind: 'delete',
         target: resourceName('mymod/linkTypes/dummy'),
       }),

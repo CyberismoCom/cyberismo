@@ -15,7 +15,7 @@ import { join } from 'node:path';
 
 // cyberismo
 import { Cmd } from '../src/command-handler.js';
-import { Project } from '../src/containers/project.js';
+import { Checkout } from '../src/containers/project.js';
 import {
   cardState,
   setupSideEffectProject,
@@ -81,7 +81,7 @@ describe('transition side effects', () => {
     // the whole write+query chain, so a failed metadata write was silently
     // dropped and the command reported success anyway.
     const { commands, options } = await setup('write-failure', '% no facts');
-    vi.spyOn(Project.prototype, 'updateCardMetadata').mockRejectedValueOnce(
+    vi.spyOn(Checkout.prototype, 'updateCardMetadata').mockRejectedValueOnce(
       new Error('disk full'),
     );
     const result = await commands.command(
@@ -134,7 +134,7 @@ describe('transition side effects', () => {
       'cycle-self',
       'onTransitionExecuteTransition(decision_6, "Reject", decision_6, "Reject").',
     );
-    const perform = vi.spyOn(Project.prototype, 'performTransition');
+    const perform = vi.spyOn(Checkout.prototype, 'performTransition');
     const result = await commands.command(
       Cmd.transition,
       ['decision_6', 'Reject'],

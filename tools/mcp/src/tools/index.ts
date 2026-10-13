@@ -77,8 +77,8 @@ export function registerTools(
     },
     async ({ projectPrefix, template, parentKey }) => {
       try {
-        const commands = resolveCommands(provider, projectPrefix);
-        const cards = await commands.createCmd.createCard(template, parentKey);
+        const ws = resolveCommands(provider, projectPrefix);
+        const cards = await ws.createCmd.createCard(template, parentKey);
         return toolResult({
           created: cards.map((c) => ({
             key: c.key,
@@ -103,8 +103,8 @@ export function registerTools(
     },
     async ({ projectPrefix, cardKey, content }) => {
       try {
-        const commands = resolveCommands(provider, projectPrefix);
-        await commands.editCmd.editCardContent(cardKey, content);
+        const ws = resolveCommands(provider, projectPrefix);
+        await ws.editCmd.editCardContent(cardKey, content);
         return toolResult({ cardKey });
       } catch (error) {
         return toolError('editing content', error);
@@ -135,8 +135,8 @@ export function registerTools(
     },
     async ({ projectPrefix, cardKey, field, value }) => {
       try {
-        const commands = resolveCommands(provider, projectPrefix);
-        await commands.editCmd.editCardMetadata(cardKey, field, value);
+        const ws = resolveCommands(provider, projectPrefix);
+        await ws.editCmd.editCardMetadata(cardKey, field, value);
         return toolResult({ cardKey, field, value });
       } catch (error) {
         return toolError('editing metadata', error);
@@ -158,8 +158,8 @@ export function registerTools(
     },
     async ({ projectPrefix, cardKey, transition }) => {
       try {
-        const commands = resolveCommands(provider, projectPrefix);
-        await commands.transitionCmd.cardTransition(cardKey, transition);
+        const ws = resolveCommands(provider, projectPrefix);
+        await ws.transitionCmd.cardTransition(cardKey, transition);
         return toolResult({ cardKey, transition });
       } catch (error) {
         return toolError('transitioning card', error);
@@ -181,8 +181,8 @@ export function registerTools(
     },
     async ({ projectPrefix, cardKey, destinationKey }) => {
       try {
-        const commands = resolveCommands(provider, projectPrefix);
-        await commands.moveCmd.moveCard(cardKey, destinationKey);
+        const ws = resolveCommands(provider, projectPrefix);
+        await ws.moveCmd.moveCard(cardKey, destinationKey);
         return toolResult({ cardKey, newParent: destinationKey });
       } catch (error) {
         return toolError('moving card', error);
@@ -215,8 +215,8 @@ export function registerTools(
       description,
     }) => {
       try {
-        const commands = resolveCommands(provider, projectPrefix);
-        await commands.createCmd.createLink(
+        const ws = resolveCommands(provider, projectPrefix);
+        await ws.createCmd.createLink(
           sourceKey,
           destinationKey,
           linkType,
@@ -242,13 +242,8 @@ export function registerTools(
     },
     async ({ projectPrefix, sourceKey, destinationKey, linkType }) => {
       try {
-        const commands = resolveCommands(provider, projectPrefix);
-        await commands.removeCmd.remove(
-          'link',
-          sourceKey,
-          destinationKey,
-          linkType,
-        );
+        const ws = resolveCommands(provider, projectPrefix);
+        await ws.removeCmd.remove('link', sourceKey, destinationKey, linkType);
         return toolResult({ sourceKey, destinationKey, linkType });
       } catch (error) {
         return toolError('removing link', error);
@@ -269,9 +264,9 @@ export function registerTools(
     },
     async ({ projectPrefix, cardKey, filename, content }) => {
       try {
-        const commands = resolveCommands(provider, projectPrefix);
+        const ws = resolveCommands(provider, projectPrefix);
         const buffer = Buffer.from(content, 'base64');
-        await commands.createCmd.createAttachment(cardKey, filename, buffer);
+        await ws.createCmd.createAttachment(cardKey, filename, buffer);
         return toolResult({ cardKey, filename });
       } catch (error) {
         return toolError('creating attachment', error);
@@ -290,8 +285,8 @@ export function registerTools(
     },
     async ({ projectPrefix, cardKey }) => {
       try {
-        const commands = resolveCommands(provider, projectPrefix);
-        await commands.removeCmd.remove('card', cardKey);
+        const ws = resolveCommands(provider, projectPrefix);
+        await ws.removeCmd.remove('card', cardKey);
         return toolResult({ removed: cardKey });
       } catch (error) {
         return toolError('removing card', error);
@@ -311,8 +306,8 @@ export function registerTools(
     },
     async ({ projectPrefix, cardKey, label }) => {
       try {
-        const commands = resolveCommands(provider, projectPrefix);
-        await commands.createCmd.createLabel(cardKey, label);
+        const ws = resolveCommands(provider, projectPrefix);
+        await ws.createCmd.createLabel(cardKey, label);
         return toolResult({ cardKey, label });
       } catch (error) {
         return toolError('creating label', error);
@@ -332,8 +327,8 @@ export function registerTools(
     },
     async ({ projectPrefix, cardKey, label }) => {
       try {
-        const commands = resolveCommands(provider, projectPrefix);
-        await commands.removeCmd.remove('label', cardKey, label);
+        const ws = resolveCommands(provider, projectPrefix);
+        await ws.removeCmd.remove('label', cardKey, label);
         return toolResult({ cardKey, label });
       } catch (error) {
         return toolError('removing label', error);
@@ -375,13 +370,13 @@ export function registerTools(
     },
     async ({ projectPrefix, cardKey, raw }) => {
       try {
-        const commands = resolveCommands(provider, projectPrefix);
+        const ws = resolveCommands(provider, projectPrefix);
         if (raw) {
-          const card = await commands.showCmd.showCardDetails(cardKey);
+          const card = await ws.showCmd.showCardDetails(cardKey);
           return toolResult({ card });
         }
 
-        const rendered = await renderCard(commands, cardKey);
+        const rendered = await renderCard(ws, cardKey);
         return toolResult({ card: rendered });
       } catch (error) {
         return toolError('getting card', error);
@@ -399,8 +394,8 @@ export function registerTools(
     },
     async ({ projectPrefix }) => {
       try {
-        const commands = resolveCommands(provider, projectPrefix);
-        const tree = await getCardTree(commands);
+        const ws = resolveCommands(provider, projectPrefix);
+        const tree = await getCardTree(ws);
         return toolResult({ cards: tree });
       } catch (error) {
         return toolError('listing cards', error);
@@ -418,8 +413,8 @@ export function registerTools(
     },
     async ({ projectPrefix }) => {
       try {
-        const commands = resolveCommands(provider, projectPrefix);
-        const templates = await commands.showCmd.showTemplatesWithDetails();
+        const ws = resolveCommands(provider, projectPrefix);
+        const templates = await ws.showCmd.showTemplatesWithDetails();
         return toolResult({ templates });
       } catch (error) {
         return toolError('listing templates', error);
@@ -448,8 +443,8 @@ export function registerTools(
     },
     async ({ projectPrefix, category, cardKey }) => {
       try {
-        const commands = resolveCommands(provider, projectPrefix);
-        const skills = await commands.showCmd.listSkills({ category, cardKey });
+        const ws = resolveCommands(provider, projectPrefix);
+        const skills = await ws.showCmd.listSkills({ category, cardKey });
         return toolResult({ skills });
       } catch (error) {
         return toolError('listing skills', error);
@@ -475,8 +470,8 @@ export function registerTools(
     },
     async ({ projectPrefix, name, cardKey }) => {
       try {
-        const commands = resolveCommands(provider, projectPrefix);
-        const result = await commands.showCmd.getSkill(name, { cardKey });
+        const ws = resolveCommands(provider, projectPrefix);
+        const result = await ws.showCmd.getSkill(name, { cardKey });
         if (result.status === 'not-found') {
           return toolResult({
             enabled: false,
@@ -522,8 +517,8 @@ export function registerTools(
     },
     async ({ projectPrefix, cardKey, filename }) => {
       try {
-        const commands = resolveCommands(provider, projectPrefix);
-        await commands.removeCmd.remove('attachment', cardKey, filename);
+        const ws = resolveCommands(provider, projectPrefix);
+        await ws.removeCmd.remove('attachment', cardKey, filename);
         return toolResult({ cardKey, filename });
       } catch (error) {
         return toolError('removing attachment', error);
@@ -541,8 +536,8 @@ export function registerTools(
     },
     async ({ projectPrefix }) => {
       try {
-        const commands = resolveCommands(provider, projectPrefix);
-        const labels = await commands.showCmd.showLabels();
+        const ws = resolveCommands(provider, projectPrefix);
+        const labels = await ws.showCmd.showLabels();
         return toolResult({ labels });
       } catch (error) {
         return toolError('listing labels', error);
@@ -561,8 +556,8 @@ export function registerTools(
     },
     async ({ projectPrefix, cardKey }) => {
       try {
-        const commands = resolveCommands(provider, projectPrefix);
-        await commands.moveCmd.rankFirst(cardKey);
+        const ws = resolveCommands(provider, projectPrefix);
+        await ws.moveCmd.rankFirst(cardKey);
         return toolResult({ cardKey, position: 'first' });
       } catch (error) {
         return toolError('ranking card first', error);
@@ -582,8 +577,8 @@ export function registerTools(
     },
     async ({ projectPrefix, cardKey, afterCardKey }) => {
       try {
-        const commands = resolveCommands(provider, projectPrefix);
-        await commands.moveCmd.rankCard(cardKey, afterCardKey);
+        const ws = resolveCommands(provider, projectPrefix);
+        await ws.moveCmd.rankCard(cardKey, afterCardKey);
         return toolResult({ cardKey, afterCardKey });
       } catch (error) {
         return toolError('ranking card', error);
@@ -603,8 +598,8 @@ export function registerTools(
     },
     async ({ projectPrefix, cardKey, index }) => {
       try {
-        const commands = resolveCommands(provider, projectPrefix);
-        await commands.moveCmd.rankByIndex(cardKey, index);
+        const ws = resolveCommands(provider, projectPrefix);
+        await ws.moveCmd.rankByIndex(cardKey, index);
         return toolResult({ cardKey, index });
       } catch (error) {
         return toolError('ranking card by index', error);
@@ -626,8 +621,8 @@ export function registerTools(
     },
     async ({ projectPrefix, name, workflowName }) => {
       try {
-        const commands = resolveCommands(provider, projectPrefix);
-        await commands.createCmd.createCardType(name, workflowName);
+        const ws = resolveCommands(provider, projectPrefix);
+        await ws.createCmd.createCardType(name, workflowName);
         return toolResult({ name, workflowName });
       } catch (error) {
         return toolError('creating card type', error);
@@ -660,8 +655,8 @@ export function registerTools(
     },
     async ({ projectPrefix, name, dataType }) => {
       try {
-        const commands = resolveCommands(provider, projectPrefix);
-        await commands.createCmd.createFieldType(name, dataType);
+        const ws = resolveCommands(provider, projectPrefix);
+        await ws.createCmd.createFieldType(name, dataType);
         return toolResult({ name, dataType });
       } catch (error) {
         return toolError('creating field type', error);
@@ -684,8 +679,8 @@ export function registerTools(
     },
     async ({ projectPrefix, name, content }) => {
       try {
-        const commands = resolveCommands(provider, projectPrefix);
-        await commands.createCmd.createWorkflow(name, content ?? '');
+        const ws = resolveCommands(provider, projectPrefix);
+        await ws.createCmd.createWorkflow(name, content ?? '');
         return toolResult({ name });
       } catch (error) {
         return toolError('creating workflow', error);
@@ -704,8 +699,8 @@ export function registerTools(
     },
     async ({ projectPrefix, name }) => {
       try {
-        const commands = resolveCommands(provider, projectPrefix);
-        await commands.createCmd.createLinkType(name);
+        const ws = resolveCommands(provider, projectPrefix);
+        await ws.createCmd.createLinkType(name);
         return toolResult({ name });
       } catch (error) {
         return toolError('creating link type', error);
@@ -728,8 +723,8 @@ export function registerTools(
     },
     async ({ projectPrefix, name, content }) => {
       try {
-        const commands = resolveCommands(provider, projectPrefix);
-        await commands.createCmd.createTemplate(name, content ?? '');
+        const ws = resolveCommands(provider, projectPrefix);
+        await ws.createCmd.createTemplate(name, content ?? '');
         return toolResult({ name });
       } catch (error) {
         return toolError('creating template', error);
@@ -766,8 +761,8 @@ export function registerTools(
       count,
     }) => {
       try {
-        const commands = resolveCommands(provider, projectPrefix);
-        const cards = await commands.createCmd.addCards(
+        const ws = resolveCommands(provider, projectPrefix);
+        const cards = await ws.createCmd.addCards(
           cardTypeName,
           templateName,
           parentCard,
@@ -808,8 +803,8 @@ export function registerTools(
     },
     async ({ projectPrefix, resourceType, name }) => {
       try {
-        const commands = resolveCommands(provider, projectPrefix);
-        await commands.removeCmd.remove(resourceType, name);
+        const ws = resolveCommands(provider, projectPrefix);
+        await ws.removeCmd.remove(resourceType, name);
         return toolResult({ resourceType, name });
       } catch (error) {
         return toolError('deleting resource', error);
@@ -830,11 +825,11 @@ export function registerTools(
     },
     async ({ projectPrefix, name }) => {
       try {
-        const commands = resolveCommands(provider, projectPrefix);
+        const ws = resolveCommands(provider, projectPrefix);
         const parsed = resourceName(name);
-        const result = await commands.validateCmd.validateResource(
+        const result = await ws.validateCmd.validateResource(
           parsed,
-          commands.project,
+          ws.checkout,
         );
         return toolResult({
           name,
@@ -977,8 +972,8 @@ export function registerTools(
     },
     async ({ projectPrefix, resource, operation, key }) => {
       try {
-        const commands = resolveCommands(provider, projectPrefix);
-        await commands.updateCmd.apply({
+        const ws = resolveCommands(provider, projectPrefix);
+        await ws.updateCmd.apply({
           kind: 'edit',
           target: resourceName(resource),
           updateKey: { key },
@@ -1036,12 +1031,12 @@ export function registerTools(
     },
     async ({ projectPrefix, resource, query }) => {
       try {
-        const commands = resolveCommands(provider, projectPrefix);
+        const ws = resolveCommands(provider, projectPrefix);
         const updateKey =
           query.key === 'content'
             ? ({ key: 'content', subKey: query.subKey } as const)
             : { key: query.key };
-        await commands.updateCmd.apply({
+        await ws.updateCmd.apply({
           kind: 'edit',
           target: resourceName(resource),
           updateKey,
@@ -1073,8 +1068,8 @@ export function registerTools(
     },
     async ({ projectPrefix, name }) => {
       try {
-        const commands = resolveCommands(provider, projectPrefix);
-        await commands.createCmd.createCalculation(name);
+        const ws = resolveCommands(provider, projectPrefix);
+        await ws.createCmd.createCalculation(name);
         return toolResult({ name });
       } catch (error) {
         return toolError('creating calculation', error);
@@ -1095,8 +1090,8 @@ export function registerTools(
     },
     async ({ projectPrefix, queryName }) => {
       try {
-        const commands = resolveCommands(provider, projectPrefix);
-        const results = await commands.calculateCmd.runQuery(queryName);
+        const ws = resolveCommands(provider, projectPrefix);
+        const results = await ws.calculateCmd.runQuery(queryName);
         return toolResult({ results });
       } catch (error) {
         return toolError('running query', error);
@@ -1116,8 +1111,8 @@ export function registerTools(
     },
     async ({ projectPrefix, query }) => {
       try {
-        const commands = resolveCommands(provider, projectPrefix);
-        const result = await commands.calculateCmd.runLogicProgram(query);
+        const ws = resolveCommands(provider, projectPrefix);
+        const result = await ws.calculateCmd.runLogicProgram(query);
         return toolResult({ result });
       } catch (error) {
         return toolError('running logic program', error);
@@ -1136,8 +1131,8 @@ export function registerTools(
     },
     async ({ projectPrefix, name }) => {
       try {
-        const commands = resolveCommands(provider, projectPrefix);
-        await commands.createCmd.createReport(name);
+        const ws = resolveCommands(provider, projectPrefix);
+        await ws.createCmd.createReport(name);
         return toolResult({ name });
       } catch (error) {
         return toolError('creating report', error);
@@ -1156,8 +1151,8 @@ export function registerTools(
     },
     async ({ projectPrefix, name }) => {
       try {
-        const commands = resolveCommands(provider, projectPrefix);
-        await commands.createCmd.createGraphModel(name);
+        const ws = resolveCommands(provider, projectPrefix);
+        await ws.createCmd.createGraphModel(name);
         return toolResult({ name });
       } catch (error) {
         return toolError('creating graph model', error);
@@ -1176,8 +1171,8 @@ export function registerTools(
     },
     async ({ projectPrefix, name }) => {
       try {
-        const commands = resolveCommands(provider, projectPrefix);
-        await commands.createCmd.createGraphView(name);
+        const ws = resolveCommands(provider, projectPrefix);
+        await ws.createCmd.createGraphView(name);
         return toolResult({ name });
       } catch (error) {
         return toolError('creating graph view', error);
@@ -1202,8 +1197,8 @@ export function registerTools(
     },
     async ({ projectPrefix, reportName, cardKey, parameters }) => {
       try {
-        const commands = resolveCommands(provider, projectPrefix);
-        const result = await commands.showCmd.showReportResults(
+        const ws = resolveCommands(provider, projectPrefix);
+        const result = await ws.showCmd.showReportResults(
           reportName,
           cardKey,
           parameters ?? {},
@@ -1228,12 +1223,8 @@ export function registerTools(
     },
     async ({ projectPrefix, model, view }) => {
       try {
-        const commands = resolveCommands(provider, projectPrefix);
-        const base64 = await commands.calculateCmd.runGraph(
-          model,
-          view,
-          'localApp',
-        );
+        const ws = resolveCommands(provider, projectPrefix);
+        const base64 = await ws.calculateCmd.runGraph(model, view, 'localApp');
         return {
           content: [
             {

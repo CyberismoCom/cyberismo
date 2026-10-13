@@ -31,7 +31,7 @@ export class WorkflowRenameHandler implements Handler<RenameInput> {
   async apply(ctx: MutationContext<RenameInput>): Promise<void> {
     const oldName = resourceNameToString(ctx.input.target);
 
-    const resource = ctx.project.resources.byType(oldName, 'workflows');
+    const resource = ctx.checkout.resources.byType(oldName, 'workflows');
     if (!resource) {
       throw new Error(`Workflow '${oldName}' not found`);
     }
@@ -49,8 +49,8 @@ export class WorkflowRenameHandler implements Handler<RenameInput> {
     const newName = `${ctx.input.target.prefix}/workflows/${ctx.input.newIdentifier}`;
 
     await Promise.all([
-      rewriteContentFileRefs(ctx.project, oldName, newName),
-      rewriteCardContentRefs(ctx.project, oldName, newName),
+      rewriteContentFileRefs(ctx.checkout, oldName, newName),
+      rewriteCardContentRefs(ctx.checkout, oldName, newName),
       this.updateCardTypes(ctx, oldName, newName),
     ]);
   }
@@ -63,7 +63,7 @@ export class WorkflowRenameHandler implements Handler<RenameInput> {
     oldName: string,
     newName: string,
   ): Promise<void> {
-    const cardTypes = ctx.project.resources.cardTypes(ResourcesFrom.localOnly);
+    const cardTypes = ctx.checkout.resources.cardTypes(ResourcesFrom.localOnly);
     const op = {
       name: 'change',
       target: oldName,

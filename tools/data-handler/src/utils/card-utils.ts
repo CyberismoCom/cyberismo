@@ -19,7 +19,7 @@ import type {
   CardAttachment,
   CardWithChildrenCards,
 } from '../interfaces/project-interfaces.js';
-import type { Project } from '../containers/project.js';
+import type { Checkout } from '../containers/project.js';
 
 /**
  * Builds card hierarchy from flat card list with nested card objects.
@@ -77,15 +77,15 @@ export const buildCardHierarchy = (
 /**
  * Flattens card tree so that children are shown on same level regardless of nesting level.
  * @param array Card tree to flatten
- * @param project Project to use
+ * @param checkout Project to use
  * @returns Flattened card tree.
  */
-export const flattenCardArray = (array: Card[], project: Project) => {
+export const flattenCardArray = (array: Card[], checkout: Checkout) => {
   const result: Card[] = [];
 
   array.forEach((item) => {
     const { key, path, parent, children, attachments, metadata } = item;
-    const childCardIds = project
+    const childCardIds = checkout
       .cardKeysToCards(children)
       .map((item) => item.key);
 
@@ -99,7 +99,7 @@ export const flattenCardArray = (array: Card[], project: Project) => {
     });
     if (children) {
       result.push(
-        ...flattenCardArray(project.cardKeysToCards(children), project),
+        ...flattenCardArray(checkout.cardKeysToCards(children), checkout),
       );
     }
   });

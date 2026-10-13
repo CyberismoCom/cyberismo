@@ -50,7 +50,7 @@ export default class XrefMacro extends BaseMacro {
   };
 
   private getCard(cardKey: string, context: MacroGenerationContext) {
-    return context.project.cardNode(cardKey);
+    return context.checkout.cardNode(cardKey);
   }
 
   private validate(input: unknown): XrefMacroOptions {

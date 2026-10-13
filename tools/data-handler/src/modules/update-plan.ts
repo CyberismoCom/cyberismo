@@ -33,7 +33,7 @@ import {
   validateVersionAgainstConstraints,
 } from './version.js';
 
-import type { Project } from '../containers/project.js';
+import type { Checkout } from '../containers/project.js';
 import type {
   Credentials,
   UpdatePlan,
@@ -43,12 +43,12 @@ import type { UpdateRequest } from './resolve/types.js';
 
 /** The declared root `module` names; a transitive or unknown module is refused. */
 export async function requireDeclared(
-  project: Project,
+  checkout: Checkout,
   module: string,
 ): Promise<ModuleDeclaration> {
-  const declaration = declaredModules(project).find((d) => d.name === module);
+  const declaration = declaredModules(checkout).find((d) => d.name === module);
   if (declaration) return declaration;
-  const parents = (await installedModules(project))
+  const parents = (await installedModules(checkout))
     .filter((m) => m.declaredDependencies.includes(module))
     .map((m) => m.name);
   if (parents.length > 0) {
@@ -65,20 +65,20 @@ export async function requireDeclared(
  * it here. Refuses a target the project cannot take before anything is solved.
  */
 async function buildUpdateRequest(
-  project: Project,
+  checkout: Checkout,
   source: SourceLayer,
   target: UpdateTarget,
   credentials?: Credentials,
 ): Promise<UpdateRequest> {
   const { module } = target;
   if (module === undefined) {
-    if (declaredModules(project).length === 0) {
+    if (declaredModules(checkout).length === 0) {
       throw new ModuleRequestError('No modules in the project!');
     }
     return { kind: 'updateAll' };
   }
 
-  const declaration = await requireDeclared(project, module);
+  const declaration = await requireDeclared(checkout, module);
 
   // Re-declaring the range is the upsert `install` does for a declared module.
   if (target.range !== undefined) {
@@ -98,7 +98,7 @@ async function buildUpdateRequest(
   if (version === undefined) return { kind: 'update', module };
 
   // The raw setting, so an invalid declared range refuses the version too.
-  const declared = project.configuration.modules.find(
+  const declared = checkout.configuration.modules.find(
     (m) => m.name === module,
   )?.version;
   if (declared) {
@@ -134,27 +134,27 @@ export interface Resolution extends SolveOutcome {
 
 /** Builds the request `target` stands for and solves it. The caller owns `source`. */
 export async function resolveUpdate(
-  project: Project,
+  checkout: Checkout,
   target: UpdateTarget,
   opts: { source: SourceLayer; credentials?: Credentials },
 ): Promise<Resolution> {
   const req = await buildUpdateRequest(
-    project,
+    checkout,
     opts.source,
     target,
     opts.credentials,
   );
-  const outcome = await solve(project, req, opts.source, opts.credentials);
+  const outcome = await solve(checkout, req, opts.source, opts.credentials);
   return { ...outcome, target };
 }
 
 /** The consumer view of a {@link Resolution}. */
 export async function toUpdatePlan(
-  project: Project,
+  checkout: Checkout,
   { target, result, listed, rangeWrites, assign }: Resolution,
 ): Promise<UpdatePlan> {
-  const declared = declaredModules(project);
-  const installations = await installedModules(project);
+  const declared = declaredModules(checkout);
+  const installations = await installedModules(checkout);
   const installed = new Map(installations.map((m) => [m.name, m.version]));
   const changes = result.ok ? result.changes : [];
   const moved = new Map(changes.map((c) => [c.module, c.to]));

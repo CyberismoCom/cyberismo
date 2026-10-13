@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { mkdir, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 
-import { Project } from '../../../src/containers/project.js';
+import { Checkout } from '../../../src/containers/project.js';
 import { resourceName } from '../../../src/utils/resource-utils.js';
 import { copyDir } from '../../../src/utils/file-utils.js';
 import { ResourceMutations } from '../../../src/mutations/resource-mutations.js';
@@ -18,14 +18,14 @@ const FIXTURE_PATH = join(
 const tmpDir = join(import.meta.dirname, 'tmp-workflow-rename');
 
 describe('WorkflowRenameHandler', () => {
-  let project: Project;
+  let checkout: Checkout;
 
   beforeEach(async () => {
     const projectPath = join(tmpDir, `proj-${Date.now()}-${Math.random()}`);
     await mkdir(projectPath, { recursive: true });
     await copyDir(FIXTURE_PATH, projectPath);
-    project = new Project(projectPath);
-    await project.populateCaches();
+    checkout = new Checkout(projectPath);
+    await checkout.populateCaches();
   });
   afterEach(async () => {
     await rm(tmpDir, { recursive: true, force: true });
@@ -34,7 +34,7 @@ describe('WorkflowRenameHandler', () => {
   it('apply rewrites the workflow reference in dependent card types', async () => {
     const oldName = 'decision/workflows/decision';
     const newName = 'decision/workflows/decision-v2';
-    const mutations = new ResourceMutations(project);
+    const mutations = new ResourceMutations(checkout);
     await mutations.apply({
       kind: 'rename',
       target: resourceName(oldName),
@@ -43,23 +43,23 @@ describe('WorkflowRenameHandler', () => {
 
     // No card type still references the old workflow name; the card type that
     // used 'decision' now references the new name.
-    for (const ct of project.resources.cardTypes()) {
+    for (const ct of checkout.resources.cardTypes()) {
       if (ct.data) {
         expect(ct.data.workflow).not.toBe(oldName);
       }
     }
-    const decisionCt = project.resources
+    const decisionCt = checkout.resources
       .byType('decision/cardTypes/decision', 'cardTypes')
       .show();
     expect(decisionCt!.workflow).toBe(newName);
 
     // The workflow file itself has the new name.
-    const renamed = project.resources.byType(newName, 'workflows').show();
+    const renamed = checkout.resources.byType(newName, 'workflows').show();
     expect(renamed!.name).toBe(newName);
   });
 
   it('throws when the workflow does not exist', async () => {
-    const mutations = new ResourceMutations(project);
+    const mutations = new ResourceMutations(checkout);
     await expect(
       mutations.apply({
         kind: 'rename',

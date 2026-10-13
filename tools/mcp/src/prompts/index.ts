@@ -53,8 +53,8 @@ export function registerPrompts(
     async (): Promise<ListPromptsResult> => {
       const perProject = await Promise.all(
         provider.list().map(({ prefix }) => {
-          const commands = provider.get(prefix);
-          return commands ? commands.showCmd.listSkills() : [];
+          const ws = provider.get(prefix);
+          return ws ? ws.showCmd.listSkills() : [];
         }),
       );
       const prompts: ListPromptsResult['prompts'] = perProject.flatMap(
@@ -90,11 +90,11 @@ export function registerPrompts(
       // resolve by asking each project rather than parsing the name's prefix.
       let anyDisabled = false;
       for (const { prefix } of provider.list()) {
-        const commands = provider.get(prefix);
-        if (!commands) {
+        const ws = provider.get(prefix);
+        if (!ws) {
           continue;
         }
-        const result = await commands.showCmd.getSkill(name, { cardKey });
+        const result = await ws.showCmd.getSkill(name, { cardKey });
         if (result.status === 'ok') {
           const { skill } = result;
           const relatedTools = skill.relatedTools.length

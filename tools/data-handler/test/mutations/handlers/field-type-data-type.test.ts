@@ -3,7 +3,7 @@ import { mkdirSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { copyDir } from '../../../src/utils/file-utils.js';
-import type { Project } from '../../../src/containers/project.js';
+import type { Checkout } from '../../../src/containers/project.js';
 import { getTestProject } from '../../helpers/test-utils.js';
 import { resourceName } from '../../../src/utils/resource-utils.js';
 import { ResourceMutations } from '../../../src/mutations/resource-mutations.js';
@@ -11,24 +11,24 @@ import { ResourceMutations } from '../../../src/mutations/resource-mutations.js'
 const baseDir = import.meta.dirname;
 const testDir = join(baseDir, 'tmp-field-type-data-type');
 const decisionRecordsPath = join(testDir, 'valid/decision-records');
-let project: Project;
+let checkout: Checkout;
 
-const fieldName = () => `${project.projectPrefix}/fieldTypes/finished`;
+const fieldName = () => `${checkout.projectPrefix}/fieldTypes/finished`;
 
 describe('FieldTypeDataTypeHandler', () => {
   beforeEach(async () => {
     mkdirSync(testDir, { recursive: true });
     await copyDir(join(baseDir, '..', '..', 'test-data'), testDir);
-    project = getTestProject(decisionRecordsPath);
-    await project.populateCaches();
+    checkout = getTestProject(decisionRecordsPath);
+    await checkout.populateCaches();
 
     // Ensure at least one card carries 'finished' with a non-null boolean value.
-    const cards = project.cardTree
+    const cards = checkout.cardTree
       .cards()
       .filter((c) => c.metadata && fieldName() in c.metadata);
     if (cards.length > 0 && cards[0].metadata) {
       cards[0].metadata[fieldName()] = true;
-      await project.updateCardMetadata(cards[0], cards[0].metadata);
+      await checkout.updateCardMetadata(cards[0], cards[0].metadata);
     }
   });
   afterEach(() => {
@@ -36,7 +36,7 @@ describe('FieldTypeDataTypeHandler', () => {
   });
 
   it('converts values on every affected card and updates the field definition', async () => {
-    const mutations = new ResourceMutations(project);
+    const mutations = new ResourceMutations(checkout);
     await mutations.apply({
       kind: 'edit' as const,
       target: resourceName(fieldName()),
@@ -48,9 +48,9 @@ describe('FieldTypeDataTypeHandler', () => {
       },
     });
 
-    const updated = project.resources.byType(fieldName(), 'fieldTypes').show();
+    const updated = checkout.resources.byType(fieldName(), 'fieldTypes').show();
     expect(updated.dataType).toBe('shortText');
-    for (const card of project.cardTree.cards()) {
+    for (const card of checkout.cardTree.cards()) {
       const value = card.metadata?.[fieldName()];
       if (value === undefined || value === null) continue;
       expect(typeof value).toBe('string');
@@ -61,13 +61,13 @@ describe('FieldTypeDataTypeHandler', () => {
     // Scalar change operations may be recorded without 'target' (the old
     // data type). When the conversion cannot be determined, card values must
     // be left as-is rather than cleared.
-    const before = project.cardTree
+    const before = checkout.cardTree
       .cards()
       .filter((c) => c.metadata?.[fieldName()] != null)
       .map((c) => [c.key, c.metadata![fieldName()]] as const);
     expect(before.length).toBeGreaterThan(0);
 
-    const mutations = new ResourceMutations(project);
+    const mutations = new ResourceMutations(checkout);
     await mutations.apply(
       {
         kind: 'edit' as const,
@@ -75,17 +75,17 @@ describe('FieldTypeDataTypeHandler', () => {
         updateKey: { key: 'dataType' as const },
         operation: { name: 'change' as const, to: 'number' },
       },
-      { kind: 'replay', modulePrefix: project.projectPrefix },
+      { kind: 'replay', modulePrefix: checkout.projectPrefix },
     );
 
     for (const [key, value] of before) {
-      const card = project.cardTree.cards().find((c) => c.key === key);
+      const card = checkout.cardTree.cards().find((c) => c.key === key);
       expect(card?.metadata?.[fieldName()]).toBe(value);
     }
   });
 
   it('rejects a conversion that is not allowed', async () => {
-    const mutations = new ResourceMutations(project);
+    const mutations = new ResourceMutations(checkout);
     await expect(
       mutations.apply({
         kind: 'edit' as const,

@@ -37,9 +37,9 @@ describe('import csv command', () => {
 
     const [key1, key2] = result.payload as string[];
 
-    const project = getTestProject(decisionRecordsPath);
-    await project.populateCaches();
-    const show = new Show(project);
+    const checkout = getTestProject(decisionRecordsPath);
+    await checkout.populateCaches();
+    const show = new Show(checkout);
     const card1 = await show.showCardDetails(key1);
     const card2 = await show.showCardDetails(key2);
     expect(card1.metadata!.title).toBe('Title1');

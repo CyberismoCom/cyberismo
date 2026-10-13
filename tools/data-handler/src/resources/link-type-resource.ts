@@ -18,7 +18,7 @@ import { sortCards } from '../utils/card-utils.js';
 import type { Card } from '../interfaces/project-interfaces.js';
 import type { LinkType, UpdateKey } from '../interfaces/resource-interfaces.js';
 import type { Operation } from './resource-object.js';
-import type { Project } from '../containers/project.js';
+import type { Checkout } from '../containers/project.js';
 import type { ResourceName } from '../utils/resource-utils.js';
 
 /**
@@ -27,11 +27,11 @@ import type { ResourceName } from '../utils/resource-utils.js';
 export class LinkTypeResource extends FileResource<LinkType> {
   /**
    * Creates instance of LinkTypeResource
-   * @param project Project to use
+   * @param checkout Project to use
    * @param name Resource name
    */
-  constructor(project: Project, name: ResourceName) {
-    super(project, name, 'linkTypes');
+  constructor(checkout: Checkout, name: ResourceName) {
+    super(checkout, name, 'linkTypes');
 
     this.contentSchemaId = 'linkTypeSchema';
     this.contentSchema = super.contentSchemaContent(this.contentSchemaId);
