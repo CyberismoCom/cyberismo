@@ -13,7 +13,7 @@
 
 import type { requestStatus } from '@cyberismo/data-handler';
 
-import { program } from './dispatch.js';
+import { fail } from './errors.js';
 
 // Notifies on stderr that a deprecated command spelling was used.
 export function deprecationNote(oldName: string, newName: string) {
@@ -39,8 +39,6 @@ export function handleResponse(response: requestStatus) {
       console.log(`\n${response.note}`);
     }
   } else {
-    if (response.message) {
-      program.error(response.message);
-    }
+    fail(response.message);
   }
 }
