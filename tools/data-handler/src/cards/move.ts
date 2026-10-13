@@ -12,6 +12,7 @@
 */
 
 import { ActionGuard } from '../permissions/action-guard.js';
+import { ContainerMismatchError } from '../exceptions/index.js';
 import type { Checkout } from '../containers/project.js';
 import type { CardTree } from '../containers/project/card-tree.js';
 
@@ -83,7 +84,7 @@ export async function moveCard(
     (sourceIsTemplate && destIsProject) ||
     (!sourceIsTemplate && destIsTemplate)
   ) {
-    throw new Error(
+    throw new ContainerMismatchError(
       `Cards cannot be moved from project to template or vice versa`,
     );
   }

@@ -6,6 +6,7 @@ import { join, sep } from 'node:path';
 import { Cmd, Commands, type Workspace } from '../src/command-handler.js';
 import { copyDir } from '../src/utils/file-utils.js';
 import { Show } from '../src/commands/index.js';
+import { ContainerMismatchError } from '../src/exceptions/index.js';
 import { getTestBaseDir, getTestProject } from './helpers/test-utils.js';
 import { openTestWorkspace } from './helpers/open-test-workspace.js';
 
@@ -232,21 +233,14 @@ describe('move command', () => {
     );
     expect(result.statusCode).toBe(200);
   });
-  it('try to move card from template to project', async () => {
-    const result = await commandHandler.command(
-      Cmd.move,
-      ['decision_3', createdCardKey],
-      options,
+  it.each([
+    ['template to project', () => ['decision_3', createdCardKey]],
+    ['project to template', () => [createdCardKey, 'decision_3']],
+  ])('refuses a move from %s as a container mismatch', async (_, keys) => {
+    const [source, destination] = keys();
+    await expect(ws.cards.move(source, destination)).rejects.toBeInstanceOf(
+      ContainerMismatchError,
     );
-    expect(result.statusCode).toBe(400);
-  });
-  it('try to move card from project to template', async () => {
-    const result = await commandHandler.command(
-      Cmd.move,
-      [createdCardKey, 'decision_3'],
-      options,
-    );
-    expect(result.statusCode).toBe(400);
   });
   it('cross-template move between local templates (success)', async () => {
     // decision_4 lives in 'simplepage' template; decision_1 is root of 'decision' template.
