@@ -186,6 +186,38 @@ describe('buildProject', () => {
     });
   });
 
+  it('declares hubs in the project configuration', async () => {
+    const hubs = [{ location: 'https://hub.example.com/', displayName: 'Hub' }];
+    const { path } = await build({ hubs });
+
+    expect(
+      JSON.parse(
+        readFileSync(join(path, '.cards/local/cardsConfig.json'), 'utf-8'),
+      ).hubs,
+    ).toEqual(hubs);
+  });
+
+  it('writes the values of an enum field type', async () => {
+    const { path, keys } = await build({
+      fieldTypes: [
+        { name: 'level', dataType: 'enum', enumValues: ['low', 'high'] },
+      ],
+      cardTypes: [{ name: 'page', customFields: [{ name: 'level' }] }],
+      cards: [{ fields: { 'test/fieldTypes/level': 'high' } }],
+    });
+
+    expect(await validate(path)).toBe('');
+    await withProject(path, (checkout) => {
+      expect(
+        checkout.resources.byType('test/fieldTypes/level', 'fieldTypes').data
+          ?.enumValues,
+      ).toEqual([{ enumValue: 'low' }, { enumValue: 'high' }]);
+      expect(
+        findCard(checkout, keys[0]).metadata?.['test/fieldTypes/level'],
+      ).toBe('high');
+    });
+  });
+
   it('writes link types and the links between cards', async () => {
     const { path, keys } = await build({
       linkTypes: [{ name: 'rel', enableLinkDescription: true }],
