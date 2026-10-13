@@ -13,7 +13,6 @@
 import type { Calculate } from '../commands/calculate.js';
 import { Clean } from '../commands/clean.js';
 import { Create } from '../commands/create.js';
-import type { Edit } from '../commands/edit.js';
 import type { Export } from '../commands/export.js';
 import type { Fetch } from '../commands/fetch.js';
 import type { Import } from '../commands/import.js';
@@ -26,6 +25,7 @@ import type { Show } from '../commands/show.js';
 import type { Update } from '../commands/update.js';
 import type { Validate } from '../commands/validate.js';
 import { Cards } from '../cards/cards.js';
+import { Settings } from './settings.js';
 import { Checkout } from '../containers/project.js';
 import type { ActorRef } from '@cyberismo/model';
 import { runWithCommitContext } from '../utils/commit-context.js';
@@ -115,6 +115,7 @@ export class Workspace {
   private readonly frame: WriteFrame;
   private readonly proxies = new Map<keyof SharedCommands, object>();
   private cardsFacade?: Cards;
+  private settingsFacade?: Settings;
 
   private constructor(
     public readonly checkout: Checkout,
@@ -155,6 +156,21 @@ export class Workspace {
     return this.cardsFacade;
   }
 
+  /** Project settings, as this handle's actor. */
+  get settings(): Settings {
+    this.settingsFacade ??= new Settings(
+      this.checkout,
+      this.actor,
+      this.identity,
+    );
+    return this.settingsFacade;
+  }
+
+  /** Path of the project. */
+  get path(): string {
+    return this.checkout.basePath;
+  }
+
   get calculateCmd(): Calculate {
     return this.legacy('calculateCmd');
   }
@@ -163,9 +179,6 @@ export class Workspace {
   }
   get createCmd(): Create {
     return this.legacy('createCmd');
-  }
-  get editCmd(): Edit {
-    return this.legacy('editCmd');
   }
   get exportCmd(): Export {
     return this.legacy('exportCmd');

@@ -50,8 +50,9 @@ async function runWithCommands(
     throw new Error('CommandManager expects a user');
   }
   const identity = { name: user.name, email: user.email };
-  c.set('ws', Workspace.over(checkout, actorOf(user), identity));
-  c.set('projectPath', checkout.basePath);
+  const ws = Workspace.over(checkout, actorOf(user), identity);
+  c.set('ws', ws);
+  c.set('projectPath', ws.path);
   await next();
 }
 
