@@ -12,6 +12,8 @@
 */
 
 import semver from 'semver';
+import type { ActorRef, PublishResult, VersionBump } from '@cyberismo/model';
+import { Validate } from '../commands/validate.js';
 import type { Checkout } from '../containers/project.js';
 import type { ConfigurationLogEntry } from '../utils/configuration-logger.js';
 import {
@@ -23,6 +25,8 @@ import { classify } from '../mutations/dispatcher.js';
 import { entryToMutationInput } from '../mutations/replay/convert.js';
 import { recordSettingsChange } from '../utils/change-feed.js';
 import { write } from '../utils/rw-lock.js';
+import type { CommitIdentity } from '../utils/tx-record.js';
+import { publishVersion } from './publish.js';
 
 export const validBumps = ['patch', 'minor', 'major'] as const;
 export type BumpType = (typeof validBumps)[number];
@@ -70,21 +74,57 @@ function describeEntries(entries: ClassifiedEntry[]): string {
 }
 
 /**
- * Handles version bumping commands.
+ * Versions of one handle: bumping and publishing. Writes through it are the
+ * handle's actor's. Holds no state of its own.
  */
-export class Version {
-  constructor(private checkout: Checkout) {}
+export class Versions {
+  constructor(
+    private readonly checkout: Checkout,
+    public readonly actor: ActorRef,
+    public readonly identity: CommitIdentity | undefined,
+  ) {}
 
   /**
-   * Bumps the project version in cardsConfig.json, snapshots the migration log, and commits.
-   *
-   * @param bumpType Which semver component to bump: 'patch', 'minor', or 'major'
-   * @returns The previous and new version strings
+   * Bumps the project version, snapshots the migration log, and commits.
+   * @throws if the bump type is not valid or the project has validation
+   *   errors; the project is validated before the write starts.
    */
+  public async bump(bumpType: BumpType): Promise<VersionBump> {
+    if (!(validBumps as readonly string[]).includes(bumpType)) {
+      throw new Error(
+        `Invalid bump type '${bumpType}'. Must be one of: ${validBumps.join(', ')}`,
+      );
+    }
+
+    // Validate project before versioning
+    const validation = await Validate.getInstance().validate(
+      this.checkout.basePath,
+      () => this.checkout,
+    );
+    if (validation.length) {
+      throw new Error(
+        `Cannot version: project has validation errors.\n${validation}`,
+      );
+    }
+
+    return this.bumpVersion(bumpType);
+  }
+
+  /**
+   * Publishes the current version: tags it and pushes the tag.
+   * @throws if there is no version, it is already published, or the push
+   *   fails (the tag is then removed).
+   */
+  @write(() => 'Publish version')
+  public async publish(
+    dryRun: boolean,
+    remote?: string,
+  ): Promise<PublishResult> {
+    return publishVersion(this.checkout, dryRun, remote);
+  }
+
   @write((bumpType) => `Version ${bumpType} bump`)
-  public async bumpVersion(
-    bumpType: BumpType,
-  ): Promise<{ previousVersion: string | undefined; newVersion: string }> {
+  private async bumpVersion(bumpType: BumpType): Promise<VersionBump> {
     const { git } = this.checkout;
 
     // Guard: refuse to version with uncommitted changes

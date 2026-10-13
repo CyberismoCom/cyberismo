@@ -124,7 +124,7 @@ describe('adoc export section order', () => {
 
     await ws.checkout.calculationEngine.generate();
     const output = join(orderTestDir, 'output');
-    await ws.exportCmd.exportToADoc(output);
+    await ws.export.exportToADoc(output);
 
     const adoc = await readFile(join(output, 'index.adoc'), 'utf-8');
     const positionOf = (cardKey: string) =>

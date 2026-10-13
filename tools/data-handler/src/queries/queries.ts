@@ -11,11 +11,22 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
+import { writeFile } from 'node:fs/promises';
+
 import Handlebars from 'handlebars';
 import { workflowGraph } from '@cyberismo/assets';
 
-import type { Context, QueryName, QueryResult } from '@cyberismo/model';
+import type {
+  Context,
+  QueryName,
+  QueryResult,
+  ReportParameters,
+  ResourceName,
+} from '@cyberismo/model';
 import type { Checkout } from '../containers/project.js';
+import ReportMacro from '../macros/report/index.js';
+import TaskQueue from '../macros/task-queue.js';
+import { evaluateMacros } from '../macros/index.js';
 import { registerClingoHelpers } from '../utils/handlebars-helpers.js';
 import { read } from '../utils/rw-lock.js';
 
@@ -26,8 +37,10 @@ const workflowGraphView = workflowGraphHandlebars.compile<{
   currentState?: string;
 }>(workflowGraph.view);
 
-// Class that calculates with logic program card / project level calculations.
-export class Calculate {
+/**
+ * Queries and logic programs of one handle. Holds no state of its own.
+ */
+export class Queries {
   constructor(private checkout: Checkout) {}
 
   /**
@@ -109,5 +122,83 @@ export class Calculate {
       context,
       options,
     );
+  }
+
+  /** The logic program of a resource. */
+  @read
+  public async logicProgram(resource: ResourceName): Promise<string> {
+    return this.checkout.calculationEngine.resourceLogicProgram(resource);
+  }
+
+  /**
+   * Runs a report for the card named in its parameters.
+   * @throws if the report does not exist, or the name, the parameters or
+   *   their card key is missing.
+   */
+  @read
+  public async runReport(
+    reportName: string,
+    parameters: ReportParameters,
+    context: Context,
+    outputPath?: string,
+  ): Promise<string> {
+    // Validate the parameters file.
+    if (!reportName) {
+      throw new Error(
+        'The parameters file must include a "name" field (report name).',
+      );
+    }
+    if (!parameters) {
+      throw new Error(
+        'The parameters file must include a "parameters" field (report parameters).',
+      );
+    }
+    if (!parameters.cardKey) {
+      throw new Error(
+        'The parameters file must include a "cardKey" field included in the "parameters".',
+      );
+    }
+    const cardKey = parameters.cardKey;
+
+    if (
+      !this.checkout.resources
+        .reports()
+        .some((report) => report.data?.name === reportName)
+    ) {
+      throw new Error(`Report '${reportName}' does not exist`);
+    }
+
+    const reportMacro = new ReportMacro(new TaskQueue());
+    let result = await reportMacro.handleStatic(
+      {
+        checkout: this.checkout,
+        cardKey: cardKey,
+        mode: 'static',
+        context,
+      },
+      { name: reportName, ...parameters },
+    );
+
+    result = await evaluateMacros(result, {
+      checkout: this.checkout,
+      cardKey: cardKey,
+      mode: 'static',
+      context,
+    });
+
+    // Show the results either in the console or write to a file.
+    if (outputPath) {
+      try {
+        await writeFile(outputPath, result ?? '', 'utf-8');
+      } catch (error) {
+        if (error instanceof Error) {
+          throw new Error(
+            `Failed to write report to ${outputPath}: ${error.message}`,
+            { cause: error },
+          );
+        }
+      }
+    }
+    return outputPath ? '' : (result ?? '');
   }
 }
