@@ -9,6 +9,7 @@ import { ConfigurationLogger } from '../../src/utils/configuration-logger.js';
 import { resourceName } from '../../src/utils/resource-utils.js';
 import { Workspace } from '../../src/workspace/workspace.js';
 import { SYSTEM_ACTOR } from '../../src/utils/tx-record.js';
+import { updateCardMetadata } from '../../src/cards/update.js';
 
 const baseDir = import.meta.dirname;
 const testDir = join(baseDir, 'tmp-field-type-integration');
@@ -144,7 +145,7 @@ describe('FieldType mutation engine end-to-end', () => {
       .cards()
       .filter((c) => c.metadata?.cardType === cardTypeName)) {
       card.metadata![fieldName] = 'low';
-      await freshProject.updateCardMetadata(card, card.metadata!);
+      await updateCardMetadata(freshProject, card, card.metadata!);
     }
     await Workspace.over(freshProject, SYSTEM_ACTOR).updateCmd.apply({
       kind: 'edit',

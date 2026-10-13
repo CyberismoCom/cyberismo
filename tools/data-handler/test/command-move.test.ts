@@ -546,11 +546,7 @@ describe('move command', () => {
     // Add an attachment to the child card
     const attachmentName = 'test-attachment.txt';
     const attachmentContent = Buffer.from('test attachment content');
-    await ws.createCmd.createAttachment(
-      childKey!,
-      attachmentName,
-      attachmentContent,
-    );
+    await ws.cards.addAttachment(childKey!, attachmentName, attachmentContent);
 
     // Create a destination card at root level
     result = await commandHandler.command(

@@ -147,15 +147,15 @@ describe('guarded entry points', () => {
   it('transition is denied and leaves the state alone', async () => {
     const { ws, locked } = await fixture(LOCKED('Locked'));
     const before = ws.checkout.findCard(locked).metadata?.workflowState;
-    expect(
-      await denial(ws.transitionCmd.cardTransition(locked, 'To Closed')),
-    ).toEqual(['no closing']);
+    expect(await denial(ws.cards.transition(locked, 'To Closed'))).toEqual([
+      'no closing',
+    ]);
     expect(ws.checkout.findCard(locked).metadata?.workflowState).toBe(before);
   });
 
   it('transition runs when the named transition is not denied', async () => {
     const { ws, locked } = await fixture(LOCKED('Locked'));
-    await ws.transitionCmd.cardTransition(locked, 'To In Progress');
+    await ws.cards.transition(locked, 'To In Progress');
     expect(ws.checkout.findCard(locked).metadata?.workflowState).toBe(
       'In Progress',
     );
@@ -175,43 +175,41 @@ describe('guarded entry points', () => {
 
   it('delete is denied and keeps the card', async () => {
     const { ws, locked } = await fixture(LOCKED('Locked'));
-    expect(await denial(ws.removeCmd.remove('card', locked))).toEqual([
-      'no deleting',
-    ]);
+    expect(await denial(ws.cards.remove(locked))).toEqual(['no deleting']);
     expect(ws.checkout.findCard(locked).key).toBe(locked);
   });
 
   it('delete runs for a card without denials', async () => {
     const { ws, free } = await fixture(LOCKED('Locked'));
-    await ws.removeCmd.remove('card', free);
+    await ws.cards.remove(free);
     expect(() => ws.checkout.findCard(free)).toThrow();
   });
 
   it('editField is denied and keeps the title', async () => {
     const { ws, locked } = await fixture(LOCKED('Locked'));
     expect(
-      await denial(ws.editCmd.editCardMetadata(locked, 'title', 'Renamed')),
+      await denial(ws.cards.editField(locked, 'title', 'Renamed')),
     ).toEqual(['no title edit']);
     expect(ws.checkout.findCard(locked).metadata?.title).toBe('Locked');
   });
 
   it('editField runs for a field that is not denied', async () => {
     const { ws, locked } = await fixture(LOCKED('Locked'));
-    await ws.editCmd.editCardMetadata(locked, 'labels', ['kept']);
+    await ws.cards.editField(locked, 'labels', ['kept']);
     expect(ws.checkout.findCard(locked).metadata?.labels).toEqual(['kept']);
   });
 
   it('editContent is denied and keeps the content', async () => {
     const { ws, locked } = await fixture(LOCKED('Locked'));
-    expect(await denial(ws.editCmd.editCardContent(locked, 'changed'))).toEqual(
-      ['no content edit'],
-    );
+    expect(await denial(ws.cards.edit(locked, 'changed'))).toEqual([
+      'no content edit',
+    ]);
     expect(ws.checkout.findCard(locked).content).toBe('original');
   });
 
   it('editContent runs for a card without denials', async () => {
     const { ws, free } = await fixture(LOCKED('Locked'));
-    await ws.editCmd.editCardContent(free, 'changed');
+    await ws.cards.edit(free, 'changed');
     expect(ws.checkout.findCard(free).content).toBe('changed');
   });
 });
@@ -227,22 +225,22 @@ describe('guard skip paths', () => {
 
   it('template cards skip the editContent guard', async () => {
     const { ws, template, free } = await fixture(DENY_ALL);
-    await ws.editCmd.editCardContent(template, 'changed');
+    await ws.cards.edit(template, 'changed');
     expect(ws.checkout.findCard(template).content).toBe('changed');
-    await denial(ws.editCmd.editCardContent(free, 'changed'));
+    await denial(ws.cards.edit(free, 'changed'));
   });
 
   it('template cards skip the editField guard', async () => {
     const { ws, template, free } = await fixture(DENY_ALL);
-    await ws.editCmd.editCardMetadata(template, 'title', 'Renamed');
+    await ws.cards.editField(template, 'title', 'Renamed');
     expect(ws.checkout.findCard(template).metadata?.title).toBe('Renamed');
-    await denial(ws.editCmd.editCardMetadata(free, 'title', 'Renamed'));
+    await denial(ws.cards.editField(free, 'title', 'Renamed'));
   });
 
   it('template cards skip the delete guard', async () => {
     const { ws, template, free } = await fixture(DENY_ALL);
-    await ws.removeCmd.remove('card', template);
+    await ws.cards.remove(template);
     expect(() => ws.checkout.findCard(template)).toThrow();
-    await denial(ws.removeCmd.remove('card', free));
+    await denial(ws.cards.remove(free));
   });
 });
