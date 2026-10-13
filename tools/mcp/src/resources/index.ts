@@ -17,6 +17,7 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { ResourceTemplate } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { ResourceTypeConfig } from '../lib/mcp-helpers.js';
 import {
+  callerOf,
   resolveCommands,
   type ProjectProvider,
 } from '../lib/resolve-project.js';
@@ -75,8 +76,13 @@ const registerResourceType = (
       { list: undefined },
     ),
     { description: config.description, mimeType: 'application/json' },
-    async (uri, { projectPrefix }) => {
-      const ws = resolveCommands(provider, projectPrefix as string);
+    async (uri, { projectPrefix }, extra) => {
+      const ws = resolveCommands(
+        provider,
+        projectPrefix as string,
+        extra,
+        server,
+      );
       const names = await ws.showCmd.showResources(config.resourceType);
       const details = await Promise.all(
         names.map((name) => ws.showCmd.showResource(name, config.resourceType)),
@@ -109,7 +115,8 @@ export function registerResources(
       description: 'List all available projects',
       mimeType: 'application/json',
     },
-    async () => {
+    async (_uri, extra) => {
+      callerOf(extra);
       const projects = provider.list();
       return {
         contents: [
@@ -133,8 +140,13 @@ export function registerResources(
       description: 'Project information and settings',
       mimeType: 'application/json',
     },
-    async (uri, { projectPrefix }) => {
-      const ws = resolveCommands(provider, projectPrefix as string);
+    async (uri, { projectPrefix }, extra) => {
+      const ws = resolveCommands(
+        provider,
+        projectPrefix as string,
+        extra,
+        server,
+      );
       const project = await ws.showCmd.showProject();
       return {
         contents: [
@@ -158,8 +170,13 @@ export function registerResources(
       description: 'Card tree with hierarchy',
       mimeType: 'application/json',
     },
-    async (uri, { projectPrefix }) => {
-      const ws = resolveCommands(provider, projectPrefix as string);
+    async (uri, { projectPrefix }, extra) => {
+      const ws = resolveCommands(
+        provider,
+        projectPrefix as string,
+        extra,
+        server,
+      );
       const tree = await getCardTree(ws);
       return {
         contents: [
@@ -183,8 +200,13 @@ export function registerResources(
       description: 'All card type definitions',
       mimeType: 'application/json',
     },
-    async (uri, { projectPrefix }) => {
-      const ws = resolveCommands(provider, projectPrefix as string);
+    async (uri, { projectPrefix }, extra) => {
+      const ws = resolveCommands(
+        provider,
+        projectPrefix as string,
+        extra,
+        server,
+      );
       const cardTypes = await ws.showCmd.showCardTypesWithDetails();
       return {
         contents: [
@@ -208,8 +230,13 @@ export function registerResources(
       description: 'All workflow definitions',
       mimeType: 'application/json',
     },
-    async (uri, { projectPrefix }) => {
-      const ws = resolveCommands(provider, projectPrefix as string);
+    async (uri, { projectPrefix }, extra) => {
+      const ws = resolveCommands(
+        provider,
+        projectPrefix as string,
+        extra,
+        server,
+      );
       const workflows = await ws.showCmd.showWorkflowsWithDetails();
       return {
         contents: [
@@ -233,8 +260,13 @@ export function registerResources(
       description: 'All template definitions',
       mimeType: 'application/json',
     },
-    async (uri, { projectPrefix }) => {
-      const ws = resolveCommands(provider, projectPrefix as string);
+    async (uri, { projectPrefix }, extra) => {
+      const ws = resolveCommands(
+        provider,
+        projectPrefix as string,
+        extra,
+        server,
+      );
       const templates = await ws.showCmd.showTemplatesWithDetails();
       return {
         contents: [

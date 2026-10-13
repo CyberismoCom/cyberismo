@@ -14,34 +14,68 @@
 */
 
 import { describe, expect, test } from 'vitest';
-import type { Workspace } from '@cyberismo/data-handler';
+import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import type { Checkout } from '@cyberismo/data-handler';
 import {
   resolveCommands,
   type ProjectProvider,
 } from '../src/lib/resolve-project.js';
+import { TEST_USER } from './test-utils.js';
 
-// Minimal mock that satisfies the CommandManager shape enough for resolution
-const mockCommands = (prefix: string) =>
-  ({
-    _prefix: prefix,
-  }) as unknown as Workspace;
+// Minimal checkouts; resolution only hands them to the handle.
+const mockCheckout = (prefix: string) =>
+  ({ basePath: `/tmp/${prefix}` }) as unknown as Checkout;
 
 function makeProvider(
   projects: { prefix: string; name: string }[],
 ): ProjectProvider {
-  const map = new Map(projects.map((p) => [p.prefix, mockCommands(p.prefix)]));
+  const map = new Map(projects.map((p) => [p.prefix, mockCheckout(p.prefix)]));
   return {
     get: (prefix: string) => map.get(prefix),
     list: () => projects,
   };
 }
 
+const server = (client?: string) =>
+  ({
+    server: { getClientVersion: () => (client ? { name: client } : undefined) },
+  }) as unknown as McpServer;
+const auth = {
+  authInfo: {
+    token: '',
+    clientId: TEST_USER.id,
+    scopes: [],
+    extra: { user: TEST_USER },
+  },
+};
+
 describe('resolveCommands', () => {
-  test('returns commands for a valid prefix', () => {
+  test('returns a handle over the checkout for a valid prefix', () => {
     const provider = makeProvider([{ prefix: 'abc', name: 'Project ABC' }]);
-    const result = resolveCommands(provider, 'abc');
-    expect(result).toBeDefined();
-    expect((result as unknown as { _prefix: string })._prefix).toBe('abc');
+    const result = resolveCommands(provider, 'abc', auth, server());
+    expect(result.checkout).toBe(provider.get('abc'));
+  });
+
+  test('acts as the authenticated user, with the client as agent', () => {
+    const provider = makeProvider([{ prefix: 'abc', name: 'Project ABC' }]);
+    const result = resolveCommands(provider, 'abc', auth, server('claude'));
+    expect(result.actor).toEqual({
+      kind: 'user',
+      id: TEST_USER.id,
+      name: TEST_USER.name,
+      agent: { name: 'claude' },
+    });
+    expect(result.identity).toEqual({
+      name: TEST_USER.name,
+      email: TEST_USER.email,
+    });
+  });
+
+  test('refuses a request without an authenticated user', () => {
+    const provider = makeProvider([{ prefix: 'abc', name: 'Project ABC' }]);
+    expect(() => resolveCommands(provider, 'abc', {}, server())).toThrow(
+      'MCP request has no authenticated user',
+    );
   });
 
   test('throws for unknown prefix with available projects listed', () => {
@@ -49,15 +83,17 @@ describe('resolveCommands', () => {
       { prefix: 'abc', name: 'Project ABC' },
       { prefix: 'xyz', name: 'Project XYZ' },
     ]);
-    expect(() => resolveCommands(provider, 'nope')).toThrow(
+    expect(() => resolveCommands(provider, 'nope', auth, server())).toThrow(
       /Unknown project 'nope'/,
     );
-    expect(() => resolveCommands(provider, 'nope')).toThrow(/abc, xyz/);
+    expect(() => resolveCommands(provider, 'nope', auth, server())).toThrow(
+      /abc, xyz/,
+    );
   });
 
   test('throws for unknown prefix when no projects available', () => {
     const provider = makeProvider([]);
-    expect(() => resolveCommands(provider, 'anything')).toThrow(
+    expect(() => resolveCommands(provider, 'anything', auth, server())).toThrow(
       /No projects available/,
     );
   });
@@ -67,7 +103,7 @@ describe('resolveCommands', () => {
       { prefix: 'alpha', name: 'Alpha' },
       { prefix: 'beta', name: 'Beta' },
     ]);
-    const result = resolveCommands(provider, 'beta');
-    expect((result as unknown as { _prefix: string })._prefix).toBe('beta');
+    const result = resolveCommands(provider, 'beta', auth, server());
+    expect(result.checkout).toBe(provider.get('beta'));
   });
 });

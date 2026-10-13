@@ -25,7 +25,7 @@ import {
   parseSourceAtVersion,
 } from '../lib/args.js';
 import { commandHandler, credentials, program } from '../lib/dispatch.js';
-import { openProject } from '../lib/open.js';
+import { projectRoot } from '../lib/open.js';
 import { deprecationNote, handleResponse } from '../lib/output.js';
 import { select } from '../lib/prompts.js';
 import { renderUpdatePlan } from '../update-plan-lines.js';
@@ -91,7 +91,7 @@ export async function moduleInstallAction(
     }
   } else {
     try {
-      const projectPath = openProject(options);
+      const projectPath = projectRoot(options);
       const moduleListPath = resolve(projectPath, '.temp/moduleList.json');
       let moduleListContent = '{ "modules": [] }';
       try {

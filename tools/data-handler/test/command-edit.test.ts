@@ -70,7 +70,9 @@ describe('edit card', () => {
   it('try to edit card from CLI - no project', async () => {
     const cards = ws.checkout.cardTree.cards();
     const firstCard = cards.at(0) as Card;
-    expect(() => editCmd.editCard(firstCard.key + 1)).throws(CardNotFoundError);
+    await expect(editCmd.editCard(firstCard.key + 1)).rejects.toThrow(
+      CardNotFoundError,
+    );
   });
   it('edit card metadata (success)', async () => {
     const cards = ws.checkout.cardTree.cards();

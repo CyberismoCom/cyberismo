@@ -50,8 +50,13 @@ import type { requestStatus } from './interfaces/request-status-interfaces.js';
 import { Create } from './commands/create.js';
 import { migrate as migrateProject } from './commands/migrate.js';
 import { Validate } from './commands/validate.js';
-import { Workspace } from './workspace/workspace.js';
+import {
+  openCheckout,
+  Workspace,
+  type WorkspaceOptions,
+} from './workspace/workspace.js';
 import { Checkout } from './containers/project.js';
+import { SYSTEM_ACTOR } from './utils/tx-record.js';
 
 import { pathExists, resolveTilde } from './utils/file-utils.js';
 import { ModuleRequestError } from './exceptions/index.js';
@@ -101,6 +106,22 @@ export enum ExportFormats {
 
 export { Workspace } from './workspace/workspace.js';
 
+/** Gives the dispatcher the handle to run a command on. */
+export type WorkspaceOpener = (
+  options: WorkspaceOptions & { projectPath: string },
+) => Promise<Workspace>;
+
+// One checkout at a time, replaced when the path changes; the system acts.
+let systemCheckout: Checkout | undefined;
+const openAsSystem: WorkspaceOpener = async ({ projectPath, ...options }) => {
+  if (systemCheckout?.basePath !== projectPath) {
+    systemCheckout?.dispose();
+    systemCheckout = undefined;
+    systemCheckout = await openCheckout(projectPath, options);
+  }
+  return Workspace.over(systemCheckout, SYSTEM_ACTOR);
+};
+
 /**
  * Class that handles all CLI commands.
  */
@@ -110,7 +131,11 @@ export class Commands {
   private validateCmd: Validate;
   private level?: Level;
 
-  constructor() {
+  /**
+   * @param open Gives the handle for a project path; without it, the system
+   *   acts on one checkout at a time.
+   */
+  constructor(private readonly open: WorkspaceOpener = openAsSystem) {
     this.projectPath = '';
     this.validateCmd = Validate.getInstance();
   }
@@ -192,7 +217,8 @@ export class Commands {
   private async doSetProject(options: AllCommandOptions) {
     await this.resolveProjectPath(options);
 
-    this.ws = await Workspace.getInstance(this.projectPath, {
+    this.ws = await this.open({
+      projectPath: this.projectPath,
       logLevel: options.logLevel,
       watchResourceChanges: (options as StartCommandOptions)
         .watchResourceChanges,

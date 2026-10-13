@@ -30,11 +30,12 @@ import {
   buildProject,
   type BuiltProject,
 } from '../../data-handler/test/helpers/project-builder.js';
+import { authenticated, TEST_USER } from './test-utils.js';
 import { openTestWorkspace } from './helpers/open-test-workspace.js';
 
-// Author of MCP autocommits today.
-const COMMIT_AUTHOR = 'Cyberismo Bot <bot@cyberismo.com>';
-const COMMIT_TRAILERS = 'Cyberismo-Actor: system:cyberismo';
+// MCP autocommits are the calling user's, with the client as agent.
+const COMMIT_AUTHOR = `${TEST_USER.name} <${TEST_USER.email}>`;
+const COMMIT_TRAILERS = `Cyberismo-Actor: user:${TEST_USER.id},Cyberismo-Agent: test-client`;
 
 const run = promisify(execFile);
 
@@ -80,7 +81,7 @@ beforeEach(async () => {
   const [clientTransport, serverTransport] =
     InMemoryTransport.createLinkedPair();
   await createMcpServer(singleProjectProvider(ws.checkout)).connect(
-    serverTransport,
+    authenticated(serverTransport),
   );
   client = new Client({ name: 'test-client', version: '1.0.0' });
   await client.connect(clientTransport);
