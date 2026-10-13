@@ -11,19 +11,14 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Calculate } from '../queries/queries.js';
-import { Clean } from '../clean/clean.js';
 import { Create } from '../commands/create.js';
-import { Export } from '../export/export.js';
 import { Fetch } from '../commands/fetch.js';
 import { Import } from '../commands/import.js';
 import { Modules } from '../commands/modules.js';
-import { Publish } from '../versions/publish.js';
 import { Remove } from '../commands/remove.js';
 import { Rename } from '../commands/rename.js';
 import { Show } from '../commands/show.js';
 import { Validate } from '../commands/validate.js';
-import { Version } from '../versions/version.js';
 import type { Checkout } from '../containers/project.js';
 
 /**
@@ -31,35 +26,25 @@ import type { Checkout } from '../containers/project.js';
  * An entry goes when its group gets a façade.
  */
 export class SharedCommands {
-  public calculateCmd: Calculate;
-  public cleanCmd: Clean;
   public createCmd: Create;
-  public exportCmd: Export;
   public fetchCmd: Fetch;
   public importCmd: Import;
   public modulesCmd: Modules;
-  public publishCmd: Publish;
   public removeCmd: Remove;
   public renameCmd: Rename;
   public showCmd: Show;
   public validateCmd: Validate;
-  public versionCmd: Version;
 
   constructor(checkout: Checkout) {
     this.validateCmd = Validate.getInstance();
 
-    this.calculateCmd = new Calculate(checkout);
-    this.cleanCmd = new Clean(checkout);
     this.fetchCmd = new Fetch(checkout);
     this.modulesCmd = new Modules(checkout, this.fetchCmd);
     this.showCmd = new Show(checkout);
     this.createCmd = new Create(checkout);
-    this.exportCmd = new Export(checkout);
     this.importCmd = new Import(checkout);
-    this.publishCmd = new Publish(checkout);
     this.removeCmd = new Remove(checkout, this.fetchCmd, this.modulesCmd);
     this.renameCmd = new Rename(checkout);
-    this.versionCmd = new Version(checkout);
   }
 }
 

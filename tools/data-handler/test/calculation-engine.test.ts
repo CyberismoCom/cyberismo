@@ -7,7 +7,7 @@ import type { Checkout } from '../src/containers/project.js';
 import type { QueryResult } from '@cyberismo/model';
 import Handlebars from 'handlebars';
 import { lpFiles, pdfReport } from '@cyberismo/assets';
-import { Calculate } from '../src/queries/queries.js';
+import { Queries } from '../src/queries/queries.js';
 import { getTestProject } from './helpers/test-utils.js';
 
 const expectedTree: QueryResult<'tree'>[] = [
@@ -67,7 +67,7 @@ describe('calculate', () => {
   }, 20000);
 
   it('runWorkflowGraph renders the built-in workflow graph', async () => {
-    const calculate = new Calculate(checkout);
+    const calculate = new Queries(checkout);
     const res = await calculate.runWorkflowGraph('decision/workflows/simple');
     expect(res).not.toBe('');
     const decoded = Buffer.from(res, 'base64').toString('utf-8');
@@ -78,7 +78,7 @@ describe('calculate', () => {
   }, 20000);
 
   it('runWorkflowGraph emphasises the given currentState', async () => {
-    const calculate = new Calculate(checkout);
+    const calculate = new Queries(checkout);
     const plain = await calculate.runWorkflowGraph('decision/workflows/simple');
     const highlighted = await calculate.runWorkflowGraph(
       'decision/workflows/simple',

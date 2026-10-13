@@ -14,12 +14,13 @@ import sinon from 'sinon';
 import { GitManager } from '../src/utils/git-manager.js';
 import { pathExists } from '../src/utils/file-utils.js';
 import { RWLock } from '../src/utils/rw-lock.js';
-import type { Version } from '../src/versions/version.js';
+import type { Versions } from '../src/versions/version.js';
 import { ConfigurationLogger } from '../src/utils/configuration-logger.js';
 import type { ConfigurationOperation } from '../src/utils/configuration-logger.js';
 import { getCommitContext } from '../src/utils/commit-context.js';
 import type { Checkout } from '../src/containers/project.js';
 import { Workspace } from '../src/workspace/workspace.js';
+import { Validate } from '../src/commands/validate.js';
 import { SYSTEM_ACTOR } from '../src/utils/tx-record.js';
 
 function makeConfiguration(configPath: string, initialVersion?: string) {
@@ -38,7 +39,7 @@ function makeConfiguration(configPath: string, initialVersion?: string) {
 describe('Version', () => {
   let dir: string;
   let git: GitManager;
-  let versionCmd: Version;
+  let versionCmd: Versions;
   let configPath: string;
   let configuration: ReturnType<typeof makeConfiguration>;
   let hasPendingChangesStub: sinon.SinonStub;
@@ -65,6 +66,10 @@ describe('Version', () => {
       .stub(ConfigurationLogger, 'hasPendingChanges')
       .returns(false);
 
+    // The fake checkout is not a whole project; the validation gate has
+    // tests of its own.
+    sinon.stub(Validate.getInstance(), 'validate').resolves('');
+
     configuration = makeConfiguration(configPath);
 
     const lock = new RWLock();
@@ -80,7 +85,7 @@ describe('Version', () => {
       configuration,
     } as unknown as Checkout;
 
-    versionCmd = Workspace.over(checkout, SYSTEM_ACTOR).versionCmd;
+    versionCmd = Workspace.over(checkout, SYSTEM_ACTOR).versions;
   });
 
   afterEach(async () => {
@@ -113,7 +118,7 @@ describe('Version', () => {
       await writeFile(join(dir, 'cardRoot', 'card.json'), '{}');
       await git.commit('Add card');
 
-      const result = await versionCmd.bumpVersion('patch');
+      const result = await versionCmd.bump('patch');
 
       expect(result.previousVersion).toBeUndefined();
       expect(result.newVersion).toBe('1.0.0');
@@ -123,7 +128,7 @@ describe('Version', () => {
       await writeFile(join(dir, 'cardRoot', 'card.json'), '{}');
       await git.commit('Add card');
 
-      const result = await versionCmd.bumpVersion('major');
+      const result = await versionCmd.bump('major');
 
       expect(result.previousVersion).toBeUndefined();
       expect(result.newVersion).toBe('1.0.0');
@@ -134,7 +139,7 @@ describe('Version', () => {
       await configuration.setVersion('1.0.0');
       await git.commit('set version');
 
-      const result = await versionCmd.bumpVersion('patch');
+      const result = await versionCmd.bump('patch');
 
       expect(result.previousVersion).toBe('1.0.0');
       expect(result.newVersion).toBe('1.0.1');
@@ -145,7 +150,7 @@ describe('Version', () => {
       await configuration.setVersion('1.0.0');
       await git.commit('set version');
 
-      const result = await versionCmd.bumpVersion('minor');
+      const result = await versionCmd.bump('minor');
 
       expect(result.previousVersion).toBe('1.0.0');
       expect(result.newVersion).toBe('1.1.0');
@@ -156,7 +161,7 @@ describe('Version', () => {
       await configuration.setVersion('1.0.0');
       await git.commit('set version');
 
-      const result = await versionCmd.bumpVersion('major');
+      const result = await versionCmd.bump('major');
 
       expect(result.previousVersion).toBe('1.0.0');
       expect(result.newVersion).toBe('2.0.0');
@@ -166,11 +171,11 @@ describe('Version', () => {
       await writeFile(join(dir, 'cardRoot', 'a.txt'), 'a');
       await git.commit('first change');
 
-      const first = await versionCmd.bumpVersion('patch');
+      const first = await versionCmd.bump('patch');
       expect(first.previousVersion).toBeUndefined();
       expect(first.newVersion).toBe('1.0.0');
 
-      const second = await versionCmd.bumpVersion('patch');
+      const second = await versionCmd.bump('patch');
       expect(second.previousVersion).toBe('1.0.0');
       expect(second.newVersion).toBe('1.0.1');
     });
@@ -181,7 +186,7 @@ describe('Version', () => {
       await writeFile(join(dir, 'cardRoot', 'card.json'), '{}');
       await git.commit('Add card');
 
-      await versionCmd.bumpVersion('patch');
+      await versionCmd.bump('patch');
 
       const configContent = JSON.parse(await readFile(configPath, 'utf-8'));
       expect(configContent.version).toBe('1.0.0');
@@ -196,7 +201,7 @@ describe('Version', () => {
 
       hasPendingChangesStub.returns(true);
 
-      await expect(versionCmd.bumpVersion('patch')).rejects.toThrow(
+      await expect(versionCmd.bump('patch')).rejects.toThrow(
         /Cannot publish a patch version/,
       );
       await expectNoPartialState('1.0.0');
@@ -220,7 +225,7 @@ describe('Version', () => {
       });
       await git.commit('set version and dirty log');
 
-      const result = await versionCmd.bumpVersion('minor');
+      const result = await versionCmd.bump('minor');
 
       expect(result.newVersion).toBe('1.1.0');
       const migrationsFolder = join(dir, '.cards', 'local', 'migrations');
@@ -240,7 +245,7 @@ describe('Version', () => {
       hasPendingChangesStub.returns(true);
       sinon.stub(ConfigurationLogger, 'createVersion').resolves('dummy');
 
-      const result = await versionCmd.bumpVersion('major');
+      const result = await versionCmd.bump('major');
       expect(result.newVersion).toBe('2.0.0');
     });
 
@@ -262,7 +267,7 @@ describe('Version', () => {
       });
       await git.commit('set version and dirty log');
 
-      await expect(versionCmd.bumpVersion('patch')).rejects.toThrow(
+      await expect(versionCmd.bump('patch')).rejects.toThrow(
         /Cannot publish a patch version[\s\S]*test\/workflows\/flow \(resource_rename\)[\s\S]*Use a minor version bump\./,
       );
       await expectNoPartialState('1.0.0');
@@ -279,7 +284,7 @@ describe('Version', () => {
       });
       await git.commit('set version and dirty log');
 
-      await expect(versionCmd.bumpVersion('patch')).rejects.toThrow(
+      await expect(versionCmd.bump('patch')).rejects.toThrow(
         /Cannot publish a patch version[\s\S]*Use a major version bump\./,
       );
       await expectNoPartialState('1.0.0');
@@ -307,7 +312,7 @@ describe('Version', () => {
       });
       await git.commit('set version and dirty log');
 
-      await expect(versionCmd.bumpVersion('patch')).rejects.toThrow(
+      await expect(versionCmd.bump('patch')).rejects.toThrow(
         /test\/fieldTypes\/priority \(resource_update\) enumValues remove[\s\S]*test\/fieldTypes\/priority \(resource_update\) dataType change/,
       );
       await expectNoPartialState('1.0.0');
@@ -324,7 +329,7 @@ describe('Version', () => {
       });
       await git.commit('set version and dirty log');
 
-      await expect(versionCmd.bumpVersion('minor')).rejects.toThrow(
+      await expect(versionCmd.bump('minor')).rejects.toThrow(
         /Cannot publish a minor version[\s\S]*test\/workflows\/flow \(resource_delete\)/,
       );
       await expectNoPartialState('1.0.0');
@@ -344,7 +349,7 @@ describe('Version', () => {
       });
       await git.commit('set version and dirty log');
 
-      await expect(versionCmd.bumpVersion('minor')).rejects.toThrow(
+      await expect(versionCmd.bump('minor')).rejects.toThrow(
         /Cannot publish a minor version[\s\S]*test\/fieldTypes\/priority \(resource_update\) dataType change[\s\S]*Use a major version bump\./,
       );
       await expectNoPartialState('1.0.0');
@@ -364,7 +369,7 @@ describe('Version', () => {
       });
       await git.commit('set version and dirty log');
 
-      await expect(versionCmd.bumpVersion('minor')).rejects.toThrow(
+      await expect(versionCmd.bump('minor')).rejects.toThrow(
         /Cannot publish a minor version[\s\S]*test\/workflows\/flow \(resource_update\) states remove[\s\S]*Use a major version bump\./,
       );
       await expectNoPartialState('1.0.0');
@@ -384,7 +389,7 @@ describe('Version', () => {
       });
       await git.commit('set version and dirty log');
 
-      await expect(versionCmd.bumpVersion('minor')).rejects.toThrow(
+      await expect(versionCmd.bump('minor')).rejects.toThrow(
         /Cannot publish a minor version[\s\S]*test\/cardTypes\/task \(resource_update\) workflow change[\s\S]*Use a major version bump\./,
       );
       await expectNoPartialState('1.0.0');
@@ -404,7 +409,7 @@ describe('Version', () => {
       });
       await git.commit('set version and dirty log');
 
-      await expect(versionCmd.bumpVersion('minor')).rejects.toThrow(
+      await expect(versionCmd.bump('minor')).rejects.toThrow(
         /Cannot publish a minor version[\s\S]*test\/fieldTypes\/priority \(resource_update\) enumValues remove[\s\S]*Use a major version bump\./,
       );
       await expectNoPartialState('1.0.0');
@@ -422,12 +427,12 @@ describe('Version', () => {
       });
       await git.commit('set version and dirty log');
 
-      await expect(versionCmd.bumpVersion('minor')).rejects.toThrow(
+      await expect(versionCmd.bump('minor')).rejects.toThrow(
         /Cannot publish a minor version[\s\S]*test\/fieldTypes\/x \(resource_update\) — unrecognised entry, treated as breaking/,
       );
       await expectNoPartialState('1.0.0');
 
-      await expect(versionCmd.bumpVersion('patch')).rejects.toThrow(
+      await expect(versionCmd.bump('patch')).rejects.toThrow(
         /Cannot publish a patch version[\s\S]*test\/fieldTypes\/x \(resource_update\) — unrecognised entry, treated as breaking/,
       );
       await expectNoPartialState('1.0.0');
@@ -448,12 +453,12 @@ describe('Version', () => {
       });
       await git.commit('set version and dirty log');
 
-      await expect(versionCmd.bumpVersion('minor')).rejects.toThrow(
+      await expect(versionCmd.bump('minor')).rejects.toThrow(
         /newpfx \(project_rename\) — retired operation, treated as breaking/,
       );
       await expectNoPartialState('1.0.0');
 
-      await expect(versionCmd.bumpVersion('patch')).rejects.toThrow(
+      await expect(versionCmd.bump('patch')).rejects.toThrow(
         /newpfx \(project_rename\) — retired operation, treated as breaking/,
       );
       await expectNoPartialState('1.0.0');
@@ -471,12 +476,12 @@ describe('Version', () => {
       });
       await git.commit('set version and dirty log');
 
-      await expect(versionCmd.bumpVersion('minor')).rejects.toThrow(
+      await expect(versionCmd.bump('minor')).rejects.toThrow(
         /Cannot publish a minor version[\s\S]*test\/fieldTypes\/x \(resource_transmute\) enumValues — unrecognised entry, treated as breaking/,
       );
       await expectNoPartialState('1.0.0');
 
-      await expect(versionCmd.bumpVersion('patch')).rejects.toThrow(
+      await expect(versionCmd.bump('patch')).rejects.toThrow(
         /Cannot publish a patch version[\s\S]*test\/fieldTypes\/x \(resource_transmute\) enumValues — unrecognised entry, treated as breaking/,
       );
       await expectNoPartialState('1.0.0');
@@ -493,12 +498,12 @@ describe('Version', () => {
       });
       await git.commit('set version and dirty log');
 
-      await expect(versionCmd.bumpVersion('minor')).rejects.toThrow(
+      await expect(versionCmd.bump('minor')).rejects.toThrow(
         /Cannot publish a minor version[\s\S]*test\/reports\/status \(resource_delete\)/,
       );
       await expectNoPartialState('1.0.0');
 
-      await expect(versionCmd.bumpVersion('patch')).rejects.toThrow(
+      await expect(versionCmd.bump('patch')).rejects.toThrow(
         /Cannot publish a patch version[\s\S]*test\/reports\/status \(resource_delete\)[\s\S]*Use a major version bump\./,
       );
       await expectNoPartialState('1.0.0');
@@ -515,7 +520,7 @@ describe('Version', () => {
       });
       await git.commit('set version and dirty log');
 
-      const result = await versionCmd.bumpVersion('major');
+      const result = await versionCmd.bump('major');
 
       expect(result.newVersion).toBe('2.0.0');
       const migrationsFolder = join(dir, '.cards', 'local', 'migrations');
@@ -528,7 +533,7 @@ describe('Version', () => {
       await writeFile(join(dir, 'cardRoot', 'a.txt'), 'a');
       await git.commit('first change');
 
-      const result = await versionCmd.bumpVersion('patch');
+      const result = await versionCmd.bump('patch');
       expect(result.previousVersion).toBeUndefined();
       expect(result.newVersion).toBe('1.0.0');
     });
@@ -538,7 +543,7 @@ describe('Version', () => {
     it('should throw on uncommitted changes', async () => {
       await writeFile(join(dir, 'cardRoot', 'dirty.txt'), 'uncommitted');
 
-      await expect(versionCmd.bumpVersion('patch')).rejects.toThrow(
+      await expect(versionCmd.bump('patch')).rejects.toThrow(
         'uncommitted changes',
       );
       await expectNoPartialState(undefined);
@@ -555,7 +560,7 @@ describe('Version', () => {
       await writeFile(join(dir, 'cardRoot', 'a.txt'), 'a');
       await git.commit('change');
 
-      await versionCmd.bumpVersion('patch');
+      await versionCmd.bump('patch');
 
       expect(createVersionStub.calledOnce).toBe(true);
       expect(createVersionStub.calledWith(dir, '1.0.0')).toBe(true);
@@ -567,7 +572,7 @@ describe('Version', () => {
       await git.commit('set version');
       // hasPendingChangesStub returns false (set in beforeEach)
 
-      const result = await versionCmd.bumpVersion('minor');
+      const result = await versionCmd.bump('minor');
 
       expect(result.newVersion).toBe('1.1.0');
       const migrationsFolder = join(dir, '.cards', 'local', 'migrations');

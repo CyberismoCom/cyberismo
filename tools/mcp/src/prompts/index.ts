@@ -60,7 +60,7 @@ export function registerPrompts(
         provider.list().map(({ prefix }) => {
           const checkout = provider.get(prefix);
           return checkout
-            ? workspaceFor(checkout, extra, server).showCmd.listSkills()
+            ? workspaceFor(checkout, extra, server).resources.skills()
             : [];
         }),
       );
@@ -102,7 +102,7 @@ export function registerPrompts(
           continue;
         }
         const ws = workspaceFor(checkout, extra, server);
-        const result = await ws.showCmd.getSkill(name, { cardKey });
+        const result = await ws.resources.skill(name, { cardKey });
         if (result.status === 'ok') {
           const { skill } = result;
           const relatedTools = skill.relatedTools.length

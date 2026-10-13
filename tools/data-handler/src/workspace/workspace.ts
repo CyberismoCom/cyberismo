@@ -10,20 +10,20 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import type { Calculate } from '../queries/queries.js';
 import { Clean } from '../clean/clean.js';
 import { Create } from '../commands/create.js';
-import type { Export } from '../export/export.js';
+import { Export } from '../export/export.js';
 import type { Fetch } from '../commands/fetch.js';
 import type { Import } from '../commands/import.js';
 import type { Modules } from '../commands/modules.js';
-import type { Publish } from '../versions/publish.js';
 import type { Remove } from '../commands/remove.js';
-import type { Version } from '../versions/version.js';
+import { Versions } from '../versions/version.js';
 import type { Rename } from '../commands/rename.js';
 import type { Show } from '../commands/show.js';
 import type { Validate } from '../commands/validate.js';
 import { Cards } from '../cards/cards.js';
+import { Render } from '../macros/render.js';
+import { Queries } from '../queries/queries.js';
 import { Changes } from './changes.js';
 import { Resources } from './resources.js';
 import { Settings } from './settings.js';
@@ -95,15 +95,11 @@ function legacyProxy<T extends object>(
       if (typeof value !== 'function') {
         return value;
       }
-      // Clean.clean is undecorated: it writes unless it is a dry run.
-      const isClean = object instanceof Clean && key === 'clean';
-      if (!isClean && !isWriteMethod(value)) {
+      if (!isWriteMethod(value)) {
         return value.bind(object);
       }
       return (...args: unknown[]) =>
-        isClean && args[0]
-          ? value.apply(object, args)
-          : checkout.lock.write(frame, () => value.apply(object, args));
+        checkout.lock.write(frame, () => value.apply(object, args));
     },
   });
 }
@@ -119,6 +115,11 @@ export class Workspace {
   private settingsFacade?: Settings;
   private changesFacade?: Changes;
   private resourcesFacade?: Resources;
+  private queriesFacade?: Queries;
+  private exportFacade?: Export;
+  private cleanFacade?: Clean;
+  private versionsFacade?: Versions;
+  private renderFacade?: Render;
 
   private constructor(
     public readonly checkout: Checkout,
@@ -185,22 +186,47 @@ export class Workspace {
     return this.resourcesFacade;
   }
 
+  /** Queries and logic programs. */
+  get queries(): Queries {
+    this.queriesFacade ??= new Queries(this.checkout);
+    return this.queriesFacade;
+  }
+
+  /** Exports of cards and the project. */
+  get export(): Export {
+    this.exportFacade ??= new Export(this.checkout);
+    return this.exportFacade;
+  }
+
+  /** Dormant field values, as this handle's actor. */
+  get clean(): Clean {
+    this.cleanFacade ??= new Clean(this.checkout, this.actor, this.identity);
+    return this.cleanFacade;
+  }
+
+  /** Version bumps and publishing, as this handle's actor. */
+  get versions(): Versions {
+    this.versionsFacade ??= new Versions(
+      this.checkout,
+      this.actor,
+      this.identity,
+    );
+    return this.versionsFacade;
+  }
+
+  /** Card content rendering. */
+  get render(): Render {
+    this.renderFacade ??= new Render(this.checkout);
+    return this.renderFacade;
+  }
+
   /** Path of the project. */
   get path(): string {
     return this.checkout.basePath;
   }
 
-  get calculateCmd(): Calculate {
-    return this.legacy('calculateCmd');
-  }
-  get cleanCmd(): Clean {
-    return this.legacy('cleanCmd');
-  }
   get createCmd(): Create {
     return this.legacy('createCmd');
-  }
-  get exportCmd(): Export {
-    return this.legacy('exportCmd');
   }
   get fetchCmd(): Fetch {
     return this.legacy('fetchCmd');
@@ -210,9 +236,6 @@ export class Workspace {
   }
   get modulesCmd(): Modules {
     return this.legacy('modulesCmd');
-  }
-  get publishCmd(): Publish {
-    return this.legacy('publishCmd');
   }
   get removeCmd(): Remove {
     return this.legacy('removeCmd');
@@ -225,9 +248,6 @@ export class Workspace {
   }
   get validateCmd(): Validate {
     return this.legacy('validateCmd');
-  }
-  get versionCmd(): Version {
-    return this.legacy('versionCmd');
   }
 
   /**

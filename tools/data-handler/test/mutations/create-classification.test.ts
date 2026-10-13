@@ -80,7 +80,7 @@ describe('resource create classification', () => {
           params,
         });
       }
-      const { newVersion } = await ws.versionCmd.bumpVersion('patch');
+      const { newVersion } = await ws.versions.bump('patch');
       expect(newVersion).toBe('1.0.1');
     });
   });
