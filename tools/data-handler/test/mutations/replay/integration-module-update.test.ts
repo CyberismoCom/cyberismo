@@ -16,7 +16,7 @@ import {
   executeModuleReplays,
   planModuleReplays,
 } from '../../../src/mutations/replay/replay.js';
-import { formatSealFileName } from '../../../src/mutations/replay/seal-files.js';
+import { formatSealFileName } from '../../../src/infra/replay-log/seal-files.js';
 import {
   installedModule,
   logLine,

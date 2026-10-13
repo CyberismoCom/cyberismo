@@ -13,8 +13,7 @@
 */
 
 import type { ConfigurationLogEntry } from '../../utils/configuration-logger.js';
-import type { MutationInput } from '../types.js';
-import type { Operation } from '@cyberismo/model';
+import type { Operation, MutationInput } from '@cyberismo/model';
 import { resourceName } from '../../utils/resource-utils.js';
 
 /** Reconstruct the MutationInput a released-format log entry records. */

@@ -15,9 +15,14 @@ import { FileResource } from './file-resource.js';
 import { resourceName, resourceNameToString } from '../utils/resource-utils.js';
 import { sortCards } from '../utils/card-utils.js';
 
-import type { Card, LinkType, UpdateKey, Operation } from '@cyberismo/model';
+import type {
+  Card,
+  LinkType,
+  UpdateKey,
+  Operation,
+  ResourceName,
+} from '@cyberismo/model';
 import type { Checkout } from '../containers/project.js';
-import type { ResourceName } from '../utils/resource-utils.js';
 
 /**
  * Link Type resource class.

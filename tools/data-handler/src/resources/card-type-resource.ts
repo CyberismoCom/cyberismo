@@ -26,9 +26,9 @@ import type {
   CardType,
   CustomField,
   UpdateKey,
+  ResourceName,
 } from '@cyberismo/model';
 import type { Checkout } from '../containers/project.js';
-import type { ResourceName } from '../utils/resource-utils.js';
 
 /**
  * Card type resource class.

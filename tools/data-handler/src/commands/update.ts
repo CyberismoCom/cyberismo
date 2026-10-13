@@ -13,7 +13,7 @@
 import type { Checkout } from '../containers/project.js';
 import { write } from '../utils/rw-lock.js';
 import { ResourceMutations } from '../mutations/resource-mutations.js';
-import type { MutationInput } from '../mutations/types.js';
+import type { MutationInput } from '@cyberismo/model';
 
 /**
  * Class that handles 'update' commands.

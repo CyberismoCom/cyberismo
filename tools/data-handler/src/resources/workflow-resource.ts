@@ -21,6 +21,7 @@ import type {
   ChangeOperation,
   Operation,
   RemoveOperation,
+  ResourceName,
 } from '@cyberismo/model';
 import { DefaultContent } from './create-defaults.js';
 import { FileResource } from './file-resource.js';
@@ -31,7 +32,6 @@ import {
 import { sortCards } from '../utils/card-utils.js';
 
 import type { Checkout } from '../containers/project.js';
-import type { ResourceName } from '../utils/resource-utils.js';
 
 /**
  * Workflow resource class.
