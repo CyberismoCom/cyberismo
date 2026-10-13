@@ -18,6 +18,10 @@
 
 import type { ChangeEvent } from '@cyberismo/model';
 import type { Cards } from '../../src/cards/cards.js';
+import type { Clean } from '../../src/clean/clean.js';
+import type { Render } from '../../src/macros/render.js';
+import type { Queries } from '../../src/queries/queries.js';
+import type { Versions } from '../../src/versions/version.js';
 import type { Changes } from '../../src/workspace/changes.js';
 import type { Resources } from '../../src/workspace/resources.js';
 import type { Settings } from '../../src/workspace/settings.js';
@@ -135,4 +139,38 @@ export const changeEvent: Serializable<ChangeEvent> = true;
 export const resources: FacadeSerializable<Resources> = {
   create: true,
   validate: true,
+  show: true,
+  skills: true,
+  skill: true,
+};
+
+export const queries: FacadeSerializable<Queries> = {
+  exportLogicProgram: true,
+  runGraph: true,
+  runWorkflowGraph: true,
+  runLogicProgram: true,
+  runQuery: true,
+  logicProgram: true,
+  runReport: true,
+};
+
+export const clean: FacadeSerializable<Clean> & PropertiesSerializable<Clean> =
+  {
+    actor: true,
+    identity: true,
+    run: true,
+    dormantSummary: true,
+  };
+
+export const versions: FacadeSerializable<Versions> &
+  PropertiesSerializable<Versions> = {
+  actor: true,
+  identity: true,
+  bump: true,
+  publish: true,
+};
+
+export const render: FacadeSerializable<Render> = {
+  macros: true,
+  xrefs: true,
 };

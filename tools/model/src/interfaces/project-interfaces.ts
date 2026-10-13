@@ -130,15 +130,15 @@ export type DotSchemaContent = DotSchemaItem[];
  * Options for exporting to pdf.
  * @param name - Name of the exported document.
  * @param title - Title of the exported document.
- * @param date - Date of the exported document.
+ * @param date - Date of the exported document, as Date parses it.
  * @param cardKey - Key of the card to be exported.
  * @param recursive - Whether to export recursively ie. export all cards below the given card.
  * @param revremark - Revision remark of the exported document.
  */
 export interface ExportPdfOptions {
-  name: string;
-  title: string;
-  date?: Date;
+  name?: string;
+  title?: string;
+  date?: string;
   cardKey?: string;
   recursive?: boolean;
   revremark?: string;

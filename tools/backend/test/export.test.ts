@@ -35,7 +35,7 @@ describe('export module', () => {
     ) {
       const runQuery = vi.fn().mockResolvedValue(mockCards);
       const ws = {
-        calculateCmd: { runQuery },
+        queries: { runQuery },
         settings: { prefix },
       } as unknown as Workspace;
       return { ws, runQuery };
@@ -170,7 +170,7 @@ describe('export module', () => {
 
     test('should throw with available prefixes in the error message', async () => {
       const ws = {
-        calculateCmd: { runQuery: vi.fn().mockResolvedValue([]) },
+        queries: { runQuery: vi.fn().mockResolvedValue([]) },
         checkout: {
           basePath: '/tmp/proj',
           configuration: { cardKeyPrefix: 'foo', name: 'Foo' },

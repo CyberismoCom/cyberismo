@@ -27,3 +27,9 @@ export interface CleanResult {
   failedCards: string[];
   dryRun: boolean;
 }
+
+// Dormant field values a project holds: how many, on how many cards.
+export interface DormantSummary {
+  valueCount: number;
+  cardCount: number;
+}

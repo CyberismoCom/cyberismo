@@ -26,8 +26,8 @@ export async function getCardTree(
   isSsg: boolean,
   cardKey?: string,
   recursive?: boolean,
-): ReturnType<typeof ws.calculateCmd.runQuery> {
-  return ws.calculateCmd.runQuery('tree', isSsg ? 'exportedSite' : 'localApp', {
+): ReturnType<typeof ws.queries.runQuery> {
+  return ws.queries.runQuery('tree', isSsg ? 'exportedSite' : 'localApp', {
     cardKey,
     recursive,
   });
