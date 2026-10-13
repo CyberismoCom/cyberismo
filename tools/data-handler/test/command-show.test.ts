@@ -771,10 +771,9 @@ describe('show', () => {
       },
     };
     await ws.checkout.calculationEngine.generate();
-    const results = await showCmd.showReportResults(
+    const results = await ws.queries.runReport(
       parameters.name,
-      parameters.parameters.cardKey,
-      parameters,
+      parameters.parameters,
       'localApp',
     );
     expect(results).not.toBeUndefined();
@@ -788,10 +787,9 @@ describe('show', () => {
       },
     };
     await ws.checkout.calculationEngine.generate();
-    const results = await showCmd.showReportResults(
+    const results = await ws.queries.runReport(
       parameters.name,
-      parameters.parameters.cardKey,
-      parameters,
+      parameters.parameters,
       'localApp',
       join(testDir, 'report-results.txt'),
     );
@@ -807,10 +805,9 @@ describe('show', () => {
       },
     };
     await ws.checkout.calculationEngine.generate();
-    const results = await showCmd.showReportResults(
+    const results = await ws.queries.runReport(
       parameters.name,
-      parameters.parameters.cardKey,
-      parameters,
+      parameters.parameters,
       'localApp',
       join(testDir, 'report-results.txt'),
     );
@@ -827,12 +824,7 @@ describe('show', () => {
     };
     await ws.checkout.calculationEngine.generate();
     await expect(
-      showCmd.showReportResults(
-        parameters.name,
-        'wrong',
-        parameters,
-        'localApp',
-      ),
+      ws.queries.runReport(parameters.name, { cardKey: 'wrong' }, 'localApp'),
     ).rejects.toThrow(`Report 'decision/reports/wrongReport' does not exist`);
   });
 
@@ -864,9 +856,7 @@ describe('show', () => {
 
   it('showLogicProgram (success)', async () => {
     const resourceNameStr = 'decision/cardTypes/decision';
-    const result = await showCmd.showLogicProgram(
-      resourceName(resourceNameStr),
-    );
+    const result = await ws.queries.logicProgram(resourceName(resourceNameStr));
     expect(result).not.toBeUndefined();
     expect(result).to.be.a('string');
   });
@@ -875,7 +865,7 @@ describe('show', () => {
     const resourceNameStr = 'decision/cardTypes/nonexistent';
 
     await expect(
-      showCmd.showLogicProgram(resourceName(resourceNameStr)),
+      ws.queries.logicProgram(resourceName(resourceNameStr)),
     ).rejects.toThrow(
       `Resource 'decision/cardTypes/nonexistent' does not exist in the project`,
     );

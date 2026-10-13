@@ -511,7 +511,7 @@ export async function getWorkflowGraph(
       }
       currentState = card.metadata.workflowState;
     }
-    return ws.calculateCmd.runWorkflowGraph(workflowName, {
+    return ws.queries.runWorkflowGraph(workflowName, {
       currentState,
     });
   });

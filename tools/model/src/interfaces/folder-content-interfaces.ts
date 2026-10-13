@@ -11,9 +11,8 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import type { SchemaObject as Schema } from 'ajv';
-
-export type { Schema };
+// A JSON schema, as read from a resource's parameterSchema.json.
+export type JsonSchema = { [key: string]: unknown };
 
 // All file mappings for lookup (filename -> property name)
 export const ALL_FILE_MAPPINGS = {
@@ -55,14 +54,14 @@ export interface GraphModelContent {
 // Content interface for Graph View resources
 export interface GraphViewContent {
   viewTemplate?: string;
-  schema?: Schema;
+  schema?: JsonSchema;
 }
 
 // Content interface for Report resources
 export interface ReportContent {
   contentTemplate: string;
   queryTemplate: string;
-  schema?: Schema;
+  schema?: JsonSchema;
 }
 
 // Content interface for Skill resources

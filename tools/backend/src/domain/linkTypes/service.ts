@@ -20,7 +20,7 @@ export async function getLinkTypes(ws: Workspace) {
   }
 
   const linkTypes = await Promise.all(
-    response.map((linkType: string) => ws.showCmd.showResource(linkType)),
+    response.map((linkType: string) => ws.resources.show(linkType)),
   );
 
   return linkTypes;
