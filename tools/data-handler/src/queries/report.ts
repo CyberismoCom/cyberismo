@@ -17,7 +17,7 @@ import {
   registerComparisonHelpers,
   registerMathHelpers,
   registerReportHelpers,
-} from './handlebars-helpers.js';
+} from '../utils/handlebars-helpers.js';
 
 /**
  * Parameters for the core generation function
