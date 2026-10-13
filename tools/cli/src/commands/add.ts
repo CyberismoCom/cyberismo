@@ -18,7 +18,8 @@ import { Cmd, type CommandOptions } from '@cyberismo/data-handler';
 
 import { CommandGroup } from '../lib/args.js';
 import { commandHandler } from '../lib/dispatch.js';
-import { handleResponse } from '../lib/output.js';
+import { fail, onProject } from '../lib/errors.js';
+import { handleResponse, printResult } from '../lib/output.js';
 
 export function registerAdd(program: Command) {
   const addCmd = new CommandGroup('add').description(
@@ -47,12 +48,19 @@ export function registerAdd(program: Command) {
         cardKey: string,
         options: CommandOptions<'add'>,
       ) => {
-        const result = await commandHandler.command(
-          Cmd.add,
-          ['card', template, cardType, cardKey],
+        const addedCards = await onProject(
           Object.assign({}, options, program.opts()),
+          (ws) =>
+            ws.cards.addToTemplate(cardType, template, cardKey, options.repeat),
         );
-        handleResponse(result);
+        if (!addedCards || addedCards.length === 0) {
+          fail('Failed to add cards');
+        }
+        printResult(
+          addedCards.length > 1
+            ? `${addedCards.length} cards were added to the template '${template} : ${JSON.stringify(addedCards)}'`
+            : `card '${addedCards[0]}' was added to the template '${template}'`,
+        );
       },
     );
 

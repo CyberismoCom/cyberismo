@@ -15,9 +15,6 @@ import { join, resolve } from 'node:path';
 import { readFileSync } from 'node:fs';
 
 import type {
-  Card,
-  CardAttachment,
-  CardListContainer,
   Credentials,
   HubSetting,
   ModuleContent,
@@ -33,7 +30,6 @@ import type {
   UpdateOperations,
 } from '@cyberismo/model';
 import type {
-  AddCommandOptions,
   AllCommandOptions,
   CalcCommandOptions,
   ExportCommandOptions,
@@ -239,15 +235,7 @@ export class Commands {
   ) {
     try {
       if (command === Cmd.add) {
-        const [type, target, cardType, cardKey] = args;
-        if (type === 'card') {
-          return await this.addCard(
-            target,
-            cardType,
-            cardKey,
-            (options as AddCommandOptions).repeat,
-          );
-        }
+        const [type, target] = args;
         if (type === 'hub') {
           return await this.addHub(target);
         }
@@ -274,13 +262,7 @@ export class Commands {
         if (target !== type) {
           rest.unshift(type);
         }
-        if (target === 'attachment') {
-          const [cardKey, attachment] = rest;
-          await this.ws?.cards.addAttachment(cardKey, attachment);
-        } else if (target === 'card') {
-          const [template, parent] = rest;
-          return await this.createCard(template, parent);
-        } else if (target === 'cardType') {
+        if (target === 'cardType') {
           const [name, workflow] = rest;
           await this.ws?.createCmd.createCardType(name, workflow);
         } else if (target === 'fieldType') {
@@ -295,17 +277,6 @@ export class Commands {
         } else if (target === 'calculation') {
           const [name] = rest;
           await this.ws?.createCmd.createCalculation(name);
-        } else if (target === 'label') {
-          const [cardKey, label] = rest;
-          await this.ws?.cards.addLabel(cardKey, label);
-        } else if (target === 'link') {
-          const [source, destination, linkType, linkDescription] = rest;
-          await this.ws?.cards.addLink(
-            source,
-            destination,
-            linkType,
-            linkDescription,
-          );
         } else if (target === 'linkType') {
           const [name] = rest;
           await this.ws?.createCmd.createLinkType(name);
@@ -335,9 +306,6 @@ export class Commands {
         } else {
           throw new Error(`Unknown type to create: '${target}'`);
         }
-      } else if (command === Cmd.edit) {
-        const [cardKey] = args;
-        await this.ws?.editCmd.editCard(cardKey);
       } else if (command === Cmd.export) {
         const [format, output, cardKey] = args;
         return await this.export(
@@ -386,34 +354,14 @@ export class Commands {
         }
       } else if (command === Cmd.migrate) {
         return await this.migrate();
-      } else if (command === Cmd.move) {
-        const [source, destination] = args;
-        await this.ws?.cards.move(source, destination);
       } else if (command === Cmd.publish) {
         return this.publish(args);
       } else if (command === Cmd.version) {
         return this.version(args);
-      } else if (command === Cmd.rank) {
-        const target = args.splice(0, 1)[0];
-        if (target === 'card') {
-          const [card, before] = args;
-          if (before === 'first') {
-            await this.ws?.cards.rankFirst(card);
-          } else {
-            await this.ws?.cards.rank(card, before);
-          }
-        } else if (target === 'rebalance') {
-          const [cardKey] = args;
-          if (cardKey) {
-            await this.ws?.cards.rebalance(cardKey);
-          } else {
-            await this.ws?.cards.rebalanceAll();
-          }
-        }
       } else if (command === Cmd.remove) {
-        const [type, target, ...rest] = args;
+        const [type, target] = args;
         const removed = this.commandType<RemovableResourceTypes>(type);
-        await this.remove(removed, this.commandTarget(type, target), rest);
+        await this.remove(removed, this.commandTarget(type, target));
 
         // Card types stop declaring a deleted field type, so the values its
         // cards stored are left in place; nothing else removed here can strand
@@ -453,9 +401,6 @@ export class Commands {
           (options as ReportCommandOptions).context || 'commandLine',
           outputPath,
         );
-      } else if (command === Cmd.transition) {
-        const [cardKey, state] = args;
-        await this.ws?.cards.transition(cardKey, state);
       } else if (command === Cmd.update) {
         const [resource, operation, key, value, newValue] = args;
         let parsedValue = '';
@@ -597,58 +542,12 @@ export class Commands {
     return isProjectPath(path) ? path : '';
   }
 
-  // Adds a new card to a template.
-  private async addCard(
-    templateName: string,
-    cardTypeName: string,
-    cardKey: string,
-    repeat?: number,
-  ): Promise<requestStatus> {
-    const addedCards = await this.ws?.cards.addToTemplate(
-      cardTypeName,
-      templateName,
-      cardKey,
-      repeat,
-    );
-
-    if (!addedCards || addedCards.length === 0) {
-      throw new Error('Failed to add cards');
-    }
-
-    const messageTxt =
-      addedCards.length > 1
-        ? `${addedCards.length} cards were added to the template '${templateName} : ${JSON.stringify(addedCards)}'`
-        : `card '${addedCards[0]}' was added to the template '${templateName}'`;
-
-    return {
-      statusCode: 200,
-      affectsCards: addedCards,
-      message: messageTxt,
-    };
-  }
-
   // Adds a hub to the project.
   private async addHub(name: string) {
     await this.ws?.createCmd.addHubLocation(name);
     return {
       statusCode: 200,
       message: `Hub '${name}' was added to the project`,
-    };
-  }
-
-  // Creates a new card to a project, or to a template.
-  private async createCard(
-    templateName: string,
-    parentCardKey: string,
-  ): Promise<requestStatus> {
-    const createdCards = await this.ws?.cards.create(
-      templateName,
-      parentCardKey,
-    );
-    return {
-      statusCode: 200,
-      affectsCards: createdCards?.map((card) => card.key),
-      message: `Created cards ${JSON.stringify(createdCards?.map((card) => card.key))}`,
     };
   }
 
@@ -862,54 +761,11 @@ export class Commands {
     };
   }
 
-  // Removes a card (single card, or parent card and children), or an attachment.
+  // Removes a resource, hub or module.
   private async remove(
     type: RemovableResourceTypes,
     targetName: string,
-    args: string[],
   ): Promise<void> {
-    // The argument checks throw inside the write, as the Remove command did.
-    const checked = <T>(check: () => void, run: () => Promise<T>) =>
-      this.ws?.atomic(async () => {
-        check();
-        return run();
-      }, `Remove ${type} ${targetName}`);
-    if (type === 'attachment') {
-      await checked(
-        () => {
-          if (args.length !== 1 && !args[0]) {
-            throw new Error(
-              `Input validation error: must pass argument 'detail' if requesting to remove attachment`,
-            );
-          }
-        },
-        () => this.ws!.cards.removeAttachment(targetName, args[0]),
-      );
-      return;
-    } else if (type === 'card') {
-      return this.ws?.cards.remove(targetName);
-    } else if (type === 'label') {
-      return this.ws?.cards.removeLabel(targetName, args[0]);
-    } else if (type === 'link') {
-      await checked(
-        () => {
-          if ([2, 3].includes(args.length) && !args[0] && !args[1]) {
-            throw new Error(
-              `Input validation error: must pass arguments 'source', 'destination' and possibly 'linkType' if requesting to remove link`,
-            );
-          }
-        },
-        () =>
-          this.ws!.cards.removeLink(
-            targetName,
-            args[0],
-            args[1],
-            args[2],
-            args[3] as 'outbound' | 'inbound' | undefined,
-          ),
-      );
-      return;
-    }
     return await this.ws?.removeCmd.remove(type, targetName);
   }
 
@@ -989,9 +845,6 @@ export class Commands {
   ): Promise<requestStatus> {
     const detail = typeDetail || '';
     let promise: Promise<
-      | Card
-      | CardAttachment[]
-      | CardListContainer[]
       | HubSetting[]
       | ModuleContent
       | ModuleInfo[]
@@ -1003,15 +856,6 @@ export class Commands {
     >;
 
     switch (type) {
-      case 'attachments':
-        promise = this.ws!.cards.attachments();
-        break;
-      case 'card':
-        promise = this.ws!.cards.details(detail);
-        break;
-      case 'cards':
-        promise = this.ws!.cards.list();
-        break;
       case 'calculation':
       case 'cardType':
       case 'fieldType':
@@ -1045,9 +889,6 @@ export class Commands {
             options?.details,
           ),
         );
-        break;
-      case 'labels':
-        promise = this.ws!.cards.labels();
         break;
       case 'module':
         promise = this.ws!.modulesCmd.show(detail);

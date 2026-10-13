@@ -74,15 +74,13 @@ describe('import csv command', () => {
     expect(result.statusCode).toBe(200);
 
     const createdKeys = result.payload as string[];
-    // Use command handler to get card details for consistent project instance
-    const parentCardResult = await commandHandler.command(
-      Cmd.show,
-      ['card', parent],
-      { ...options, details: true },
-    );
-    expect(parentCardResult.statusCode).toBe(200);
-    type ParentCard = { children?: string[] };
-    const parentCard = parentCardResult.payload as ParentCard;
+    const checkout = getTestProject(decisionRecordsPath);
+    await checkout.populateCaches();
+    const parentCard = await new Cards(
+      checkout,
+      SYSTEM_ACTOR,
+      undefined,
+    ).details(parent);
 
     expect(createdKeys).toHaveLength(2);
     expect(parentCard.children).toContain(createdKeys[0]);
