@@ -9,7 +9,7 @@ import { join } from 'node:path';
 // cyberismo
 import { Cmd, Commands } from '../src/command-handler.js';
 import { copyDir } from '../src/utils/file-utils.js';
-import { generateReportContent } from '../src/utils/report.js';
+import { generateReportContent } from '../src/queries/report.js';
 
 import type { CreateCommandOptions } from '../src/interfaces/command-options.js';
 
