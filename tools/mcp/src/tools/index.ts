@@ -829,10 +829,7 @@ export function registerTools(
       try {
         const ws = resolveCommands(provider, projectPrefix, extra, server);
         const parsed = resourceName(name);
-        const result = await ws.validateCmd.validateResource(
-          parsed,
-          ws.checkout,
-        );
+        const result = await ws.resources.validate(parsed);
         return toolResult({
           name,
           valid: result === '',

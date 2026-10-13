@@ -12,11 +12,13 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import type { CreateParamsByType } from '@cyberismo/model';
+import type { CreateParamsByType, ResourceName } from '@cyberismo/model';
+import { Validate } from '../commands/validate.js';
 import type { Checkout } from '../containers/project.js';
 import { createSubject } from '../mutations/resource-mutations.js';
 import { runWithDefaultCommitMessage } from '../utils/commit-context.js';
 import { resourceName } from '../utils/resource-utils.js';
+import { read } from '../utils/rw-lock.js';
 import type { Changes } from './changes.js';
 
 /**
@@ -50,5 +52,11 @@ export class Resources {
     await runWithDefaultCommitMessage(createSubject(type, name), () =>
       this.changes.apply({ kind: 'create', target, params }),
     );
+  }
+
+  /** The resource's validation errors; '' when it is valid. */
+  @read
+  public async validate(name: ResourceName): Promise<string> {
+    return Validate.getInstance().validateResource(name, this.checkout);
   }
 }
