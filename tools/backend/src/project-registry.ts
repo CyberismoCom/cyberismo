@@ -13,6 +13,8 @@
 
 import {
   openCheckout,
+  SYSTEM_ACTOR,
+  Workspace,
   type Checkout,
   type ProjectProvider,
   type WorkspaceOptions,
@@ -37,6 +39,11 @@ export interface ScannedProject {
   path: string;
   prefix: string;
   name: string;
+}
+
+// The registry reads settings as the system; it owns the checkout, not the handle.
+function systemSettings(checkout: Checkout) {
+  return Workspace.over(checkout, SYSTEM_ACTOR).settings;
 }
 
 export class ProjectRegistry implements ProjectProvider {
@@ -82,12 +89,15 @@ export class ProjectRegistry implements ProjectProvider {
   }
 
   list(): ProjectListItem[] {
-    return Array.from(this.projects.entries()).map(([prefix, checkout]) => ({
-      prefix,
-      name: checkout.configuration.name,
-      category: checkout.configuration.category || undefined,
-      description: checkout.configuration.description || undefined,
-    }));
+    return Array.from(this.projects.entries()).map(([prefix, checkout]) => {
+      const { name, category, description } = systemSettings(checkout);
+      return {
+        prefix,
+        name,
+        category: category || undefined,
+        description: description || undefined,
+      };
+    });
   }
 
   /** Iterate over all registered checkouts. */
@@ -129,7 +139,7 @@ export class ProjectRegistry implements ProjectProvider {
    */
   static fromCheckout(checkout: Checkout): ProjectRegistry {
     return new ProjectRegistry([
-      { prefix: checkout.configuration.cardKeyPrefix, checkout },
+      { prefix: systemSettings(checkout).prefix, checkout },
     ]);
   }
 

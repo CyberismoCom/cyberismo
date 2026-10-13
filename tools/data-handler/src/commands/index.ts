@@ -14,7 +14,6 @@
 import { Calculate } from './calculate.js';
 import { Clean } from './clean.js';
 import { Create } from './create.js';
-import { Edit } from './edit.js';
 import { Export } from './export.js';
 import { Fetch } from './fetch.js';
 import { Import } from './import.js';
@@ -31,7 +30,6 @@ export {
   Calculate,
   Clean,
   Create,
-  Edit,
   Export,
   Fetch,
   Import,

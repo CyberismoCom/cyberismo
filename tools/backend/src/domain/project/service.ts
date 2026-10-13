@@ -79,7 +79,7 @@ export async function getProject(ws: Workspace): Promise<ProjectInfo> {
       modules.map((row) => toModuleInfo(ws, row)),
     );
 
-    const gitRemoteUrl = (await ws.showCmd.showGitRemoteUrl()) ?? null;
+    const gitRemoteUrl = (await ws.settings.gitRemoteUrl()) ?? null;
 
     return {
       name: project.name,
@@ -103,18 +103,18 @@ export async function updateProject(
       await ws.renameCmd.rename(cardKeyPrefix);
     }
     if (name) {
-      await ws.checkout.configuration.setProjectName(name);
+      await ws.settings.setName(name);
     }
     if (description !== undefined) {
-      await ws.checkout.configuration.setDescription(description);
+      await ws.settings.setDescription(description);
     }
     if (category !== undefined) {
-      await ws.checkout.configuration.setCategory(category);
+      await ws.settings.setCategory(category);
     }
   }, 'Update project settings');
 
   if (gitRemoteUrl !== undefined) {
-    await ws.editCmd.setGitRemoteUrl(gitRemoteUrl);
+    await ws.settings.setGitRemoteUrl(gitRemoteUrl);
   }
 
   return getProject(ws);

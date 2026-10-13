@@ -29,11 +29,14 @@ describe('export module', () => {
   });
 
   describe('getCardQueryResult', () => {
-    function createMockCommands(mockCards: { key: string; title: string }[]) {
+    function createMockCommands(
+      mockCards: { key: string; title: string }[],
+      prefix = 'TEST',
+    ) {
       const runQuery = vi.fn().mockResolvedValue(mockCards);
       const ws = {
         calculateCmd: { runQuery },
-        checkout: { configuration: { cardKeyPrefix: 'TEST' } },
+        settings: { prefix },
       } as unknown as Workspace;
       return { ws, runQuery };
     }
@@ -101,16 +104,14 @@ describe('export module', () => {
       const cardsA = [{ key: 'alpha_1', title: 'Alpha Card' }];
       const cardsB = [{ key: 'beta_1', title: 'Beta Card' }];
 
-      const { ws: commandsA, runQuery: runQueryA } = createMockCommands(cardsA);
-      const { ws: commandsB, runQuery: runQueryB } = createMockCommands(cardsB);
-
-      // Override prefix so they differ
-      (
-        commandsA.checkout as { configuration: { cardKeyPrefix: string } }
-      ).configuration.cardKeyPrefix = 'alpha';
-      (
-        commandsB.checkout as { configuration: { cardKeyPrefix: string } }
-      ).configuration.cardKeyPrefix = 'beta';
+      const { ws: commandsA, runQuery: runQueryA } = createMockCommands(
+        cardsA,
+        'alpha',
+      );
+      const { ws: commandsB, runQuery: runQueryB } = createMockCommands(
+        cardsB,
+        'beta',
+      );
 
       const resultA = await getCardQueryResult(commandsA);
       const resultB = await getCardQueryResult(commandsB);
@@ -128,15 +129,8 @@ describe('export module', () => {
       ];
       const cardsB = [{ key: 'beta_1', title: 'B1' }];
 
-      const { ws: commandsA } = createMockCommands(cardsA);
-      const { ws: commandsB } = createMockCommands(cardsB);
-
-      (
-        commandsA.checkout as { configuration: { cardKeyPrefix: string } }
-      ).configuration.cardKeyPrefix = 'alpha';
-      (
-        commandsB.checkout as { configuration: { cardKeyPrefix: string } }
-      ).configuration.cardKeyPrefix = 'beta';
+      const { ws: commandsA } = createMockCommands(cardsA, 'alpha');
+      const { ws: commandsB } = createMockCommands(cardsB, 'beta');
 
       // Cache both
       await getCardQueryResult(commandsA);

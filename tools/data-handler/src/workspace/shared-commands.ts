@@ -14,7 +14,6 @@
 import { Calculate } from '../commands/calculate.js';
 import { Clean } from '../commands/clean.js';
 import { Create } from '../commands/create.js';
-import { Edit } from '../commands/edit.js';
 import { Export } from '../commands/export.js';
 import { Fetch } from '../commands/fetch.js';
 import { Import } from '../commands/import.js';
@@ -36,7 +35,6 @@ export class SharedCommands {
   public calculateCmd: Calculate;
   public cleanCmd: Clean;
   public createCmd: Create;
-  public editCmd: Edit;
   public exportCmd: Export;
   public fetchCmd: Fetch;
   public importCmd: Import;
@@ -58,7 +56,6 @@ export class SharedCommands {
     this.modulesCmd = new Modules(checkout, this.fetchCmd);
     this.showCmd = new Show(checkout);
     this.createCmd = new Create(checkout);
-    this.editCmd = new Edit(checkout);
     this.exportCmd = new Export(checkout);
     this.importCmd = new Import(checkout);
     this.publishCmd = new Publish(checkout);
