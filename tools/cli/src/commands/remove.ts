@@ -14,11 +14,16 @@
 import { type Command } from 'commander';
 
 import { DEFAULT_HUB } from '@cyberismo/assets';
-import { Cmd, type CommandOptions } from '@cyberismo/data-handler';
+import {
+  Cmd,
+  type CommandOptions,
+  type Workspace,
+} from '@cyberismo/data-handler';
 
 import { CommandWithPath, ResourceTypeParser as Parser } from '../lib/args.js';
 import { commandHandler, program } from '../lib/dispatch.js';
-import { deprecationNote, handleResponse } from '../lib/output.js';
+import { onProject } from '../lib/errors.js';
+import { deprecationNote, handleResponse, printResult } from '../lib/output.js';
 
 const additionalHelpForRemove = `Sub-command help:
   remove attachment <cardKey> <filename>, where
@@ -46,6 +51,55 @@ const additionalHelpForRemove = `Sub-command help:
       <type> is plural form of supported types; e.g. "workflows"
       <identifier> name of a specific resource.
     Note that you cannot remove resources from imported modules.`;
+
+// Removes a card, or a card's attachment, label or link.
+async function removeFromCard(
+  ws: Workspace,
+  type: string,
+  cardKey: string,
+  args: string[],
+) {
+  // The argument checks throw inside the write, as the Remove command did.
+  const checked = <T>(check: () => void, run: () => Promise<T>) =>
+    ws.atomic(async () => {
+      check();
+      return run();
+    }, `Remove ${type} ${cardKey}`);
+  if (type === 'attachment') {
+    await checked(
+      () => {
+        if (args.length !== 1 && !args[0]) {
+          throw new Error(
+            `Input validation error: must pass argument 'detail' if requesting to remove attachment`,
+          );
+        }
+      },
+      () => ws.cards.removeAttachment(cardKey, args[0]),
+    );
+  } else if (type === 'card') {
+    await ws.cards.remove(cardKey);
+  } else if (type === 'label') {
+    await ws.cards.removeLabel(cardKey, args[0]);
+  } else {
+    await checked(
+      () => {
+        if ([2, 3].includes(args.length) && !args[0] && !args[1]) {
+          throw new Error(
+            `Input validation error: must pass arguments 'source', 'destination' and possibly 'linkType' if requesting to remove link`,
+          );
+        }
+      },
+      () =>
+        ws.cards.removeLink(
+          cardKey,
+          args[0],
+          args[1],
+          args[2],
+          args[3] as 'outbound' | 'inbound' | undefined,
+        ),
+    );
+  }
+}
 
 export async function removeAction(
   type: string,
@@ -83,6 +137,14 @@ export async function removeAction(
     }
     if (type === 'hub' && parameter1 === 'default') {
       parameter1 = DEFAULT_HUB;
+    }
+
+    if (['attachment', 'card', 'label', 'link'].includes(type)) {
+      await onProject(Object.assign({}, options, program.opts()), (ws) =>
+        removeFromCard(ws, type, parameter1!, [parameter2!, parameter3!]),
+      );
+      printResult();
+      return;
     }
 
     const result = await commandHandler.command(

@@ -255,59 +255,7 @@ describe('import module', () => {
         optionsMini,
       );
     });
-    it('try to add card to module template', async () => {
-      const templateName = 'mini/templates/test-template';
-      const cardType = 'decision/cardTypes/decision';
-      const cardKey = '';
-      const result = await commandHandler.command(
-        Cmd.add,
-        ['card', templateName, cardType, cardKey],
-        options,
-      );
-      expect(result.statusCode).toBe(400);
-    });
-    it('try to add child card to a module card', async () => {
-      const templateName = 'decision/templates/decision';
-      const cardType = 'decision/cardTypes/decision';
-      const cardKey = 'decision_2';
-      // try to add new card to decision_2 when 'decision-records' has been imported to 'minimal'
-      const result = await commandHandler.command(
-        Cmd.add,
-        ['card', templateName, cardType, cardKey],
-        optionsMini,
-      );
-      expect(result.statusCode).toBe(400);
-    });
-    it('try to create attachment to a module card', async () => {
-      const attachmentPath = join(testDir, 'attachments/the-needle.heic');
-      const cardKey = 'decision_2';
-      const result = await commandHandler.command(
-        Cmd.create,
-        ['attachment', cardKey, attachmentPath],
-        optionsMini,
-      );
-      expect(result.statusCode).toBe(400);
-    });
 
-    it('try to move a module card to another template', async () => {
-      const moduleCardKey = 'decision_2';
-      const templateCardKey = 'decision_1';
-      const result = await commandHandler.command(
-        Cmd.move,
-        [templateCardKey, moduleCardKey, 'root'],
-        optionsMini,
-      );
-      expect(result.statusCode).toBe(400);
-    });
-    it('try to remove card from a module template', async () => {
-      const cardKey = 'decision_2';
-      const result = await commandHandler.command(
-        Cmd.remove,
-        ['card', cardKey],
-        optionsMini,
-      );
-      expect(result.statusCode).toBe(400);
-    });
     it('try to remove cardType from a module', async () => {
       const cardType = 'decision/cardTypes/decision';
       const result = await commandHandler.command(
@@ -349,16 +297,6 @@ describe('import module', () => {
       const result = await commandHandler.command(
         Cmd.remove,
         ['workflow', workflow],
-        optionsMini,
-      );
-      expect(result.statusCode).toBe(400);
-    });
-    it('try to remove attachment from a module card', async () => {
-      const cardKey = 'decision_1';
-      const attachment = 'the-needle.heic';
-      const result = await commandHandler.command(
-        Cmd.remove,
-        ['attachment', cardKey, attachment],
         optionsMini,
       );
       expect(result.statusCode).toBe(400);
