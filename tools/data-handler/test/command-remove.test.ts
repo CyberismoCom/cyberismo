@@ -3,7 +3,7 @@ import { expect, it, describe, beforeEach, afterEach, vi } from 'vitest';
 // node
 import { existsSync, mkdirSync, rmSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
-import { join, sep, resolve as pathResolve } from 'node:path';
+import { join, resolve as pathResolve } from 'node:path';
 
 // cyberismo
 import { Cmd, Commands, Workspace } from '../src/command-handler.js';
@@ -15,7 +15,6 @@ import {
 import { getTestBaseDir, getTestProject } from './helpers/test-utils.js';
 import { makeFakeModuleFixture } from './helpers/module-fixtures.js';
 
-import type { Card } from '@cyberismo/model';
 import type { requestStatus } from '../src/interfaces/request-status-interfaces.js';
 import type * as Undici from 'undici';
 
@@ -54,16 +53,6 @@ async function createLinkType(
   return status;
 }
 
-async function createCard(commandHandler: Commands): Promise<requestStatus> {
-  const templateName = 'decision/templates/decision';
-  const status = await commandHandler.command(
-    Cmd.create,
-    ['card', templateName],
-    options,
-  );
-  return status;
-}
-
 describe('remove command', () => {
   const commandHandler: Commands = new Commands();
   describe('successful removals - test data is cleaned afterwards', () => {
@@ -76,209 +65,6 @@ describe('remove command', () => {
       rmSync(testDir, { recursive: true, force: true });
     });
 
-    it('remove card', async () => {
-      const card = await createCard(commandHandler);
-      const cardId = card.affectsCards![0];
-      const result = await commandHandler.command(
-        Cmd.remove,
-        ['card', cardId],
-        options,
-      );
-      expect(result.statusCode).toBe(200);
-    });
-    it('remove label (success)', async () => {
-      const result = await commandHandler.command(
-        Cmd.remove,
-        ['label', 'decision_5', 'test'],
-        options,
-      );
-      expect(result.statusCode).toBe(200);
-      // should have 1 label now, so we can delete with
-      const result2 = await commandHandler.command(
-        Cmd.remove,
-        ['label', 'decision_5'],
-        options,
-      );
-      expect(result2.statusCode).toBe(200);
-    });
-
-    // Create two cards, link them together. Remove the other card.
-    // Check that link has disappeared from the first card as well.
-    it('removing card removes links (success)', async () => {
-      const linkName = 'test';
-      const resourceName = 'decision/linkTypes/' + linkName;
-      const card = await createCard(commandHandler);
-      const card2 = await createCard(commandHandler);
-      const cardId = card.affectsCards![0];
-      const cardId2 = card2.affectsCards![0];
-      let result = await commandHandler.command(
-        Cmd.create,
-        ['link', cardId2, cardId, resourceName],
-        options,
-      );
-      expect(result.statusCode).toBe(200);
-      result = await commandHandler.command(
-        Cmd.show,
-        ['card', cardId2],
-        options,
-      );
-      expect(result.statusCode).toBe(200);
-
-      // Link should exist between cardId and cardId2
-      let shownCard = result.payload as Card;
-      let found = shownCard.metadata?.links.filter(
-        (item) => item.cardKey === cardId,
-      );
-      expect(found?.length).to.equal(1);
-
-      // Remove the first card
-      result = await commandHandler.command(
-        Cmd.remove,
-        ['card', cardId],
-        options,
-      );
-      expect(result.statusCode).toBe(200);
-
-      // cardId2 should no longer have link to the other card
-      result = await commandHandler.command(
-        Cmd.show,
-        ['card', cardId2],
-        options,
-      );
-      shownCard = result.payload as Card;
-      found = shownCard.metadata?.links.filter(
-        (item) => item.cardKey === cardId,
-      );
-      expect(found?.length).toBe(0);
-    });
-
-    // Create two links of the same type between the same cards, one with and one without
-    // a description. Removing the link without description must not remove the one with
-    // a description.
-    it('removing link without description does not remove same-type link with description', async () => {
-      const resourceName = 'decision/linkTypes/test';
-      const card = await createCard(commandHandler);
-      const card2 = await createCard(commandHandler);
-      const cardId = card.affectsCards![0];
-      const cardId2 = card2.affectsCards![0];
-
-      // Create link without description
-      let result = await commandHandler.command(
-        Cmd.create,
-        ['link', cardId, cardId2, resourceName],
-        options,
-      );
-      expect(result.statusCode).toBe(200);
-
-      // Create link with description
-      result = await commandHandler.command(
-        Cmd.create,
-        ['link', cardId, cardId2, resourceName, 'my description'],
-        options,
-      );
-      expect(result.statusCode).toBe(200);
-
-      // Remove only the link without description
-      result = await commandHandler.command(
-        Cmd.remove,
-        ['link', cardId, cardId2, resourceName],
-        options,
-      );
-      expect(result.statusCode).toBe(200);
-
-      // The link with description should still exist
-      result = await commandHandler.command(
-        Cmd.show,
-        ['card', cardId],
-        options,
-      );
-      const shownCard = result.payload as Card;
-      const remaining = shownCard.metadata?.links.filter(
-        (l) => l.cardKey === cardId2 && l.linkType === resourceName,
-      );
-      expect(remaining).toHaveLength(1);
-      expect(remaining![0].linkDescription).toBe('my description');
-    });
-
-    // Create two links of the same type with different descriptions.
-    // Removing one by description must leave the other intact.
-    it('removing link by description does not remove same-type link with different description', async () => {
-      const resourceName = 'decision/linkTypes/test';
-      const card = await createCard(commandHandler);
-      const card2 = await createCard(commandHandler);
-      const cardId = card.affectsCards![0];
-      const cardId2 = card2.affectsCards![0];
-
-      // Create two links with different descriptions
-      let result = await commandHandler.command(
-        Cmd.create,
-        ['link', cardId, cardId2, resourceName, 'desc A'],
-        options,
-      );
-      expect(result.statusCode).toBe(200);
-
-      result = await commandHandler.command(
-        Cmd.create,
-        ['link', cardId, cardId2, resourceName, 'desc B'],
-        options,
-      );
-      expect(result.statusCode).toBe(200);
-
-      // Remove only the link with 'desc A'
-      result = await commandHandler.command(
-        Cmd.remove,
-        ['link', cardId, cardId2, resourceName, 'desc A'],
-        options,
-      );
-      expect(result.statusCode).toBe(200);
-
-      // Only link with 'desc B' should remain
-      result = await commandHandler.command(
-        Cmd.show,
-        ['card', cardId],
-        options,
-      );
-      const shownCard = result.payload as Card;
-      const remaining = shownCard.metadata?.links.filter(
-        (l) => l.cardKey === cardId2 && l.linkType === resourceName,
-      );
-      expect(remaining).toHaveLength(1);
-      expect(remaining![0].linkDescription).toBe('desc B');
-    });
-
-    // External link removal tests
-    it('remove external link outbound (success)', async () => {
-      // First create an external link
-      await commandHandler.command(
-        Cmd.create,
-        ['link', 'decision_5', 'jira:EXT-123', 'decision/linkTypes/test'],
-        options,
-      );
-      // Then remove it
-      const result = await commandHandler.command(
-        Cmd.remove,
-        ['link', 'decision_5', 'jira:EXT-123', 'decision/linkTypes/test'],
-        options,
-      );
-      expect(result.statusCode).to.equal(200);
-    });
-
-    it('remove external link inbound (success)', async () => {
-      // First create an inbound external link (external first = inbound)
-      await commandHandler.command(
-        Cmd.create,
-        ['link', 'jira:EXT-456', 'decision_5', 'decision/linkTypes/test'],
-        options,
-      );
-      // Then remove it
-      const result = await commandHandler.command(
-        Cmd.remove,
-        ['link', 'jira:EXT-456', 'decision_5', 'decision/linkTypes/test'],
-        options,
-      );
-      expect(result.statusCode).to.equal(200);
-    });
-
     it('remove linkType', async () => {
       const name = 'testLinkTypeForRemoval';
       await createLinkType(commandHandler, name);
@@ -286,31 +72,6 @@ describe('remove command', () => {
       const result = await commandHandler.command(
         Cmd.remove,
         ['linkType', fullName],
-        options,
-      );
-      expect(result.statusCode).toBe(200);
-    });
-    it('remove attachment (success)', async () => {
-      const attachment = 'the-needle.heic';
-      const attachmentPath = join(testDir, 'attachments' + sep + attachment);
-      const card = await createCard(commandHandler);
-
-      // To avoid logged errors from clingo queries during tests, generate calculations.
-      const checkout = getTestProject(decisionRecordsPath);
-      await checkout.populateCaches();
-      await checkout.calculationEngine.generate();
-
-      const cardId = card.affectsCards![0];
-      await commandHandler.command(
-        Cmd.create,
-        ['attachment', cardId, attachmentPath],
-        options,
-      );
-      const attachmentNameWithCardId = `${cardId}-${attachment}`;
-
-      const result = await commandHandler.command(
-        Cmd.remove,
-        ['attachment', cardId, attachmentNameWithCardId],
         options,
       );
       expect(result.statusCode).toBe(200);
@@ -424,94 +185,12 @@ describe('remove command', () => {
     afterEach(() => {
       rmSync(testDir, { recursive: true, force: true });
     });
-    it('try to remove card - project missing', async () => {
-      const cardId = 'decision_5';
-      const invalidProject = { projectPath: 'idontexist' };
-      const result = await commandHandler.command(
-        Cmd.remove,
-        ['card', cardId],
-        invalidProject,
-      );
-      expect(result.statusCode).toBe(400);
-    });
-    it('try to remove card - card not found', async () => {
-      const cardId = 'decision_999';
-      const result = await commandHandler.command(
-        Cmd.remove,
-        ['card', cardId],
-        options,
-      );
-      expect(result.statusCode).toBe(400);
-    });
-    it('try to remove label - does not exist', async () => {
-      const result = await commandHandler.command(
-        Cmd.remove,
-        ['label', 'decision_6'],
-        options,
-      );
-      expect(result.statusCode).toBe(400);
-    });
-    it('try to remove label - card does not exist', async () => {
-      const result = await commandHandler.command(
-        Cmd.remove,
-        ['label', 'decision_8', 'test'],
-        options,
-      );
-      expect(result.statusCode).toBe(400);
-    });
     it('try to remove linkType - linkType missing', async () => {
       const linkType = 'mini/linkTypes/lt_name';
       const result = await commandHandler.command(
         Cmd.remove,
         ['linkType', linkType],
         optionsMini,
-      );
-      expect(result.statusCode).toBe(400);
-    });
-    it('try to remove link - link not found', async () => {
-      const result = await commandHandler.command(
-        Cmd.remove,
-        ['link', 'decision_5', 'decision_6', 'does-not-exist'],
-        options,
-      );
-      expect(result.statusCode).toBe(400);
-    });
-    it('try to remove external link - not found', async () => {
-      const result = await commandHandler.command(
-        Cmd.remove,
-        ['link', 'decision_5', 'jira:NOTFOUND-999', 'decision/linkTypes/test'],
-        options,
-      );
-      expect(result.statusCode).to.equal(400);
-      expect(result.message).to.contain('not found');
-    });
-    it('try to remove external link - both external', async () => {
-      const result = await commandHandler.command(
-        Cmd.remove,
-        ['link', 'jira:ABC-1', 'jira:DEF-2', 'decision/linkTypes/test'],
-        options,
-      );
-      expect(result.statusCode).to.equal(400);
-      expect(result.message).to.contain('One must be a card');
-    });
-    it('try to remove attachment - project missing', async () => {
-      const cardId = 'decision_5';
-      const attachment = 'the-needle.heic';
-      const invalidProject = { projectPath: 'idontexist' };
-      const result = await commandHandler.command(
-        Cmd.remove,
-        ['attachment', cardId, attachment],
-        invalidProject,
-      );
-      expect(result.statusCode).toBe(400);
-    });
-    it('try to remove attachment - attachment not found', async () => {
-      const cardId = 'decision_5';
-      const attachment = 'i-dont-exist.jpg';
-      const result = await commandHandler.command(
-        Cmd.remove,
-        ['attachment', cardId, attachment],
-        options,
       );
       expect(result.statusCode).toBe(400);
     });

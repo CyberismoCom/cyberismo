@@ -13,11 +13,11 @@
 
 import { type Command } from 'commander';
 
-import { Cmd, type CommandOptions } from '@cyberismo/data-handler';
+import { type CommandOptions } from '@cyberismo/data-handler';
 
 import { CommandWithPath } from '../lib/args.js';
-import { commandHandler } from '../lib/dispatch.js';
-import { handleResponse } from '../lib/output.js';
+import { onProject } from '../lib/errors.js';
+import { printResult } from '../lib/output.js';
 
 export function registerTransition(program: Command) {
   // Transition command
@@ -35,12 +35,10 @@ export function registerTransition(program: Command) {
       transition: string,
       options: CommandOptions<'transition'>,
     ) => {
-      const result = await commandHandler.command(
-        Cmd.transition,
-        [cardKey, transition],
-        Object.assign({}, options, program.opts()),
+      await onProject(Object.assign({}, options, program.opts()), (ws) =>
+        ws.cards.transition(cardKey, transition),
       );
-      handleResponse(result);
+      printResult();
     },
   );
 }

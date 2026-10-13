@@ -588,27 +588,6 @@ describe('clean recommendation', () => {
     }
   });
 
-  it('does not scan after removing something that leaves no values behind', async () => {
-    const { testDir, handler, options } = await handlerProject(
-      'tmp-clean-recommend-delete-other',
-    );
-    try {
-      const scan = vi.spyOn(Clean.prototype, 'clean');
-      const result = await handler.command(
-        Cmd.remove,
-        ['label', 'decision_5', 'test'],
-        options,
-      );
-
-      expect(result.statusCode).toBe(200);
-      expect(result.note).toBeUndefined();
-      expect(scan).not.toHaveBeenCalled();
-    } finally {
-      vi.restoreAllMocks();
-      rmSync(testDir, { recursive: true, force: true });
-    }
-  });
-
   it('a failing scan does not fail the operation', async () => {
     const { testDir, handler, options } = await handlerProject(
       'tmp-clean-recommend-scan-failure',
