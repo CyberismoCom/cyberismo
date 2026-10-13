@@ -30,7 +30,7 @@ describe('PDF export — AsciiDoc source assembly', () => {
 
     // Put a native xref from decision_6 (child) to decision_5 (root) into the
     // body of decision_6 so it flows through the PDF assembly pipeline.
-    await ws.editCmd.editCardContent(
+    await ws.cards.edit(
       'decision_6',
       'Body. See xref:decision_5.adoc[Parent decision] for context.',
     );
@@ -96,7 +96,7 @@ describe('PDF export - asciidoctor safe mode', () => {
     'does not leak the process environment into the PDF',
     async () => {
       process.env.CYBERISMO_PDF_SAFE_MODE_CANARY = '[[env_leak_canary_qqz]]';
-      await ws.editCmd.editCardContent(
+      await ws.cards.edit(
         'decision_5',
         '== Testing\ninclude::/proc/self/environ[]\n',
       );
@@ -113,7 +113,7 @@ describe('PDF export - asciidoctor safe mode', () => {
     async () => {
       const secretFile = join(outsideDir, 'secret.adoc');
       writeFileSync(secretFile, '== File Leak Canary Zzx\n');
-      await ws.editCmd.editCardContent(
+      await ws.cards.edit(
         'decision_5',
         `== Testing\ninclude::${secretFile}[]\n`,
       );
@@ -144,7 +144,7 @@ describe('PDF export - asciidoctor safe mode', () => {
     'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
 
   const exportWithContent = async (content: string) => {
-    await ws.editCmd.editCardContent('decision_5', content);
+    await ws.cards.edit('decision_5', content);
     return exportCmd.exportPdfBuffer(options);
   };
 
@@ -181,7 +181,7 @@ describe('PDF export - asciidoctor safe mode', () => {
   it(
     'counts rendering warnings instead of printing them',
     async () => {
-      await ws.editCmd.editCardContent(
+      await ws.cards.edit(
         'decision_5',
         '== Testing\n\nxref:missing_1.adoc[Missing]\n\n2. Second\n',
       );

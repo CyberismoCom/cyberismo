@@ -10,6 +10,7 @@ import { resourceName } from '../../../src/utils/resource-utils.js';
 import { ResourceMutations } from '../../../src/mutations/resource-mutations.js';
 import { Workspace } from '../../../src/workspace/workspace.js';
 import { SYSTEM_ACTOR, SYSTEM_FRAME } from '../../../src/utils/tx-record.js';
+import { updateCardMetadata } from '../../../src/cards/update.js';
 
 const baseDir = import.meta.dirname;
 const testDir = join(baseDir, 'tmp-field-type-enum-rename');
@@ -62,7 +63,7 @@ async function seedCardTypeAndCardValues() {
     .filter((c) => c.metadata?.cardType === cardTypeName);
   for (const card of cards) {
     card.metadata![fieldName()] = 'low';
-    await checkout.updateCardMetadata(card, card.metadata!);
+    await updateCardMetadata(checkout, card, card.metadata!);
   }
 }
 

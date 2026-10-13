@@ -27,6 +27,7 @@ import type {
 } from '@cyberismo/model';
 import { Workspace } from '../src/workspace/workspace.js';
 import { SYSTEM_ACTOR } from '../src/utils/tx-record.js';
+import { updateCardContent, updateCardMetadata } from '../src/cards/update.js';
 
 // Helper type for resource test configurations
 type ResourceType =
@@ -2187,7 +2188,7 @@ describe('resources', function () {
       // card migration.
       const target = cardsWithThisWorkflow.at(0)!;
       target.metadata!.workflowState = 'Approved';
-      await checkout.updateCardMetadata(target, target.metadata!);
+      await updateCardMetadata(checkout, target, target.metadata!);
 
       const op = {
         name: 'change',
@@ -2565,8 +2566,7 @@ describe('resources', function () {
 
   describe('card content reference updates on resource rename', () => {
     async function cleanup(cardKey: string) {
-      const remove = Workspace.over(checkout, SYSTEM_ACTOR).removeCmd;
-      await remove.remove('card', cardKey);
+      await Workspace.over(checkout, SYSTEM_ACTOR).cards.remove(cardKey);
     }
 
     it('should not update card contents when renaming template via resource class (cascade moved to handler)', async () => {
@@ -2617,7 +2617,8 @@ describe('resources', function () {
       const create = Workspace.over(checkout, SYSTEM_ACTOR).createCmd;
       const result = await create.createCard('decision/templates/simplepage');
       const cardKey = result[0].key;
-      await checkout.updateCardContent(
+      await updateCardContent(
+        checkout,
         cardKey,
         `This card references ${workflowName} in its content.`,
       );
@@ -2647,7 +2648,8 @@ describe('resources', function () {
       const result = await create.createCard('decision/templates/simplepage');
       const cardKey = result[0].key;
 
-      await checkout.updateCardContent(
+      await updateCardContent(
+        checkout,
         cardKey,
         `This card references ${fieldTypeName} in its content.`,
       );
@@ -2676,7 +2678,8 @@ describe('resources', function () {
       const result = await create.createCard('decision/templates/simplepage');
       const cardKey = result[0].key;
 
-      await checkout.updateCardContent(
+      await updateCardContent(
+        checkout,
         cardKey,
         `This card references ${cardTypeName} in its content.`,
       );
@@ -2709,7 +2712,8 @@ describe('resources', function () {
       const result = await create.createCard('decision/templates/simplepage');
       const cardKey = result[0].key;
 
-      await checkout.updateCardContent(
+      await updateCardContent(
+        checkout,
         cardKey,
         `This card references ${linkTypeName} in its content.`,
       );
@@ -2753,7 +2757,8 @@ describe('resources', function () {
       const create = Workspace.over(checkout, SYSTEM_ACTOR).createCmd;
       const result = await create.createCard('decision/templates/simplepage');
       const cardKey = result[0].key;
-      await checkout.updateCardContent(
+      await updateCardContent(
+        checkout,
         cardKey,
         `This card references ${calculationName} in its content.`,
       );
@@ -2784,7 +2789,8 @@ describe('resources', function () {
       const create = Workspace.over(checkout, SYSTEM_ACTOR).createCmd;
       const result = await create.createCard('decision/templates/simplepage');
       const cardKey = result[0].key;
-      await checkout.updateCardContent(
+      await updateCardContent(
+        checkout,
         cardKey,
         `This card references ${graphModelName} in its content.`,
       );
@@ -2812,7 +2818,8 @@ describe('resources', function () {
       const create = Workspace.over(checkout, SYSTEM_ACTOR).createCmd;
       const result = await create.createCard('decision/templates/simplepage');
       const cardKey = result[0].key;
-      await checkout.updateCardContent(
+      await updateCardContent(
+        checkout,
         cardKey,
         `This card references ${graphViewName} in its content.`,
       );
@@ -2844,7 +2851,8 @@ describe('resources', function () {
         const cardKey = result[0].key;
         cardKeys.push(cardKey);
 
-        await checkout.updateCardContent(
+        await updateCardContent(
+          checkout,
           cardKey,
           `Card references ${templateName}.`,
         );
@@ -2862,9 +2870,8 @@ describe('resources', function () {
       }
 
       // Cleanup
-      const remove = Workspace.over(checkout, SYSTEM_ACTOR).removeCmd;
       for (const cardKey of cardKeys) {
-        await remove.remove('card', cardKey);
+        await Workspace.over(checkout, SYSTEM_ACTOR).cards.remove(cardKey);
       }
       await template.delete();
     });
@@ -2905,7 +2912,7 @@ describe('resources', function () {
         linkDescription: 'test link',
       });
 
-      await checkout.updateCardMetadata(card1, card1.metadata!);
+      await updateCardMetadata(checkout, card1, card1.metadata!);
       card1 = checkout.findCard(cardKey1);
       expect(card1.metadata?.links).to.have.lengthOf(1);
       expect(card1.metadata?.links[0].linkType).toBe(linkTypeName);
