@@ -15,12 +15,17 @@ import { type Command } from 'commander';
 
 import {
   Cmd,
-  resourceName,
   type CommandOptions,
   type Workspace,
 } from '@cyberismo/data-handler';
 
-import { CommandWithPath, ResourceTypeParser as Parser } from '../lib/args.js';
+import {
+  CommandWithPath,
+  commandTarget,
+  commandType,
+  ResourceTypeParser as Parser,
+  Resources,
+} from '../lib/args.js';
 import { commandHandler, program } from '../lib/dispatch.js';
 import { onProject } from '../lib/errors.js';
 import { deprecationNote, handleResponse, printJson } from '../lib/output.js';
@@ -33,6 +38,26 @@ const cardReads = new Map<string, (ws: Workspace, detail: string) => unknown>([
   ['labels', (ws) => ws.cards.labels()],
 ]);
 
+// Resource and project reads of 'show', by the type the argument names.
+function resourceRead(
+  type: string,
+  options: CommandOptions<'show'>,
+): ((ws: Workspace, detail: string) => Promise<unknown>) | undefined {
+  if (Resources.includes(type)) {
+    return (ws, detail) =>
+      options.showUse
+        ? ws.showCmd.showResource(detail, true)
+        : ws.resources.show(detail);
+  }
+  if (Resources.some((resource) => `${resource}s` === type)) {
+    return (ws) => ws.showCmd.showResources(type);
+  }
+  if (type === 'project') {
+    return (ws) => ws.settings.info();
+  }
+  return undefined;
+}
+
 export async function showAction(
   type: string,
   typeDetail: string | undefined,
@@ -41,20 +66,21 @@ export async function showAction(
   if (type === '') {
     return;
   }
-  const resource = resourceName(type);
-  const cardRead = cardReads.get(resource.type.slice(0, -1) || type);
-  if (cardRead) {
-    const detail = (resource.type ? type : typeDetail) || '';
+  const target = commandType(type);
+  const read = cardReads.get(target) ?? resourceRead(target, options);
+  if (read) {
+    const detail = commandTarget(type, typeDetail!) || '';
     const result = await onProject(
       Object.assign({}, options, program.opts()),
-      async (ws) => (await cardRead(ws, detail)) as object,
+      async (ws) => (await read(ws, detail)) as object,
     );
-    // By default, do not show the card's content
+    // By default, do not show the content of a card or of a resource
     if (!options.details && 'content' in result) {
       delete (result as { content?: unknown }).content;
     }
     printJson(result);
   } else {
+    // Modules, hubs and unknown types.
     const result = await commandHandler.command(
       Cmd.show,
       [type, typeDetail!],

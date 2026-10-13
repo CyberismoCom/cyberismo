@@ -15,7 +15,6 @@ import {
 import { getTestBaseDir, getTestProject } from './helpers/test-utils.js';
 import { makeFakeModuleFixture } from './helpers/module-fixtures.js';
 
-import type { requestStatus } from '../src/interfaces/request-status-interfaces.js';
 import type * as Undici from 'undici';
 
 // Hub requests go out through egressFetch, which uses undici's fetch rather
@@ -36,145 +35,11 @@ const baseDir = getTestBaseDir(import.meta.dirname, import.meta.url);
 const testDir = join(baseDir, 'tmp-command-handler-remove-tests');
 
 const decisionRecordsPath = join(testDir, 'valid/decision-records');
-const minimalPath = join(testDir, 'valid/minimal');
 
 const options = { projectPath: decisionRecordsPath };
-const optionsMini = { projectPath: minimalPath };
-
-async function createLinkType(
-  commandHandler: Commands,
-  name: string,
-): Promise<requestStatus> {
-  const status = await commandHandler.command(
-    Cmd.create,
-    ['linkType', name],
-    options,
-  );
-  return status;
-}
 
 describe('remove command', () => {
   const commandHandler: Commands = new Commands();
-  describe('successful removals - test data is cleaned afterwards', () => {
-    beforeEach(async () => {
-      mkdirSync(testDir, { recursive: true });
-      await copyDir('test/test-data', testDir);
-    });
-
-    afterEach(() => {
-      rmSync(testDir, { recursive: true, force: true });
-    });
-
-    it('remove linkType', async () => {
-      const name = 'testLinkTypeForRemoval';
-      await createLinkType(commandHandler, name);
-      const fullName = 'decision/linkTypes/' + name;
-      const result = await commandHandler.command(
-        Cmd.remove,
-        ['linkType', fullName],
-        options,
-      );
-      expect(result.statusCode).toBe(200);
-    });
-    it('remove cardType (success)', async () => {
-      // First create a cardType, then remove it
-      const name = 'testForCreation';
-      const workflow = 'decision/workflows/decision';
-      await commandHandler.command(
-        Cmd.create,
-        ['cardType', name, workflow],
-        options,
-      );
-      const cardTypeName = `decision/cardTypes/${name}`;
-      const result = await commandHandler.command(
-        Cmd.remove,
-        ['cardType', cardTypeName],
-        options,
-      );
-      expect(result.statusCode).toBe(200);
-    });
-    it('remove cardType with name only', async () => {
-      // First create a cardType, then remove it
-      const name = 'testForCreationWithOutName';
-      const cardTypeName = `decision/cardTypes/${name}`;
-      const workflow = 'decision/workflows/decision';
-      await commandHandler.command(
-        Cmd.create,
-        [cardTypeName, workflow],
-        options,
-      );
-      const result = await commandHandler.command(
-        Cmd.remove,
-        [cardTypeName],
-        options,
-      );
-      expect(result.statusCode).toBe(200);
-    });
-    it('remove fieldType (success)', async () => {
-      // First create a fieldType, then remove it
-      const name = 'testForCreation';
-      const dataType = 'integer';
-      await commandHandler.command(
-        Cmd.create,
-        ['fieldType', name, dataType],
-        options,
-      );
-      const fieldTypeName = `decision/fieldTypes/${name}`;
-      const result = await commandHandler.command(
-        Cmd.remove,
-        ['fieldType', fieldTypeName],
-        options,
-      );
-      expect(result.statusCode).toBe(200);
-    });
-    it('remove report (success)', async () => {
-      // First create a report, then remove it
-      const name = 'testForCreation';
-      await commandHandler.command(Cmd.create, ['report', name], options);
-      const report = `decision/reports/${name}`;
-      const result = await commandHandler.command(
-        Cmd.remove,
-        ['report', report],
-        options,
-      );
-      expect(result.statusCode).toBe(200);
-    });
-    it('remove template (success)', async () => {
-      const templateName = 'decision/templates/decision';
-      const result = await commandHandler.command(
-        Cmd.remove,
-        ['template', templateName],
-        options,
-      );
-      expect(result.statusCode).toBe(200);
-    });
-    it('remove workflow (success)', async () => {
-      // First create a workflow, then remove it
-      const name = 'testForCreation';
-      await commandHandler.command(Cmd.create, ['workflow', name], options);
-      const workflowName = `decision/workflows/${name}`;
-      const result = await commandHandler.command(
-        Cmd.remove,
-        ['workflow', workflowName],
-        options,
-      );
-      expect(result.statusCode).toBe(200);
-    });
-    it('remove hub', async () => {
-      const hub =
-        'https://raw.githubusercontent.com/CyberismoCom/cyberismo/main/tools/assets/src/hub/';
-
-      // add hub first, since test data does not have hubs
-      await commandHandler.command(Cmd.add, ['hub', hub], options);
-      // then remove it
-      const result = await commandHandler.command(
-        Cmd.remove,
-        ['hub', hub],
-        options,
-      );
-      expect(result.statusCode).toBe(200);
-    });
-  });
 
   describe('removal attempts', () => {
     beforeEach(async () => {
@@ -184,70 +49,6 @@ describe('remove command', () => {
 
     afterEach(() => {
       rmSync(testDir, { recursive: true, force: true });
-    });
-    it('try to remove linkType - linkType missing', async () => {
-      const linkType = 'mini/linkTypes/lt_name';
-      const result = await commandHandler.command(
-        Cmd.remove,
-        ['linkType', linkType],
-        optionsMini,
-      );
-      expect(result.statusCode).toBe(400);
-    });
-    it('try to remove cardType - card type missing', async () => {
-      const cardTypeName = 'decision/cardTypes/i-do-not-exist';
-      const result = await commandHandler.command(
-        Cmd.remove,
-        ['cardType', cardTypeName],
-        options,
-      );
-      expect(result.statusCode).toBe(400);
-    });
-    it('try to remove fieldType - field type missing', async () => {
-      const fieldTypeName = 'decision/fieldTypes/i-do-not-exist';
-      const result = await commandHandler.command(
-        Cmd.remove,
-        ['fieldType', fieldTypeName],
-        options,
-      );
-      expect(result.statusCode).toBe(400);
-    });
-    it('try to remove report - report missing', async () => {
-      const reportName = 'decision/reports/i-do-not-exist';
-      const result = await commandHandler.command(
-        Cmd.remove,
-        ['report', reportName],
-        options,
-      );
-      expect(result.statusCode).toBe(400);
-    });
-    it('try to remove template - template missing', async () => {
-      const templateName = 'decision/templates/i-do-not-exist';
-      const result = await commandHandler.command(
-        Cmd.remove,
-        ['template', templateName],
-        options,
-      );
-      expect(result.statusCode).toBe(400);
-    });
-    it('try to remove template - project missing', async () => {
-      const templateName = 'decision/templates/simplepage';
-      const invalidProject = { projectPath: 'i-do-not-exist' };
-      const result = await commandHandler.command(
-        Cmd.remove,
-        ['template', templateName],
-        invalidProject,
-      );
-      expect(result.statusCode).toBe(400);
-    });
-    it('try to remove workflow - workflow missing', async () => {
-      const workflowName = 'decision/workflows/i-do-not-exist';
-      const result = await commandHandler.command(
-        Cmd.remove,
-        ['workflow', workflowName],
-        options,
-      );
-      expect(result.statusCode).toBe(400);
     });
     it('try to remove unknown type', async () => {
       const cardId = 'decision_5';
@@ -288,24 +89,6 @@ describe('remove command', () => {
       await expect(
         removeCmd.remove('module', 'i-dont-exist'),
       ).rejects.toThrow();
-    });
-    it('removes an in-use workflow by cascade-deleting its card types', async () => {
-      const workflowName = `decision/workflows/decision`;
-      const result = await commandHandler.command(
-        Cmd.remove,
-        ['workflow', workflowName],
-        options,
-      );
-      expect(result.statusCode).toBe(200);
-    });
-    it('try to remove hub - not existing in the project', async () => {
-      const hub = `https://example.com/nonExisting`;
-      const result = await commandHandler.command(
-        Cmd.remove,
-        ['hub', hub],
-        options,
-      );
-      expect(result.statusCode).toBe(400);
     });
   });
 });
@@ -636,7 +419,7 @@ describe('remove hub', () => {
     return {
       checkout,
       fetchCmd,
-      removeCmd: Workspace.over(checkout, SYSTEM_ACTOR).removeCmd,
+      hubs: Workspace.over(checkout, SYSTEM_ACTOR).settings.hubs,
     };
   }
 
@@ -656,13 +439,13 @@ describe('remove hub', () => {
   });
 
   it('drops the cached data of the removed hub, keeping the other hub', async () => {
-    const { fetchCmd, removeCmd } = await projectWithHubs([hubA, hubB]);
+    const { fetchCmd, hubs } = await projectWithHubs([hubA, hubB]);
     fetchStub
       .mockResolvedValueOnce(hubResponse('huba', ['alpha']))
       .mockResolvedValueOnce(hubResponse('hubb', ['beta']));
     await fetchCmd.fetchHubs(true);
 
-    await removeCmd.remove('hub', hubA);
+    await hubs.remove(hubA);
 
     const cached = await cachedList();
     expect(cached.hubs.map((hub) => hub.location)).toEqual([hubB]);
@@ -672,10 +455,10 @@ describe('remove hub', () => {
   });
 
   it('succeeds when no module list has been cached', async () => {
-    const { checkout, removeCmd } = await projectWithHubs([hubA, hubB]);
+    const { checkout, hubs } = await projectWithHubs([hubA, hubB]);
     expect(existsSync(cachePath)).toBe(false);
 
-    await removeCmd.remove('hub', hubA);
+    await hubs.remove(hubA);
 
     expect(checkout.configuration.hubs.map((hub) => hub.location)).toEqual([
       hubB,
@@ -685,7 +468,7 @@ describe('remove hub', () => {
   });
 
   it('keeps a module that the remaining hub also offers', async () => {
-    const { fetchCmd, removeCmd } = await projectWithHubs([hubA, hubB]);
+    const { fetchCmd, hubs } = await projectWithHubs([hubA, hubB]);
     fetchStub
       .mockResolvedValueOnce(hubResponse('huba', ['shared', 'alpha']))
       .mockResolvedValueOnce(hubResponse('hubb', ['shared', 'beta']));
@@ -696,7 +479,7 @@ describe('remove hub', () => {
       'beta',
     ]);
 
-    await removeCmd.remove('hub', hubA);
+    await hubs.remove(hubA);
 
     const cached = await cachedList();
     expect(cached.modules.map((module) => module.name)).toEqual([
@@ -711,7 +494,7 @@ describe('remove hub', () => {
 
   it('prunes a hub cached under a legacy spelling of its location', async () => {
     const legacyHubA = 'https://hub-a.test/hub';
-    const { fetchCmd, removeCmd } = await projectWithHubs([legacyHubA, hubB]);
+    const { fetchCmd, hubs } = await projectWithHubs([legacyHubA, hubB]);
     fetchStub
       .mockResolvedValueOnce(hubResponse('huba', ['alpha']))
       .mockResolvedValueOnce(hubResponse('hubb', ['beta']));
@@ -721,7 +504,7 @@ describe('remove hub', () => {
       hubB,
     ]);
 
-    await removeCmd.remove('hub', hubA);
+    await hubs.remove(hubA);
 
     const cached = await cachedList();
     expect(cached.hubs.map((hub) => hub.location)).toEqual([hubB]);

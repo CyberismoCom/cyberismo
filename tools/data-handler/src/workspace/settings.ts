@@ -12,6 +12,7 @@
 */
 
 import type { ActorRef, ProjectMetadata } from '@cyberismo/model';
+import { Fetch } from '../commands/fetch.js';
 import type { Checkout } from '../containers/project.js';
 import { moduleInfos } from '../modules/index.js';
 import { recordSettingsChange } from '../utils/change-feed.js';
@@ -39,15 +40,55 @@ export async function projectInfo(
 }
 
 /**
- * Project settings of one handle. Writes through it are the handle's
- * actor's. Holds no state of its own.
+ * Hub locations of the project, as one handle's actor. Holds no state of its
+ * own.
  */
-export class Settings {
+export class Hubs {
   constructor(
     private readonly checkout: Checkout,
     public readonly actor: ActorRef,
     public readonly identity: CommitIdentity | undefined,
   ) {}
+
+  /**
+   * Adds a hub; it is stored as a directory URL.
+   * @throws if the location is empty, not an HTTP(S) URL, or already a hub.
+   */
+  @write((location) => `Add hub ${location}`)
+  public async add(location: string): Promise<void> {
+    await this.checkout.configuration.addHub(location);
+    recordSettingsChange(this.checkout.lock);
+  }
+
+  /**
+   * Removes a hub, named by any spelling of its location.
+   * @throws if the project has no such hub.
+   */
+  @write((location) => `Remove hub ${location}`)
+  public async remove(location: string): Promise<void> {
+    await this.checkout.configuration.removeHub(location);
+    recordSettingsChange(this.checkout.lock);
+    // The cached module list still offers the removed hub's modules until it
+    // is rewritten, and nothing else rewrites it without contacting a hub.
+    await new Fetch(this.checkout).pruneUnconfiguredHubs();
+  }
+}
+
+/**
+ * Project settings of one handle. Writes through it are the handle's
+ * actor's. Holds no state of its own.
+ */
+export class Settings {
+  /** Hub locations, as this handle's actor. */
+  public readonly hubs: Hubs;
+
+  constructor(
+    private readonly checkout: Checkout,
+    public readonly actor: ActorRef,
+    public readonly identity: CommitIdentity | undefined,
+  ) {
+    this.hubs = new Hubs(checkout, actor, identity);
+  }
 
   /** Project name. */
   get name(): string {

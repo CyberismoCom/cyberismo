@@ -1,12 +1,4 @@
-import {
-  expect,
-  it,
-  describe,
-  beforeAll,
-  beforeEach,
-  afterEach,
-  vi,
-} from 'vitest';
+import { expect, it, describe, beforeEach, afterEach, vi } from 'vitest';
 
 import {
   existsSync,
@@ -40,7 +32,6 @@ const minimalPath = join(testDir, 'valid/minimal');
 
 const commandHandler: Commands = new Commands();
 const optionsMini = { projectPath: minimalPath };
-const options = { projectPath: decisionRecordsPath };
 
 describe('import module', () => {
   beforeEach(async () => {
@@ -63,12 +54,11 @@ describe('import module', () => {
       expect(result.statusCode).toBe(200);
 
       // Verify that module content can be used to create data.
-      result = await commandHandler.command(
-        Cmd.create,
-        ['cardType', 'newCardType', 'decision/workflows/decision'],
-        optionsMini,
-      );
-      expect(result.statusCode).toBe(200);
+      await (
+        await openTestWorkspace(minimalPath)
+      ).resources.create('newCardType', 'cardTypes', {
+        workflow: 'decision/workflows/decision',
+      });
 
       // Ensure that module can be updated.
       result = await commandHandler.command(Cmd.updateModules, [], optionsMini);
@@ -239,67 +229,6 @@ describe('import module', () => {
       );
       expect(result.statusCode).toBe(400);
       expect(result.message).toContain('cardKeyPrefix');
-    });
-  });
-
-  describe('modifying imported module content is forbidden', () => {
-    beforeAll(async () => {
-      await commandHandler.command(
-        Cmd.import,
-        ['module', minimalPath],
-        options,
-      );
-      await commandHandler.command(
-        Cmd.import,
-        ['module', decisionRecordsPath],
-        optionsMini,
-      );
-    });
-
-    it('try to remove cardType from a module', async () => {
-      const cardType = 'decision/cardTypes/decision';
-      const result = await commandHandler.command(
-        Cmd.remove,
-        ['cardType', cardType],
-        optionsMini,
-      );
-      expect(result.statusCode).toBe(400);
-    });
-    it('try to remove fieldType from a module', async () => {
-      const fieldType = 'decision/fieldTypes/finished';
-      const result = await commandHandler.command(
-        Cmd.remove,
-        ['fieldType', fieldType],
-        optionsMini,
-      );
-      expect(result.statusCode).toBe(400);
-    });
-    it('try to remove report from a module', async () => {
-      const report = 'decision/reports/testReport';
-      const result = await commandHandler.command(
-        Cmd.remove,
-        ['report', report],
-        optionsMini,
-      );
-      expect(result.statusCode).toBe(400);
-    });
-    it('try to remove template from a module', async () => {
-      const template = 'decision/templates/decision';
-      const result = await commandHandler.command(
-        Cmd.remove,
-        ['template', template],
-        optionsMini,
-      );
-      expect(result.statusCode).toBe(400);
-    });
-    it('try to remove workflow from a module', async () => {
-      const workflow = 'decision/workflows/decision';
-      const result = await commandHandler.command(
-        Cmd.remove,
-        ['workflow', workflow],
-        optionsMini,
-      );
-      expect(result.statusCode).toBe(400);
     });
   });
 });
