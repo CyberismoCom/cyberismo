@@ -21,6 +21,7 @@ import { validateMacroContent } from '../index.js';
 import type { ImageMacroOptions } from '@cyberismo/model';
 import type { MacroGenerationContext } from '../../interfaces/macros.js';
 import type TaskQueue from '../task-queue.js';
+import { cardAttachments } from '../../cards/read.js';
 
 /**
  * Macro for including images in the content
@@ -40,9 +41,9 @@ export default class ImageMacro extends BaseMacro {
     cardKey: string,
     filename: string,
   ) {
-    const attachment = context.checkout
-      .cardAttachments(cardKey)
-      .find((a) => a.fileName === filename);
+    const attachment = cardAttachments(context.checkout, cardKey).find(
+      (a) => a.fileName === filename,
+    );
     if (!attachment) {
       throw new Error(
         `Attachment file '${filename}' not found in card '${cardKey}'`,

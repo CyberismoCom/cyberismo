@@ -19,5 +19,5 @@ import type { Workspace } from '@cyberismo/data-handler';
  * @returns a list of labels
  */
 export async function getLabels(ws: Workspace): Promise<string[]> {
-  return (await ws.showCmd.showLabels()).sort();
+  return (await ws.cards.labels()).sort();
 }
