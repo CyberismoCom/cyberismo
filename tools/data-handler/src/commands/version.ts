@@ -21,6 +21,7 @@ import {
 import type { ChangeClassification } from '../mutations/registry.js';
 import { classify } from '../mutations/dispatcher.js';
 import { entryToMutationInput } from '../mutations/replay/convert.js';
+import { recordSettingsChange } from '../utils/change-feed.js';
 import { write } from '../utils/rw-lock.js';
 
 export const validBumps = ['patch', 'minor', 'major'] as const;
@@ -146,6 +147,7 @@ export class Version {
 
     // Write new version to cardsConfig
     await this.checkout.configuration.setVersion(newVersion);
+    recordSettingsChange(this.checkout.lock);
 
     return { previousVersion: currentVersion, newVersion };
   }

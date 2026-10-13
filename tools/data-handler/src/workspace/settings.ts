@@ -14,6 +14,7 @@
 import type { ActorRef, ProjectMetadata } from '@cyberismo/model';
 import type { Checkout } from '../containers/project.js';
 import { moduleInfos } from '../modules/index.js';
+import { recordSettingsChange } from '../utils/change-feed.js';
 import { read, write } from '../utils/rw-lock.js';
 import type { CommitIdentity } from '../utils/tx-record.js';
 
@@ -95,6 +96,7 @@ export class Settings {
   @write(() => 'Set project name')
   public async setName(name: string): Promise<void> {
     await this.checkout.configuration.setProjectName(name);
+    recordSettingsChange(this.checkout.lock);
   }
 
   /**
@@ -104,6 +106,7 @@ export class Settings {
   @write(() => 'Set project description')
   public async setDescription(description: string): Promise<void> {
     await this.checkout.configuration.setDescription(description);
+    recordSettingsChange(this.checkout.lock);
   }
 
   /**
@@ -113,6 +116,7 @@ export class Settings {
   @write(() => 'Set project category')
   public async setCategory(category: string): Promise<void> {
     await this.checkout.configuration.setCategory(category);
+    recordSettingsChange(this.checkout.lock);
   }
 
   /**
@@ -122,5 +126,6 @@ export class Settings {
   @write(() => 'Set git remote URL')
   public async setGitRemoteUrl(url: string): Promise<void> {
     await this.checkout.git.setRemoteUrl(url);
+    recordSettingsChange(this.checkout.lock);
   }
 }

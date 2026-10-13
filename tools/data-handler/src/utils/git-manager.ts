@@ -57,12 +57,13 @@ export class GitManager {
    * @param message Commit message.
    * @param identity Author; unset lets git resolve it.
    * @param trailers Git trailers, each value put on one line.
+   * @returns the commit's full SHA; undefined when there was nothing to commit.
    */
   async commit(
     message: string = 'Autocommit',
     identity?: CommitIdentity,
     trailers: Record<string, string> = {},
-  ): Promise<void> {
+  ): Promise<string | undefined> {
     // Stage only the directories we care about
     this.logger.debug('Staging changes');
     await this.git.add(['cardRoot', '.cards']);
@@ -74,7 +75,7 @@ export class GitManager {
       .filter((line) => line !== '');
     if (staged.length === 0) {
       this.logger.debug('Nothing to commit, skipping');
-      return;
+      return undefined;
     }
 
     this.logger.info(
@@ -93,6 +94,8 @@ export class GitManager {
     // simple-git passes each array item as its own -m (i.e. paragraph)
     const fullMessage = trailerBlock ? [message, trailerBlock] : message;
     await this.git.commit(fullMessage, undefined, commitOpts);
+    // simple-git reports an abbreviated SHA.
+    return (await this.git.revparse(['HEAD'])).trim();
   }
 
   /** Rollback: restore cardRoot and .cards to last committed state. */

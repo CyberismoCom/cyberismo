@@ -11,7 +11,7 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import type { ActorRef } from '@cyberismo/model';
+import type { ActorRef, ChangeCause, ChangeEvent } from '@cyberismo/model';
 
 /** Git author of a commit. Internal: never serialised into events. */
 export interface CommitIdentity {
@@ -48,12 +48,17 @@ export interface TxRecord {
   /** Git author; unset lets git resolve it (env, config, then the Bot). */
   identity?: CommitIdentity;
   message?: string;
-  cause?: string;
+  cause?: ChangeCause;
   touched: {
     cards: { updated: Set<string>; removed: Set<string> };
     resources: Set<string>;
     modules: Set<string>;
+    settings: boolean;
   };
+  /** Full SHA of the write's commit, if it made one. */
+  commit?: string;
+  /** Event to publish once the lock is released. */
+  event?: ChangeEvent;
 }
 
 /**
@@ -70,6 +75,7 @@ export function createTxRecord(frame: WriteFrame, message?: string): TxRecord {
       cards: { updated: new Set(), removed: new Set() },
       resources: new Set(),
       modules: new Set(),
+      settings: false,
     },
   };
 }
