@@ -12,10 +12,18 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import type { CreateParamsByType, ResourceName } from '@cyberismo/model';
+import type {
+  AnyResourceContent,
+  Context,
+  CreateParamsByType,
+  ResourceName,
+  SkillLookupResult,
+  SkillSummary,
+} from '@cyberismo/model';
 import { Validate } from '../commands/validate.js';
 import type { Checkout } from '../containers/project.js';
 import { createSubject } from '../mutations/resource-mutations.js';
+import { getSkill, listSkills } from '../queries/skills.js';
 import { runWithDefaultCommitMessage } from '../utils/commit-context.js';
 import { resourceName } from '../utils/resource-utils.js';
 import { read } from '../utils/rw-lock.js';
@@ -58,5 +66,33 @@ export class Resources {
   @read
   public async validate(name: ResourceName): Promise<string> {
     return Validate.getInstance().validateResource(name, this.checkout);
+  }
+
+  /** A copy of the resource's content. */
+  @read
+  public async show(name: string): Promise<AnyResourceContent> {
+    const type = this.checkout.resources.extractType(name);
+    return structuredClone(this.checkout.resources.byType(name, type).show());
+  }
+
+  /** The skills the project's logic programs enable, as copies. */
+  @read
+  public async skills(
+    options: { cardKey?: string; category?: string } = {},
+    context: Context = 'localApp',
+  ): Promise<SkillSummary[]> {
+    return structuredClone(await listSkills(this.checkout, options, context));
+  }
+
+  /** An enabled skill with its rendered instructions, as a copy. */
+  @read
+  public async skill(
+    name: string,
+    options: { cardKey?: string } = {},
+    context: Context = 'localApp',
+  ): Promise<SkillLookupResult> {
+    return structuredClone(
+      await getSkill(this.checkout, name, options, context),
+    );
   }
 }

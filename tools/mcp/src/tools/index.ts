@@ -443,7 +443,7 @@ export function registerTools(
     async ({ projectPrefix, category, cardKey }, extra) => {
       try {
         const ws = resolveCommands(provider, projectPrefix, extra, server);
-        const skills = await ws.showCmd.listSkills({ category, cardKey });
+        const skills = await ws.resources.skills({ category, cardKey });
         return toolResult({ skills });
       } catch (error) {
         return toolError('listing skills', error);
@@ -470,7 +470,7 @@ export function registerTools(
     async ({ projectPrefix, name, cardKey }, extra) => {
       try {
         const ws = resolveCommands(provider, projectPrefix, extra, server);
-        const result = await ws.showCmd.getSkill(name, { cardKey });
+        const result = await ws.resources.skill(name, { cardKey });
         if (result.status === 'not-found') {
           return toolResult({
             enabled: false,
@@ -1090,7 +1090,7 @@ export function registerTools(
     async ({ projectPrefix, queryName }, extra) => {
       try {
         const ws = resolveCommands(provider, projectPrefix, extra, server);
-        const results = await ws.calculateCmd.runQuery(queryName);
+        const results = await ws.queries.runQuery(queryName);
         return toolResult({ results });
       } catch (error) {
         return toolError('running query', error);
@@ -1111,7 +1111,7 @@ export function registerTools(
     async ({ projectPrefix, query }, extra) => {
       try {
         const ws = resolveCommands(provider, projectPrefix, extra, server);
-        const result = await ws.calculateCmd.runLogicProgram(query);
+        const result = await ws.queries.runLogicProgram(query);
         return toolResult({ result });
       } catch (error) {
         return toolError('running logic program', error);
@@ -1197,10 +1197,9 @@ export function registerTools(
     async ({ projectPrefix, reportName, cardKey, parameters }, extra) => {
       try {
         const ws = resolveCommands(provider, projectPrefix, extra, server);
-        const result = await ws.showCmd.showReportResults(
+        const result = await ws.queries.runReport(
           reportName,
-          cardKey,
-          parameters ?? {},
+          { ...parameters, cardKey },
           'localApp',
         );
         return toolResult({ reportName, cardKey, report: result });
@@ -1223,7 +1222,7 @@ export function registerTools(
     async ({ projectPrefix, model, view }, extra) => {
       try {
         const ws = resolveCommands(provider, projectPrefix, extra, server);
-        const base64 = await ws.calculateCmd.runGraph(model, view, 'localApp');
+        const base64 = await ws.queries.runGraph(model, view, 'localApp');
         return {
           content: [
             {

@@ -13,7 +13,6 @@
 
 // node
 import { resolve } from 'node:path';
-import { writeFile } from 'node:fs/promises';
 
 import { type ModuleListFile, MODULE_LIST_FULL_PATH } from './fetch.js';
 
@@ -27,13 +26,8 @@ import type {
   AnyResourceContent,
   CardType,
   ResourceContent,
-  Skill,
-  SkillLookupResult,
-  SkillSummary,
   TemplateConfiguration,
   Workflow,
-  SkillContent,
-  ResourceName,
 } from '@cyberismo/model';
 
 import type { Checkout } from '../containers/project.js';
@@ -41,14 +35,10 @@ import type { ResourceMap } from '../containers/project/resource-cache.js';
 
 import { read } from '../utils/rw-lock.js';
 import { projectInfo } from '../workspace/settings.js';
-import ReportMacro from '../macros/report/index.js';
-import { generateReportContent } from '../queries/report.js';
-import TaskQueue from '../macros/task-queue.js';
-import { evaluateMacros } from '../macros/index.js';
 import { readJsonFile } from '../utils/json.js';
 import { getChildLogger } from '../utils/log-utils.js';
 import { findCard } from '../cards/read.js';
-import { CardNotFoundError } from '../exceptions/index.js';
+import { renderSkillTemplates } from '../queries/skills.js';
 import type { ResourcesFrom } from '../containers/project/resources-from.js';
 
 /**
@@ -154,16 +144,6 @@ export class Show {
   }
 
   /**
-   * Shows the content of a logic program.
-   * @param resource Name of the resource.
-   * @returns the content of the logic program.
-   */
-  @read
-  public async showLogicProgram(resource: ResourceName) {
-    return this.checkout.calculationEngine.resourceLogicProgram(resource);
-  }
-
-  /**
    * Shows hubs of the project.
    * @returns list of hubs.
    */
@@ -210,66 +190,6 @@ export class Show {
   @read
   public async showProject(): Promise<ProjectMetadata> {
     return projectInfo(this.checkout);
-  }
-
-  /**
-   * Shows report results for a given report name and card key.
-   * @param reportName Name of the report to show
-   * @param cardKey Card key to use for the report
-   * @param parameters Additional parameters for the report
-   * @param context Context for resource (includes a project instance)
-   * @param outputPath Optional output path for the report
-   * @returns Report results as a string
-   * @throws Error if the report does not exist
-   */
-  @read
-  public async showReportResults(
-    reportName: string,
-    cardKey: string,
-    parameters: object,
-    context: Context,
-    outputPath?: string,
-  ): Promise<string> {
-    if (
-      !this.checkout.resources
-        .reports()
-        .some((report) => report.data?.name === reportName)
-    ) {
-      throw new Error(`Report '${reportName}' does not exist`);
-    }
-
-    const reportMacro = new ReportMacro(new TaskQueue());
-    let result = await reportMacro.handleStatic(
-      {
-        checkout: this.checkout,
-        cardKey: cardKey,
-        mode: 'static',
-        context,
-      },
-      { name: reportName, ...parameters },
-    );
-
-    result = await evaluateMacros(result, {
-      checkout: this.checkout,
-      cardKey: cardKey,
-      mode: 'static',
-      context,
-    });
-
-    // Show the results either in the console or write to a file.
-    if (outputPath) {
-      try {
-        await writeFile(outputPath, result ?? '', 'utf-8');
-      } catch (error) {
-        if (error instanceof Error) {
-          throw new Error(
-            `Failed to write report to ${outputPath}: ${error.message}`,
-            { cause: error },
-          );
-        }
-      }
-    }
-    return outputPath ? '' : (result ?? '');
   }
 
   /**
@@ -358,122 +278,6 @@ export class Show {
     return structuredClone(workflows);
   }
 
-  // Maps a full skill resource to a lightweight discovery summary.
-  private toSkillSummary(
-    skill: Skill,
-    scope: SkillSummary['scope'],
-  ): SkillSummary {
-    const { name, displayName, description, category, relatedTools } = skill;
-
-    return {
-      name,
-      displayName,
-      description,
-      category,
-      relatedTools,
-      scope,
-    };
-  }
-
-  /**
-   * Lists the skills currently enabled by the project's logic programs.
-   *
-   * A skill is enabled either globally (`enableSkill/1`) or for specific cards
-   * (`enableSkill/2`). Without a cardKey, all enabled skills are returned
-   * (global + every card-specific skill); with a cardKey, the result is the
-   * global skills plus those enabled for that card. Enablement is evaluated
-   * against the current project state on every call.
-   * @param options.cardKey Optional card to scope card-specific skills to.
-   * @param options.category Optional category filter.
-   * @param context Calculation context.
-   * @returns lightweight summaries of the enabled skills, sorted by name.
-   */
-  @read
-  public async listSkills(
-    options: { cardKey?: string; category?: string } = {},
-    context: Context = 'localApp',
-  ): Promise<SkillSummary[]> {
-    const enabled = await this.checkout.calculationEngine.runQuery(
-      'enabledSkills',
-      context,
-      { cardKey: options.cardKey },
-    );
-    const summaries: SkillSummary[] = [];
-    for (const { key, scope } of enabled) {
-      const resource = this.checkout.resources.byType(key, 'skills');
-      if (!resource) continue;
-      const skill = resource.show();
-      if (options.category && skill.category !== options.category) continue;
-      summaries.push(this.toSkillSummary(skill, scope));
-    }
-    return summaries.sort((a, b) => a.name.localeCompare(b.name));
-  }
-
-  /**
-   * Returns a single enabled skill with its rendered instructions.
-   *
-   * The skill must be enabled by the logic programs. A card-specific skill
-   * requested without a cardKey cannot be rendered meaningfully, so a
-   * 'needs-card' marker is returned instead of throwing.
-   * @param name Full skill resource name.
-   * @param options.cardKey Card context for per-card template rendering.
-   * @param context Calculation context.
-   * @returns the rendered skill ('ok'), or a marker ('not-enabled' / 'needs-card').
-   */
-  @read
-  public async getSkill(
-    name: string,
-    options: { cardKey?: string } = {},
-    context: Context = 'localApp',
-  ): Promise<SkillLookupResult> {
-    const { cardKey } = options;
-
-    let exists: boolean;
-    try {
-      exists = this.checkout.resources.exists(name);
-    } catch {
-      exists = false;
-    }
-    if (!exists) {
-      return { status: 'not-found' };
-    }
-
-    if (cardKey) {
-      try {
-        findCard(this.checkout, cardKey);
-      } catch (error) {
-        if (error instanceof CardNotFoundError) {
-          return { status: 'card-not-found' };
-        }
-        throw error;
-      }
-    }
-
-    const enabled = await this.checkout.calculationEngine.runQuery(
-      'enabledSkills',
-      context,
-      { cardKey },
-    );
-    const entry = enabled.find((row) => row.key === name);
-    if (!entry) {
-      return { status: 'not-enabled' };
-    }
-    // A card-specific skill can't be rendered meaningfully without a cardKey.
-    if (entry.scope === 'card' && !cardKey) {
-      return { status: 'needs-card' };
-    }
-    const skill = this.checkout.resources.byType(name, 'skills').show();
-    const instructions = await this.renderSkillTemplates(
-      skill.content,
-      { cardKey },
-      context,
-    );
-    return {
-      status: 'ok',
-      skill: { ...this.toSkillSummary(skill, entry.scope), instructions },
-    };
-  }
-
   /**
    * Renders a skill's instructions without checking whether it is enabled.
    *
@@ -504,29 +308,6 @@ export class Show {
       findCard(this.checkout, options.cardKey);
     }
 
-    return this.renderSkillTemplates(skill.content, options, context);
-  }
-
-  /**
-   * Renders skill templates that have already been looked up.
-   * @param content The skill's stored content.
-   * @param options.cardKey Card context for per-card template rendering.
-   * @param options.skillContent Overrides the stored skill.md content.
-   * @param options.skillQuery Overrides the stored query.lp content.
-   * @param context Calculation context.
-   * @returns the rendered instructions.
-   */
-  private async renderSkillTemplates(
-    content: SkillContent,
-    options: { cardKey?: string; skillContent?: string; skillQuery?: string },
-    context: Context,
-  ): Promise<string> {
-    return generateReportContent({
-      calculate: this.checkout.calculationEngine,
-      contentTemplate: options.skillContent ?? content.skillContent,
-      queryTemplate: options.skillQuery ?? content.skillQuery,
-      options: { cardKey: options.cardKey },
-      context,
-    });
+    return renderSkillTemplates(this.checkout, skill.content, options, context);
   }
 }

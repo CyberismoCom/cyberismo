@@ -14,8 +14,7 @@
 */
 
 import { convert } from '@asciidoctor/core';
-import { type Workspace, evaluateMacros } from '@cyberismo/data-handler';
-import { rewriteAsciidocCardXrefs } from '@cyberismo/data-handler/utils/asciidoc-xref';
+import { type Workspace, macroErrorText } from '@cyberismo/data-handler';
 import type { QueryResult } from '@cyberismo/model';
 
 // Special constant for transitions that work from any state
@@ -160,39 +159,40 @@ export async function renderCard(
 
     if (!options.raw) {
       // Evaluate macros (Clingo, graphs, reports)
-      try {
-        let asciidocContent = await evaluateMacros(rawContent, {
-          context: 'localApp',
-          mode: 'inject',
-          checkout: ws.checkout,
-          cardKey: cardKey,
-        });
+      const evaluated = await ws.render.macros(rawContent, {
+        context: 'localApp',
+        mode: 'inject',
+        cardKey: cardKey,
+      });
+      if (evaluated.error !== undefined) {
+        parsedContent = evaluated.content;
+      } else {
+        try {
+          // Rewrite native AsciiDoc xrefs that target other cards into
+          // /projects/<prefix>/cards/<key> links.
+          const asciidocContent = await ws.render.xrefs(
+            evaluated.content,
+            'inject',
+          );
 
-        // Rewrite native AsciiDoc xrefs that target other cards into
-        // /projects/<prefix>/cards/<key> links.
-        asciidocContent = rewriteAsciidocCardXrefs(
-          asciidocContent,
-          ws.checkout,
-          'inject',
-        );
-
-        // Convert AsciiDoc to HTML
-        parsedContent = (
-          await convert(asciidocContent, {
-            safe: 'secure',
-            attributes: {
-              imagesdir: `/api/cards/${cardKey}/a`,
-              icons: 'font',
-            },
-          })
-        ).toString();
-      } catch (error) {
-        parsedContent = `Macro error: ${error instanceof Error ? error.message : 'Unknown error'}\n\n${rawContent}`;
+          // Convert AsciiDoc to HTML
+          parsedContent = (
+            await convert(asciidocContent, {
+              safe: 'secure',
+              attributes: {
+                imagesdir: `/api/cards/${cardKey}/a`,
+                icons: 'font',
+              },
+            })
+          ).toString();
+        } catch (error) {
+          parsedContent = macroErrorText(error, rawContent);
+        }
       }
 
       // Run the card query to get full details
       try {
-        const results = await ws.calculateCmd.runQuery('card', 'localApp', {
+        const results = await ws.queries.runQuery('card', 'localApp', {
           cardKey,
         });
         if (results.length > 0) {
@@ -408,7 +408,7 @@ function transformNotifications(
  */
 export async function getCardTree(ws: Workspace): Promise<unknown> {
   return ws.consistent(async () => {
-    const result = await ws.calculateCmd.runQuery('tree', 'localApp', {});
+    const result = await ws.queries.runQuery('tree', 'localApp', {});
     return result;
   });
 }

@@ -11,7 +11,7 @@ import { tmpdir } from 'node:os';
 
 import { copyDir } from '../src/utils/file-utils.js';
 import { type Workspace } from '../src/workspace/workspace.js';
-import type { Export } from '../src/commands/index.js';
+import type { Export } from '../src/export/export.js';
 import type { ExportPdfOptions } from '@cyberismo/model';
 import { openTestWorkspace } from './helpers/open-test-workspace.js';
 
@@ -26,7 +26,7 @@ describe('PDF export — AsciiDoc source assembly', () => {
     mkdirSync(testDir, { recursive: true });
     await copyDir('test/test-data/', testDir);
     ws = await openTestWorkspace(decisionRecordsPath, {});
-    exportCmd = ws.exportCmd;
+    exportCmd = ws.export;
 
     // Put a native xref from decision_6 (child) to decision_5 (root) into the
     // body of decision_6 so it flows through the PDF assembly pipeline.
@@ -81,7 +81,7 @@ describe('PDF export - asciidoctor safe mode', () => {
     await copyDir('test/test-data/', testDir);
     outsideDir = mkdtempSync(join(tmpdir(), 'cyberismo-pdf-safe-'));
     ws = await openTestWorkspace(decisionRecordsPath, {});
-    exportCmd = ws.exportCmd;
+    exportCmd = ws.export;
   });
 
   afterAll(() => {
