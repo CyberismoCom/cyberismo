@@ -5,7 +5,8 @@ import { join } from 'node:path';
 import { Checkout } from '../../../src/containers/project.js';
 import { resourceName } from '../../../src/utils/resource-utils.js';
 import { copyDir } from '../../../src/utils/file-utils.js';
-import { ResourceMutations } from '../../../src/mutations/resource-mutations.js';
+import { Workspace } from '../../../src/workspace/workspace.js';
+import { SYSTEM_ACTOR } from '../../../src/utils/tx-record.js';
 
 const FIXTURE_PATH = join(
   import.meta.dirname,
@@ -34,8 +35,7 @@ describe('linkType sourceCardTypes/destinationCardTypes edit routing and cascade
   });
 
   it('apply adds an existing card type to sourceCardTypes', async () => {
-    const mutations = new ResourceMutations(checkout);
-    await mutations.apply({
+    await Workspace.over(checkout, SYSTEM_ACTOR).updateCmd.apply({
       kind: 'edit',
       target: resourceName(LT),
       updateKey: { key: 'sourceCardTypes' },
@@ -47,9 +47,8 @@ describe('linkType sourceCardTypes/destinationCardTypes edit routing and cascade
   });
 
   it('apply adds a card type that does not exist (only duplicates are rejected)', async () => {
-    const mutations = new ResourceMutations(checkout);
     // Adding a non-existent card type is allowed; only duplicates are rejected.
-    await mutations.apply({
+    await Workspace.over(checkout, SYSTEM_ACTOR).updateCmd.apply({
       kind: 'edit',
       target: resourceName(LT),
       updateKey: { key: 'destinationCardTypes' },

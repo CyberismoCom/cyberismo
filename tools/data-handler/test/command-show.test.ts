@@ -7,7 +7,7 @@ import { join } from 'node:path';
 import { readFile } from 'node:fs/promises';
 
 import { sleep } from '../src/utils/common-utils.js';
-import { Cmd, Commands, Workspace } from '../src/command-handler.js';
+import { Cmd, Commands, type Workspace } from '../src/command-handler.js';
 import { copyDir } from '../src/utils/file-utils.js';
 import { resourceName } from '../src/utils/resource-utils.js';
 import { Show } from '../src/commands/index.js';
@@ -15,6 +15,7 @@ import { getTestBaseDir, getTestProject } from './helpers/test-utils.js';
 import type { ModuleContent } from '@cyberismo/model';
 import type { ShowCommandOptions } from '../src/interfaces/command-options.js';
 import { CardNotFoundError } from '../src/exceptions/index.js';
+import { openTestWorkspace } from './helpers/open-test-workspace.js';
 
 // validation tests do not modify the content - so they can use the original files
 const baseDir = getTestBaseDir(import.meta.dirname, import.meta.url);
@@ -644,8 +645,7 @@ describe('show', () => {
   beforeEach(async () => {
     mkdirSync(testDir, { recursive: true });
     await copyDir('test/test-data/', testDir);
-    ws = new Workspace(decisionRecordsPath, {});
-    await ws.initialize();
+    ws = await openTestWorkspace(decisionRecordsPath, {});
     showCmd = ws.showCmd;
   });
 

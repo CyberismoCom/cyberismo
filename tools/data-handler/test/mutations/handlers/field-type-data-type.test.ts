@@ -7,6 +7,8 @@ import type { Checkout } from '../../../src/containers/project.js';
 import { getTestProject } from '../../helpers/test-utils.js';
 import { resourceName } from '../../../src/utils/resource-utils.js';
 import { ResourceMutations } from '../../../src/mutations/resource-mutations.js';
+import { Workspace } from '../../../src/workspace/workspace.js';
+import { SYSTEM_ACTOR, SYSTEM_FRAME } from '../../../src/utils/tx-record.js';
 
 const baseDir = import.meta.dirname;
 const testDir = join(baseDir, 'tmp-field-type-data-type');
@@ -36,8 +38,7 @@ describe('FieldTypeDataTypeHandler', () => {
   });
 
   it('converts values on every affected card and updates the field definition', async () => {
-    const mutations = new ResourceMutations(checkout);
-    await mutations.apply({
+    await Workspace.over(checkout, SYSTEM_ACTOR).updateCmd.apply({
       kind: 'edit' as const,
       target: resourceName(fieldName()),
       updateKey: { key: 'dataType' as const },
@@ -68,14 +69,16 @@ describe('FieldTypeDataTypeHandler', () => {
     expect(before.length).toBeGreaterThan(0);
 
     const mutations = new ResourceMutations(checkout);
-    await mutations.apply(
-      {
-        kind: 'edit' as const,
-        target: resourceName(fieldName()),
-        updateKey: { key: 'dataType' as const },
-        operation: { name: 'change' as const, to: 'number' },
-      },
-      { kind: 'replay', modulePrefix: checkout.projectPrefix },
+    await checkout.lock.write(SYSTEM_FRAME, () =>
+      mutations.apply(
+        {
+          kind: 'edit' as const,
+          target: resourceName(fieldName()),
+          updateKey: { key: 'dataType' as const },
+          operation: { name: 'change' as const, to: 'number' },
+        },
+        { kind: 'replay', modulePrefix: checkout.projectPrefix },
+      ),
     );
 
     for (const [key, value] of before) {
@@ -85,9 +88,8 @@ describe('FieldTypeDataTypeHandler', () => {
   });
 
   it('rejects a conversion that is not allowed', async () => {
-    const mutations = new ResourceMutations(checkout);
     await expect(
-      mutations.apply({
+      Workspace.over(checkout, SYSTEM_ACTOR).updateCmd.apply({
         kind: 'edit' as const,
         target: resourceName(fieldName()),
         updateKey: { key: 'dataType' as const },

@@ -7,8 +7,10 @@ import { simpleGit } from 'simple-git';
 
 import { GitManager } from '../src/utils/git-manager.js';
 import { RWLock } from '../src/utils/rw-lock.js';
-import { Publish } from '../src/commands/publish.js';
+import type { Publish } from '../src/commands/publish.js';
 import type { Checkout } from '../src/containers/project.js';
+import { Workspace } from '../src/workspace/workspace.js';
+import { SYSTEM_ACTOR } from '../src/utils/tx-record.js';
 
 /** Create a simpleGit instance with a test identity so tests work without global git config. */
 function testGit(dir: string) {
@@ -44,7 +46,7 @@ describe('Publish', () => {
       configuration,
     } as unknown as Checkout;
 
-    publish = new Publish(checkout);
+    publish = Workspace.over(checkout, SYSTEM_ACTOR).publishCmd;
   });
 
   afterEach(async () => {

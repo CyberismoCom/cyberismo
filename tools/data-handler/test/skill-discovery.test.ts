@@ -3,8 +3,9 @@ import { mkdirSync, rmSync } from 'node:fs';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
-import { Workspace } from '../src/workspace/workspace.js';
+import { type Workspace } from '../src/workspace/workspace.js';
 import { copyDir } from '../src/utils/file-utils.js';
+import { openTestWorkspace } from './helpers/open-test-workspace.js';
 
 const baseDir = import.meta.dirname;
 const testDir = join(baseDir, 'tmp-skill-discovery-tests');
@@ -84,7 +85,7 @@ describe('skill discovery', () => {
         'enableSkill("decision/skills/complianceSkill").\n' +
         'enableSkill("decision/skills/cardSkill", decision_5).\n',
     );
-    ws = await Workspace.getInstance(projectPath);
+    ws = await openTestWorkspace(projectPath);
   });
 
   afterAll(() => {

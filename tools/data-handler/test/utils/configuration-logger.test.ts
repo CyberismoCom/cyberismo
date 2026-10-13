@@ -11,8 +11,9 @@ import {
 import { copyDir, deleteDir, pathExists } from '../../src/utils/file-utils.js';
 import { ProjectPaths } from '../../src/containers/project/project-paths.js';
 import { Checkout } from '../../src/containers/project.js';
-import { ResourceMutations } from '../../src/mutations/resource-mutations.js';
 import { resourceName } from '../../src/utils/resource-utils.js';
+import { Workspace } from '../../src/workspace/workspace.js';
+import { SYSTEM_ACTOR } from '../../src/utils/tx-record.js';
 
 // Create test artifacts in a temp folder.
 const baseDir = import.meta.dirname;
@@ -366,10 +367,8 @@ describe('configuration logger', () => {
       join(projectRoot, 'valid', 'decision-records'),
     );
     await checkout.populateCaches();
-
-    const mutations = new ResourceMutations(checkout);
     const target = `${checkout.projectPrefix}/reports/anotherReport`;
-    await mutations.apply({
+    await Workspace.over(checkout, SYSTEM_ACTOR).updateCmd.apply({
       kind: 'delete',
       target: resourceName(target),
     });
