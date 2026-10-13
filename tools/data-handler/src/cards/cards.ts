@@ -11,9 +11,18 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import type { ActorRef, MetadataContent } from '@cyberismo/model';
+import type {
+  ActorRef,
+  AttachmentContent,
+  Card,
+  CardAttachment,
+  CardListContainer,
+  CardLocation,
+  MetadataContent,
+  TemplateCardTree,
+} from '@cyberismo/model';
 import type { Checkout } from '../containers/project.js';
-import { write } from '../utils/rw-lock.js';
+import { read, write } from '../utils/rw-lock.js';
 import type { CommitIdentity } from '../utils/tx-record.js';
 import {
   addAttachment,
@@ -21,6 +30,7 @@ import {
   renameCardAttachment,
 } from './attachments.js';
 import { removeCard } from './delete.js';
+import { addCards, createCard } from './instantiate.js';
 import {
   moveCard,
   rankAfter,
@@ -29,6 +39,16 @@ import {
   rebalanceAll,
   rebalanceUnder,
 } from './move.js';
+import {
+  attachment,
+  attachments,
+  findCard,
+  hasCard,
+  labels,
+  listCards,
+  rootCards,
+  templateCardTrees,
+} from './read.js';
 import { transitionCard } from './transition.js';
 import {
   addLabel,
@@ -269,5 +289,91 @@ export class Cards {
     newFileName: string,
   ): Promise<void> {
     await renameCardAttachment(this.checkout, cardKey, fileName, newFileName);
+  }
+
+  /**
+   * Creates cards in the project from a template, optionally under a parent
+   * card. Returns the template's root cards first, in rank order; the rest
+   * follow, grouped by parent key and in rank order within a group.
+   */
+  @write((templateName) => `Create card from template ${templateName}`)
+  public async create(
+    templateName: string,
+    parentCardKey?: string,
+  ): Promise<Card[]> {
+    return createCard(this.checkout, templateName, parentCardKey);
+  }
+
+  /** Adds cards of a card type to a template, optionally under a card. */
+  @write(
+    (cardTypeName, templateName) =>
+      `Add cards of type ${cardTypeName} to template ${templateName}`,
+  )
+  public async addToTemplate(
+    cardTypeName: string,
+    templateName: string,
+    card?: string,
+    count?: number,
+  ): Promise<string[]> {
+    return addCards(this.checkout, cardTypeName, templateName, card, count);
+  }
+
+  /** Card keys of the project, the templates or both. */
+  @read
+  public async list(cardsFrom?: CardLocation): Promise<CardListContainer[]> {
+    return listCards(this.checkout, cardsFrom);
+  }
+
+  /** One card, with metadata, content, children and attachments. */
+  @read
+  public async details(cardKey: string): Promise<Card> {
+    if (!cardKey) {
+      throw new Error(`Mandatory parameter 'cardKey' missing`);
+    }
+    return findCard(this.checkout, cardKey);
+  }
+
+  /** Whether the project, or one of its templates, holds the card. Takes no lock. */
+  public has(cardKey: string): boolean {
+    return hasCard(this.checkout, cardKey);
+  }
+
+  /** The project's root cards. */
+  @read
+  public async roots(): Promise<Card[]> {
+    return rootCards(this.checkout);
+  }
+
+  /** The cards of every template, as hierarchies. */
+  @read
+  public async templateCards(): Promise<TemplateCardTree[]> {
+    return templateCardTrees(this.checkout);
+  }
+
+  /** Attachments of every card in the project and its templates. */
+  @read
+  public async attachments(): Promise<CardAttachment[]> {
+    return attachments(this.checkout);
+  }
+
+  /** The file of one attachment, with its mime type. */
+  @read
+  public async attachment(
+    cardKey: string,
+    filename: string,
+  ): Promise<AttachmentContent> {
+    return attachment(this.checkout, cardKey, filename);
+  }
+
+  /** The labels in use, sorted. */
+  @read
+  public async labels(): Promise<string[]> {
+    return labels(this.checkout);
+  }
+
+  /** The logic program generated for a card. */
+  @read
+  public async logicProgram(cardKey: string): Promise<string> {
+    return this.checkout.calculationEngine.cardLogicProgram(cardKey);
   }
 }

@@ -17,6 +17,7 @@ import { FieldTypeResource } from './resources/field-type-resource.js';
 import { getChildLogger } from './utils/log-utils.js';
 import type { Checkout } from './containers/project.js';
 import { updateCardMetadata } from './cards/update.js';
+import { findCard } from './cards/read.js';
 
 /**
  * Card metadata update result.
@@ -160,7 +161,7 @@ export class CardMetadataUpdater {
       errors: [],
     };
 
-    const card = checkout.findCard(cardKey);
+    const card = findCard(checkout, cardKey);
     if (!card || !card.metadata) {
       result.success = false;
       result.errors.push(

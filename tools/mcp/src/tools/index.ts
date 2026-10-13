@@ -80,7 +80,7 @@ export function registerTools(
     async ({ projectPrefix, template, parentKey }, extra) => {
       try {
         const ws = resolveCommands(provider, projectPrefix, extra, server);
-        const cards = await ws.createCmd.createCard(template, parentKey);
+        const cards = await ws.cards.create(template, parentKey);
         return toolResult({
           created: cards.map((c) => ({
             key: c.key,
@@ -371,7 +371,7 @@ export function registerTools(
       try {
         const ws = resolveCommands(provider, projectPrefix, extra, server);
         if (raw) {
-          const card = await ws.showCmd.showCardDetails(cardKey);
+          const card = await ws.cards.details(cardKey);
           return toolResult({ card });
         }
 
@@ -536,7 +536,7 @@ export function registerTools(
     async ({ projectPrefix }, extra) => {
       try {
         const ws = resolveCommands(provider, projectPrefix, extra, server);
-        const labels = await ws.showCmd.showLabels();
+        const labels = await ws.cards.labels();
         return toolResult({ labels });
       } catch (error) {
         return toolError('listing labels', error);
@@ -758,7 +758,7 @@ export function registerTools(
     ) => {
       try {
         const ws = resolveCommands(provider, projectPrefix, extra, server);
-        const cards = await ws.createCmd.addCards(
+        const cards = await ws.cards.addToTemplate(
           cardTypeName,
           templateName,
           parentCard,

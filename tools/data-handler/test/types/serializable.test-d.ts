@@ -20,18 +20,21 @@ import type { Cards } from '../../src/cards/cards.js';
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnyFunction = (...args: any[]) => unknown;
 
-// `false` somewhere in the union when T is not serialisable.
-type Check<T> = T extends string | number | boolean | null | undefined | void
+// `false` somewhere in the union when T is not serialisable. A recursive type
+// (a card's childrenCards) is trusted below the depth D counts down from.
+type Check<T, D extends unknown[] = []> = D['length'] extends 6
   ? true
-  : T extends Uint8Array
+  : T extends string | number | bigint | boolean | null | undefined | void
     ? true
-    : T extends AnyFunction
-      ? false
-      : T extends readonly (infer U)[]
-        ? Check<U>
-        : T extends object
-          ? { [K in keyof T]-?: Check<T[K]> }[keyof T]
-          : false;
+    : T extends Uint8Array
+      ? true
+      : T extends AnyFunction
+        ? false
+        : T extends readonly (infer U)[]
+          ? Check<U, [...D, 0]>
+          : T extends object
+            ? { [K in keyof T]-?: Check<T[K], [...D, 0]> }[keyof T]
+            : false;
 
 export type Serializable<T> = false extends Check<T> ? false : true;
 
@@ -73,4 +76,15 @@ export const cards: FacadeSerializable<Cards> = {
   addAttachment: true,
   removeAttachment: true,
   renameAttachment: true,
+  create: true,
+  addToTemplate: true,
+  list: true,
+  details: true,
+  has: true,
+  roots: true,
+  templateCards: true,
+  attachments: true,
+  attachment: true,
+  labels: true,
+  logicProgram: true,
 };

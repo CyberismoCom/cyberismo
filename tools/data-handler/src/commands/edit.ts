@@ -19,6 +19,7 @@ import { spawnSync } from 'node:child_process';
 import { Checkout } from '../containers/project.js';
 import { UserPreferences } from '../utils/user-preferences.js';
 import { read, write } from '../utils/rw-lock.js';
+import { findCard } from '../cards/read.js';
 
 export class Edit {
   private checkout: Checkout;
@@ -33,7 +34,7 @@ export class Edit {
    */
   @read
   public async editCard(cardKey: string) {
-    const card = this.checkout.findCard(cardKey);
+    const card = findCard(this.checkout, cardKey);
 
     // Read the user preferences
     const prefs = new UserPreferences(

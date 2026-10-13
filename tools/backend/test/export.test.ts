@@ -217,9 +217,9 @@ describe('export module', () => {
         { prefix: 'mini', checkout: minimal.checkout },
         { prefix: 'decision', checkout: decision.checkout },
       ]);
-      vi.spyOn(decision.showCmd, 'showCardDetails').mockRejectedValue(
-        new Error('boom'),
-      );
+      vi.spyOn(decision.checkout, 'treeOf').mockImplementation(() => {
+        throw new Error('boom');
+      });
 
       const { errors } = await exportSite(registry, tempDir);
 

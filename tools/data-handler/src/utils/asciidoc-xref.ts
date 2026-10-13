@@ -14,6 +14,7 @@
 import type { Checkout } from '../containers/project.js';
 import type { Mode } from '../interfaces/macros.js';
 import { moduleNameFromCardKey } from './card-utils.js';
+import { cardNode } from '../cards/read.js';
 
 // xref:<cardKey>.adoc[<label>] or xref:<cardKey>.adoc#<anchor>[<label>]
 // Card key chars: word chars plus hyphen. Anchor (optional) is anything up to
@@ -59,7 +60,7 @@ export function rewriteAsciidocCardXrefs(
       let card;
 
       try {
-        card = checkout.cardNode(cardKey);
+        card = cardNode(checkout, cardKey);
       } catch {
         card = undefined;
       }
