@@ -187,7 +187,7 @@ describe('move command', () => {
     );
     const child = childResult.affectsCards!.at(0) as string;
 
-    await expect(ws.moveCmd.moveCard(parent, child)).rejects.toThrow(
+    await expect(ws.cards.move(parent, child)).rejects.toThrow(
       'cannot be placed under itself or one of its descendants',
     );
   });
@@ -306,9 +306,7 @@ describe('move command', () => {
     );
     expect(moveResult.statusCode).toBe(200);
 
-    await expect(
-      ws.moveCmd.rankByIndex('decision_1', 2),
-    ).resolves.not.toThrow();
+    await expect(ws.cards.rankAt('decision_1', 2)).resolves.not.toThrow();
   });
 
   it('promote nested template card to its template root (success)', async () => {
