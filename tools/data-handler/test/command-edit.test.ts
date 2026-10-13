@@ -106,8 +106,10 @@ describe('edit card', () => {
       join(freshTestDir, 'valid/decision-records'),
       {},
     );
-    await freshCommands.createCmd.createFieldType('myShort', 'shortText');
-    await freshCommands.updateCmd.apply({
+    await freshCommands.resources.create('myShort', 'fieldTypes', {
+      dataType: 'shortText',
+    });
+    await freshCommands.changes.apply({
       kind: 'edit',
       target: resourceName('decision/cardTypes/decision'),
       updateKey: { key: 'customFields' },

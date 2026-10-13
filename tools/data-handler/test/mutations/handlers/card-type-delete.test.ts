@@ -32,7 +32,7 @@ describe('CardTypeDeleteHandler', () => {
       .cards()
       .filter((c) => c.metadata?.cardType === cardTypeName());
     expect(before.length).toBeGreaterThan(0);
-    await Workspace.over(checkout, SYSTEM_ACTOR).updateCmd.apply({
+    await Workspace.over(checkout, SYSTEM_ACTOR).changes.apply({
       kind: 'delete',
       target: resourceName(cardTypeName()),
     });
@@ -45,7 +45,7 @@ describe('CardTypeDeleteHandler', () => {
   });
 
   it('strips the card type from every link type sourceCardTypes/destinationCardTypes', async () => {
-    await Workspace.over(checkout, SYSTEM_ACTOR).updateCmd.apply({
+    await Workspace.over(checkout, SYSTEM_ACTOR).changes.apply({
       kind: 'delete',
       target: resourceName(cardTypeName()),
     });
@@ -57,7 +57,7 @@ describe('CardTypeDeleteHandler', () => {
   });
 
   it('deletes the card type resource file from disk', async () => {
-    await Workspace.over(checkout, SYSTEM_ACTOR).updateCmd.apply({
+    await Workspace.over(checkout, SYSTEM_ACTOR).changes.apply({
       kind: 'delete',
       target: resourceName(cardTypeName()),
     });

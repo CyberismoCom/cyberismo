@@ -12,6 +12,7 @@
 */
 
 import { Hono } from 'hono';
+import { ResourceNotFoundError } from '@cyberismo/data-handler';
 import * as cardTypeService from './service.js';
 import {
   createCardTypeSchema,
@@ -161,8 +162,7 @@ router.patch(
       await cardTypeService.updateFieldVisibility(ws, cardTypeName, body);
       return c.json({ message: 'Field visibility updated successfully' });
     } catch (error) {
-      // TODO: Implement NotFoundError etc and handle them globally
-      if (error instanceof Error && error.message.includes('does not exist')) {
+      if (error instanceof ResourceNotFoundError) {
         return c.json({ error: error.message }, 404);
       }
       return c.json(
