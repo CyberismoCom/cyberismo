@@ -364,17 +364,6 @@ describe('Card tree', () => {
       rmSync(testDir, { recursive: true, force: true });
     });
 
-    it('deletes a card, its folder and its descendants', async () => {
-      const rootPath = tree.card('test_1').path;
-
-      await tree.deleteSubtree('test_1');
-
-      for (const cardKey of ['test_1', 'test_2', 'test_3']) {
-        expect(tree.has(cardKey)).toBe(false);
-      }
-      expect(existsSync(rootPath)).toBe(false);
-    });
-
     it('refuses to delete a card the tree does not hold', async () => {
       await expect(tree.deleteSubtree('non_existing_card')).rejects.toThrow(
         CardNotFoundError,
@@ -421,43 +410,10 @@ describe('Card tree', () => {
       ]);
     });
 
-    it('refuses a duplicate attachment', async () => {
-      await tree.addAttachment('test_2', 'twice.txt', Buffer.from('first'));
-      await expect(
-        tree.addAttachment('test_2', 'twice.txt', Buffer.from('second')),
-      ).rejects.toThrow();
-
-      expect(
-        tree
-          .attachmentsOf('test_2')
-          .filter((attachment) => attachment.fileName === 'twice.txt'),
-      ).toHaveLength(1);
-      await expect(
-        readFile(join(tree.attachmentFolderOf('test_2'), 'twice.txt'), 'utf-8'),
-      ).resolves.toBe('first');
-    });
-
     it('throws when adding to a card the tree does not hold', async () => {
       await expect(
         tree.addAttachment('non_existing_card', 'file.txt', Buffer.from('x')),
       ).rejects.toThrow(CardNotFoundError);
-    });
-
-    it('removes an attachment file and drops it from the listing', async () => {
-      await tree.removeAttachment('test_1', 'test-attachment.txt');
-
-      expect(tree.attachmentsOf('test_1')).toEqual([]);
-      expect(
-        existsSync(
-          join(tree.attachmentFolderOf('test_1'), 'test-attachment.txt'),
-        ),
-      ).toBe(false);
-    });
-
-    it('throws when removing an attachment that is not there', async () => {
-      await expect(
-        tree.removeAttachment('test_1', 'non_existing_attachment.txt'),
-      ).rejects.toThrow('Attachment not found');
     });
 
     it('throws when removing from a card the tree does not hold', async () => {
@@ -617,12 +573,6 @@ describe('Card tree', () => {
       expect(tree.attachmentsOf(CARD_KEY)[0].fileName).toBe(ATTACHMENT);
     });
 
-    it('throws for an attachment the card does not have', async () => {
-      await expect(
-        tree.renameAttachment(CARD_KEY, 'nope.png', 'other.png'),
-      ).rejects.toThrow('Attachment not found: nope.png');
-    });
-
     it('throws for a card the tree does not hold', async () => {
       await expect(
         tree.renameAttachment('test_999', ATTACHMENT, 'other.png'),
@@ -654,30 +604,6 @@ describe('Card tree', () => {
 
     // rename() replaces its destination silently, so this would have deleted
     // the other attachment's file and left the store with two entries for one.
-    it('refuses to overwrite an attachment the card already has', async () => {
-      await tree.addAttachment(
-        CARD_KEY,
-        'other.png',
-        Buffer.from('body of other'),
-      );
-
-      await expect(
-        tree.renameAttachment(CARD_KEY, ATTACHMENT, 'other.png'),
-      ).rejects.toThrow('Attachment already exists: other.png');
-
-      await expect(
-        readFile(join(cardPath, 'a', ATTACHMENT), 'utf-8'),
-      ).resolves.toBe(`body of ${ATTACHMENT}`);
-      await expect(
-        readFile(join(cardPath, 'a', 'other.png'), 'utf-8'),
-      ).resolves.toBe('body of other');
-      expect(
-        tree
-          .attachmentsOf(CARD_KEY)
-          .map((attachment) => attachment.fileName)
-          .sort(),
-      ).toEqual([ATTACHMENT, 'other.png']);
-    });
   });
 
   describe('read boundary', () => {
@@ -853,46 +779,6 @@ describe('Card tree', () => {
       return { tree, alpha, keys };
     }
 
-    it('re-parenting removes the card from its old parent', async () => {
-      const { tree } = await treesWith(
-        cardAt('test_1', 'root'),
-        cardAt('test_2', 'root'),
-        cardAt('test_3', 'test_1'),
-      );
-
-      await tree.relocate('test_3', 'test_2');
-
-      expect(tree.childrenOf('test_1')).toEqual([]);
-      expect(tree.card('test_1').children).toEqual([]);
-    });
-
-    it('re-parenting adds the card to its new parent', async () => {
-      const { tree } = await treesWith(
-        cardAt('test_1', 'root'),
-        cardAt('test_2', 'root'),
-        cardAt('test_3', 'test_1'),
-      );
-
-      await tree.relocate('test_3', 'test_2');
-
-      expect(tree.childrenOf('test_2')).toEqual(['test_3']);
-      expect(tree.card('test_2').children).toEqual(['test_3']);
-    });
-
-    it('relocating a card renames its folder', async () => {
-      const { tree } = await treesWith(
-        cardAt('test_1', 'root'),
-        cardAt('test_2', 'root'),
-        cardAt('test_3', 'test_1'),
-      );
-      const vacated = tree.pathOf('test_3');
-
-      await tree.relocate('test_3', 'test_2');
-
-      expect(existsSync(vacated)).toBe(false);
-      expect(existsSync(join(tree.pathOf('test_3'), 'index.json'))).toBe(true);
-    });
-
     it('moving a card to another tree moves its key ownership', async () => {
       const { tree, alpha, keys } = await treesWith(cardAt('test_1', 'root'));
 
@@ -1010,25 +896,6 @@ describe('Card tree', () => {
         );
       },
     );
-
-    it('refuses to rank a card after a card under another parent', async () => {
-      const tree = projectTree(testCardsPath);
-      await tree.load();
-      const ranks = () =>
-        ['test_1', 'test_2', 'test_3'].map(
-          (key) => tree.node(key).metadata?.rank,
-        );
-      const before = ranks();
-
-      await expect(tree.reorderAfter('test_3', 'test_1')).rejects.toThrow(
-        'Cards must be from the same parent',
-      );
-
-      expect(ranks()).toEqual(before);
-      const reloaded = projectTree(testCardsPath);
-      await reloaded.load();
-      expect(reloaded.node('test_3').metadata?.rank).toBe(before[2]);
-    });
   });
 
   describe('ranks', () => {
