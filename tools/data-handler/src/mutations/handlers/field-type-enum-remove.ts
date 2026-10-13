@@ -17,6 +17,7 @@ import type { EditInput } from '../types.js';
 import { resourceNameToString } from '../../utils/resource-utils.js';
 import { ResourcesFrom } from '../../containers/project/resources-from.js';
 import type { Card, RemoveOperation, EnumDefinition } from '@cyberismo/model';
+import { updateCardMetadata } from '../../cards/update.js';
 
 // An enum value from either recorded shape: a full EnumDefinition object or
 // a bare string.
@@ -74,7 +75,7 @@ export class FieldTypeEnumRemoveHandler implements Handler<EditInput> {
         // resulting project is judged once, at the end, by the replay's
         // validation gate. Per-write validation here would reject a card that
         // a later entry in the chain has yet to migrate.
-        return ctx.checkout.updateCardMetadata(card, card.metadata!);
+        return updateCardMetadata(ctx.checkout, card, card.metadata!);
       }),
     );
   }

@@ -276,7 +276,7 @@ export class Commands {
         }
         if (target === 'attachment') {
           const [cardKey, attachment] = rest;
-          await this.ws?.createCmd.createAttachment(cardKey, attachment);
+          await this.ws?.cards.addAttachment(cardKey, attachment);
         } else if (target === 'card') {
           const [template, parent] = rest;
           return await this.createCard(template, parent);
@@ -297,10 +297,10 @@ export class Commands {
           await this.ws?.createCmd.createCalculation(name);
         } else if (target === 'label') {
           const [cardKey, label] = rest;
-          await this.ws?.createCmd.createLabel(cardKey, label);
+          await this.ws?.cards.addLabel(cardKey, label);
         } else if (target === 'link') {
           const [source, destination, linkType, linkDescription] = rest;
-          await this.ws?.createCmd.createLink(
+          await this.ws?.cards.addLink(
             source,
             destination,
             linkType,
@@ -455,7 +455,7 @@ export class Commands {
         );
       } else if (command === Cmd.transition) {
         const [cardKey, state] = args;
-        await this.ws?.transitionCmd.cardTransition(cardKey, state);
+        await this.ws?.cards.transition(cardKey, state);
       } else if (command === Cmd.update) {
         const [resource, operation, key, value, newValue] = args;
         let parsedValue = '';
@@ -868,7 +868,49 @@ export class Commands {
     targetName: string,
     args: string[],
   ): Promise<void> {
-    return await this.ws?.removeCmd.remove(type, targetName, ...args);
+    // The argument checks throw inside the write, as the Remove command did.
+    const checked = <T>(check: () => void, run: () => Promise<T>) =>
+      this.ws?.atomic(async () => {
+        check();
+        return run();
+      }, `Remove ${type} ${targetName}`);
+    if (type === 'attachment') {
+      await checked(
+        () => {
+          if (args.length !== 1 && !args[0]) {
+            throw new Error(
+              `Input validation error: must pass argument 'detail' if requesting to remove attachment`,
+            );
+          }
+        },
+        () => this.ws!.cards.removeAttachment(targetName, args[0]),
+      );
+      return;
+    } else if (type === 'card') {
+      return this.ws?.cards.remove(targetName);
+    } else if (type === 'label') {
+      return this.ws?.cards.removeLabel(targetName, args[0]);
+    } else if (type === 'link') {
+      await checked(
+        () => {
+          if ([2, 3].includes(args.length) && !args[0] && !args[1]) {
+            throw new Error(
+              `Input validation error: must pass arguments 'source', 'destination' and possibly 'linkType' if requesting to remove link`,
+            );
+          }
+        },
+        () =>
+          this.ws!.cards.removeLink(
+            targetName,
+            args[0],
+            args[1],
+            args[2],
+            args[3] as 'outbound' | 'inbound' | undefined,
+          ),
+      );
+      return;
+    }
+    return await this.ws?.removeCmd.remove(type, targetName);
   }
 
   // Runs a given logic program along with the query-language
