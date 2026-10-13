@@ -17,6 +17,7 @@ import type { Fetch } from './fetch.js';
 import type { Modules } from './modules.js';
 import type { Checkout } from '../containers/project.js';
 import type { RemovableResourceTypes } from '@cyberismo/model';
+import { recordSettingsChange } from '../utils/change-feed.js';
 import { write } from '../utils/rw-lock.js';
 
 /**
@@ -56,6 +57,7 @@ export class Remove {
   // Remove a hub from project.
   private async removeHubLocation(name: string) {
     await this.checkout.configuration.removeHub(name);
+    recordSettingsChange(this.checkout.lock);
     // The cached module list still offers the removed hub's modules until it
     // is rewritten, and nothing else rewrites it without contacting a hub.
     await this.fetchCmd.pruneUnconfiguredHubs();

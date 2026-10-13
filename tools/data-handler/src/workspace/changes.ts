@@ -12,7 +12,7 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import type { ActorRef, MutationInput } from '@cyberismo/model';
+import type { ActorRef, ChangeEvent, MutationInput } from '@cyberismo/model';
 import type { Checkout } from '../containers/project.js';
 import { ResourceMutations } from '../mutations/resource-mutations.js';
 import { write } from '../utils/rw-lock.js';
@@ -40,5 +40,14 @@ export class Changes {
   @write()
   public async apply(input: MutationInput): Promise<void> {
     await this.mutations.apply(input);
+  }
+
+  /**
+   * Calls `listener` with the event of each write to the checkout, whoever
+   * made it, once the write has released its lock.
+   * @returns a function that unsubscribes the listener.
+   */
+  public subscribe(listener: (event: ChangeEvent) => void): () => void {
+    return this.checkout.changeFeed.subscribe(listener);
   }
 }

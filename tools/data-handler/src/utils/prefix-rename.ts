@@ -51,6 +51,12 @@ export async function renameProjectPrefix(
     throw new Error(`Project prefix is already '${from}'`);
   }
 
+  // Everything may change below, so the write is published as a reload.
+  const tx = checkout.lock.currentTx();
+  if (tx) {
+    tx.cause = 'rename';
+  }
+
   // The prefix must change first: resource renames are validated against the
   // current projectPrefix. The cache refresh is also required — local
   // registry keys are derived from projectPrefix at collection time.

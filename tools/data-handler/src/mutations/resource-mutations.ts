@@ -105,11 +105,26 @@ export class ResourceMutations {
     await runWithDefaultCommitMessage(defaultCommitMessage(input), () =>
       this.checkout.lock.write(async () => {
         await handler.apply(ctx);
+        this.recordChange(input);
         if (classification !== 'none') {
           await this.recordLogEntry(input);
         }
       }),
     );
+  }
+
+  // Records the resources the change wrote into the running write.
+  private recordChange(input: MutationInput) {
+    const resources = this.checkout.lock.currentTx()?.touched.resources;
+    resources?.add(resourceNameToString(input.target));
+    if (input.kind === 'rename') {
+      resources?.add(
+        resourceNameToString({
+          ...input.target,
+          identifier: input.newIdentifier,
+        }),
+      );
+    }
   }
 
   private async recordLogEntry(input: MutationInput): Promise<void> {

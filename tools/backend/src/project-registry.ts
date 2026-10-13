@@ -82,7 +82,9 @@ export class ProjectRegistry implements ProjectProvider {
       if (![...this.projects.values()].includes(checkout)) {
         throw new Error('Project is not registered');
       }
-      events = new ProjectEvents();
+      events = new ProjectEvents(
+        Workspace.over(checkout, SYSTEM_ACTOR).changes,
+      );
       this.events.set(checkout, events);
     }
     return events;

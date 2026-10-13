@@ -23,6 +23,7 @@ import { Checkout } from '../containers/project.js';
 import { Validate } from './validate.js';
 
 import type { ProjectFile } from '@cyberismo/model';
+import { recordSettingsChange } from '../utils/change-feed.js';
 import { write } from '../utils/rw-lock.js';
 import { writeJsonFile } from '../utils/json.js';
 import { getChildLogger } from '../utils/log-utils.js';
@@ -79,7 +80,8 @@ export class Create {
    */
   @write((hubUrl) => `Add hub ${hubUrl}`)
   public async addHubLocation(hubUrl: string) {
-    return this.checkout.configuration.addHub(hubUrl);
+    await this.checkout.configuration.addHub(hubUrl);
+    recordSettingsChange(this.checkout.lock);
   }
 
   /**
