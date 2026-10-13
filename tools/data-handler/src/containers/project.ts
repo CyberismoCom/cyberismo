@@ -28,21 +28,16 @@ import {
   type CardAttachment,
   CardLocation,
   type CardListContainer,
-  type CardMetadata,
   type CardNode,
-  type MetadataContent,
   type ModuleContent,
 } from '@cyberismo/model';
 import { pathExists } from '../utils/file-utils.js';
 import { isModulePath, sortCards } from '../utils/card-utils.js';
-import { ActionGuard } from '../permissions/action-guard.js';
-import { applySideEffects, type SideEffects } from '../side-effects.js';
 import { ProjectConfiguration } from '../project-settings.js';
 import { resourceName } from '../utils/resource-utils.js';
 import { ProjectPaths } from './project/project-paths.js';
 import { readCardsConfig } from './project/cards-config.js';
 import { ResourceHandler } from './project/resource-handler.js';
-import { Validate } from '../commands/validate.js';
 import { ContentWatcher } from './project/project-content-watcher.js';
 import { getChildLogger } from '../utils/log-utils.js';
 import { RWLock } from '../utils/rw-lock.js';
@@ -51,8 +46,6 @@ import { GitManager } from '../utils/git-manager.js';
 import { commitTrailers } from '../utils/tx-record.js';
 
 import type { TemplateResource } from '../resources/template-resource.js';
-
-import { isPredefinedField } from '../utils/constants.js';
 
 /**
  * Options for Project initialization. All default to off.
@@ -93,7 +86,6 @@ export class Checkout {
   private resourceHandler: ResourceHandler;
   private resourceWatcher: ContentWatcher | undefined;
   private settings: ProjectConfiguration;
-  private validator: Validate;
   private cachedAllModulePrefixes: string[] = [];
 
   constructor(
@@ -127,8 +119,6 @@ export class Checkout {
     this.calculationEngine = new CalculationEngine(this);
     this.projectPaths = new ProjectPaths(path);
     this.resourceHandler = new ResourceHandler(this);
-    // todo: implement project validation
-    this.validator = Validate.getInstance();
 
     this.logger.info(
       { name: this.settings.name },
@@ -343,39 +333,6 @@ export class Checkout {
     this.cachedAllModulePrefixes = prefixes;
   }
 
-  // Validates that card's data is valid.
-  private async validateCard(card: Card): Promise<string> {
-    const invalidCustomData = await this.validator.validateCustomFields(
-      this,
-      card,
-      this.allModulePrefixes(),
-    );
-    const invalidWorkFlow = await this.validator.validateWorkflowState(
-      this,
-      card,
-    );
-
-    const invalidLabels = this.validator.validateCardLabels(card);
-    if (
-      invalidCustomData.length === 0 &&
-      invalidWorkFlow.length === 0 &&
-      invalidLabels.length === 0
-    ) {
-      return '';
-    }
-    const errors: string[] = [];
-    if (invalidCustomData.length > 0) {
-      errors.push(invalidCustomData);
-    }
-    if (invalidWorkFlow.length > 0) {
-      errors.push(invalidWorkFlow);
-    }
-    if (invalidLabels.length > 0) {
-      errors.push(invalidLabels);
-    }
-    return errors.join('\n');
-  }
-
   /**
    * Populate template cards into the card cache.
    */
@@ -441,25 +398,6 @@ export class Checkout {
    */
   public cardAttachmentFolder(cardKey: string): string {
     return this.treeOf(cardKey).attachmentFolderOf(cardKey);
-  }
-
-  /**
-   * Creates an attachment for a card.
-   * @param cardKey The card to add attachment to
-   * @param attachmentName The name for the attachment file
-   * @param attachmentData The attachment data (file path or buffer)
-   * @throws If trying to add attachment to module card, or if attachment is not found
-   */
-  public async createCardAttachment(
-    cardKey: string,
-    attachmentName: string,
-    attachmentData: string | Buffer,
-  ): Promise<void> {
-    await this.treeOf(cardKey).addAttachment(
-      cardKey,
-      attachmentName,
-      attachmentData,
-    );
   }
 
   /**
@@ -587,18 +525,6 @@ export class Checkout {
     return Checkout.findProjectRoot(parentPath);
   }
 
-  private async saveCardContent(card: Card): Promise<void> {
-    return this.treeOf(card.key).writeContent(card);
-  }
-
-  private async saveCardMetadata(card: Card): Promise<void> {
-    return this.treeOf(card.key).writeMetadata(card);
-  }
-
-  private async removeCard(cardKey: string): Promise<void> {
-    return this.treeOf(cardKey).deleteSubtree(cardKey);
-  }
-
   /**
    * When card changes.
    * @param changedCard Card that was changed.
@@ -606,97 +532,6 @@ export class Checkout {
   public async handleCardChanged(changedCard: CardNode) {
     // Notify the calculation engine about the change
     return this.calculationEngine.handleCardChanged(changedCard);
-  }
-
-  /**
-   * When cards are removed.
-   * @param deletedCard Card that is to be removed.
-   */
-  public async handleCardDeleted(deletedCard: Card) {
-    // Delete children from the cache first
-    if (deletedCard.children && deletedCard.children.length > 0) {
-      for (const child of deletedCard.children) {
-        try {
-          const childCard = this.findCard(child);
-          await this.handleCardDeleted(childCard);
-        } catch (error) {
-          this.logger.warn(
-            { error },
-            `Accessing child '${child}' of '${deletedCard.key}' when deleting cards caused an exception`,
-          );
-          continue;
-        }
-      }
-    }
-    await this.removeCard(deletedCard.key);
-    return this.calculationEngine.handleDeleteCard(deletedCard);
-  }
-
-  /**
-   * Deletes the given cards together with their descendant subtrees, and
-   * removes any links from surviving cards that point at a deleted card.
-   *
-   * This is the structural card-deletion primitive shared by the `remove`
-   * command and the resource mutation handlers. It performs no permission
-   * checks and assumes the caller already holds the write lock.
-   * @param cards Root cards to delete. Descendants are removed via cascade, so
-   *   passing a card whose ancestor is also in the list is safe.
-   */
-  public async deleteCards(cards: Card[]) {
-    if (cards.length === 0) {
-      return;
-    }
-
-    // Collect every key that will be removed (each card plus its subtree) so
-    // link cleanup can drop links pointing anywhere into the deleted set.
-    const deletedKeys = new Set<string>();
-    const collectDescendants = (cardKey: string) => {
-      if (deletedKeys.has(cardKey)) {
-        return;
-      }
-      let card: Card;
-      try {
-        card = this.findCard(cardKey);
-      } catch {
-        this.logger.debug({ cardKey }, 'Card to delete not found, skipping');
-        return;
-      }
-      deletedKeys.add(cardKey);
-      for (const childKey of card.children) {
-        collectDescendants(childKey);
-      }
-    };
-    for (const card of cards) {
-      collectDescendants(card.key);
-    }
-
-    // Strip links from surviving cards that point at any card being removed.
-    const linkUpdates: Promise<void>[] = [];
-    for (const item of this.cardTree.nodes()) {
-      if (deletedKeys.has(item.key) || !item.metadata) {
-        continue;
-      }
-      const links = item.metadata.links;
-      const preservedLinks = links.filter((l) => !deletedKeys.has(l.cardKey));
-      if (preservedLinks.length !== links.length) {
-        linkUpdates.push(
-          this.updateCardMetadataKey(item.key, 'links', preservedLinks),
-        );
-      }
-    }
-    await Promise.all(linkUpdates);
-
-    // Remove the subtrees. handleCardDeleted cascades children, so any card
-    // already removed as part of an earlier subtree is skipped here.
-    for (const card of cards) {
-      let fresh: Card;
-      try {
-        fresh = this.findCard(card.key);
-      } catch {
-        continue;
-      }
-      await this.handleCardDeleted(fresh);
-    }
   }
 
   /**
@@ -708,29 +543,6 @@ export class Checkout {
   public async handleCardMoved(movedCard: CardNode) {
     await this.handleCardChanged(movedCard);
     await this.calculationEngine.handleCardMoved();
-  }
-
-  /**
-   * Runs the creation query for cards that were just added, and executes the
-   * side effects it asks for.
-   *
-   * Must run inside a write-lock context, after the cards were created: the
-   * query only sees them once their facts have been projected.
-   * @param cardKeys Keys of the cards that were created.
-   */
-  public async runCreationSideEffects(cardKeys: string[]) {
-    const queryResult = await this.calculationEngine.creationQuery(
-      cardKeys,
-      'localApp',
-    );
-    await this.executeSideEffects(
-      queryResult?.at(0),
-      // Empty seed: the created cards' initial "Create" transitions already
-      // happened during creation itself; a re-entrant "Create" side effect
-      // would be rejected anyway by the fromState check, so nothing needs
-      // to be pre-marked visited here.
-      new Set<string>(),
-    );
   }
 
   /**
@@ -918,34 +730,6 @@ export class Checkout {
   }
 
   /**
-   * Removes an attachment from a card.
-   * @param cardKey The card to remove attachment from
-   * @param fileName The name of the attachment file to remove
-   * @throws if trying to remove module card attachment, or the attachment was not found.
-   */
-  public async removeCardAttachment(
-    cardKey: string,
-    fileName: string,
-  ): Promise<void> {
-    await this.treeOf(cardKey).removeAttachment(cardKey, fileName);
-  }
-
-  /**
-   * Renames a card's attachment file, keeping the card cache in step with it.
-   * @param cardKey Card whose attachment is renamed.
-   * @param fileName Current attachment file name.
-   * @param newFileName New attachment file name.
-   * @throws if the card or the attachment does not exist.
-   */
-  public async renameCardAttachment(
-    cardKey: string,
-    fileName: string,
-    newFileName: string,
-  ): Promise<void> {
-    await this.treeOf(cardKey).renameAttachment(cardKey, fileName, newFileName);
-  }
-
-  /**
    * Refreshes caches after the module installation set has changed on disk.
    * Invalidates the module resource cache, rebuilds the all-module-prefix
    * list, and reloads template cards so the Project API reflects the new
@@ -986,199 +770,5 @@ export class Checkout {
    */
   public get resources(): ResourceHandler {
     return this.resourceHandler;
-  }
-
-  /**
-   * Update a card's content.
-   * @param cardKey card key to update.
-   * @param content changed content
-   */
-  public async updateCardContent(cardKey: string, content: string) {
-    const card = this.findCard(cardKey);
-    card.content = content;
-
-    // Both files, deliberately: a content edit is expected to bump
-    // 'lastUpdated', and only the metadata write stamps it.
-    await this.saveCardContent(card);
-    await this.saveCardMetadata(card);
-    await this.handleCardChanged(card);
-  }
-
-  /**
-   * Updates card metadata's single key.
-   * @param cardKey card that is updated.
-   * @param changedKey changed metadata key
-   * @param newValue changed value for the key
-   */
-  public async updateCardMetadataKey(
-    cardKey: string,
-    changedKey: string,
-    newValue: MetadataContent,
-  ) {
-    const card = this.findCard(cardKey);
-    if (!card.metadata) {
-      return;
-    }
-
-    // Clearing a custom field removes the key entirely: absent and null both
-    // mean "no value". Predefined fields keep their stored representation.
-    const removeKey = newValue == null && !isPredefinedField(changedKey);
-    if (removeKey) {
-      if (!(changedKey in card.metadata)) {
-        return;
-      }
-    } else if (card.metadata[changedKey] === newValue) {
-      return;
-    }
-
-    const cardAsRecord: Record<string, MetadataContent> = card.metadata;
-    if (removeKey) {
-      delete cardAsRecord[changedKey];
-    } else {
-      // A predefined field is never removed, so undefined must land as null:
-      // an undefined value would be dropped from both the file and the cache.
-      cardAsRecord[changedKey] = newValue ?? null;
-    }
-
-    const invalidCard =
-      this.treeOf(cardKey).kind === 'project'
-        ? await this.validateCard(card)
-        : '';
-    if (invalidCard.length !== 0) {
-      throw new Error(invalidCard);
-    }
-
-    // A metadata write cannot relocate a card, so there is nothing structural
-    // to follow up here; moving a card is moveCard's job.
-    await this.saveCardMetadata(card);
-  }
-
-  /**
-   * Updates a card's metadata.
-   * @param card affected card
-   * @param changedMetadata changed content for the card
-   */
-  public async updateCardMetadata(card: Card, changedMetadata: CardMetadata) {
-    card.metadata = changedMetadata;
-    await this.saveCardMetadata(card);
-    await this.handleCardChanged(card);
-  }
-
-  // Wrapper to run onTransition query.
-  private async transitionChangesQuery(cardKey: string, transition: string) {
-    if (!cardKey || !transition) return undefined;
-    return this.calculationEngine.runQuery('onTransition', 'localApp', {
-      cardKey,
-      transition,
-    });
-  }
-
-  /**
-   * Performs a single workflow transition without cascading, and returns
-   * its side effects for the caller to execute. Throws if the card is
-   * missing, the transition is not available from the card's current state,
-   * or the transition is denied.
-   *
-   * Must run inside a write-lock context (the transition command, or the
-   * creation flow's side-effect execution).
-   */
-  public async performTransition(
-    cardKey: string,
-    transitionName: string,
-  ): Promise<SideEffects | undefined> {
-    const card = this.findCard(cardKey);
-
-    if (!card.metadata?.cardType) {
-      throw new Error(`Card does not have card type`);
-    }
-    // Card type
-    const cardType = this.resources
-      .byType(card.metadata?.cardType, 'cardTypes')
-      .show();
-
-    // Workflow
-    const workflow = this.resources
-      .byType(cardType.workflow, 'workflows')
-      .show();
-
-    const currentState = card.metadata.workflowState;
-
-    // A transition is identified by its (unique) name and leads to a single
-    // target state, though it may be available from several states or all
-    // states ('*'). Find it by name, then check it can be made from the
-    // card's current state.
-    const byName = workflow.transitions.filter(
-      (item) => item.name === transitionName,
-    );
-    if (byName.length === 0) {
-      const transitionNames = workflow.transitions.map((item) => item.name);
-      throw new Error(`Card's workflow '${cardType.workflow}' does not contain state transition '${transitionName}'.
-                          \nThe available transitions are: ${transitionNames.join(', ')}`);
-    }
-
-    const found = byName.find(
-      (item) =>
-        item.fromState.includes(currentState) || item.fromState.includes('*'),
-    );
-    if (!found) {
-      throw new Error(
-        `Card's workflow '${cardType.workflow}' does not contain state transition from state '${currentState}' for '${transitionName}'`,
-      );
-    }
-
-    const actionGuard = new ActionGuard(this.calculationEngine);
-    await actionGuard.checkPermission('transition', cardKey, transitionName);
-
-    card.metadata.workflowState = found.toState;
-    // lastUpdated is stamped by saveCardMetadata on every save; only
-    // lastTransitioned needs to be set here.
-    card.metadata.lastTransitioned = new Date().toISOString();
-    await this.updateCardMetadata(card, card.metadata);
-
-    // A broken module calculation must not fail the transition itself.
-    try {
-      const queryResult = await this.transitionChangesQuery(
-        cardKey,
-        transitionName,
-      );
-      return queryResult?.at(0);
-    } catch (error) {
-      this.logger.warn(
-        {
-          cardKey,
-          transition: transitionName,
-          error: error instanceof Error ? error.message : String(error),
-        },
-        'onTransition query failed; side effects skipped',
-      );
-      return undefined;
-    }
-  }
-
-  /**
-   * Executes a transition's side effects (field updates and cascading
-   * transitions on other cards). Never throws: module calculation problems
-   * must not fail the user's primary action.
-   * @param effects Side effects from an onTransition/onCreation query.
-   * @param visited `cardKey:transitionName` pairs already attempted in this
-   *                cascade.
-   */
-  public async executeSideEffects(
-    effects: SideEffects | undefined,
-    visited: Set<string>,
-  ): Promise<void> {
-    try {
-      await applySideEffects(this, effects, visited, (card, name) =>
-        this.performTransition(card, name),
-      );
-    } catch (error) {
-      this.logger.warn(
-        {
-          attempted: [...visited],
-          error: error instanceof Error ? error.message : String(error),
-        },
-        'Applying transition side effects failed',
-      );
-    }
   }
 }

@@ -21,6 +21,7 @@ import {
   rewriteContentFileRefs,
 } from '../cascades/rewrite-refs.js';
 import type { Card, ChangeOperation, LinkType } from '@cyberismo/model';
+import { updateCardMetadata } from '../../cards/update.js';
 
 export class CardTypeRenameHandler implements Handler<RenameInput> {
   async apply(ctx: MutationContext<RenameInput>): Promise<void> {
@@ -55,7 +56,7 @@ export class CardTypeRenameHandler implements Handler<RenameInput> {
     for (const card of cards) {
       const metadata = card.metadata!;
       metadata.cardType = newName;
-      await ctx.checkout.updateCardMetadata(card, metadata);
+      await updateCardMetadata(ctx.checkout, card, metadata);
     }
 
     // 2. Rewrite the cascading references: folder-resource content files

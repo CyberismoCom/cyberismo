@@ -17,6 +17,11 @@ import { write } from '../utils/rw-lock.js';
 
 import type { Create } from './create.js';
 import type { Checkout } from '../containers/project.js';
+import {
+  addLabel,
+  updateCardContent,
+  updateCardMetadataKey,
+} from '../cards/update.js';
 
 /**
  * Handles importing cards from a CSV file.
@@ -82,13 +87,13 @@ export class Import {
         .show();
 
       if (description) {
-        await this.checkout.updateCardContent(cardKey, description);
+        await updateCardContent(this.checkout, cardKey, description);
       }
 
       if (labels) {
         for (const label of labels.split(' ')) {
           try {
-            await this.createCmd.createLabel(cardKey, label);
+            await addLabel(this.checkout, cardKey, label);
           } catch (e) {
             console.error(
               `Failed to create label ${label}: ${e instanceof Error ? e.message : 'Unknown error'}`,
@@ -97,10 +102,10 @@ export class Import {
         }
       }
 
-      await this.checkout.updateCardMetadataKey(cardKey, 'title', title);
+      await updateCardMetadataKey(this.checkout, cardKey, 'title', title);
       for (const [key, value] of Object.entries(customFields)) {
         if (cardType.customFields.find((field) => field.name === key)) {
-          await this.checkout.updateCardMetadataKey(cardKey, key, value);
+          await updateCardMetadataKey(this.checkout, cardKey, key, value);
         }
       }
       importedCards.push(cardKey);

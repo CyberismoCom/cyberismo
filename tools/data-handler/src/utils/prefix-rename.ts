@@ -24,6 +24,8 @@ import type { Checkout } from '../containers/project.js';
 import type { Card } from '@cyberismo/model';
 import { resourceName } from './resource-utils.js';
 import { ResourcesFrom } from '../containers/project/resources-from.js';
+import { renameCardAttachment } from '../cards/attachments.js';
+import { updateCardMetadata as saveCardMetadata } from '../cards/update.js';
 
 const FILE_TYPES_WITH_PREFIX_REFERENCES = ['adoc', 'hbs', 'json', 'lp'];
 
@@ -141,7 +143,8 @@ async function updateCardAttachments(
     await Promise.all(
       fileNames.map(async (fileName) => {
         // NOTE: file contents are rewritten by updateFiles.
-        await checkout.renameCardAttachment(
+        await renameCardAttachment(
+          checkout,
           card.key,
           fileName,
           fileName.replace(re, to),
@@ -182,7 +185,7 @@ async function updateCardMetadata(
           delete card.metadata[oldKey];
         }
       }
-      await checkout.updateCardMetadata(card, card.metadata);
+      await saveCardMetadata(checkout, card, card.metadata);
     }
   }
 }

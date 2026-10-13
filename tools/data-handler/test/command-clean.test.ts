@@ -3,6 +3,7 @@ import { expect, it, describe, beforeAll, afterAll, vi } from 'vitest';
 import { join } from 'node:path';
 import { execFileSync } from 'node:child_process';
 import {
+  chmodSync,
   appendFileSync,
   mkdirSync,
   rmSync,
@@ -277,11 +278,13 @@ describe('clean command', () => {
 
       // Project cards are visited first, and decision_6 is the only one with
       // removals, so the single rejection lands on it.
-      const failingWrite = vi
-        .spyOn(freshCommands.checkout, 'updateCardMetadata')
-        .mockRejectedValueOnce(new Error('write failed'));
-      const result = await freshCommands.cleanCmd.clean(false);
-      failingWrite.mockRestore();
+      chmodSync(failingFile, 0o444);
+      let result: Awaited<ReturnType<Clean['clean']>>;
+      try {
+        result = await freshCommands.cleanCmd.clean(false);
+      } finally {
+        chmodSync(failingFile, 0o644);
+      }
 
       expect(result.failedCards).toEqual(['decision_6']);
       expect(readFileSync(failingFile, 'utf-8')).toBe(before);

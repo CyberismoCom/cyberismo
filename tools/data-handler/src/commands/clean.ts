@@ -26,6 +26,7 @@ import type {
   CleanFinding,
   CleanResult,
 } from '@cyberismo/model';
+import { updateCardMetadata } from '../cards/update.js';
 
 // The logger is initialized while the project loads, so the child logger is
 // taken at call time; binding it at module scope would keep the silent default.
@@ -103,7 +104,7 @@ export class Clean {
           delete metadata[removal.field];
         }
         try {
-          await this.checkout.updateCardMetadata(card, card.metadata);
+          await updateCardMetadata(this.checkout, card, card.metadata);
         } catch (error) {
           logger().warn(error, `Could not clean card '${card.key}'`);
           failedCards.push(card.key);

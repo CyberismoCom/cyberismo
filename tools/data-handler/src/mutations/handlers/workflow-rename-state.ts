@@ -17,6 +17,7 @@ import { resolveCardTypeRename } from '../handler.js';
 import type { EditInput } from '../types.js';
 import { resourceNameToString } from '../../utils/resource-utils.js';
 import type { ChangeOperation, Card, WorkflowState } from '@cyberismo/model';
+import { updateCardMetadata } from '../../cards/update.js';
 
 /**
  * Renaming a workflow state (a 'change' on 'states' whose target name differs
@@ -54,7 +55,7 @@ export class WorkflowRenameStateHandler implements Handler<EditInput> {
 
     for (const card of this.cardsInState(ctx, name, oldState)) {
       card.metadata!.workflowState = newState;
-      await ctx.checkout.updateCardMetadata(card, card.metadata!);
+      await updateCardMetadata(ctx.checkout, card, card.metadata!);
     }
   }
 

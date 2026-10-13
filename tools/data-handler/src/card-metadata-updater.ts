@@ -16,6 +16,7 @@ import type { CardMetadata, UpdateField } from '@cyberismo/model';
 import { FieldTypeResource } from './resources/field-type-resource.js';
 import { getChildLogger } from './utils/log-utils.js';
 import type { Checkout } from './containers/project.js';
+import { updateCardMetadata } from './cards/update.js';
 
 /**
  * Card metadata update result.
@@ -181,7 +182,7 @@ export class CardMetadataUpdater {
     }
 
     if (result.success) {
-      await checkout.updateCardMetadata(card, card.metadata);
+      await updateCardMetadata(checkout, card, card.metadata);
     }
     return result;
   }

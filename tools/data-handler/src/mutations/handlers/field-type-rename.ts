@@ -20,6 +20,7 @@ import {
   rewriteCardContentRefs,
   rewriteContentFileRefs,
 } from '../cascades/rewrite-refs.js';
+import { updateCardMetadata } from '../../cards/update.js';
 
 /**
  * Renaming a field type rewrites card-content references, calculations,
@@ -107,7 +108,7 @@ export class FieldTypeRenameHandler implements Handler<RenameInput> {
       if (!metadata || !(oldName in metadata)) continue;
       metadata[newName] = metadata[oldName];
       delete metadata[oldName];
-      await ctx.checkout.updateCardMetadata(card, metadata);
+      await updateCardMetadata(ctx.checkout, card, metadata);
     }
   }
 }
