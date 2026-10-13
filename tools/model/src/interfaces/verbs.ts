@@ -46,3 +46,12 @@ export interface RenderedContent {
   content: string;
   error?: string;
 }
+
+// A rendered PDF and the warnings asciidoctor-pdf reported while rendering.
+export interface ExportedPdf {
+  pdf: Uint8Array;
+  warnings: string[];
+}
+
+// An AsciiDoc export: file contents by path relative to the export folder.
+export type AdocFiles = { [path: string]: Uint8Array };

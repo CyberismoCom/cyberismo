@@ -12,7 +12,6 @@
 */
 
 // node
-import { writeFile } from 'node:fs/promises';
 
 import { sanitizeSvgBase64 } from '../../utils/sanitize-svg.js';
 import { instance } from '@viz-js/viz';
@@ -83,19 +82,14 @@ export class CalculationEngine {
   }
 
   /**
-   * Exports logic program to a given file
-   * @param destination Destination file path
-   * @param programs Programs or categories to export
-   * @param query Query to export, if not provided, all programs will be exported
+   * Builds a logic program.
+   * @param programs Programs or categories to include
+   * @param query Query to put first, if any
    */
-  public async exportLogicProgram(
-    destination: string,
-    programs: string[],
-    query?: QueryName,
-  ) {
+  public logicProgram(programs: string[], query?: QueryName): string {
     let logicProgram = query ? this.queryContent(query) : '';
     logicProgram += this.clingo.buildProgram('', programs);
-    await writeFile(destination, logicProgram);
+    return logicProgram;
   }
 
   /**
