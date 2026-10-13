@@ -18,9 +18,9 @@ export interface ProjectFormData {
   description: string;
 }
 
-// Must match Validate.validatePrefix in data-handler: ^[a-z]+$, length 3-10
+// Must match Validate.validatePrefix on the server: ^[a-z]+$, length 3-10
 const PREFIX_PATTERN = /^[a-z]{3,10}$/;
-// Must match Validate.isValidProjectName in data-handler: ^[A-Za-z ._-]+$, length 1-63
+// Must match Validate.isValidProjectName on the server: ^[A-Za-z ._-]+$, length 1-63
 const PROJECT_NAME_PATTERN = /^[A-Za-z ._-]+$/;
 
 export function isPrefixValid(prefix: string): boolean {
