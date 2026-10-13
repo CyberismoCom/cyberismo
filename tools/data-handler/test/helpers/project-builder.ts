@@ -41,6 +41,8 @@ export interface CardTypeSpec {
     isCalculated?: boolean;
     enableOverride?: boolean;
   }[];
+  /** Field type names listed in the card's exported metadata table. */
+  alwaysVisibleFields?: string[];
 }
 
 export interface FieldTypeSpec {
@@ -88,6 +90,8 @@ export interface ResourceSpec {
   templates?: TemplateSpec[];
   /** Calculation name → logic program appended as its own calculation file. */
   calculations?: Record<string, string>;
+  /** Report name → its logic program query and content template (Handlebars). */
+  reports?: Record<string, { query?: string; content: string }>;
 }
 
 export interface ModuleSpec extends ResourceSpec {
@@ -97,6 +101,8 @@ export interface ModuleSpec extends ResourceSpec {
 export interface ProjectSpec extends ResourceSpec {
   prefix?: string;
   name?: string;
+  /** The project's published version, as cardsConfig.json holds it. */
+  version?: string;
   /** Seed for card keys; the same spec and seed give the same keys and bytes. */
   seed?: number;
   cards?: CardSpec[];
@@ -252,6 +258,9 @@ class Builder {
           ...field,
           name: fullName(prefix, 'fieldTypes', field.name),
         })),
+        alwaysVisibleFields: cardType.alwaysVisibleFields?.map((name) =>
+          fullName(prefix, 'fieldTypes', name),
+        ),
       });
     }
 
@@ -290,6 +299,29 @@ class Builder {
         join(folder, 'calculations', name, 'calculation.lp'),
         program,
       );
+    }
+
+    if (spec.reports)
+      await writeSchema(join(folder, 'reports'), 'reportSchema');
+    for (const [name, report] of Object.entries(spec.reports ?? {})) {
+      await writeJson(join(folder, 'reports', `${name}.json`), {
+        name: fullName(prefix, 'reports', name),
+        displayName: name,
+      });
+      const reportFolder = join(folder, 'reports', name);
+      await mkdir(reportFolder, { recursive: true });
+      await writeJson(join(reportFolder, '.schema'), [
+        { id: 'reportSchema', version: 1, file: `../${name}.json` },
+      ]);
+      await writeFile(join(reportFolder, 'query.lp.hbs'), report.query ?? '');
+      await writeFile(join(reportFolder, 'index.adoc.hbs'), report.content);
+      await writeJson(join(reportFolder, 'parameterSchema.json'), {
+        title: 'Report',
+        $id: `${name}Schema`,
+        type: 'object',
+        properties: { name: { type: 'string' } },
+        required: ['name'],
+      });
     }
 
     for (const template of spec.templates ?? []) {
@@ -396,6 +428,7 @@ class Builder {
           location: `file:../${module.prefix}`,
         })),
         spec.hubs,
+        spec.version,
       ),
     );
     const cardRoot = join(this.path, 'cardRoot');
@@ -428,8 +461,10 @@ class Builder {
     name: string,
     modules: unknown[],
     hubs: unknown[] = [],
+    version?: string,
   ) {
     return {
+      ...(version ? { version } : {}),
       schemaVersion: SCHEMA_VERSION,
       cardKeyPrefix: prefix,
       name,
