@@ -16,12 +16,13 @@ import type { Checkout } from '../containers/project.js';
 import { GitManager } from '../utils/git-manager.js';
 
 /**
- * Publishes the current project version by creating a git tag and pushing.
+ * Tags the current project version for publishing; pushing the tag is the
+ * caller's.
  *
  * @param dryRun If true, returns what would happen without doing it
  * @returns The published version string
  */
-export async function publishVersion(
+export async function tagVersion(
   checkout: Checkout,
   dryRun: boolean,
   remote?: string,
@@ -46,16 +47,8 @@ export async function publishVersion(
   }
 
   if (!dryRun) {
-    // Create annotated tag and push. If push fails, clean up the local tag
-    // so a retry doesn't hit the "already published" guard.
     const tagMessage = `Release v${version}`;
     await git.tagVersion(version, tagMessage);
-    try {
-      await git.push({ tags: true, remote: resolvedRemote });
-    } catch (error) {
-      await git.deleteTag(version);
-      throw error;
-    }
   }
 
   return { version, remote: resolvedRemote, dryRun };

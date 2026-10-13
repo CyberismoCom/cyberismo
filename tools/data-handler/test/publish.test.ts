@@ -24,6 +24,7 @@ describe('Publish', () => {
   let git: GitManager;
   let publish: Versions;
   let configuration: { version?: string };
+  let lock: RWLock;
 
   beforeEach(async () => {
     dir = await mkdtemp(join(tmpdir(), 'publish-test-'));
@@ -39,10 +40,11 @@ describe('Publish', () => {
 
     configuration = {};
 
+    lock = new RWLock();
     const checkout = {
       basePath: dir,
       git,
-      lock: new RWLock(),
+      lock,
       configuration,
     } as unknown as Checkout;
 
@@ -108,18 +110,35 @@ describe('Publish', () => {
       await expect(publish.publish(false)).rejects.toThrow('already published');
     });
 
-    it('should not save the tag when push fails', async () => {
+    it('keeps the tag and reports a failed push', async () => {
       configuration.version = '1.0.0';
       await writeFile(join(dir, 'cardRoot', 'a.txt'), 'a');
       await git.commit('change');
 
       sinon.stub(git, 'push').rejects(new Error('network error'));
 
-      await expect(publish.publish(false)).rejects.toThrow('network error');
+      await expect(publish.publish(false)).rejects.toThrow(
+        "Tagged v1.0.0, but could not push it to 'origin': network error; push it with 'git push origin v1.0.0'",
+      );
 
-      // Tag should have been cleaned up so retry works
       const tags = await testGit(dir).tags();
-      expect(tags.all).not.toContain('v1.0.0');
+      expect(tags.all).toContain('v1.0.0');
+    });
+
+    it('pushes after the write lock is released', async () => {
+      configuration.version = '1.0.0';
+      await writeFile(join(dir, 'cardRoot', 'a.txt'), 'a');
+      await git.commit('change');
+
+      const events: string[] = [];
+      lock.onReleased(() => events.push('released'));
+      sinon.stub(git, 'push').callsFake(async () => {
+        events.push('push');
+      });
+
+      await publish.publish(false);
+
+      expect(events).toEqual(['released', 'push']);
     });
   });
 

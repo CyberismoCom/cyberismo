@@ -11,11 +11,10 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { writeFile } from 'node:fs/promises';
-
 import Handlebars from 'handlebars';
 import { workflowGraph } from '@cyberismo/assets';
 
+import { queries } from '@cyberismo/model';
 import type {
   Context,
   QueryName,
@@ -24,6 +23,7 @@ import type {
   ResourceName,
 } from '@cyberismo/model';
 import type { Checkout } from '../containers/project.js';
+import { DHValidationError } from '../exceptions/index.js';
 import ReportMacro from '../macros/report/index.js';
 import TaskQueue from '../macros/task-queue.js';
 import { evaluateMacros } from '../macros/index.js';
@@ -44,21 +44,19 @@ export class Queries {
   constructor(private checkout: Checkout) {}
 
   /**
-   * Exports logic program to a given file
-   * @param destination Destination file path
-   * @param programs Programs or categories to export
-   * @param query Query to export, if not provided, all programs will be exported
+   * The project's whole logic program, with a named query first if given.
+   * @throws if the query is not a known one.
    */
   @read
-  public async exportLogicProgram(
-    destination: string,
-    programs: string[] = ['all'],
-    query?: QueryName,
-  ) {
-    await this.checkout.calculationEngine.exportLogicProgram(
-      destination,
-      programs,
-      query,
+  public async program(query?: string): Promise<string> {
+    if (query && !(queries as readonly string[]).includes(query)) {
+      throw new DHValidationError(
+        `Unknown query '${query}'. Must be one of: ${queries.join(', ')}`,
+      );
+    }
+    return this.checkout.calculationEngine.logicProgram(
+      ['all'],
+      query as QueryName | undefined,
     );
   }
 
@@ -140,21 +138,20 @@ export class Queries {
     reportName: string,
     parameters: ReportParameters,
     context: Context,
-    outputPath?: string,
   ): Promise<string> {
     // Validate the parameters file.
     if (!reportName) {
-      throw new Error(
+      throw new DHValidationError(
         'The parameters file must include a "name" field (report name).',
       );
     }
     if (!parameters) {
-      throw new Error(
+      throw new DHValidationError(
         'The parameters file must include a "parameters" field (report parameters).',
       );
     }
     if (!parameters.cardKey) {
-      throw new Error(
+      throw new DHValidationError(
         'The parameters file must include a "cardKey" field included in the "parameters".',
       );
     }
@@ -186,19 +183,6 @@ export class Queries {
       context,
     });
 
-    // Show the results either in the console or write to a file.
-    if (outputPath) {
-      try {
-        await writeFile(outputPath, result ?? '', 'utf-8');
-      } catch (error) {
-        if (error instanceof Error) {
-          throw new Error(
-            `Failed to write report to ${outputPath}: ${error.message}`,
-            { cause: error },
-          );
-        }
-      }
-    }
-    return outputPath ? '' : (result ?? '');
+    return result ?? '';
   }
 }

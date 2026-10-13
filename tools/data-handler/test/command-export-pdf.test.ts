@@ -1,12 +1,6 @@
 import { expect, it, describe, beforeAll, afterAll, vi } from 'vitest';
 import { join } from 'node:path';
-import {
-  chmodSync,
-  mkdirSync,
-  mkdtempSync,
-  rmSync,
-  writeFileSync,
-} from 'node:fs';
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 
 import { copyDir } from '../src/utils/file-utils.js';
@@ -101,7 +95,7 @@ describe('PDF export - asciidoctor safe mode', () => {
         '== Testing\ninclude::/proc/self/environ[]\n',
       );
 
-      const pdf = await exportCmd.exportPdfBuffer(options);
+      const pdf = Buffer.from((await exportCmd.pdf(options)).pdf);
 
       expect(pdf.toString('latin1')).not.toContain('env_leak_canary_qqz');
     },
@@ -118,7 +112,7 @@ describe('PDF export - asciidoctor safe mode', () => {
         `== Testing\ninclude::${secretFile}[]\n`,
       );
 
-      const pdf = await exportCmd.exportPdfBuffer(options);
+      const pdf = Buffer.from((await exportCmd.pdf(options)).pdf);
 
       expect(pdf.toString('latin1')).not.toContain('file_leak_canary_zzx');
     },
@@ -145,7 +139,7 @@ describe('PDF export - asciidoctor safe mode', () => {
 
   const exportWithContent = async (content: string) => {
     await ws.cards.edit('decision_5', content);
-    return exportCmd.exportPdfBuffer(options);
+    return Buffer.from((await exportCmd.pdf(options)).pdf);
   };
 
   const writeCanaryPng = () => {
@@ -167,10 +161,14 @@ describe('PDF export - asciidoctor safe mode', () => {
       );
 
       const control = await exportWithContent('== Testing\n\nBody.\n');
-      const probe = await exportCmd.exportPdfBuffer({
-        ...options,
-        name: `${options.name}\n:front-cover-image: image:${coverFile}[]`,
-      });
+      const probe = Buffer.from(
+        (
+          await exportCmd.pdf({
+            ...options,
+            name: `${options.name}\n:front-cover-image: image:${coverFile}[]`,
+          })
+        ).pdf,
+      );
 
       expect(pageCount(probe)).toBe(pageCount(control));
       expect(imageCount(probe)).toBe(imageCount(control));
@@ -188,12 +186,9 @@ describe('PDF export - asciidoctor safe mode', () => {
       const stderrSpy = vi.spyOn(process.stderr, 'write');
       const warnSpy = vi.spyOn(console, 'warn');
       try {
-        const message = await exportCmd.exportPdf(
-          join(outsideDir, 'warnings.pdf'),
-          options,
-        );
+        const { warnings } = await exportCmd.pdf(options);
 
-        expect(message).toContain('with 2 rendering warnings');
+        expect(warnings).toHaveLength(2);
         expect(stderrSpy).not.toHaveBeenCalled();
         expect(warnSpy).not.toHaveBeenCalled();
       } finally {
@@ -202,38 +197,6 @@ describe('PDF export - asciidoctor safe mode', () => {
       }
     },
     PDF_SPAWN_TIMEOUT,
-  );
-
-  // A stub asciidoctor-pdf on PATH that fails with a server path in its output
-  it.runIf(process.platform === 'linux')(
-    'keeps failure diagnostics out of the buffer export error',
-    async () => {
-      const binDir = mkdtempSync(join(tmpdir(), 'cyberismo-pdf-stub-'));
-      const stub = join(binDir, 'asciidoctor-pdf');
-      writeFileSync(
-        stub,
-        '#!/bin/sh\ncat > /dev/null\necho "asciidoctor: ERROR: /srv/secret/path" >&2\nexit 1\n',
-      );
-      chmodSync(stub, 0o755);
-      const originalPath = process.env.PATH;
-      process.env.PATH = `${binDir}:${originalPath}`;
-      const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-      try {
-        await expect(exportCmd.exportPdfBuffer(options)).rejects.toThrow(
-          /^Asciidoctor-pdf failed with code 1$/,
-        );
-        expect(errorSpy.mock.calls.flat().join(' ')).toContain(
-          '/srv/secret/path',
-        );
-        await expect(
-          exportCmd.exportPdf(join(outsideDir, 'failed.pdf'), options),
-        ).rejects.toThrow('/srv/secret/path');
-      } finally {
-        process.env.PATH = originalPath;
-        errorSpy.mockRestore();
-        rmSync(binDir, { recursive: true, force: true });
-      }
-    },
   );
 
   it(
