@@ -41,6 +41,11 @@ import {
   ReadOnlyContainerError,
 } from '../src/exceptions/index.js';
 import { getTestProject } from './helpers/test-utils.js';
+import {
+  allTemplateCards as readAllTemplateCards,
+  findCard,
+  hasCard,
+} from '../src/cards/read.js';
 import { openTestWorkspace } from './helpers/open-test-workspace.js';
 
 const baseDir = import.meta.dirname;
@@ -1228,8 +1233,8 @@ describe('Card tree', () => {
       const templateResource = ws.checkout.resources.byType(name, 'templates');
       await templateResource.create();
       ws.checkout.resources.changed();
-      await ws.createCmd.addCards('decision/cardTypes/decision', name);
-      await ws.createCmd.addCards('decision/cardTypes/simplepage', name);
+      await ws.cards.addToTemplate('decision/cardTypes/decision', name);
+      await ws.cards.addToTemplate('decision/cardTypes/simplepage', name);
 
       // Verify cards from template are in cache
       const templateCards = templateResource.cardTree.cards();
@@ -1237,8 +1242,8 @@ describe('Card tree', () => {
 
       // Check that template cards exist in project cache
       for (const templateCard of templateCards) {
-        expect(ws.checkout.hasCard(templateCard.key)).toBe(true);
-        const cachedCard = ws.checkout.findCard(templateCard.key);
+        expect(hasCard(ws.checkout, templateCard.key)).toBe(true);
+        const cachedCard = findCard(ws.checkout, templateCard.key);
         expect(cachedCard).toBeDefined();
         expect(cachedCard!.key).toBe(templateCard.key);
       }
@@ -1251,19 +1256,19 @@ describe('Card tree', () => {
       ws.checkout.resources.changed();
 
       const template = ws.checkout.resources.byType(name, 'templates');
-      await ws.createCmd.addCards('decision/cardTypes/decision', name);
+      await ws.cards.addToTemplate('decision/cardTypes/decision', name);
 
       const templateCards = template.cardTree.cards();
       const templateCardKeys = templateCards.map((card) => card.key);
       for (const cardKey of templateCardKeys) {
-        expect(ws.checkout.hasCard(cardKey)).toBe(true);
+        expect(hasCard(ws.checkout, cardKey)).toBe(true);
       }
 
       // Remove template
       const removeCmd = ws.removeCmd;
       await removeCmd.remove('template', name);
       for (const cardKey of templateCardKeys) {
-        expect(ws.checkout.hasCard(cardKey)).toBe(false);
+        expect(hasCard(ws.checkout, cardKey)).toBe(false);
       }
     });
 
@@ -1271,15 +1276,15 @@ describe('Card tree', () => {
       const baseModule = 'https://github.com/CyberismoCom/module-base.git';
       await ws.modulesCmd.install(baseModule);
 
-      const allTemplateCards = ws.checkout.allTemplateCards();
+      const allTemplateCards = readAllTemplateCards(ws.checkout);
       const baseTemplateCards = allTemplateCards.filter((card: Card) =>
         card.path.includes(`base${sep}templates`),
       );
 
       expect(baseTemplateCards.length).toBeGreaterThan(0);
       for (const templateCard of baseTemplateCards) {
-        expect(ws.checkout.hasCard(templateCard.key)).toBe(true);
-        const cachedCard = ws.checkout.findCard(templateCard.key);
+        expect(hasCard(ws.checkout, templateCard.key)).toBe(true);
+        const cachedCard = findCard(ws.checkout, templateCard.key);
         expect(cachedCard).toBeDefined();
         expect(cachedCard!.key).toBe(templateCard.key);
       }
@@ -1290,7 +1295,7 @@ describe('Card tree', () => {
 
       await ws.modulesCmd.install(baseModule);
 
-      const allTemplateCards = ws.checkout.allTemplateCards();
+      const allTemplateCards = readAllTemplateCards(ws.checkout);
       const baseTemplateCards = allTemplateCards.filter((card: Card) =>
         card.path.includes(`base${sep}templates`),
       );
@@ -1298,8 +1303,8 @@ describe('Card tree', () => {
       // Verify that module template cards are in cache
       expect(baseTemplateCards.length).toBeGreaterThan(0);
       for (const templateCard of baseTemplateCards) {
-        expect(ws.checkout.hasCard(templateCard.key)).toBe(true);
-        const cachedCard = ws.checkout.findCard(templateCard.key);
+        expect(hasCard(ws.checkout, templateCard.key)).toBe(true);
+        const cachedCard = findCard(ws.checkout, templateCard.key);
         expect(cachedCard).toBeDefined();
         expect(cachedCard!.key).toBe(templateCard.key);
       }
@@ -1314,13 +1319,13 @@ describe('Card tree', () => {
       await ws.removeCmd.remove('module', moduleEntry!.name);
 
       // Verify module template cards are gone from the cache after removal
-      const remainingTemplateCards = ws.checkout
-        .allTemplateCards()
-        .filter((card: Card) => card.path.includes(`base${sep}templates`));
+      const remainingTemplateCards = readAllTemplateCards(ws.checkout).filter(
+        (card: Card) => card.path.includes(`base${sep}templates`),
+      );
 
       expect(remainingTemplateCards.length).toBe(0);
       for (const card of baseTemplateCards) {
-        expect(ws.checkout.hasCard(card.key)).toBe(false);
+        expect(hasCard(ws.checkout, card.key)).toBe(false);
       }
     }, 60000);
   });

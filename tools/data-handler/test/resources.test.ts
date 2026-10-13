@@ -28,6 +28,7 @@ import type {
 import { Workspace } from '../src/workspace/workspace.js';
 import { SYSTEM_ACTOR } from '../src/utils/tx-record.js';
 import { updateCardContent, updateCardMetadata } from '../src/cards/update.js';
+import { findCard } from '../src/cards/read.js';
 
 // Helper type for resource test configurations
 type ResourceType =
@@ -1725,7 +1726,7 @@ describe('resources', function () {
       ).rejects.toThrow('Resource identifier must follow naming rules.');
     });
     it('update field type - change data type (number -> integer) does not cascade to cards via resource class', async () => {
-      let card6 = checkout.findCard('decision_6');
+      let card6 = findCard(checkout, 'decision_6');
       expect(card6.metadata!['decision/fieldTypes/numberOfCommits']).equals(
         1.5,
       );
@@ -1742,7 +1743,7 @@ describe('resources', function () {
       // The resource-level update persists the new dataType but no longer
       // converts card values; FieldTypeDataTypeHandler owns that cascade.
       expect(res.data?.dataType).toBe('integer');
-      card6 = checkout.findCard('decision_6');
+      card6 = findCard(checkout, 'decision_6');
       expect(card6.metadata!['decision/fieldTypes/numberOfCommits']).equals(
         1.5,
       );
@@ -2207,7 +2208,7 @@ describe('resources', function () {
       expect((res.data as Workflow).states.map((s) => s.name)).not.toContain(
         'Approved',
       );
-      const updatedCard = checkout.findCard(target.key);
+      const updatedCard = findCard(checkout, target.key);
       expect(updatedCard.metadata!.workflowState).toBe('Approved');
 
       const opRevert = {
@@ -2571,13 +2572,13 @@ describe('resources', function () {
 
     it('should not update card contents when renaming template via resource class (cascade moved to handler)', async () => {
       const cardKey = 'decision_5';
-      const card = checkout.findCard(cardKey);
+      const card = findCard(checkout, cardKey);
       expect(card.content).toContain('decision/templates/simplepage');
 
       const templateName = 'decision/templates/simplepage';
       const template = checkout.resources.byType(templateName, 'templates');
       await template.rename('renamedpage');
-      const updatedCard = checkout.findCard(cardKey);
+      const updatedCard = findCard(checkout, cardKey);
 
       expect(template.data?.name).toBe('decision/templates/renamedpage');
       // The resource-level rename no longer cascades; LeafResourceRenameHandler does.
@@ -2591,13 +2592,13 @@ describe('resources', function () {
 
     it('should not update card contents when renaming report via resource class (cascade moved to handler)', async () => {
       const cardKey = 'decision_5';
-      const card = checkout.findCard(cardKey);
+      const card = findCard(checkout, cardKey);
       expect(card.content).toContain('decision/reports/testReport');
 
       const reportName = 'decision/reports/testReport';
       const report = checkout.resources.byType(reportName, 'reports');
       await report.rename('renamedReport');
-      const updatedCard = checkout.findCard(cardKey);
+      const updatedCard = findCard(checkout, cardKey);
 
       expect(report.data?.name).toBe('decision/reports/renamedReport');
       // The resource-level rename no longer cascades; LeafResourceRenameHandler does.
@@ -2613,9 +2614,9 @@ describe('resources', function () {
       const workflowName = 'decision/workflows/testWorkflowForContent';
       const workflow = checkout.resources.byType(workflowName, 'workflows');
       await workflow.create();
-
-      const create = Workspace.over(checkout, SYSTEM_ACTOR).createCmd;
-      const result = await create.createCard('decision/templates/simplepage');
+      const result = await Workspace.over(checkout, SYSTEM_ACTOR).cards.create(
+        'decision/templates/simplepage',
+      );
       const cardKey = result[0].key;
       await updateCardContent(
         checkout,
@@ -2623,7 +2624,7 @@ describe('resources', function () {
         `This card references ${workflowName} in its content.`,
       );
 
-      let card = checkout.findCard(cardKey);
+      let card = findCard(checkout, cardKey);
       expect(card.content).toContain(workflowName);
 
       await workflow.rename('renamedWorkflow');
@@ -2631,7 +2632,7 @@ describe('resources', function () {
       expect(workflow.data?.name).toBe('decision/workflows/renamedWorkflow');
 
       // The resource-level rename no longer cascades; WorkflowRenameHandler does.
-      card = checkout.findCard(cardKey);
+      card = findCard(checkout, cardKey);
       expect(card.content).toContain(workflowName);
       expect(card.content).not.toContain('decision/workflows/renamedWorkflow');
 
@@ -2643,9 +2644,9 @@ describe('resources', function () {
       const fieldTypeName = 'decision/fieldTypes/testFieldForContent';
       const fieldType = checkout.resources.byType(fieldTypeName, 'fieldTypes');
       await fieldType.createFieldType('shortText');
-
-      const create = Workspace.over(checkout, SYSTEM_ACTOR).createCmd;
-      const result = await create.createCard('decision/templates/simplepage');
+      const result = await Workspace.over(checkout, SYSTEM_ACTOR).cards.create(
+        'decision/templates/simplepage',
+      );
       const cardKey = result[0].key;
 
       await updateCardContent(
@@ -2654,14 +2655,14 @@ describe('resources', function () {
         `This card references ${fieldTypeName} in its content.`,
       );
 
-      let card = checkout.findCard(cardKey);
+      let card = findCard(checkout, cardKey);
       expect(card.content).toContain(fieldTypeName);
 
       await fieldType.rename('renamedField');
       expect(fieldType.data?.name).toBe('decision/fieldTypes/renamedField');
 
       // The resource-level rename no longer cascades; FieldTypeRenameHandler does.
-      card = checkout.findCard(cardKey);
+      card = findCard(checkout, cardKey);
       expect(card.content).toContain(fieldTypeName);
       expect(card.content).not.toContain('decision/fieldTypes/renamedField');
 
@@ -2673,9 +2674,9 @@ describe('resources', function () {
       const cardTypeName = 'decision/cardTypes/testTypeForContent';
       const cardType = checkout.resources.byType(cardTypeName, 'cardTypes');
       await cardType.createCardType('decision/workflows/decision');
-
-      const create = Workspace.over(checkout, SYSTEM_ACTOR).createCmd;
-      const result = await create.createCard('decision/templates/simplepage');
+      const result = await Workspace.over(checkout, SYSTEM_ACTOR).cards.create(
+        'decision/templates/simplepage',
+      );
       const cardKey = result[0].key;
 
       await updateCardContent(
@@ -2684,14 +2685,14 @@ describe('resources', function () {
         `This card references ${cardTypeName} in its content.`,
       );
 
-      let card = checkout.findCard(cardKey);
+      let card = findCard(checkout, cardKey);
       expect(card.content).toContain(cardTypeName);
 
       await cardType.rename('renamedType');
       expect(cardType.data?.name).toBe('decision/cardTypes/renamedType');
 
       // The resource-level rename no longer cascades; CardTypeRenameHandler does.
-      card = checkout.findCard(cardKey);
+      card = findCard(checkout, cardKey);
       expect(card.content).toContain(cardTypeName);
       expect(card.content).not.toContain('decision/cardTypes/renamedType');
 
@@ -2707,9 +2708,9 @@ describe('resources', function () {
       const linkTypeName = 'decision/linkTypes/testLinkForContent';
       const linkType = checkout.resources.byType(linkTypeName, 'linkTypes');
       await linkType.create();
-
-      const create = Workspace.over(checkout, SYSTEM_ACTOR).createCmd;
-      const result = await create.createCard('decision/templates/simplepage');
+      const result = await Workspace.over(checkout, SYSTEM_ACTOR).cards.create(
+        'decision/templates/simplepage',
+      );
       const cardKey = result[0].key;
 
       await updateCardContent(
@@ -2718,7 +2719,7 @@ describe('resources', function () {
         `This card references ${linkTypeName} in its content.`,
       );
 
-      let card = checkout.findCard(cardKey);
+      let card = findCard(checkout, cardKey);
       expect(card.content).toContain(linkTypeName);
 
       const update = Workspace.over(checkout, SYSTEM_ACTOR).updateCmd;
@@ -2738,7 +2739,7 @@ describe('resources', function () {
       );
       expect(renamed.data?.name).toBe('decision/linkTypes/renamedLink');
 
-      card = checkout.findCard(cardKey);
+      card = findCard(checkout, cardKey);
       expect(card.content).toContain('decision/linkTypes/renamedLink');
       expect(card.content).not.toContain(linkTypeName);
 
@@ -2753,9 +2754,9 @@ describe('resources', function () {
         'calculations',
       );
       await calculation.create();
-
-      const create = Workspace.over(checkout, SYSTEM_ACTOR).createCmd;
-      const result = await create.createCard('decision/templates/simplepage');
+      const result = await Workspace.over(checkout, SYSTEM_ACTOR).cards.create(
+        'decision/templates/simplepage',
+      );
       const cardKey = result[0].key;
       await updateCardContent(
         checkout,
@@ -2763,14 +2764,14 @@ describe('resources', function () {
         `This card references ${calculationName} in its content.`,
       );
 
-      let card = checkout.findCard(cardKey);
+      let card = findCard(checkout, cardKey);
       expect(card.content).toContain(calculationName);
       await calculation.rename('renamedCalc');
 
       expect(calculation.data?.name).toBe('decision/calculations/renamedCalc');
 
       // The resource-level rename no longer cascades; LeafResourceRenameHandler does.
-      card = checkout.findCard(cardKey);
+      card = findCard(checkout, cardKey);
       expect(card.content).toContain(calculationName);
       expect(card.content).not.toContain('decision/calculations/renamedCalc');
 
@@ -2785,9 +2786,9 @@ describe('resources', function () {
         'graphModels',
       );
       await graphModel.create();
-
-      const create = Workspace.over(checkout, SYSTEM_ACTOR).createCmd;
-      const result = await create.createCard('decision/templates/simplepage');
+      const result = await Workspace.over(checkout, SYSTEM_ACTOR).cards.create(
+        'decision/templates/simplepage',
+      );
       const cardKey = result[0].key;
       await updateCardContent(
         checkout,
@@ -2795,14 +2796,14 @@ describe('resources', function () {
         `This card references ${graphModelName} in its content.`,
       );
 
-      let card = checkout.findCard(cardKey);
+      let card = findCard(checkout, cardKey);
       expect(card.content).toContain(graphModelName);
 
       await graphModel.rename('renamedGraph');
       expect(graphModel.data?.name).toBe('decision/graphModels/renamedGraph');
 
       // The resource-level rename no longer cascades; LeafResourceRenameHandler does.
-      card = checkout.findCard(cardKey);
+      card = findCard(checkout, cardKey);
       expect(card.content).toContain(graphModelName);
       expect(card.content).not.toContain('decision/graphModels/renamedGraph');
 
@@ -2814,9 +2815,9 @@ describe('resources', function () {
       const graphViewName = 'decision/graphViews/testViewForContent';
       const graphView = checkout.resources.byType(graphViewName, 'graphViews');
       await graphView.create();
-
-      const create = Workspace.over(checkout, SYSTEM_ACTOR).createCmd;
-      const result = await create.createCard('decision/templates/simplepage');
+      const result = await Workspace.over(checkout, SYSTEM_ACTOR).cards.create(
+        'decision/templates/simplepage',
+      );
       const cardKey = result[0].key;
       await updateCardContent(
         checkout,
@@ -2824,14 +2825,14 @@ describe('resources', function () {
         `This card references ${graphViewName} in its content.`,
       );
 
-      let card = checkout.findCard(cardKey);
+      let card = findCard(checkout, cardKey);
       expect(card.content).toContain(graphViewName);
 
       await graphView.rename('renamedView');
       expect(graphView.data?.name).toBe('decision/graphViews/renamedView');
 
       // The resource-level rename no longer cascades; LeafResourceRenameHandler does.
-      card = checkout.findCard(cardKey);
+      card = findCard(checkout, cardKey);
       expect(card.content).toContain(graphViewName);
       expect(card.content).not.toContain('decision/graphViews/renamedView');
 
@@ -2846,8 +2847,10 @@ describe('resources', function () {
 
       const cardKeys: string[] = [];
       for (let i = 0; i < 3; i++) {
-        const create = Workspace.over(checkout, SYSTEM_ACTOR).createCmd;
-        const result = await create.createCard('decision/templates/simplepage');
+        const result = await Workspace.over(
+          checkout,
+          SYSTEM_ACTOR,
+        ).cards.create('decision/templates/simplepage');
         const cardKey = result[0].key;
         cardKeys.push(cardKey);
 
@@ -2862,7 +2865,7 @@ describe('resources', function () {
 
       // The resource-level rename no longer cascades; LeafResourceRenameHandler does.
       for (const cardKey of cardKeys) {
-        const card = checkout.findCard(cardKey);
+        const card = findCard(checkout, cardKey);
         expect(card.content).toContain(templateName);
         expect(card.content).not.toContain(
           'decision/templates/renamedMultiRef',
@@ -2897,14 +2900,17 @@ describe('resources', function () {
       await linkType.create();
 
       // Create two cards
-      const create = Workspace.over(checkout, SYSTEM_ACTOR).createCmd;
-      const result1 = await create.createCard('decision/templates/simplepage');
+      const result1 = await Workspace.over(checkout, SYSTEM_ACTOR).cards.create(
+        'decision/templates/simplepage',
+      );
       const cardKey1 = result1[0].key;
-      const result2 = await create.createCard('decision/templates/simplepage');
+      const result2 = await Workspace.over(checkout, SYSTEM_ACTOR).cards.create(
+        'decision/templates/simplepage',
+      );
       const cardKey2 = result2[0].key;
 
       // Link card1 -> card2
-      let card1 = checkout.findCard(cardKey1);
+      let card1 = findCard(checkout, cardKey1);
 
       card1.metadata!.links.push({
         linkType: linkTypeName,
@@ -2913,7 +2919,7 @@ describe('resources', function () {
       });
 
       await updateCardMetadata(checkout, card1, card1.metadata!);
-      card1 = checkout.findCard(cardKey1);
+      card1 = findCard(checkout, cardKey1);
       expect(card1.metadata?.links).to.have.lengthOf(1);
       expect(card1.metadata?.links[0].linkType).toBe(linkTypeName);
 
@@ -2925,7 +2931,7 @@ describe('resources', function () {
       });
       const renamed = checkout.resources.byType(linkTypeRenamed, 'linkTypes');
       expect(renamed.data?.name).toBe(linkTypeRenamed);
-      card1 = checkout.findCard(cardKey1);
+      card1 = findCard(checkout, cardKey1);
       expect(card1.metadata?.links).to.have.lengthOf(1);
       expect(card1.metadata?.links[0].linkType).toBe(linkTypeRenamed);
       expect(card1.metadata?.links[0].cardKey).toBe(cardKey2);

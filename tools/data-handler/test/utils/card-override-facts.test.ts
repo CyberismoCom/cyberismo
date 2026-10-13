@@ -20,6 +20,7 @@ import { createCardFacts } from '../../src/utils/clingo-facts.js';
 import { resourceName } from '../../src/utils/resource-utils.js';
 import type { Card, CardType } from '@cyberismo/model';
 import { openTestWorkspace } from '../helpers/open-test-workspace.js';
+import { findCard } from '../../src/cards/read.js';
 
 const FIELD = 'decision/fieldTypes/obsoletedBy';
 const RESPONSIBLE_FIELD = 'decision/fieldTypes/responsible';
@@ -92,7 +93,7 @@ describe('fieldOverride fact generation', () => {
   });
 
   it('stored value on an override-enabled calculated field becomes fieldOverride', async () => {
-    const card = ws.checkout.findCard(CARD_KEY) as Card;
+    const card = findCard(ws.checkout, CARD_KEY) as Card;
     const facts = await createCardFacts(card, ws.checkout);
     expect(facts).toContain(
       `fieldOverride(${CARD_KEY}, "${FIELD}", "decision_999").`,
@@ -101,7 +102,7 @@ describe('fieldOverride fact generation', () => {
   });
 
   it('stored values on regular fields still become field facts', async () => {
-    const card = ws.checkout.findCard(CARD_KEY) as Card;
+    const card = findCard(ws.checkout, CARD_KEY) as Card;
     const facts = await createCardFacts(card, ws.checkout);
     expect(facts).toContain(`field(${CARD_KEY}, "title"`);
     expect(facts).not.toContain(`fieldOverride(${CARD_KEY}, "title"`);
@@ -221,7 +222,7 @@ describe('card query: calculated value without a stored override', () => {
   });
 
   it('stored value on an override-enabled but non-calculated field still becomes a field fact, not fieldOverride', async () => {
-    const card = ws.checkout.findCard(CARD_KEY) as Card;
+    const card = findCard(ws.checkout, CARD_KEY) as Card;
     const facts = await createCardFacts(card, ws.checkout);
     expect(facts).toContain(`field(${CARD_KEY}, "${RESPONSIBLE_FIELD}"`);
     expect(facts).not.toContain(
@@ -406,7 +407,7 @@ describe('a declared field whose field type resource is missing', () => {
   });
 
   it('is omitted while the rest of the card still produces facts', async () => {
-    const card = ws.checkout.findCard(CARD_KEY) as Card;
+    const card = findCard(ws.checkout, CARD_KEY) as Card;
 
     const facts = await createCardFacts(card, ws.checkout);
 
