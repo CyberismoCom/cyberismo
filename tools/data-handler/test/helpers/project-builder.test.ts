@@ -171,6 +171,42 @@ describe('buildProject', () => {
     });
   });
 
+  it('writes field types and custom fields, and cards carry field values', async () => {
+    const { path, keys } = await build({
+      fieldTypes: [{ name: 'size', dataType: 'integer' }],
+      cardTypes: [{ name: 'page', customFields: [{ name: 'size' }] }],
+      cards: [{ fields: { 'test/fieldTypes/size': 3 } }],
+    });
+
+    expect(await validate(path)).toBe('');
+    await withProject(path, (checkout) => {
+      expect(
+        findCard(checkout, keys[0]).metadata?.['test/fieldTypes/size'],
+      ).toBe(3);
+    });
+  });
+
+  it('writes link types and the links between cards', async () => {
+    const { path, keys } = await build({
+      linkTypes: [{ name: 'rel', enableLinkDescription: true }],
+      cards: [
+        { links: [{ linkType: 'rel', to: 1, linkDescription: 'd' }] },
+        {},
+      ],
+    });
+
+    expect(await validate(path)).toBe('');
+    await withProject(path, (checkout) => {
+      expect(findCard(checkout, keys[0]).metadata?.links).toEqual([
+        {
+          linkType: 'test/linkTypes/rel',
+          cardKey: keys[1],
+          linkDescription: 'd',
+        },
+      ]);
+    });
+  });
+
   it('writes templates with their cards', async () => {
     const { path, keys, templateKeys } = await build({
       templates: [{ name: 'tpl', cards: [{ children: [{}] }] }],
