@@ -12,7 +12,7 @@ import { copyDir } from '../src/utils/file-utils.js';
 import { resourceName } from '../src/utils/resource-utils.js';
 import { Show } from '../src/commands/index.js';
 import { getTestBaseDir, getTestProject } from './helpers/test-utils.js';
-import type { ModuleContent } from '../src/interfaces/project-interfaces.js';
+import type { ModuleContent } from '@cyberismo/model';
 import type { ShowCommandOptions } from '../src/interfaces/command-options.js';
 import { CardNotFoundError } from '../src/exceptions/index.js';
 

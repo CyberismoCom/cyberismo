@@ -3,7 +3,7 @@ import { expect, it, describe, beforeEach, afterEach } from 'vitest';
 import { join } from 'node:path';
 import { mkdirSync, rmSync } from 'node:fs';
 
-import type { CardType } from '../src/interfaces/resource-interfaces.js';
+import type { CardType } from '@cyberismo/model';
 import { copyDir } from '../src/utils/file-utils.js';
 import type { Checkout } from '../src/containers/project.js';
 import { Show, Update } from '../src/commands/index.js';

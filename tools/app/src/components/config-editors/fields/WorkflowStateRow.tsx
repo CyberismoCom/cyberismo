@@ -27,8 +27,8 @@ import { formKeyHandler } from '@/lib/hooks/utils';
 import { EditableRowActions } from './EditableRowActions';
 import { ListRow } from './ListRow';
 import { ReorderButton, ReorderButtonContainer } from './ReorderButtons';
-import type { WorkflowState } from '@cyberismo/data-handler/interfaces/resource-interfaces';
-import { WorkflowCategory } from '@cyberismo/data-handler/interfaces/resource-interfaces';
+import type { WorkflowState } from '@cyberismo/model';
+import { WorkflowCategory } from '@cyberismo/model';
 
 const CATEGORIES: WorkflowCategory[] = [
   WorkflowCategory.initial,

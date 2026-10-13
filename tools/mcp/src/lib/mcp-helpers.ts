@@ -13,7 +13,7 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import type { ResourceType } from '@cyberismo/data-handler';
+import type { ResourceType } from '@cyberismo/model';
 
 /**
  * Create a successful MCP tool result with JSON content.

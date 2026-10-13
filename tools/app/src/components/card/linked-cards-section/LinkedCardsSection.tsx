@@ -21,10 +21,7 @@ import AddLink from '@mui/icons-material/AddLink';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import type { ExpandedLinkType } from '@/lib/definitions';
 import type { CardResponse, Connector } from '@/lib/api/types';
-import type {
-  CalculationLink,
-  QueryResult,
-} from '@cyberismo/data-handler/types/queries';
+import type { CalculationLink, QueryResult } from '@cyberismo/model';
 import { useModals } from '@/lib/utils';
 import { UserRole, useHasMinRole } from '@/lib/auth';
 import { useCard } from '@/lib/api';

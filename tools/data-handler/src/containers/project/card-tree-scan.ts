@@ -16,11 +16,8 @@ import type { Dirent } from 'node:fs';
 import { basename, dirname, join, relative, resolve } from 'node:path';
 import { readdir, readFile } from 'node:fs/promises';
 
-import type {
-  CardMetadata,
-  MetadataContent,
-} from '../../interfaces/project-interfaces.js';
-import { CardNameRegEx } from '../../interfaces/project-interfaces.js';
+import type { CardMetadata, MetadataContent } from '@cyberismo/model';
+import { CardNameRegEx } from '@cyberismo/model';
 import { getChildLogger } from '../../utils/log-utils.js';
 import { ROOT } from '../../utils/constants.js';
 

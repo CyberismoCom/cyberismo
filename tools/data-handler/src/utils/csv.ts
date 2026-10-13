@@ -12,7 +12,7 @@
 
 import { readFile } from 'node:fs/promises';
 import { parse } from 'csv-parse/sync';
-import type { CSVRowRaw } from '../interfaces/project-interfaces.js';
+import type { CSVRowRaw } from '@cyberismo/model';
 
 /**
  * Escapes a string for use as a CSV field.

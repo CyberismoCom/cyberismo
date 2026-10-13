@@ -8,7 +8,7 @@ import { copyDir, pathExists } from '../src/utils/file-utils.js';
 import type { Checkout } from '../src/containers/project.js';
 import { ResourceCache } from '../src/containers/project/resource-cache.js';
 import { getTestProject } from './helpers/test-utils.js';
-import { WorkflowCategory } from '../src/interfaces/resource-interfaces.js';
+import { WorkflowCategory } from '@cyberismo/model';
 import { ResourcesFrom } from '../src/containers/project/resources-from.js';
 
 describe('Resource cache', () => {

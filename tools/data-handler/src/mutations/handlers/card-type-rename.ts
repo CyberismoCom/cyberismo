@@ -20,9 +20,7 @@ import {
   rewriteCardContentRefs,
   rewriteContentFileRefs,
 } from '../cascades/rewrite-refs.js';
-import type { Card } from '../../interfaces/project-interfaces.js';
-import type { ChangeOperation } from '../../resources/resource-object.js';
-import type { LinkType } from '../../interfaces/resource-interfaces.js';
+import type { Card, ChangeOperation, LinkType } from '@cyberismo/model';
 
 export class CardTypeRenameHandler implements Handler<RenameInput> {
   async apply(ctx: MutationContext<RenameInput>): Promise<void> {

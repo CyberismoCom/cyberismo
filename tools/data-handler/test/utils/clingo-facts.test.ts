@@ -14,8 +14,8 @@ import {
   type CardType,
   type SkillMetadata,
   type Workflow,
-} from '../../src/interfaces/resource-interfaces.js';
-import type { Card } from '../../src/index.js';
+} from '@cyberismo/model';
+import type { Card } from '@cyberismo/model';
 import type { Checkout } from '../../src/containers/project.js';
 import { copyDir } from '../../src/utils/file-utils.js';
 import { getTestProject } from '../helpers/test-utils.js';

@@ -16,7 +16,7 @@ import {
 import { getTestBaseDir, getTestProject } from './helpers/test-utils.js';
 import { makeFakeModuleFixture } from './helpers/module-fixtures.js';
 
-import type { Card } from '../src/interfaces/project-interfaces.js';
+import type { Card } from '@cyberismo/model';
 import type { requestStatus } from '../src/interfaces/request-status-interfaces.js';
 import type * as Undici from 'undici';
 

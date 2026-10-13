@@ -14,8 +14,7 @@
 
 import type { MutationInput, MutationKind } from './types.js';
 import type { ResourceName } from '../utils/resource-utils.js';
-import type { ChangeOperation } from '../resources/resource-object.js';
-import type { EnumDefinition } from '../interfaces/resource-interfaces.js';
+import type { ChangeOperation, EnumDefinition } from '@cyberismo/model';
 
 export type RouteOp = 'add' | 'remove' | 'rank' | 'change' | 'rename-member';
 

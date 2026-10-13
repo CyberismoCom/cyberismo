@@ -18,10 +18,8 @@ import { writeFile } from 'node:fs/promises';
 
 import { type ModuleListFile, MODULE_LIST_FULL_PATH } from './fetch.js';
 
-import type { CardLocation } from '../interfaces/project-interfaces.js';
-
-import type { attachmentPayload } from '../interfaces/request-status-interfaces.js';
 import type {
+  CardLocation,
   Card,
   CardAttachment,
   CardListContainer,
@@ -32,8 +30,6 @@ import type {
   ModuleSettingFromHub,
   ProjectMetadata,
   ResourceType,
-} from '../interfaces/project-interfaces.js';
-import type {
   AnyResourceContent,
   CardType,
   ResourceContent,
@@ -42,7 +38,10 @@ import type {
   SkillSummary,
   TemplateConfiguration,
   Workflow,
-} from '../interfaces/resource-interfaces.js';
+  SkillContent,
+} from '@cyberismo/model';
+
+import type { attachmentPayload } from '../interfaces/request-status-interfaces.js';
 import type { Checkout } from '../containers/project.js';
 import type { ResourceName } from '../utils/resource-utils.js';
 import type { ResourceMap } from '../containers/project/resource-cache.js';
@@ -51,7 +50,6 @@ import { read } from '../utils/rw-lock.js';
 import { moduleInfos } from '../modules/index.js';
 import ReportMacro from '../macros/report/index.js';
 import { generateReportContent } from '../utils/report.js';
-import type { SkillContent } from '../interfaces/folder-content-interfaces.js';
 import TaskQueue from '../macros/task-queue.js';
 import { evaluateMacros } from '../macros/index.js';
 import { readJsonFile } from '../utils/json.js';

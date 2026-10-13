@@ -35,7 +35,7 @@ import InsertDriveFile from '@mui/icons-material/InsertDriveFile';
 import { useAttachments } from '@/lib/api/attachments';
 import { projectApiPaths } from '@/lib/swr';
 import { AddAttachmentModal } from '@/components/modals';
-import type { CardAttachment } from '@cyberismo/data-handler/interfaces/project-interfaces';
+import type { CardAttachment } from '@cyberismo/model';
 
 function AttachmentPreviewCard({
   name,

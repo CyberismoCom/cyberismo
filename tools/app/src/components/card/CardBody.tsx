@@ -42,7 +42,7 @@ import { addNotification } from '@/lib/slices/notifications';
 
 import { renderCardHtml } from '@/components/card/renderCardContent';
 import type { CardResponse } from '@/lib/api/types';
-import type { CardAttachment } from '@cyberismo/data-handler/interfaces/project-interfaces';
+import type { CardAttachment } from '@cyberismo/model';
 import {
   addAttachment,
   handleAttachmentDrop,

@@ -6,7 +6,7 @@ import { Workspace } from '@cyberismo/data-handler';
 import { createApp } from '../src/app.js';
 import { ProjectRegistry } from '../src/project-registry.js';
 import { MockAuthProvider, MOCK_ROLE_COOKIE } from '../src/auth/mock.js';
-import type { CleanResult } from '../src/domain/project/service.js';
+import type { CleanResult } from '@cyberismo/model';
 import { cleanupTempTestData, createTempTestData } from './test-utils.js';
 
 type ProjectResponse = {

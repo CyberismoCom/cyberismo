@@ -22,7 +22,7 @@ import { join } from 'node:path';
 import { copyDir } from '../src/utils/file-utils.js';
 import { getTestProject } from './helpers/test-utils.js';
 import { readJsonFile } from '../src/utils/json.js';
-import { CardNameRegEx } from '../src/interfaces/project-interfaces.js';
+import { CardNameRegEx } from '@cyberismo/model';
 import { CardNotFoundError } from '../src/exceptions/index.js';
 import type { TemplateResource } from '../src/resources/template-resource.js';
 import { instantiateTemplate } from '../src/containers/project/template-instantiation.js';

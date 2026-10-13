@@ -28,7 +28,7 @@ import { readJsonFile, writeJsonFile } from '../utils/json.js';
 import { validateJson } from '../utils/validate.js';
 import { write } from '../utils/rw-lock.js';
 
-import type { ModuleSetting } from '../interfaces/project-interfaces.js';
+import type { ModuleSetting } from '@cyberismo/model';
 import type { Checkout } from '../containers/project.js';
 
 // Cached data of a single hub.

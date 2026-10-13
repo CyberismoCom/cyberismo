@@ -11,16 +11,13 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
+import { type Workspace, type HubFetchFailure } from '@cyberismo/data-handler';
 import {
   type CleanResult,
-  type Workspace,
-  type HubFetchFailure,
   type ModuleSettingFromHub,
   type ProjectModuleInfo,
   type UpdatePlan,
-} from '@cyberismo/data-handler';
-
-export type { CleanResult } from '@cyberismo/data-handler';
+} from '@cyberismo/model';
 
 // Never carries the module's source location.
 export interface ProjectModule extends ProjectModuleInfo {

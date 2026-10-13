@@ -35,7 +35,7 @@ import { useAppDispatch, useListItemEditing } from '@/lib/hooks';
 import { formKeyHandler, useKeyboardShortcut } from '@/lib/hooks/utils';
 import { addNotification } from '@/lib/slices/notifications';
 import { GenericConfirmModal } from '@/components/modals';
-import type { CardType } from '@cyberismo/data-handler/interfaces/resource-interfaces';
+import type { CardType } from '@cyberismo/model';
 import { getFieldTypeOptions } from '../resourceFieldConfigs';
 import { useCleanPrompt } from '../useCleanPrompt';
 import { EditableRowActions } from './EditableRowActions';

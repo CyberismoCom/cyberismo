@@ -20,7 +20,7 @@ import {
   rewriteCardContentRefs,
   rewriteContentFileRefs,
 } from '../cascades/rewrite-refs.js';
-import type { ChangeOperation } from '../../resources/resource-object.js';
+import type { ChangeOperation } from '@cyberismo/model';
 
 /**
  * Renaming a workflow rewrites dependent card types' workflow reference and

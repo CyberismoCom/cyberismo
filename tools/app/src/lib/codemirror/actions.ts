@@ -14,7 +14,7 @@
 import { EditorSelection } from '@codemirror/state';
 import type { EditorView } from '@codemirror/view';
 import { redo, undo } from '@codemirror/commands';
-import type { AnyMacroOption, MacroName } from '@cyberismo/data-handler';
+import type { AnyMacroOption, MacroName } from '@cyberismo/model';
 import i18n from 'i18next';
 
 const listItemPlaceholder = (index: number) =>

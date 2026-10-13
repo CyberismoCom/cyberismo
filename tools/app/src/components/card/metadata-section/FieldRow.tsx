@@ -20,7 +20,7 @@ import CheckIcon from '@mui/icons-material/Check';
 import CloseIcon from '@mui/icons-material/Close';
 import { Controller, useForm } from 'react-hook-form';
 import type { DataType, MetadataValue } from '@/lib/definitions';
-import type { EnumDefinition } from '@cyberismo/data-handler/types/queries';
+import type { EnumDefinition } from '@cyberismo/model/types/queries';
 import EditableField, { FieldLabel } from '@/components/EditableField';
 import FieldEditor from '@/components/FieldEditor';
 import { OverrideEditorFrame, OverriddenMarker } from './OverrideEditorFrame';

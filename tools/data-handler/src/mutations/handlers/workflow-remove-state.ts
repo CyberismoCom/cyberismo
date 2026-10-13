@@ -19,9 +19,7 @@ import {
   isInitialTransition,
   resourceNameToString,
 } from '../../utils/resource-utils.js';
-import type { RemoveOperation } from '../../resources/resource-object.js';
-import type { Card } from '../../interfaces/project-interfaces.js';
-import type { WorkflowState } from '../../interfaces/resource-interfaces.js';
+import type { RemoveOperation, Card, WorkflowState } from '@cyberismo/model';
 
 /**
  * Transition rewriting (dropping transitions that reference the removed state,

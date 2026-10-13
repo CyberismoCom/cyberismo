@@ -22,11 +22,7 @@ import { UserPreferences } from '../utils/user-preferences.js';
 import { write } from '../utils/rw-lock.js';
 import { getChildLogger } from '../utils/log-utils.js';
 
-import type {
-  Card,
-  MetadataContent,
-} from '../interfaces/project-interfaces.js';
-import type { CustomField } from '../interfaces/resource-interfaces.js';
+import type { Card, MetadataContent, CustomField } from '@cyberismo/model';
 
 const logger = getChildLogger({ module: 'edit' });
 
