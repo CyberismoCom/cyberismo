@@ -46,6 +46,8 @@ export interface CardTypeSpec {
 export interface FieldTypeSpec {
   name: string;
   dataType: string;
+  /** Enum values of an enum field type. */
+  enumValues?: string[];
 }
 
 export interface LinkTypeSpec {
@@ -100,6 +102,8 @@ export interface ProjectSpec extends ResourceSpec {
   cards?: CardSpec[];
   /** Installed under .cards/modules/<prefix> and declared in cardsConfig. */
   modules?: ModuleSpec[];
+  /** Hubs declared in cardsConfig, as written there. */
+  hubs?: { location: string; displayName?: string; description?: string }[];
   /** `git init` plus one commit of the whole project. */
   git?: boolean;
 }
@@ -256,6 +260,7 @@ class Builder {
         name: fullName(prefix, 'fieldTypes', fieldType.name),
         displayName: fieldType.name,
         dataType: fieldType.dataType,
+        enumValues: fieldType.enumValues?.map((enumValue) => ({ enumValue })),
       });
     }
 
@@ -390,6 +395,7 @@ class Builder {
           name: module.prefix,
           location: `file:../${module.prefix}`,
         })),
+        spec.hubs,
       ),
     );
     const cardRoot = join(this.path, 'cardRoot');
@@ -417,14 +423,19 @@ class Builder {
     return prefix === this.prefix ? `project ${prefix}` : `module ${prefix}`;
   }
 
-  private config(prefix: string, name: string, modules: unknown[]) {
+  private config(
+    prefix: string,
+    name: string,
+    modules: unknown[],
+    hubs: unknown[] = [],
+  ) {
     return {
       schemaVersion: SCHEMA_VERSION,
       cardKeyPrefix: prefix,
       name,
       description: '',
       modules,
-      hubs: [],
+      hubs,
     };
   }
 }
@@ -439,7 +450,8 @@ export async function buildProject(
 ): Promise<BuiltProject> {
   const path = await mkdtemp(join(tmpdir(), 'cyberismo-project-'));
   const builder = new Builder(path, spec, spec.prefix ?? 'test');
-  const cleanup = () => rm(path, { recursive: true, force: true });
+  const cleanup = () =>
+    rm(path, { recursive: true, force: true, maxRetries: 5 });
   try {
     await builder.build();
     if (spec.git) {
@@ -450,9 +462,15 @@ export async function buildProject(
           'user.name=Test',
           'user.email=test@example.com',
           'commit.gpgsign=false',
+          // background maintenance would race the cleanup of the project
+          'maintenance.auto=false',
+          'gc.auto=0',
         ],
       });
       await git.init(['--initial-branch=main']);
+      // In the repo's own config so the product's git sees it: autocrlf would
+      // write CRLF on a rollback.
+      await git.addConfig('core.autocrlf', 'false');
       await git.add('.');
       await git.commit('Initial commit', undefined, { '--no-verify': null });
     }
