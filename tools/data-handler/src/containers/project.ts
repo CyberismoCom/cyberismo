@@ -23,16 +23,9 @@ import {
   CardNotFoundError,
   DuplicateCardKeyError,
 } from '../exceptions/index.js';
-import {
-  type Card,
-  type CardAttachment,
-  CardLocation,
-  type CardListContainer,
-  type CardNode,
-  type ModuleContent,
-} from '@cyberismo/model';
+import { type CardNode, type ModuleContent } from '@cyberismo/model';
 import { pathExists } from '../utils/file-utils.js';
-import { isModulePath, sortCards } from '../utils/card-utils.js';
+import { isModulePath } from '../utils/card-utils.js';
 import { ProjectConfiguration } from '../project-settings.js';
 import { resourceName } from '../utils/resource-utils.js';
 import { ProjectPaths } from './project/project-paths.js';
@@ -78,7 +71,7 @@ export class Checkout {
   private projectCardTree: CardTree;
   // Kept here because a TemplateResource does not survive resources.changed().
   private templateCardTrees: Map<string, CardTree> = new Map();
-  private keyRegistry: CardKeyRegistry;
+  public readonly keyRegistry: CardKeyRegistry;
   private gitManager: GitManager;
   private readonly gitSync: GitSync;
   private logger = getChildLogger({ module: 'Project' });
@@ -384,14 +377,6 @@ export class Checkout {
   }
 
   /**
-   * Returns all template cards from the project. This includes all module templates' cards.
-   * @returns all the template cards from the project
-   */
-  public allTemplateCards(): Card[] {
-    return this.templateTrees().flatMap((tree) => tree.cards());
-  }
-
-  /**
    * Returns path to a card's attachment folder.
    * @param cardKey card key
    * @returns path to a card's attachment folder.
@@ -409,51 +394,6 @@ export class Checkout {
     return this.keyRegistry.has(cardKey)
       ? this.treeOf(cardKey).pathOf(cardKey)
       : '';
-  }
-
-  /**
-   * Fetches full Card data for given card keys
-   * @param cardIds array of card keys to fetch
-   * @returns Card data to the given card keys
-   */
-  public cardKeysToCards(cardIds: string[]): Card[] {
-    const cards: Card[] = [];
-    for (const cardKey of cardIds) {
-      const tree = this.keyRegistry.ownerOf(cardKey);
-      if (tree) {
-        cards.push(tree.card(cardKey));
-      }
-    }
-    return cards;
-  }
-
-  /**
-   * Metadata-level view of one card: identity, tree position and metadata,
-   * without the content or the attachment listing.
-   * @param cardKey Card key to read.
-   * @throws if the card is not part of the project
-   */
-  public cardNode(cardKey: string): CardNode {
-    return this.treeOf(cardKey).node(cardKey);
-  }
-
-  /**
-   * Content of one card.
-   * @param cardKey Card key to read.
-   * @returns the card's content, or undefined if it has none.
-   * @throws if the card is not part of the project
-   */
-  public cardContent(cardKey: string): string | undefined {
-    return this.treeOf(cardKey).content(cardKey);
-  }
-
-  /**
-   * Attachment listing of one card.
-   * @param cardKey Card key to read.
-   * @throws if the card is not part of the project
-   */
-  public cardAttachments(cardKey: string): CardAttachment[] {
-    return this.treeOf(cardKey).attachmentsOf(cardKey);
   }
 
   /**
@@ -486,24 +426,6 @@ export class Checkout {
       this.resourceWatcher.close();
       this.resourceWatcher = undefined;
     }
-  }
-
-  /**
-   * Returns specific card.
-   * @param cardToFind Card key to find
-   * @returns specific card details, fully hydrated.
-   * @throws if the card is not part of the project
-   */
-  public findCard(cardToFind: string): Card {
-    return this.treeOf(cardToFind).card(cardToFind);
-  }
-
-  /**
-   * Checks if the project holds the card, in its own cards or in a template's.
-   * @param cardKey Card key to check
-   */
-  public hasCard(cardKey: string): boolean {
-    return this.keyRegistry.has(cardKey);
   }
 
   /**
@@ -552,63 +474,6 @@ export class Checkout {
    */
   static isCreated(path: string): boolean {
     return pathExists(join(path, 'cardRoot'));
-  }
-
-  /**
-   * Returns an array of cards in the project, in the templates or both.
-   * Cards don't have content and nor metadata.
-   * @param cardsFrom Where to return cards from (project, templates, or both)
-   * @returns all cards in the project per container, each container's keys sorted.
-   */
-  public async listCards(
-    cardsFrom: CardLocation = CardLocation.all,
-  ): Promise<CardListContainer[]> {
-    const cardListContainer: CardListContainer[] = [];
-    if (
-      cardsFrom === CardLocation.all ||
-      cardsFrom === CardLocation.projectOnly
-    ) {
-      cardListContainer.push({
-        name: this.projectName,
-        type: 'project',
-        cards: this.cardTree.keys().sort(sortCards),
-      });
-    }
-
-    if (
-      cardsFrom === CardLocation.all ||
-      cardsFrom === CardLocation.templatesOnly
-    ) {
-      for (const template of this.resources.templates()) {
-        const templateCards = template.cardTree.keys().sort(sortCards);
-        if (templateCards.length) {
-          cardListContainer.push({
-            name: template.fullName,
-            type: 'template',
-            cards: templateCards,
-          });
-        }
-      }
-    }
-    return cardListContainer;
-  }
-
-  /**
-   * Return cardIDs of the cards in the project or from templates, or both.
-   * @param cardsFrom Where to return cards from (project, templates, or both)
-   * @returns Array of cardIDs.
-   * @note that cardIDs are not sorted.
-   */
-  public async listCardIds(
-    cardsFrom: CardLocation = CardLocation.all,
-  ): Promise<Set<string>> {
-    const cardContainers = await this.listCards(cardsFrom);
-    const allCardIDs = new Set<string>();
-    for (const container of cardContainers) {
-      const cards = container.cards;
-      cards.forEach((card) => allCardIDs.add(card));
-    }
-    return allCardIDs;
   }
 
   /**

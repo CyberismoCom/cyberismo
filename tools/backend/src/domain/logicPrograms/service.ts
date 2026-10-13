@@ -18,7 +18,7 @@ export async function getLogicProgram(
   resource: ResourceParamsWithCard,
 ) {
   if (resource.type === 'cards') {
-    return ws.showCmd.showCardLogicProgram(resource.identifier);
+    return ws.cards.logicProgram(resource.identifier);
   } else {
     return ws.showCmd.showLogicProgram(resource);
   }

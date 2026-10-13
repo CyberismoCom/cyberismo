@@ -46,6 +46,18 @@ export interface CardAttachment {
   mimeType: string | null;
 }
 
+// File content and mime type of one attachment
+export interface AttachmentContent {
+  fileBuffer: Uint8Array;
+  mimeType: string;
+}
+
+// The cards of one template, as a hierarchy
+export interface TemplateCardTree {
+  name: string;
+  cards: CardWithChildrenCards[];
+}
+
 // When cards are listed using 'show cards'
 export interface CardListContainer {
   name: string;

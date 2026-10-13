@@ -399,13 +399,15 @@ Some content here`;
     });
     describe('includeMacro', () => {
       let cardDetailsByIdStub: sinon.SinonStub;
-      let cardContentStub: sinon.SinonStub;
+      let treeOfStub: sinon.SinonStub;
       beforeEach(() => {
-        cardDetailsByIdStub = stub(checkout, 'cardNode');
-        cardContentStub = stub(checkout, 'cardContent');
-        cardContentStub.callsFake(
-          (cardKey: string) => (cardDetailsByIdStub(cardKey) as Card).content,
-        );
+        const tree = {
+          node: () => undefined as Card | undefined,
+          content: (cardKey: string) =>
+            (cardDetailsByIdStub(cardKey) as Card).content,
+        };
+        cardDetailsByIdStub = stub(tree, 'node');
+        treeOfStub = stub(checkout, 'treeOf').returns(tree as never);
 
         const baseCard: Card = {
           key: '',
@@ -466,7 +468,7 @@ Some content here`;
       });
       afterEach(() => {
         cardDetailsByIdStub.restore();
-        cardContentStub.restore();
+        treeOfStub.restore();
       });
       ['static', 'inject', 'staticSite'].forEach((mode) => {
         it(`includeMacro ${mode} (success)`, async () => {
@@ -932,8 +934,13 @@ Some content here`;
     });
     describe('xrefMacro', () => {
       let cardDetailsByIdStub: sinon.SinonStub;
+      let treeOfStub: sinon.SinonStub;
       beforeEach(() => {
-        cardDetailsByIdStub = stub(checkout, 'cardNode');
+        const tree = {
+          node: () => undefined as Card | undefined,
+        };
+        cardDetailsByIdStub = stub(tree, 'node');
+        treeOfStub = stub(checkout, 'treeOf').returns(tree as never);
 
         const baseCard: Card = {
           key: '',
@@ -960,6 +967,7 @@ Some content here`;
       });
       afterEach(() => {
         cardDetailsByIdStub.restore();
+        treeOfStub.restore();
       });
 
       [

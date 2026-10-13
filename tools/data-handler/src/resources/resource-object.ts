@@ -42,6 +42,7 @@ import type {
 import type { Logger } from 'pino';
 import type { Checkout } from '../containers/project.js';
 import type { Validate } from '../commands/validate.js';
+import { allTemplateCards } from '../cards/read.js';
 
 // T, but U is in the content field
 export type ShowReturnType<T extends ResourceBaseMetadata, U = never> = Omit<
@@ -177,7 +178,7 @@ export abstract class ResourceObject<
   protected cards(): Card[] {
     return [
       ...this.checkout.cardTree.cards(),
-      ...this.checkout.allTemplateCards(),
+      ...allTemplateCards(this.checkout),
     ];
   }
 
