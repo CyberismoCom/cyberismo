@@ -129,4 +129,5 @@ export const changes: FacadeSerializable<Changes> &
 
 export const resources: FacadeSerializable<Resources> = {
   create: true,
+  validate: true,
 };
