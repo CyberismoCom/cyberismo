@@ -7,6 +7,8 @@ import type { Checkout } from '../../../src/containers/project.js';
 import { getTestProject } from '../../helpers/test-utils.js';
 import { resourceName } from '../../../src/utils/resource-utils.js';
 import { ResourceMutations } from '../../../src/mutations/resource-mutations.js';
+import { Workspace } from '../../../src/workspace/workspace.js';
+import { SYSTEM_ACTOR, SYSTEM_FRAME } from '../../../src/utils/tx-record.js';
 
 const baseDir = import.meta.dirname;
 const testDir = join(baseDir, 'tmp-field-type-enum-remove');
@@ -78,8 +80,7 @@ describe('FieldTypeEnumRemoveHandler', () => {
   });
 
   it('removes the value from the field definition', async () => {
-    const mutations = new ResourceMutations(checkout);
-    await mutations.apply({
+    await Workspace.over(checkout, SYSTEM_ACTOR).updateCmd.apply({
       kind: 'edit' as const,
       target: resourceName(fieldName()),
       updateKey: { key: 'enumValues' as const },
@@ -91,8 +92,7 @@ describe('FieldTypeEnumRemoveHandler', () => {
   });
 
   it('rewrites card values when a replacementValue is provided', async () => {
-    const mutations = new ResourceMutations(checkout);
-    await mutations.apply({
+    await Workspace.over(checkout, SYSTEM_ACTOR).updateCmd.apply({
       kind: 'edit' as const,
       target: resourceName(fieldName()),
       updateKey: { key: 'enumValues' as const },
@@ -116,18 +116,20 @@ describe('FieldTypeEnumRemoveHandler', () => {
     // Recorded log entries (and authoring surfaces) may carry bare strings
     // instead of EnumDefinition objects; a replayed cascade must handle both.
     const mutations = new ResourceMutations(checkout);
-    await mutations.apply(
-      {
-        kind: 'edit' as const,
-        target: resourceName(fieldName()),
-        updateKey: { key: 'enumValues' as const },
-        operation: {
-          name: 'remove' as const,
-          target: 'low',
-          replacementValue: 'medium',
+    await checkout.lock.write(SYSTEM_FRAME, () =>
+      mutations.apply(
+        {
+          kind: 'edit' as const,
+          target: resourceName(fieldName()),
+          updateKey: { key: 'enumValues' as const },
+          operation: {
+            name: 'remove' as const,
+            target: 'low',
+            replacementValue: 'medium',
+          },
         },
-      },
-      { kind: 'replay', modulePrefix: checkout.projectPrefix },
+        { kind: 'replay', modulePrefix: checkout.projectPrefix },
+      ),
     );
     const cards = checkout.cardTree
       .cards()
@@ -139,8 +141,7 @@ describe('FieldTypeEnumRemoveHandler', () => {
   });
 
   it('leaves card values untouched when no replacement is given', async () => {
-    const mutations = new ResourceMutations(checkout);
-    await mutations.apply({
+    await Workspace.over(checkout, SYSTEM_ACTOR).updateCmd.apply({
       kind: 'edit' as const,
       target: resourceName(fieldName()),
       updateKey: { key: 'enumValues' as const },

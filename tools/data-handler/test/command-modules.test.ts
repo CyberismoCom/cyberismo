@@ -16,8 +16,6 @@ import {
   writeFileSync,
 } from 'node:fs';
 import { join, resolve as pathResolve } from 'node:path';
-
-import { Workspace } from '../src/workspace/workspace.js';
 import { copyDir } from '../src/utils/file-utils.js';
 import { Cmd, Commands } from '../src/command-handler.js';
 import { GitManager } from '../src/utils/git-manager.js';
@@ -31,6 +29,7 @@ import { SCHEMA_VERSION } from '@cyberismo/migrations';
 import { toVersionRange } from '../src/modules/types.js';
 import { ModuleValidationFailedError } from '../src/mutations/replay/replay.js';
 import { logLine, writeSeals } from './helpers/replay-fixtures.js';
+import { openTestWorkspace } from './helpers/open-test-workspace.js';
 
 // Create test artifacts in a temp folder.
 const baseDir = import.meta.dirname;
@@ -485,9 +484,7 @@ describe('module update — spec behaviours', () => {
     );
     expect(create.statusCode).toBe(200);
 
-    const ws = new Workspace(projectDir, {});
-    await ws.initialize();
-
+    const ws = await openTestWorkspace(projectDir, {});
     await ws.modulesCmd.install(hostRoot);
 
     const installedHost = join(projectDir, '.cards', 'modules', 'fkhost');
@@ -533,9 +530,7 @@ describe('module update — spec behaviours', () => {
     );
     expect(create.statusCode).toBe(200);
 
-    const ws = new Workspace(projectDir, {});
-    await ws.initialize();
-
+    const ws = await openTestWorkspace(projectDir, {});
     // First import: host is declared, dep is installed transitively on disk.
     await ws.modulesCmd.install(hostRoot);
 
@@ -590,9 +585,7 @@ describe('module update — spec behaviours', () => {
     );
     expect(create.statusCode).toBe(200);
 
-    const ws = new Workspace(projectDir, {});
-    await ws.initialize();
-
+    const ws = await openTestWorkspace(projectDir, {});
     await ws.modulesCmd.install(hostRoot);
     // Initially only `newhost` is installed — no `newdep` yet.
     expect(ws.checkout.allModulePrefixes()).toContain('newhost');
@@ -632,8 +625,7 @@ describe('module update — spec behaviours', () => {
     const depRoot = join(moduleTestDir, 'fake-override-mod');
     makeFakeModuleFixture(depRoot, { cardKeyPrefix: 'ovmod' });
 
-    const ws = new Workspace(projectDir, {});
-    await ws.initialize();
+    const ws = await openTestWorkspace(projectDir, {});
     await ws.modulesCmd.install(depRoot);
 
     // Synthesise a declared range on the persisted module so the
@@ -667,8 +659,7 @@ describe('module update — spec behaviours', () => {
     const depRoot = join(moduleTestDir, 'fake-override-mod-ok');
     makeFakeModuleFixture(depRoot, { cardKeyPrefix: 'ovkmod' });
 
-    const ws = new Workspace(projectDir, {});
-    await ws.initialize();
+    const ws = await openTestWorkspace(projectDir, {});
     await ws.modulesCmd.install(depRoot);
 
     const modSetting = ws.checkout.configuration.modules.find(
@@ -713,9 +704,7 @@ describe('module update — spec behaviours', () => {
     );
     expect(create.statusCode).toBe(200);
 
-    const ws = new Workspace(projectDir, {});
-    await ws.initialize();
-
+    const ws = await openTestWorkspace(projectDir, {});
     await ws.modulesCmd.install(hostRoot);
     const topLevelNames = ws.checkout.configuration.modules.map((m) => m.name);
     expect(topLevelNames).toEqual(['tuphost']);
@@ -746,8 +735,7 @@ describe('module update — spec behaviours', () => {
     );
     expect(create.statusCode).toBe(200);
 
-    const ws = new Workspace(projectDir, {});
-    await ws.initialize();
+    const ws = await openTestWorkspace(projectDir, {});
     await ws.modulesCmd.install(modRoot);
 
     // Seed the INSTALLED config with a version newer than the override
@@ -791,10 +779,9 @@ describe('module update — spec behaviours', () => {
     const depRoot = join(moduleTestDir, 'fake-backfill-mod');
     makeFakeModuleFixture(depRoot, { cardKeyPrefix: 'bkfmod' });
 
-    const ws = new Workspace(projectDir, {
+    const ws = await openTestWorkspace(projectDir, {
       autoSaveConfiguration: false,
     });
-    await ws.initialize();
     await ws.modulesCmd.install(depRoot);
 
     // Reshape the persisted declaration into the legacy form: a versioned
@@ -881,8 +868,7 @@ describe('module update — spec behaviours', () => {
     );
     expect(create.statusCode).toBe(200);
 
-    const ws = new Workspace(projectDir, {});
-    await ws.initialize();
+    const ws = await openTestWorkspace(projectDir, {});
     await ws.modulesCmd.install(moduleSource);
 
     await ws.createCmd.createCardType(
@@ -1156,8 +1142,7 @@ describe('module schema version enforcement on import', () => {
 
   it('migrates an older module before installing it', async () => {
     setModuleSchemaVersion(4);
-    const ws = new Workspace(hostPath);
-    await ws.initialize();
+    const ws = await openTestWorkspace(hostPath);
     await ws.modulesCmd.install(modulePath);
     const installed = readJsonFileSync(installedConfigPath) as {
       schemaVersion: number;
@@ -1168,8 +1153,7 @@ describe('module schema version enforcement on import', () => {
 
   it('refuses a module newer than the tool, before any disk change', async () => {
     setModuleSchemaVersion(SCHEMA_VERSION + 1);
-    const ws = new Workspace(hostPath);
-    await ws.initialize();
+    const ws = await openTestWorkspace(hostPath);
     await expect(ws.modulesCmd.install(modulePath)).rejects.toThrow(
       'Upgrade cyberismo',
     );
@@ -1179,8 +1163,7 @@ describe('module schema version enforcement on import', () => {
 
   it('refuses a module without a schema version', async () => {
     setModuleSchemaVersion(undefined);
-    const ws = new Workspace(hostPath);
-    await ws.initialize();
+    const ws = await openTestWorkspace(hostPath);
     await expect(ws.modulesCmd.install(modulePath)).rejects.toThrow(
       "no 'schemaVersion'",
     );

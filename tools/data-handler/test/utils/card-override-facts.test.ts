@@ -15,10 +15,11 @@ import { join } from 'node:path';
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 
 import { copyDir } from '../../src/utils/file-utils.js';
-import { Workspace } from '../../src/workspace/workspace.js';
+import { type Workspace } from '../../src/workspace/workspace.js';
 import { createCardFacts } from '../../src/utils/clingo-facts.js';
 import { resourceName } from '../../src/utils/resource-utils.js';
 import type { Card, CardType } from '@cyberismo/model';
+import { openTestWorkspace } from '../helpers/open-test-workspace.js';
 
 const FIELD = 'decision/fieldTypes/obsoletedBy';
 const RESPONSIBLE_FIELD = 'decision/fieldTypes/responsible';
@@ -83,8 +84,7 @@ describe('fieldOverride fact generation', () => {
     // derivation (override wins over calculated) can be exercised too.
     appendFieldCalculatedRule(projectPath);
 
-    ws = new Workspace(projectPath, {});
-    await ws.initialize();
+    ws = await openTestWorkspace(projectPath, {});
   });
 
   afterAll(() => {
@@ -130,8 +130,7 @@ describe('fieldOverride fact generation', () => {
         `\nfield(Card, "${FIELD}", "conflicting") :- projectCard(Card).\n`,
     );
 
-    const fresh = new Workspace(projectPath, {});
-    await fresh.initialize();
+    const fresh = await openTestWorkspace(projectPath, {});
     const result = await fresh.checkout.calculationEngine.runQuery(
       'card',
       'localApp',
@@ -188,8 +187,7 @@ describe('card query: calculated value without a stored override', () => {
 
     appendFieldCalculatedRule(projectPath);
 
-    ws = new Workspace(projectPath, {});
-    await ws.initialize();
+    ws = await openTestWorkspace(projectPath, {});
   });
 
   afterAll(() => {
@@ -288,8 +286,7 @@ describe('disabling override on a calculated field that holds values', () => {
     metadata[FIELD] = 'decision_999';
     writeFileSync(cardJsonPath, JSON.stringify(metadata, null, 4));
 
-    ws = new Workspace(projectPath, {});
-    await ws.initialize();
+    ws = await openTestWorkspace(projectPath, {});
   });
 
   afterAll(() => {
@@ -344,8 +341,7 @@ describe('stored value on a calculated non-overridable field is dormant', () => 
 
     appendFieldCalculatedRule(projectPath);
 
-    ws = new Workspace(projectPath, {});
-    await ws.initialize();
+    ws = await openTestWorkspace(projectPath, {});
   });
 
   afterAll(() => {
@@ -400,10 +396,9 @@ describe('a declared field whose field type resource is missing', () => {
     metadata[DANGLING_FIELD] = 'stored value';
     writeFileSync(cardJsonPath, JSON.stringify(metadata, null, 4));
 
-    ws = new Workspace(projectPath, {
+    ws = await openTestWorkspace(projectPath, {
       autoSaveConfiguration: false,
     });
-    await ws.initialize();
   });
 
   afterAll(() => {
@@ -460,8 +455,7 @@ describe('fieldCalculated is ignored for a field the card type does not declare 
     metadata[FIELD] = 'decision_999';
     writeFileSync(cardJsonPath, JSON.stringify(metadata, null, 4));
 
-    ws = new Workspace(projectPath, {});
-    await ws.initialize();
+    ws = await openTestWorkspace(projectPath, {});
   });
 
   afterAll(() => {

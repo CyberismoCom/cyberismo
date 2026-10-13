@@ -17,8 +17,9 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { simpleGit } from 'simple-git';
 
-import { Workspace } from '../src/workspace/workspace.js';
+import { type Workspace } from '../src/workspace/workspace.js';
 import { resourceName } from '../src/utils/resource-utils.js';
+import { openTestWorkspace } from './helpers/open-test-workspace.js';
 
 const fixture = join(import.meta.dirname, 'test-data/valid/decision-records');
 const author = { name: 'Writer', email: 'writer@example.com' };
@@ -33,8 +34,7 @@ describe('autocommit', () => {
     // Outside the monorepo, so the project gets its own repository.
     dir = await mkdtemp(join(tmpdir(), 'autocommit-test-'));
     await cp(fixture, dir, { recursive: true });
-    cm = new Workspace(dir, { autocommit: true });
-    await cm.initialize();
+    cm = await openTestWorkspace(dir, { autocommit: true });
   });
 
   afterEach(async () => {

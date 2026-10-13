@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { getCardQueryResult, reset, exportSite } from '../src/export.js';
 import { ProjectRegistry } from '../src/project-registry.js';
-import { Workspace } from '@cyberismo/data-handler';
+import { type Workspace } from '@cyberismo/data-handler';
 import type * as Utils from '../src/utils.js';
 
 // The built frontend does not exist when tests run from source.
@@ -16,6 +16,7 @@ vi.mock('../src/utils.js', async (importOriginal) => {
   };
 });
 import { cleanupTempTestData, createTempTestData } from './test-utils.js';
+import { openTestWorkspace } from './helpers/open-test-workspace.js';
 
 describe('export module', () => {
   beforeEach(() => {
@@ -182,7 +183,7 @@ describe('export module', () => {
         },
       } as unknown as Workspace;
 
-      const registry = ProjectRegistry.fromCommandManager(ws);
+      const registry = ProjectRegistry.fromCheckout(ws.checkout);
 
       await expect(
         exportSite(registry, tempDir, {
@@ -210,11 +211,11 @@ describe('export module', () => {
     });
 
     test('reports a failing card under its own project only', async () => {
-      const decision = await Workspace.getInstance(decisionPath);
-      const minimal = await Workspace.getInstance(minimalPath);
+      const decision = await openTestWorkspace(decisionPath);
+      const minimal = await openTestWorkspace(minimalPath);
       const registry = new ProjectRegistry([
-        { prefix: 'mini', ws: minimal },
-        { prefix: 'decision', ws: decision },
+        { prefix: 'mini', checkout: minimal.checkout },
+        { prefix: 'decision', checkout: decision.checkout },
       ]);
       vi.spyOn(decision.showCmd, 'showCardDetails').mockRejectedValue(
         new Error('boom'),

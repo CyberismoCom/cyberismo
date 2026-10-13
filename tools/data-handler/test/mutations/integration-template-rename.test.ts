@@ -5,10 +5,10 @@ import { join } from 'node:path';
 import { copyDir } from '../../src/utils/file-utils.js';
 import type { Checkout } from '../../src/containers/project.js';
 import { getTestProject } from '../helpers/test-utils.js';
-import { ResourceMutations } from '../../src/mutations/resource-mutations.js';
 import { ConfigurationLogger } from '../../src/utils/configuration-logger.js';
 import { resourceName } from '../../src/utils/resource-utils.js';
-import { Create } from '../../src/commands/create.js';
+import { Workspace } from '../../src/workspace/workspace.js';
+import { SYSTEM_ACTOR } from '../../src/utils/tx-record.js';
 
 const baseDir = import.meta.dirname;
 const testDir = join(baseDir, 'tmp-integration-template-rename');
@@ -31,8 +31,7 @@ describe('Leaf rename mutation engine end-to-end', () => {
   });
 
   it('apply → log entry for a template rename', async () => {
-    const mutations = new ResourceMutations(checkout);
-    await mutations.apply({
+    await Workspace.over(checkout, SYSTEM_ACTOR).updateCmd.apply({
       kind: 'rename',
       target: resourceName(TEMPLATE),
       newIdentifier: 'decision-v2',
@@ -51,11 +50,10 @@ describe('Leaf rename mutation engine end-to-end', () => {
   });
 
   it('a renamed template can be instantiated without reopening the project', async () => {
-    const mutations = new ResourceMutations(checkout);
     const cardsBefore = checkout.templateTree(TEMPLATE).cards();
     expect(cardsBefore.length).toBeGreaterThan(0);
 
-    await mutations.apply({
+    await Workspace.over(checkout, SYSTEM_ACTOR).updateCmd.apply({
       kind: 'rename',
       target: resourceName(TEMPLATE),
       newIdentifier: 'decision-v2',
@@ -72,13 +70,15 @@ describe('Leaf rename mutation engine end-to-end', () => {
       expect(card.path).toContain('decision-v2');
     }
 
-    const created = await new Create(checkout).createCard(newName);
+    const created = await Workspace.over(
+      checkout,
+      SYSTEM_ACTOR,
+    ).createCmd.createCard(newName);
     expect(created.length).toBe(cardsBefore.length);
   });
 
   it('apply → log entry for a report rename', async () => {
-    const mutations = new ResourceMutations(checkout);
-    await mutations.apply({
+    await Workspace.over(checkout, SYSTEM_ACTOR).updateCmd.apply({
       kind: 'rename',
       target: resourceName(REPORT),
       newIdentifier: 'testReportV2',
@@ -97,8 +97,7 @@ describe('Leaf rename mutation engine end-to-end', () => {
   });
 
   it('apply → link-type card-type edit records NO log entry', async () => {
-    const mutations = new ResourceMutations(checkout);
-    await mutations.apply({
+    await Workspace.over(checkout, SYSTEM_ACTOR).updateCmd.apply({
       kind: 'edit',
       target: resourceName(LT),
       updateKey: { key: 'sourceCardTypes' },

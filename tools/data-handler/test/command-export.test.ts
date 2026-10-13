@@ -2,7 +2,7 @@ import { mkdirSync, rmSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
-import { Cmd, Workspace, Commands } from '../src/command-handler.js';
+import { Cmd, Commands } from '../src/command-handler.js';
 import { copyDir } from '../src/utils/file-utils.js';
 import type { ExportCommandOptions } from '../src/interfaces/command-options.js';
 import {
@@ -14,6 +14,7 @@ import {
   beforeEach,
   afterEach,
 } from 'vitest';
+import { openTestWorkspace } from './helpers/open-test-workspace.js';
 
 const baseDir = import.meta.dirname;
 const testDir = join(baseDir, 'tmp-export-tests');
@@ -108,7 +109,7 @@ describe('adoc export section order', () => {
   });
 
   it('orders the descendants of a card by rank', async () => {
-    const ws = await Workspace.getInstance(projectPath);
+    const ws = await openTestWorkspace(projectPath);
     const template = 'decision/templates/decision';
 
     // Two cards below the level the tree query orders, cached in creation

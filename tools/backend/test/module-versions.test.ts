@@ -1,11 +1,12 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
-import { Workspace } from '@cyberismo/data-handler';
+import { type Workspace } from '@cyberismo/data-handler';
 import { createApp } from '../src/app.js';
 import { ProjectRegistry } from '../src/project-registry.js';
 import { MockAuthProvider, MOCK_ROLE_COOKIE } from '../src/auth/mock.js';
 import { cleanupTempTestData, createTempTestData } from './test-utils.js';
+import { openTestWorkspace } from './helpers/open-test-workspace.js';
 
 interface Mod {
   name: string;
@@ -60,10 +61,10 @@ async function open(roots: Mod[], transitive: Mod[] = []) {
       JSON.stringify({ cardKeyPrefix: name, name, version: '1.0.0', modules }),
     );
   }
-  ws = await Workspace.getInstance(dir);
+  ws = await openTestWorkspace(dir);
   app = createApp(
     new MockAuthProvider(),
-    ProjectRegistry.fromCommandManager(ws),
+    ProjectRegistry.fromCheckout(ws.checkout),
   );
 }
 

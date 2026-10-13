@@ -7,6 +7,7 @@ import {
 } from '../src/utils/commit-context.js';
 import type { TxRecord } from '../src/utils/tx-record.js';
 import { deferred } from './test-utils.js';
+import { SYSTEM_FRAME } from '../src/utils/tx-record.js';
 
 describe('RWLock', () => {
   describe('basic read/write', () => {
@@ -18,7 +19,7 @@ describe('RWLock', () => {
 
     it('should allow a single write', async () => {
       const lock = new RWLock();
-      const result = await lock.write(async () => 'done');
+      const result = await lock.write(SYSTEM_FRAME, async () => 'done');
       expect(result).toBe('done');
     });
 
@@ -31,7 +32,7 @@ describe('RWLock', () => {
         }),
       ).rejects.toThrow('read error');
       // Lock should be released — a subsequent write should work
-      const result = await lock.write(async () => 'ok');
+      const result = await lock.write(SYSTEM_FRAME, async () => 'ok');
       expect(result).toBe('ok');
     });
 
@@ -39,7 +40,7 @@ describe('RWLock', () => {
       const lock = new RWLock();
 
       await expect(
-        lock.write(async () => {
+        lock.write(SYSTEM_FRAME, async () => {
           throw new Error('write error');
         }),
       ).rejects.toThrow('write error');
@@ -92,7 +93,7 @@ describe('RWLock', () => {
       const entered = deferred();
       const proceed = deferred();
 
-      const w1 = lock.write(async () => {
+      const w1 = lock.write(SYSTEM_FRAME, async () => {
         log.push('w1-start');
         entered.resolve();
         await proceed.promise;
@@ -121,7 +122,7 @@ describe('RWLock', () => {
       const entered = deferred();
       const proceed = deferred();
 
-      const w1 = lock.write(async () => {
+      const w1 = lock.write(SYSTEM_FRAME, async () => {
         log.push('w1-start');
         entered.resolve();
         await proceed.promise;
@@ -130,7 +131,7 @@ describe('RWLock', () => {
 
       await entered.promise;
 
-      const w2 = lock.write(async () => {
+      const w2 = lock.write(SYSTEM_FRAME, async () => {
         log.push('w2-start');
         log.push('w2-end');
       });
@@ -159,7 +160,7 @@ describe('RWLock', () => {
 
       await entered.promise;
 
-      const w1 = lock.write(async () => {
+      const w1 = lock.write(SYSTEM_FRAME, async () => {
         log.push('w1-start');
         log.push('w1-end');
       });
@@ -192,7 +193,7 @@ describe('RWLock', () => {
       await entered.promise;
 
       // Queue a writer — it should wait for r1 to finish
-      const w1 = lock.write(async () => {
+      const w1 = lock.write(SYSTEM_FRAME, async () => {
         log.push('w1-start');
         log.push('w1-end');
       });
@@ -223,15 +224,15 @@ describe('RWLock', () => {
 
     it('should allow nested write-in-write', async () => {
       const lock = new RWLock();
-      const result = await lock.write(async () => {
-        return lock.write(async () => 'nested');
+      const result = await lock.write(SYSTEM_FRAME, async () => {
+        return lock.write(SYSTEM_FRAME, async () => 'nested');
       });
       expect(result).toBe('nested');
     });
 
     it('should allow nested read-in-write', async () => {
       const lock = new RWLock();
-      const result = await lock.write(async () => {
+      const result = await lock.write(SYSTEM_FRAME, async () => {
         return lock.read(async () => 'nested');
       });
       expect(result).toBe('nested');
@@ -242,7 +243,7 @@ describe('RWLock', () => {
 
       await expect(
         lock.read(async () => {
-          await lock.write(async () => 'should not reach');
+          await lock.write(SYSTEM_FRAME, async () => 'should not reach');
         }),
       ).rejects.toThrow('Cannot acquire write lock while holding read lock');
     });
@@ -259,13 +260,13 @@ describe('RWLock', () => {
 
       const leakedAttempted = deferred();
 
-      await lock.write(async () => {
+      await lock.write(SYSTEM_FRAME, async () => {
         // Schedule work that will run after the lock is released.
         // It inherits the ALS context but should NOT skip locking if it was released.
         setTimeout(() => {
           void (async () => {
             leakedAttempted.resolve();
-            await lock.write(async () => {
+            await lock.write(SYSTEM_FRAME, async () => {
               log.push('leaked-start');
               log.push('leaked-end');
             });
@@ -278,7 +279,7 @@ describe('RWLock', () => {
 
       // Start another write that should serialize with the leaked one.
       // w2 holds the lock until the leaked write has attempted acquisition.
-      const w2 = lock.write(async () => {
+      const w2 = lock.write(SYSTEM_FRAME, async () => {
         log.push('w2-start');
         await leakedAttempted.promise;
         log.push('w2-end');
@@ -305,7 +306,7 @@ describe('RWLock', () => {
         log.push('hook');
       });
 
-      await lock.write(async () => {
+      await lock.write(SYSTEM_FRAME, async () => {
         log.push('write');
       });
 
@@ -320,8 +321,8 @@ describe('RWLock', () => {
         hookCallCount++;
       });
 
-      await lock.write(async () => {
-        await lock.write(async () => {
+      await lock.write(SYSTEM_FRAME, async () => {
+        await lock.write(SYSTEM_FRAME, async () => {
           // inner write
         });
       });
@@ -338,7 +339,7 @@ describe('RWLock', () => {
       });
 
       await expect(
-        lock.write(async () => {
+        lock.write(SYSTEM_FRAME, async () => {
           throw new Error('fail');
         }),
       ).rejects.toThrow();
@@ -357,7 +358,7 @@ describe('RWLock', () => {
         log.push('hook2');
       });
 
-      await lock.write(async () => {
+      await lock.write(SYSTEM_FRAME, async () => {
         log.push('write');
       });
 
@@ -375,7 +376,7 @@ describe('RWLock', () => {
       });
 
       await expect(
-        lock.write(async () => {
+        lock.write(SYSTEM_FRAME, async () => {
           throw new Error('fail');
         }),
       ).rejects.toThrow();
@@ -391,7 +392,7 @@ describe('RWLock', () => {
         hookCalled = true;
       });
 
-      await lock.write(async () => 'ok');
+      await lock.write(SYSTEM_FRAME, async () => 'ok');
 
       expect(hookCalled).toBe(false);
     });
@@ -405,8 +406,8 @@ describe('RWLock', () => {
       });
 
       await expect(
-        lock.write(async () => {
-          await lock.write(async () => {
+        lock.write(SYSTEM_FRAME, async () => {
+          await lock.write(SYSTEM_FRAME, async () => {
             throw new Error('inner fail');
           });
         }),
@@ -429,7 +430,7 @@ describe('RWLock', () => {
       });
 
       await expect(
-        lock.write(async () => {
+        lock.write(SYSTEM_FRAME, async () => {
           log.push('write');
         }),
       ).rejects.toThrow();
@@ -446,7 +447,7 @@ describe('RWLock', () => {
       });
 
       await expect(
-        lock.write(async () => {
+        lock.write(SYSTEM_FRAME, async () => {
           throw new Error('specific error');
         }),
       ).rejects.toThrow();
@@ -467,7 +468,7 @@ describe('RWLock', () => {
       });
 
       await expect(
-        lock.write(async () => {
+        lock.write(SYSTEM_FRAME, async () => {
           throw new Error('fail');
         }),
       ).rejects.toThrow();
@@ -482,12 +483,12 @@ describe('RWLock', () => {
       const hookDone = deferred();
 
       lock.onAfterWrite(async () => {
-        await lock.write(async () => {
+        await lock.write(SYSTEM_FRAME, async () => {
           hookDone.resolve();
         });
       });
 
-      await lock.write(async () => {});
+      await lock.write(SYSTEM_FRAME, async () => {});
       await hookDone.promise;
     });
 
@@ -501,7 +502,7 @@ describe('RWLock', () => {
         });
       });
 
-      await lock.write(async () => {});
+      await lock.write(SYSTEM_FRAME, async () => {});
       await hookDone.promise;
     });
 
@@ -510,13 +511,13 @@ describe('RWLock', () => {
       const hookDone = deferred();
 
       lock.onWriteError(async () => {
-        await lock.write(async () => {
+        await lock.write(SYSTEM_FRAME, async () => {
           hookDone.resolve();
         });
       });
 
       await expect(
-        lock.write(async () => {
+        lock.write(SYSTEM_FRAME, async () => {
           throw new Error('fail');
         }),
       ).rejects.toThrow();
@@ -534,7 +535,7 @@ describe('RWLock', () => {
       });
 
       await expect(
-        lock.write(async () => {
+        lock.write(SYSTEM_FRAME, async () => {
           throw new Error('fail');
         }),
       ).rejects.toThrow();
@@ -579,7 +580,7 @@ describe('RWLock', () => {
       }
 
       const cmd = new TestCmd();
-      await cmd.doWrite();
+      await lock.write(SYSTEM_FRAME, () => cmd.doWrite());
       expect(log).toEqual(['write', 'hook']);
     });
 
@@ -601,7 +602,7 @@ describe('RWLock', () => {
       }
 
       const cmd = new TestCmd();
-      await cmd.createThing('foo');
+      await lock.write(SYSTEM_FRAME, () => cmd.createThing('foo'));
       expect(capturedMessage).toBe('Create thing foo');
     });
 
@@ -624,7 +625,7 @@ describe('RWLock', () => {
       }
 
       const cmd = new TestCmd();
-      await cmd.move('a', 'b');
+      await lock.write(SYSTEM_FRAME, () => cmd.move('a', 'b'));
       expect(capturedMessage).toBe('Move a to b');
     });
 
@@ -649,7 +650,7 @@ describe('RWLock', () => {
       }
 
       const cmd = new TestCmd();
-      await cmd.outer();
+      await lock.write(SYSTEM_FRAME, () => cmd.outer());
       expect(capturedMessage).toBe('outer message');
     });
 
@@ -679,11 +680,11 @@ describe('RWLock', () => {
       }
 
       const cmd = new TestCmd();
-      const p1 = cmd.slowWrite();
+      const p1 = lock.write(SYSTEM_FRAME, () => cmd.slowWrite());
 
       await entered.promise;
 
-      const p2 = cmd.fastWrite();
+      const p2 = lock.write(SYSTEM_FRAME, () => cmd.fastWrite());
       proceed.resolve();
       await Promise.all([p1, p2]);
 
@@ -706,10 +707,10 @@ describe('RWLock', () => {
           actor: { kind: 'user', id: 'u1', name: 'U' },
         },
         () =>
-          lock.write(async () => {
+          lock.write(SYSTEM_FRAME, async () => {
             seen.push(lock.currentTx());
             await runWithCommitContext({ message: 'Inner' }, () =>
-              lock.write(async () => {
+              lock.write(SYSTEM_FRAME, async () => {
                 seen.push(lock.currentTx());
               }),
             );
@@ -727,7 +728,7 @@ describe('RWLock', () => {
 
     it('defaults to the system actor and leaves the author to git', async () => {
       const lock = new RWLock();
-      const tx = await lock.write(async () => lock.currentTx());
+      const tx = await lock.write(SYSTEM_FRAME, async () => lock.currentTx());
       expect(tx?.actor).toEqual({
         kind: 'system',
         id: 'cyberismo',
@@ -745,7 +746,7 @@ describe('RWLock', () => {
       });
 
       await expect(
-        lock.write(async () => {
+        lock.write(SYSTEM_FRAME, async () => {
           inside = lock.currentTx();
           throw new Error('fail');
         }),
@@ -759,7 +760,7 @@ describe('RWLock', () => {
       const lock = new RWLock();
       const leaked = deferred<TxRecord | undefined>();
 
-      await lock.write(async () => {
+      await lock.write(SYSTEM_FRAME, async () => {
         setTimeout(() => leaked.resolve(lock.currentTx()), 0);
       });
 

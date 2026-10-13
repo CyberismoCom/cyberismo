@@ -23,6 +23,8 @@ import { Checkout } from '../src/containers/project.js';
 
 import type { HubSetting } from '@cyberismo/model';
 import type * as Undici from 'undici';
+import { SYSTEM_ACTOR } from '../src/utils/tx-record.js';
+import { openTestWorkspace } from './helpers/open-test-workspace.js';
 
 // Hub requests go out through egressFetch, which uses undici's fetch rather
 // than the global one, so the stub belongs here.
@@ -85,7 +87,7 @@ describe('fetch command', () => {
     }
 
     beforeEach(async () => {
-      manager = await Workspace.getInstance(decisionRecordsPath);
+      manager = await openTestWorkspace(decisionRecordsPath);
       originalHubs = manager.checkout.configuration.hubs;
       fetchStub.mockReset();
     });
@@ -157,7 +159,7 @@ describe('fetch command', () => {
     beforeEach(async () => {
       checkout = new Checkout(decisionRecordsPath);
       await checkout.populateCaches();
-      fetchCmd = new Fetch(checkout);
+      fetchCmd = Workspace.over(checkout, SYSTEM_ACTOR).fetchCmd;
       fetchStub.mockReset();
     });
 

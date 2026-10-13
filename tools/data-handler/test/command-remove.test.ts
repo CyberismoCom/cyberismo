@@ -8,7 +8,6 @@ import { join, sep, resolve as pathResolve } from 'node:path';
 // cyberismo
 import { Cmd, Commands, Workspace } from '../src/command-handler.js';
 import { copyDir } from '../src/utils/file-utils.js';
-import { Fetch, Modules, Remove } from '../src/commands/index.js';
 import {
   MODULE_LIST_FULL_PATH,
   type ModuleListFile,
@@ -28,6 +27,8 @@ vi.mock('undici', async (importOriginal) => {
   return { ...actual, fetch: undiciFetch };
 });
 import { CardNotFoundError } from '../src/exceptions/index.js';
+import { SYSTEM_ACTOR } from '../src/utils/tx-record.js';
+import { openTestWorkspace } from './helpers/open-test-workspace.js';
 
 // Create test artifacts in a temp folder.
 const baseDir = getTestBaseDir(import.meta.dirname, import.meta.url);
@@ -580,12 +581,7 @@ describe('remove command', () => {
       const cardId = 'decision_5';
       const checkout = getTestProject(decisionRecordsPath);
       await checkout.populateCaches();
-      const fetchCmd = new Fetch(checkout);
-      const removeCmd = new Remove(
-        checkout,
-        fetchCmd,
-        new Modules(checkout, fetchCmd),
-      );
+      const removeCmd = Workspace.over(checkout, SYSTEM_ACTOR).removeCmd;
 
       await expect(
         removeCmd.remove('attachment', cardId, ''),
@@ -595,12 +591,7 @@ describe('remove command', () => {
       const cardId = 'decision_999';
       const checkout = getTestProject(decisionRecordsPath);
       await checkout.populateCaches();
-      const fetchCmd = new Fetch(checkout);
-      const removeCmd = new Remove(
-        checkout,
-        fetchCmd,
-        new Modules(checkout, fetchCmd),
-      );
+      const removeCmd = Workspace.over(checkout, SYSTEM_ACTOR).removeCmd;
 
       await expect(
         removeCmd.remove('attachment', cardId, 'the-needle.heic'),
@@ -609,12 +600,7 @@ describe('remove command', () => {
     it('try to remove non-existing module', async () => {
       const checkout = getTestProject(decisionRecordsPath);
       await checkout.populateCaches();
-      const fetchCmd = new Fetch(checkout);
-      const removeCmd = new Remove(
-        checkout,
-        fetchCmd,
-        new Modules(checkout, fetchCmd),
-      );
+      const removeCmd = Workspace.over(checkout, SYSTEM_ACTOR).removeCmd;
 
       await expect(
         removeCmd.remove('module', 'i-dont-exist'),
@@ -650,8 +636,7 @@ describe('remove card', () => {
   beforeEach(async () => {
     mkdirSync(testDir, { recursive: true });
     await copyDir('test/test-data/', testDir);
-    ws = new Workspace(decisionRecordsPath, {});
-    await ws.initialize();
+    ws = await openTestWorkspace(decisionRecordsPath, {});
   });
 
   afterEach(() => {
@@ -696,12 +681,7 @@ describe('remove card', () => {
 
   it('should remove card that has children', async () => {
     const cardId = 'decision_5';
-    const fetchCmd = new Fetch(ws.checkout);
-    const removeCmd = new Remove(
-      ws.checkout,
-      fetchCmd,
-      new Modules(ws.checkout, fetchCmd),
-    );
+    const removeCmd = Workspace.over(ws.checkout, SYSTEM_ACTOR).removeCmd;
     await removeCmd.remove('card', cardId);
 
     expect(() => ws.checkout.findCard(cardId)).toThrow(CardNotFoundError);
@@ -799,9 +779,7 @@ describe('remove module — spec behaviours', () => {
     );
     expect(create.statusCode).toBe(200);
 
-    const ws = new Workspace(projectDir, {});
-    await ws.initialize();
-
+    const ws = await openTestWorkspace(projectDir, {});
     await ws.modulesCmd.install(hostRoot);
     // Both are installed; only `trhost` is a top-level declaration.
     expect(existsSync(join(projectDir, '.cards', 'modules', 'trhost'))).toBe(
@@ -839,9 +817,7 @@ describe('remove module — spec behaviours', () => {
     );
     expect(create.statusCode).toBe(200);
 
-    const ws = new Workspace(projectDir, {});
-    await ws.initialize();
-
+    const ws = await openTestWorkspace(projectDir, {});
     await expect(
       ws.removeCmd.remove('module', 'never-imported'),
     ).rejects.toThrow("Module 'never-imported' is not part of the project");
@@ -872,9 +848,7 @@ describe('remove module — spec behaviours', () => {
     );
     expect(create.statusCode).toBe(200);
 
-    const ws = new Workspace(projectDir, {});
-    await ws.initialize();
-
+    const ws = await openTestWorkspace(projectDir, {});
     await ws.modulesCmd.install(aRoot);
 
     // A, B, C all installed.
@@ -926,9 +900,7 @@ describe('remove module — spec behaviours', () => {
     );
     expect(create.statusCode).toBe(200);
 
-    const ws = new Workspace(projectDir, {});
-    await ws.initialize();
-
+    const ws = await openTestWorkspace(projectDir, {});
     await ws.modulesCmd.install(aRoot);
     // All three transitives live in the cached prefix list.
     expect(ws.checkout.allModulePrefixes()).toContain('drpa');
@@ -976,15 +948,11 @@ describe('remove hub', () => {
     const checkout = getTestProject(projectPath);
     await checkout.populateCaches();
     checkout.configuration.hubs = locations.map((location) => ({ location }));
-    const fetchCmd = new Fetch(checkout);
+    const fetchCmd = Workspace.over(checkout, SYSTEM_ACTOR).fetchCmd;
     return {
       checkout,
       fetchCmd,
-      removeCmd: new Remove(
-        checkout,
-        fetchCmd,
-        new Modules(checkout, fetchCmd),
-      ),
+      removeCmd: Workspace.over(checkout, SYSTEM_ACTOR).removeCmd,
     };
   }
 

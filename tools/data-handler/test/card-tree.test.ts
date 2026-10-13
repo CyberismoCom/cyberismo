@@ -32,7 +32,7 @@ import { CardKeyRegistry } from '../src/containers/project/card-keys.js';
 import { CardTree } from '../src/containers/project/card-tree.js';
 import type { NewCard } from '../src/containers/project/card-tree.js';
 import type { Card, CardMetadata } from '@cyberismo/model';
-import { Workspace } from '../src/workspace/workspace.js';
+import { type Workspace } from '../src/workspace/workspace.js';
 import { ROOT } from '../src/utils/constants.js';
 import {
   CardNotFoundError,
@@ -41,6 +41,7 @@ import {
   ReadOnlyContainerError,
 } from '../src/exceptions/index.js';
 import { getTestProject } from './helpers/test-utils.js';
+import { openTestWorkspace } from './helpers/open-test-workspace.js';
 
 const baseDir = import.meta.dirname;
 const testDir = join(baseDir, 'tmp-card-tree-tests');
@@ -1215,8 +1216,7 @@ describe('Card tree', () => {
       // Set path and create CommandManager after directory exists
       decisionProjectPath = join(tempDir, 'valid', 'decision-records');
 
-      ws = new Workspace(decisionProjectPath, {});
-      await ws.initialize();
+      ws = await openTestWorkspace(decisionProjectPath, {});
     });
 
     afterEach(() => {
