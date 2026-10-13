@@ -25,7 +25,7 @@ import type { Queries } from '../../src/queries/queries.js';
 import type { Versions } from '../../src/versions/version.js';
 import type { Changes } from '../../src/workspace/changes.js';
 import type { Resources } from '../../src/workspace/resources.js';
-import type { Settings } from '../../src/workspace/settings.js';
+import type { Hubs, Settings } from '../../src/workspace/settings.js';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnyFunction = (...args: any[]) => unknown;
@@ -110,8 +110,9 @@ export const cards: FacadeSerializable<Cards> = {
   logicProgram: true,
 };
 
+// hubs is a façade of its own, checked below.
 export const settings: FacadeSerializable<Settings> &
-  PropertiesSerializable<Settings> = {
+  PropertiesSerializable<Omit<Settings, 'hubs'>> = {
   actor: true,
   identity: true,
   name: true,
@@ -124,6 +125,13 @@ export const settings: FacadeSerializable<Settings> &
   setDescription: true,
   setCategory: true,
   setGitRemoteUrl: true,
+};
+
+export const hubs: FacadeSerializable<Hubs> & PropertiesSerializable<Hubs> = {
+  actor: true,
+  identity: true,
+  add: true,
+  remove: true,
 };
 
 // subscribe is exempt: a listener is a function (remote, it is SSE); the
