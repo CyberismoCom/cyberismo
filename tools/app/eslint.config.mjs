@@ -28,6 +28,28 @@ export default tseslint.config(
     },
   },
   {
+    // The app bundle must stay browser-safe: shared types come from
+    // @cyberismo/model, never from the Node-only data-handler.
+    files: ['src/**/*.{ts,tsx}', '__tests__/**/*.{ts,tsx}'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: [
+                '@cyberismo/data-handler',
+                '@cyberismo/data-handler/*',
+                '**/data-handler/**',
+              ],
+              message: 'Import shared types from @cyberismo/model.',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
     files: ['e2e/**/*.ts', 'scripts/**/*.js', 'playwright.config.ts'],
     languageOptions: {
       globals: { ...globals.node },

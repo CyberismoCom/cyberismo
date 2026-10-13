@@ -33,6 +33,7 @@
     "@cyberismo/assets": "workspace:*",
     "@cyberismo/backend": "workspace:*",
     "@cyberismo/data-handler": "workspace:*",
+    "@cyberismo/model": "workspace:*",
     "@inquirer/confirm": "^6.3.2",
     "@inquirer/prompts": "^8.7.2",
     "cli-progress": "^3.12.0",
