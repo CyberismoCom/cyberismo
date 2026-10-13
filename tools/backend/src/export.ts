@@ -55,7 +55,7 @@ export async function getCardQueryResult(
   ws: Workspace,
   cardKey?: string,
 ): Promise<QueryResult<'card'>[]> {
-  const prefix = ws.checkout.configuration.cardKeyPrefix;
+  const prefix = ws.settings.prefix;
   if (!_cardQueryCache.has(prefix)) {
     _cardQueryCache.set(
       prefix,
