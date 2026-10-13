@@ -18,7 +18,7 @@ import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
 import { type Workspace } from '@cyberismo/data-handler';
 import { createMcpServer, singleProjectProvider } from '../src/server.js';
-import { testDataPath } from './test-utils.js';
+import { authenticated, testDataPath } from './test-utils.js';
 import { openTestWorkspace } from './helpers/open-test-workspace.js';
 
 let ws: Workspace;
@@ -33,7 +33,7 @@ beforeAll(async () => {
   const [clientTransport, serverTransport] =
     InMemoryTransport.createLinkedPair();
 
-  await server.connect(serverTransport);
+  await server.connect(authenticated(serverTransport));
 
   client = new Client({ name: 'test-client', version: '1.0.0' });
   await client.connect(clientTransport);
@@ -49,6 +49,29 @@ const contentOf = (result: Record<string, unknown>) =>
   result.content as TextContent[];
 
 describe('MCP Tools via Client', () => {
+  test('refuses calls without an authenticated user, reads included', async () => {
+    const server = createMcpServer(singleProjectProvider(ws.checkout));
+    const [clientTransport, serverTransport] =
+      InMemoryTransport.createLinkedPair();
+    await server.connect(serverTransport);
+    const anonymous = new Client({ name: 'anonymous', version: '1.0.0' });
+    await anonymous.connect(clientTransport);
+    try {
+      for (const [name, args] of [
+        ['list_projects', {}],
+        ['get_card', { projectPrefix: 'decision', cardKey: 'decision_5' }],
+      ] as const) {
+        const result = await anonymous.callTool({ name, arguments: args });
+        expect(result.isError).toBe(true);
+        expect(contentOf(result)[0].text).toContain(
+          'MCP request has no authenticated user',
+        );
+      }
+    } finally {
+      await anonymous.close();
+    }
+  });
+
   test('list_projects returns available projects', async () => {
     const result = await client.callTool({
       name: 'list_projects',

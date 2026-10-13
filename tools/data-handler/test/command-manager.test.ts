@@ -46,29 +46,29 @@ describe('CommandManager schema version gate', () => {
     rmSync(testDir, { recursive: true, force: true });
   });
 
-  it('constructs when schema versions match', () => {
+  it('constructs when schema versions match', async () => {
     const ws = await openTestWorkspace(projectPath);
     expect(ws.checkout).toBeDefined();
     ws.checkout.dispose();
   });
 
-  it('throws when the project schema is older', () => {
+  it('throws when the project schema is older', async () => {
     setSchemaVersion(SCHEMA_VERSION - 1);
-    expect(() => await openTestWorkspace(projectPath)).toThrow(
+    await expect(openTestWorkspace(projectPath)).rejects.toThrow(
       "Run 'cyberismo migrate'",
     );
   });
 
-  it('throws when the project schema is newer', () => {
+  it('throws when the project schema is newer', async () => {
     setSchemaVersion(SCHEMA_VERSION + 1);
-    expect(() => await openTestWorkspace(projectPath)).toThrow(
+    await expect(openTestWorkspace(projectPath)).rejects.toThrow(
       'Upgrade cyberismo',
     );
   });
 
-  it('throws when schemaVersion is missing', () => {
+  it('throws when schemaVersion is missing', async () => {
     setSchemaVersion(undefined);
-    expect(() => await openTestWorkspace(projectPath)).toThrow(
+    await expect(openTestWorkspace(projectPath)).rejects.toThrow(
       "no 'schemaVersion'",
     );
   });

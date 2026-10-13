@@ -11,9 +11,10 @@
 */
 
 import type { Context, MiddlewareHandler } from 'hono';
-import type { Workspace } from '@cyberismo/data-handler';
+import type { ActorRef } from '@cyberismo/model';
+import { Workspace, type Checkout } from '@cyberismo/data-handler';
 import { getCurrentUser } from './auth.js';
-import { UserRole } from '../types.js';
+import { UserRole, type UserInfo } from '../types.js';
 import type { ProjectRegistry } from '../project-registry.js';
 import type { ProjectEvents } from '../domain/events/project-events.js';
 
@@ -27,30 +28,36 @@ declare module 'hono' {
   }
 }
 
+/** The actor a user acts as. */
+export function actorOf(user: UserInfo): ActorRef {
+  return {
+    kind: user.role === UserRole.Connector ? 'connector' : 'user',
+    id: user.id,
+    name: user.name,
+  };
+}
+
 /**
- * Set CommandManager on context and run the next handler as the authenticated user.
+ * Put the authenticated user's handle over `checkout` on the context.
  */
 async function runWithCommands(
   c: Context,
-  ws: Workspace,
+  checkout: Checkout,
   next: () => Promise<void>,
 ) {
   const user = getCurrentUser(c);
   if (!user) {
     throw new Error('CommandManager expects a user');
   }
-  c.set('ws', ws);
-  c.set('projectPath', ws.checkout.basePath);
-  await ws.runAsAuthor({ name: user.name, email: user.email }, () => next(), {
-    kind: user.role === UserRole.Connector ? 'connector' : 'user',
-    id: user.id,
-    name: user.name,
-  });
+  const identity = { name: user.name, email: user.email };
+  c.set('ws', Workspace.over(checkout, actorOf(user), identity));
+  c.set('projectPath', checkout.basePath);
+  await next();
 }
 
 // TODO: Remove once MCP is made project-scoped via attachProjectRegistry
-export const attachCommandManager = (ws: Workspace): MiddlewareHandler => {
-  return (c, next) => runWithCommands(c, ws, next);
+export const attachCommandManager = (checkout: Checkout): MiddlewareHandler => {
+  return (c, next) => runWithCommands(c, checkout, next);
 };
 
 /**
@@ -72,11 +79,11 @@ export const attachProjectRegistry = (
     if (!prefix) {
       return c.json({ error: 'Project prefix is required' }, 400);
     }
-    const ws = registry.get(prefix);
-    if (!ws) {
+    const checkout = registry.get(prefix);
+    if (!checkout) {
       return c.json({ error: `Project '${prefix}' not found` }, 404);
     }
-    c.set('events', registry.eventsFor(ws));
-    return runWithCommands(c, ws, next);
+    c.set('events', registry.eventsFor(checkout));
+    return runWithCommands(c, checkout, next);
   };
 };

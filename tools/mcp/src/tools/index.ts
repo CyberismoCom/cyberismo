@@ -19,6 +19,7 @@ import { z } from 'zod';
 import { toolResult, toolError } from '../lib/mcp-helpers.js';
 import { renderCard, getCardTree } from '../lib/render.js';
 import {
+  callerOf,
   resolveCommands,
   type ProjectProvider,
 } from '../lib/resolve-project.js';
@@ -50,8 +51,9 @@ export function registerTools(
       description:
         'List all available projects. Use the returned prefix values as the projectPrefix parameter in other tools.',
     },
-    async () => {
+    async (extra) => {
       try {
+        callerOf(extra);
         const projects = provider.list();
         return toolResult({ projects });
       } catch (error) {
@@ -75,9 +77,9 @@ export function registerTools(
           .describe('Parent card key (omit for root level)'),
       },
     },
-    async ({ projectPrefix, template, parentKey }) => {
+    async ({ projectPrefix, template, parentKey }, extra) => {
       try {
-        const ws = resolveCommands(provider, projectPrefix);
+        const ws = resolveCommands(provider, projectPrefix, extra, server);
         const cards = await ws.createCmd.createCard(template, parentKey);
         return toolResult({
           created: cards.map((c) => ({
@@ -101,9 +103,9 @@ export function registerTools(
         content: z.string().describe('New AsciiDoc content'),
       },
     },
-    async ({ projectPrefix, cardKey, content }) => {
+    async ({ projectPrefix, cardKey, content }, extra) => {
       try {
-        const ws = resolveCommands(provider, projectPrefix);
+        const ws = resolveCommands(provider, projectPrefix, extra, server);
         await ws.editCmd.editCardContent(cardKey, content);
         return toolResult({ cardKey });
       } catch (error) {
@@ -133,9 +135,9 @@ export function registerTools(
           .describe('New field value'),
       },
     },
-    async ({ projectPrefix, cardKey, field, value }) => {
+    async ({ projectPrefix, cardKey, field, value }, extra) => {
       try {
-        const ws = resolveCommands(provider, projectPrefix);
+        const ws = resolveCommands(provider, projectPrefix, extra, server);
         await ws.editCmd.editCardMetadata(cardKey, field, value);
         return toolResult({ cardKey, field, value });
       } catch (error) {
@@ -156,9 +158,9 @@ export function registerTools(
           .describe('Transition name (e.g., "Approve", "Reject")'),
       },
     },
-    async ({ projectPrefix, cardKey, transition }) => {
+    async ({ projectPrefix, cardKey, transition }, extra) => {
       try {
-        const ws = resolveCommands(provider, projectPrefix);
+        const ws = resolveCommands(provider, projectPrefix, extra, server);
         await ws.transitionCmd.cardTransition(cardKey, transition);
         return toolResult({ cardKey, transition });
       } catch (error) {
@@ -179,9 +181,9 @@ export function registerTools(
           .describe('Destination parent card key, or "root" for root level'),
       },
     },
-    async ({ projectPrefix, cardKey, destinationKey }) => {
+    async ({ projectPrefix, cardKey, destinationKey }, extra) => {
       try {
-        const ws = resolveCommands(provider, projectPrefix);
+        const ws = resolveCommands(provider, projectPrefix, extra, server);
         await ws.moveCmd.moveCard(cardKey, destinationKey);
         return toolResult({ cardKey, newParent: destinationKey });
       } catch (error) {
@@ -207,15 +209,12 @@ export function registerTools(
       },
     },
 
-    async ({
-      projectPrefix,
-      sourceKey,
-      destinationKey,
-      linkType,
-      description,
-    }) => {
+    async (
+      { projectPrefix, sourceKey, destinationKey, linkType, description },
+      extra,
+    ) => {
       try {
-        const ws = resolveCommands(provider, projectPrefix);
+        const ws = resolveCommands(provider, projectPrefix, extra, server);
         await ws.createCmd.createLink(
           sourceKey,
           destinationKey,
@@ -240,9 +239,9 @@ export function registerTools(
         linkType: z.string().describe('Link type name'),
       },
     },
-    async ({ projectPrefix, sourceKey, destinationKey, linkType }) => {
+    async ({ projectPrefix, sourceKey, destinationKey, linkType }, extra) => {
       try {
-        const ws = resolveCommands(provider, projectPrefix);
+        const ws = resolveCommands(provider, projectPrefix, extra, server);
         await ws.removeCmd.remove('link', sourceKey, destinationKey, linkType);
         return toolResult({ sourceKey, destinationKey, linkType });
       } catch (error) {
@@ -262,9 +261,9 @@ export function registerTools(
         content: z.string().describe('Base64-encoded file content (max 10MB)'),
       },
     },
-    async ({ projectPrefix, cardKey, filename, content }) => {
+    async ({ projectPrefix, cardKey, filename, content }, extra) => {
       try {
-        const ws = resolveCommands(provider, projectPrefix);
+        const ws = resolveCommands(provider, projectPrefix, extra, server);
         const buffer = Buffer.from(content, 'base64');
         await ws.createCmd.createAttachment(cardKey, filename, buffer);
         return toolResult({ cardKey, filename });
@@ -283,9 +282,9 @@ export function registerTools(
         cardKey: z.string().describe('Card key to remove'),
       },
     },
-    async ({ projectPrefix, cardKey }) => {
+    async ({ projectPrefix, cardKey }, extra) => {
       try {
-        const ws = resolveCommands(provider, projectPrefix);
+        const ws = resolveCommands(provider, projectPrefix, extra, server);
         await ws.removeCmd.remove('card', cardKey);
         return toolResult({ removed: cardKey });
       } catch (error) {
@@ -304,9 +303,9 @@ export function registerTools(
         label: z.string().describe('Label name'),
       },
     },
-    async ({ projectPrefix, cardKey, label }) => {
+    async ({ projectPrefix, cardKey, label }, extra) => {
       try {
-        const ws = resolveCommands(provider, projectPrefix);
+        const ws = resolveCommands(provider, projectPrefix, extra, server);
         await ws.createCmd.createLabel(cardKey, label);
         return toolResult({ cardKey, label });
       } catch (error) {
@@ -325,9 +324,9 @@ export function registerTools(
         label: z.string().describe('Label name'),
       },
     },
-    async ({ projectPrefix, cardKey, label }) => {
+    async ({ projectPrefix, cardKey, label }, extra) => {
       try {
-        const ws = resolveCommands(provider, projectPrefix);
+        const ws = resolveCommands(provider, projectPrefix, extra, server);
         await ws.removeCmd.remove('label', cardKey, label);
         return toolResult({ cardKey, label });
       } catch (error) {
@@ -368,9 +367,9 @@ export function registerTools(
           ),
       },
     },
-    async ({ projectPrefix, cardKey, raw }) => {
+    async ({ projectPrefix, cardKey, raw }, extra) => {
       try {
-        const ws = resolveCommands(provider, projectPrefix);
+        const ws = resolveCommands(provider, projectPrefix, extra, server);
         if (raw) {
           const card = await ws.showCmd.showCardDetails(cardKey);
           return toolResult({ card });
@@ -392,9 +391,9 @@ export function registerTools(
         projectPrefix: projectPrefixParam,
       },
     },
-    async ({ projectPrefix }) => {
+    async ({ projectPrefix }, extra) => {
       try {
-        const ws = resolveCommands(provider, projectPrefix);
+        const ws = resolveCommands(provider, projectPrefix, extra, server);
         const tree = await getCardTree(ws);
         return toolResult({ cards: tree });
       } catch (error) {
@@ -411,9 +410,9 @@ export function registerTools(
         projectPrefix: projectPrefixParam,
       },
     },
-    async ({ projectPrefix }) => {
+    async ({ projectPrefix }, extra) => {
       try {
-        const ws = resolveCommands(provider, projectPrefix);
+        const ws = resolveCommands(provider, projectPrefix, extra, server);
         const templates = await ws.showCmd.showTemplatesWithDetails();
         return toolResult({ templates });
       } catch (error) {
@@ -441,9 +440,9 @@ export function registerTools(
           ),
       },
     },
-    async ({ projectPrefix, category, cardKey }) => {
+    async ({ projectPrefix, category, cardKey }, extra) => {
       try {
-        const ws = resolveCommands(provider, projectPrefix);
+        const ws = resolveCommands(provider, projectPrefix, extra, server);
         const skills = await ws.showCmd.listSkills({ category, cardKey });
         return toolResult({ skills });
       } catch (error) {
@@ -468,9 +467,9 @@ export function registerTools(
           .describe('Card context for rendering a card-specific skill.'),
       },
     },
-    async ({ projectPrefix, name, cardKey }) => {
+    async ({ projectPrefix, name, cardKey }, extra) => {
       try {
-        const ws = resolveCommands(provider, projectPrefix);
+        const ws = resolveCommands(provider, projectPrefix, extra, server);
         const result = await ws.showCmd.getSkill(name, { cardKey });
         if (result.status === 'not-found') {
           return toolResult({
@@ -515,9 +514,9 @@ export function registerTools(
         filename: z.string().describe('Attachment filename to remove'),
       },
     },
-    async ({ projectPrefix, cardKey, filename }) => {
+    async ({ projectPrefix, cardKey, filename }, extra) => {
       try {
-        const ws = resolveCommands(provider, projectPrefix);
+        const ws = resolveCommands(provider, projectPrefix, extra, server);
         await ws.removeCmd.remove('attachment', cardKey, filename);
         return toolResult({ cardKey, filename });
       } catch (error) {
@@ -534,9 +533,9 @@ export function registerTools(
         projectPrefix: projectPrefixParam,
       },
     },
-    async ({ projectPrefix }) => {
+    async ({ projectPrefix }, extra) => {
       try {
-        const ws = resolveCommands(provider, projectPrefix);
+        const ws = resolveCommands(provider, projectPrefix, extra, server);
         const labels = await ws.showCmd.showLabels();
         return toolResult({ labels });
       } catch (error) {
@@ -554,9 +553,9 @@ export function registerTools(
         cardKey: z.string().describe('Card key to move to first position'),
       },
     },
-    async ({ projectPrefix, cardKey }) => {
+    async ({ projectPrefix, cardKey }, extra) => {
       try {
-        const ws = resolveCommands(provider, projectPrefix);
+        const ws = resolveCommands(provider, projectPrefix, extra, server);
         await ws.moveCmd.rankFirst(cardKey);
         return toolResult({ cardKey, position: 'first' });
       } catch (error) {
@@ -575,9 +574,9 @@ export function registerTools(
         afterCardKey: z.string().describe('Card key to position after'),
       },
     },
-    async ({ projectPrefix, cardKey, afterCardKey }) => {
+    async ({ projectPrefix, cardKey, afterCardKey }, extra) => {
       try {
-        const ws = resolveCommands(provider, projectPrefix);
+        const ws = resolveCommands(provider, projectPrefix, extra, server);
         await ws.moveCmd.rankCard(cardKey, afterCardKey);
         return toolResult({ cardKey, afterCardKey });
       } catch (error) {
@@ -596,9 +595,9 @@ export function registerTools(
         index: z.number().int().min(0).describe('Zero-based position index'),
       },
     },
-    async ({ projectPrefix, cardKey, index }) => {
+    async ({ projectPrefix, cardKey, index }, extra) => {
       try {
-        const ws = resolveCommands(provider, projectPrefix);
+        const ws = resolveCommands(provider, projectPrefix, extra, server);
         await ws.moveCmd.rankByIndex(cardKey, index);
         return toolResult({ cardKey, index });
       } catch (error) {
@@ -619,9 +618,9 @@ export function registerTools(
         workflowName: z.string().describe('Workflow to use for this card type'),
       },
     },
-    async ({ projectPrefix, name, workflowName }) => {
+    async ({ projectPrefix, name, workflowName }, extra) => {
       try {
-        const ws = resolveCommands(provider, projectPrefix);
+        const ws = resolveCommands(provider, projectPrefix, extra, server);
         await ws.createCmd.createCardType(name, workflowName);
         return toolResult({ name, workflowName });
       } catch (error) {
@@ -653,9 +652,9 @@ export function registerTools(
           .describe('Data type for the field'),
       },
     },
-    async ({ projectPrefix, name, dataType }) => {
+    async ({ projectPrefix, name, dataType }, extra) => {
       try {
-        const ws = resolveCommands(provider, projectPrefix);
+        const ws = resolveCommands(provider, projectPrefix, extra, server);
         await ws.createCmd.createFieldType(name, dataType);
         return toolResult({ name, dataType });
       } catch (error) {
@@ -677,9 +676,9 @@ export function registerTools(
           .describe('JSON workflow definition (omit for default)'),
       },
     },
-    async ({ projectPrefix, name, content }) => {
+    async ({ projectPrefix, name, content }, extra) => {
       try {
-        const ws = resolveCommands(provider, projectPrefix);
+        const ws = resolveCommands(provider, projectPrefix, extra, server);
         await ws.createCmd.createWorkflow(name, content ?? '');
         return toolResult({ name });
       } catch (error) {
@@ -697,9 +696,9 @@ export function registerTools(
         name: z.string().describe('Link type identifier'),
       },
     },
-    async ({ projectPrefix, name }) => {
+    async ({ projectPrefix, name }, extra) => {
       try {
-        const ws = resolveCommands(provider, projectPrefix);
+        const ws = resolveCommands(provider, projectPrefix, extra, server);
         await ws.createCmd.createLinkType(name);
         return toolResult({ name });
       } catch (error) {
@@ -721,9 +720,9 @@ export function registerTools(
           .describe('JSON template definition (omit for default)'),
       },
     },
-    async ({ projectPrefix, name, content }) => {
+    async ({ projectPrefix, name, content }, extra) => {
       try {
-        const ws = resolveCommands(provider, projectPrefix);
+        const ws = resolveCommands(provider, projectPrefix, extra, server);
         await ws.createCmd.createTemplate(name, content ?? '');
         return toolResult({ name });
       } catch (error) {
@@ -753,15 +752,12 @@ export function registerTools(
           .describe('Number of cards to add (default: 1)'),
       },
     },
-    async ({
-      projectPrefix,
-      templateName,
-      cardTypeName,
-      parentCard,
-      count,
-    }) => {
+    async (
+      { projectPrefix, templateName, cardTypeName, parentCard, count },
+      extra,
+    ) => {
       try {
-        const ws = resolveCommands(provider, projectPrefix);
+        const ws = resolveCommands(provider, projectPrefix, extra, server);
         const cards = await ws.createCmd.addCards(
           cardTypeName,
           templateName,
@@ -801,9 +797,9 @@ export function registerTools(
         name: z.string().describe('Resource name'),
       },
     },
-    async ({ projectPrefix, resourceType, name }) => {
+    async ({ projectPrefix, resourceType, name }, extra) => {
       try {
-        const ws = resolveCommands(provider, projectPrefix);
+        const ws = resolveCommands(provider, projectPrefix, extra, server);
         await ws.removeCmd.remove(resourceType, name);
         return toolResult({ resourceType, name });
       } catch (error) {
@@ -823,9 +819,9 @@ export function registerTools(
           .describe('Full resource name (e.g., "prefix/cardTypes/myType")'),
       },
     },
-    async ({ projectPrefix, name }) => {
+    async ({ projectPrefix, name }, extra) => {
       try {
-        const ws = resolveCommands(provider, projectPrefix);
+        const ws = resolveCommands(provider, projectPrefix, extra, server);
         const parsed = resourceName(name);
         const result = await ws.validateCmd.validateResource(
           parsed,
@@ -970,9 +966,9 @@ export function registerTools(
         }),
       ]),
     },
-    async ({ projectPrefix, resource, operation, key }) => {
+    async ({ projectPrefix, resource, operation, key }, extra) => {
       try {
-        const ws = resolveCommands(provider, projectPrefix);
+        const ws = resolveCommands(provider, projectPrefix, extra, server);
         await ws.updateCmd.apply({
           kind: 'edit',
           target: resourceName(resource),
@@ -1029,9 +1025,9 @@ export function registerTools(
           ),
       },
     },
-    async ({ projectPrefix, resource, query }) => {
+    async ({ projectPrefix, resource, query }, extra) => {
       try {
-        const ws = resolveCommands(provider, projectPrefix);
+        const ws = resolveCommands(provider, projectPrefix, extra, server);
         const updateKey =
           query.key === 'content'
             ? ({ key: 'content', subKey: query.subKey } as const)
@@ -1066,9 +1062,9 @@ export function registerTools(
         name: z.string().describe('Calculation identifier'),
       },
     },
-    async ({ projectPrefix, name }) => {
+    async ({ projectPrefix, name }, extra) => {
       try {
-        const ws = resolveCommands(provider, projectPrefix);
+        const ws = resolveCommands(provider, projectPrefix, extra, server);
         await ws.createCmd.createCalculation(name);
         return toolResult({ name });
       } catch (error) {
@@ -1088,9 +1084,9 @@ export function registerTools(
           .describe('Query type to run'),
       },
     },
-    async ({ projectPrefix, queryName }) => {
+    async ({ projectPrefix, queryName }, extra) => {
       try {
-        const ws = resolveCommands(provider, projectPrefix);
+        const ws = resolveCommands(provider, projectPrefix, extra, server);
         const results = await ws.calculateCmd.runQuery(queryName);
         return toolResult({ results });
       } catch (error) {
@@ -1109,9 +1105,9 @@ export function registerTools(
         query: z.string().describe('Clingo/ASP logic program source code'),
       },
     },
-    async ({ projectPrefix, query }) => {
+    async ({ projectPrefix, query }, extra) => {
       try {
-        const ws = resolveCommands(provider, projectPrefix);
+        const ws = resolveCommands(provider, projectPrefix, extra, server);
         const result = await ws.calculateCmd.runLogicProgram(query);
         return toolResult({ result });
       } catch (error) {
@@ -1129,9 +1125,9 @@ export function registerTools(
         name: z.string().describe('Report identifier'),
       },
     },
-    async ({ projectPrefix, name }) => {
+    async ({ projectPrefix, name }, extra) => {
       try {
-        const ws = resolveCommands(provider, projectPrefix);
+        const ws = resolveCommands(provider, projectPrefix, extra, server);
         await ws.createCmd.createReport(name);
         return toolResult({ name });
       } catch (error) {
@@ -1149,9 +1145,9 @@ export function registerTools(
         name: z.string().describe('Graph model identifier'),
       },
     },
-    async ({ projectPrefix, name }) => {
+    async ({ projectPrefix, name }, extra) => {
       try {
-        const ws = resolveCommands(provider, projectPrefix);
+        const ws = resolveCommands(provider, projectPrefix, extra, server);
         await ws.createCmd.createGraphModel(name);
         return toolResult({ name });
       } catch (error) {
@@ -1169,9 +1165,9 @@ export function registerTools(
         name: z.string().describe('Graph view identifier'),
       },
     },
-    async ({ projectPrefix, name }) => {
+    async ({ projectPrefix, name }, extra) => {
       try {
-        const ws = resolveCommands(provider, projectPrefix);
+        const ws = resolveCommands(provider, projectPrefix, extra, server);
         await ws.createCmd.createGraphView(name);
         return toolResult({ name });
       } catch (error) {
@@ -1195,9 +1191,9 @@ export function registerTools(
           .describe('Additional report parameters'),
       },
     },
-    async ({ projectPrefix, reportName, cardKey, parameters }) => {
+    async ({ projectPrefix, reportName, cardKey, parameters }, extra) => {
       try {
-        const ws = resolveCommands(provider, projectPrefix);
+        const ws = resolveCommands(provider, projectPrefix, extra, server);
         const result = await ws.showCmd.showReportResults(
           reportName,
           cardKey,
@@ -1221,9 +1217,9 @@ export function registerTools(
         view: z.string().describe('Graph view name'),
       },
     },
-    async ({ projectPrefix, model, view }) => {
+    async ({ projectPrefix, model, view }, extra) => {
       try {
-        const ws = resolveCommands(provider, projectPrefix);
+        const ws = resolveCommands(provider, projectPrefix, extra, server);
         const base64 = await ws.calculateCmd.runGraph(model, view, 'localApp');
         return {
           content: [

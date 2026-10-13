@@ -30,10 +30,12 @@ import {
   buildProject,
   type BuiltProject,
 } from '../../data-handler/test/helpers/project-builder.js';
+import { authenticated, TEST_USER } from './test-utils.js';
 import { openTestWorkspace } from './helpers/open-test-workspace.js';
 
-// Author of MCP autocommits today.
-const COMMIT_AUTHOR = 'Cyberismo Bot <bot@cyberismo.com>';
+// MCP autocommits are the calling user's, with the client as agent.
+const COMMIT_AUTHOR = `${TEST_USER.name} <${TEST_USER.email}>`;
+const COMMIT_TRAILERS = 'Cyberismo-Agent: test-client';
 
 const run = promisify(execFile);
 
@@ -79,7 +81,7 @@ beforeEach(async () => {
   const [clientTransport, serverTransport] =
     InMemoryTransport.createLinkedPair();
   await createMcpServer(singleProjectProvider(ws.checkout)).connect(
-    serverTransport,
+    authenticated(serverTransport),
   );
   client = new Client({ name: 'test-client', version: '1.0.0' });
   await client.connect(clientTransport);
@@ -114,13 +116,20 @@ async function call(name: string, args: Record<string, unknown> = {}) {
   return JSON.parse(text);
 }
 
-// Calls a write tool and checks its commits, their author and a clean tree.
+// Calls a write tool and checks its commits, their author and trailers, and a
+// clean tree.
 async function write(name: string, args: Record<string, unknown>, commits = 1) {
   const before = await commitCount();
   const payload = await call(name, args);
   expect(await commitCount()).toBe(before + commits);
-  const authors = await git('log', `-${commits}`, '--format=%an <%ae>');
-  expect(authors.split('\n')).toEqual(Array(commits).fill(COMMIT_AUTHOR));
+  const authors = await git(
+    'log',
+    `-${commits}`,
+    '--format=%an <%ae> %(trailers:only,unfold,separator=%x2C)',
+  );
+  expect(authors.split('\n')).toEqual(
+    Array(commits).fill(`${COMMIT_AUTHOR} ${COMMIT_TRAILERS}`),
+  );
   expect(await git('status', '--porcelain')).toBe('');
   return payload;
 }

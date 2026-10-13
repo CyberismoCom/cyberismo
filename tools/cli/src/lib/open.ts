@@ -14,9 +14,19 @@
 import { join, resolve } from 'node:path';
 
 import {
+  openCheckout,
+  SYSTEM_ACTOR,
+  Workspace,
+  type Checkout,
+  type CommitIdentity,
+  type WorkspaceOptions,
+} from '@cyberismo/data-handler';
+import {
   pathExists,
   resolveTilde,
 } from '@cyberismo/data-handler/utils/file-utils';
+import { createGit } from '@cyberismo/data-handler/utils/git-config';
+import type { ActorRef } from '@cyberismo/model';
 
 // Nearest folder at or above 'path' that holds '.cards'; '' if none.
 function findProjectRoot(path: string): string {
@@ -33,7 +43,7 @@ function findProjectRoot(path: string): string {
  * @returns the project path, or '' when it is not a project (it lacks
  * '.cards' or 'cardRoot').
  */
-export function openProject(options: { projectPath?: string }): string {
+export function projectRoot(options: { projectPath?: string }): string {
   let path = options.projectPath;
   if (!path) {
     path = findProjectRoot(process.cwd());
@@ -49,4 +59,56 @@ export function openProject(options: { projectPath?: string }): string {
     pathExists(resolve(join(path, '.cards'))) &&
     pathExists(resolve(join(path, 'cardRoot')));
   return isProject ? path : '';
+}
+
+// The caller's git author, resolved as git does: GIT_AUTHOR_*, then author.*,
+// then user.*. Read with a client of its own: the checkout's forces the Bot.
+// The system acts when the name or email is unset.
+async function gitAuthor(
+  path: string,
+): Promise<{ actor: ActorRef; identity?: CommitIdentity }> {
+  try {
+    const git = createGit({ baseDir: path });
+    const config = async (key: string) =>
+      (await git.getConfig(key)).value ?? undefined;
+    const name =
+      process.env.GIT_AUTHOR_NAME ||
+      (await config('author.name')) ||
+      (await config('user.name'));
+    const email =
+      process.env.GIT_AUTHOR_EMAIL ||
+      (await config('author.email')) ||
+      (await config('user.email'));
+    if (name && email) {
+      return {
+        actor: { kind: 'user', id: email, name },
+        identity: { name, email },
+      };
+    }
+  } catch {
+    // No usable git: the system acts.
+  }
+  return { actor: SYSTEM_ACTOR };
+}
+
+// The process's one checkout; replaced when a command chain moves to another
+// project (e.g. 'create project' and then its first imports).
+let checkout: Checkout | undefined;
+process.on('exit', () => checkout?.dispose());
+
+/**
+ * The caller's handle over the process's one checkout.
+ * @param options Resolved project path and the CLI's checkout options.
+ */
+export async function openProject(
+  options: WorkspaceOptions & { projectPath: string },
+): Promise<Workspace> {
+  const { projectPath, ...checkoutOptions } = options;
+  if (checkout?.basePath !== projectPath) {
+    checkout?.dispose();
+    checkout = undefined;
+    checkout = await openCheckout(projectPath, checkoutOptions);
+  }
+  const { actor, identity } = await gitAuthor(projectPath);
+  return Workspace.over(checkout, actor, identity);
 }

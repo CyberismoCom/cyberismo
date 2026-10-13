@@ -3,7 +3,7 @@ import { expect, it, describe, beforeEach, afterEach } from 'vitest';
 import { existsSync, mkdirSync, readFileSync, rmSync } from 'node:fs';
 import { join, sep } from 'node:path';
 
-import { Cmd, Commands } from '../src/command-handler.js';
+import { Cmd, Commands, type Workspace } from '../src/command-handler.js';
 import { copyDir } from '../src/utils/file-utils.js';
 import { Show } from '../src/commands/index.js';
 import { getTestBaseDir, getTestProject } from './helpers/test-utils.js';
@@ -43,6 +43,7 @@ describe('move command', () => {
   let testDir: string;
   let decisionRecordsPath: string;
   let createdCardKey: string;
+  let ws: Workspace;
 
   beforeEach(async () => {
     const baseDir = getTestBaseDir(import.meta.dirname, import.meta.url);
@@ -58,7 +59,9 @@ describe('move command', () => {
     mkdirSync(testDir, { recursive: true });
     await copyDir('test/test-data', testDir);
 
-    commandHandler = new Commands();
+    // The dispatcher runs on the handle the tests use.
+    ws = await openTestWorkspace(decisionRecordsPath);
+    commandHandler = new Commands(async () => ws);
 
     // Create few more cards to play with (moved from first test)
     const template = 'decision/templates/decision';
@@ -184,7 +187,6 @@ describe('move command', () => {
     );
     const child = childResult.affectsCards!.at(0) as string;
 
-    const ws = await openTestWorkspace(options.projectPath!);
     await expect(ws.moveCmd.moveCard(parent, child)).rejects.toThrow(
       'cannot be placed under itself or one of its descendants',
     );
@@ -304,8 +306,6 @@ describe('move command', () => {
     );
     expect(moveResult.statusCode).toBe(200);
 
-    const ws = await openTestWorkspace(options.projectPath!);
-
     await expect(
       ws.moveCmd.rankByIndex('decision_1', 2),
     ).resolves.not.toThrow();
@@ -379,7 +379,6 @@ describe('move command', () => {
       JSON.parse(readFileSync(join(folder, 'index.json'), 'utf-8')).rank;
 
     // The same instance the command handler uses.
-    const ws = await openTestWorkspace(options.projectPath!);
     const checkout = ws.checkout;
     // What the move will rank the card as: last under the destination, which
     // a failed attempt must not change.
@@ -436,7 +435,6 @@ describe('move command', () => {
     await commandHandler.command(Cmd.show, ['project'], options);
 
     // Get the CommandManager instance to access its project
-    const ws = await openTestWorkspace(options.projectPath!);
     const checkout = ws.checkout;
 
     // Create two cards - parent and child
@@ -516,7 +514,6 @@ describe('move command', () => {
     // This prevents operations on descendants from targeting non-existent paths.
 
     // Get the CommandManager instance to access its project
-    const ws = await openTestWorkspace(options.projectPath!);
     const checkout = ws.checkout;
 
     const template = 'decision/templates/decision';

@@ -12,7 +12,15 @@
 */
 
 import { join } from 'node:path';
-import { Workspace, Create, scanForProjects } from '@cyberismo/data-handler';
+import {
+  Create,
+  openCheckout,
+  scanForProjects,
+  SYSTEM_ACTOR,
+  Workspace,
+} from '@cyberismo/data-handler';
+import { actorOf } from '../../middleware/commandManager.js';
+import type { UserInfo } from '../../types.js';
 import type { ProjectRegistry } from '../../project-registry.js';
 
 export interface CreateProjectParams {
@@ -33,17 +41,20 @@ export async function createProject(
   registry: ProjectRegistry,
   rootPath: string,
   params: CreateProjectParams,
-  user?: { name: string; email: string } | null,
+  user?: UserInfo | null,
 ): Promise<CreateProjectResult> {
   const { name, prefix, category, description } = params;
   const projectPath = join(rootPath, prefix);
 
-  const ws = await Workspace.createProjectWithDefaults(projectPath, params, {
-    ...registry.options,
-    gitUser: user ?? undefined,
-  });
+  const ws = await Workspace.createProjectWithDefaults(
+    projectPath,
+    params,
+    user ? actorOf(user) : SYSTEM_ACTOR,
+    user ? { name: user.name, email: user.email } : undefined,
+    registry.options,
+  );
 
-  registry.add(prefix, ws);
+  registry.add(prefix, ws.checkout);
 
   return {
     prefix,
@@ -74,9 +85,10 @@ export async function cloneProject(
       skippedDuplicates.push(project.prefix);
       continue;
     }
-    const ws = new Workspace(project.path, registry.options);
-    await ws.initialize();
-    registry.add(project.prefix, ws);
+    registry.add(
+      project.prefix,
+      await openCheckout(project.path, registry.options),
+    );
     registered.push({
       prefix: project.prefix,
       name: project.name,
