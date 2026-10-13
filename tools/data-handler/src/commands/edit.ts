@@ -16,15 +16,9 @@ import { join } from 'node:path';
 import { homedir } from 'node:os';
 import { spawnSync } from 'node:child_process';
 
-import { ActionGuard } from '../permissions/action-guard.js';
 import { Checkout } from '../containers/project.js';
 import { UserPreferences } from '../utils/user-preferences.js';
 import { read, write } from '../utils/rw-lock.js';
-import { getChildLogger } from '../utils/log-utils.js';
-
-import type { Card, MetadataContent, CustomField } from '@cyberismo/model';
-
-const logger = getChildLogger({ module: 'edit' });
 
 export class Edit {
   private checkout: Checkout;
@@ -73,97 +67,6 @@ export class Edit {
 
     if (result.status === null) {
       throw new Error(`Cannot launch editor: ${result.error}`);
-    }
-  }
-
-  /**
-   * Updates card content (index.adoc) with incoming content.
-   * @param cardKey The card to update.
-   * @param changedContent New content for the card.
-   */
-  @write((cardKey) => `Edit content of ${cardKey}`)
-  public async editCardContent(cardKey: string, changedContent: string) {
-    // A template card has no workflow state, so there is nothing to guard.
-    if (this.checkout.treeOf(cardKey).kind !== 'project') {
-      return this.checkout.updateCardContent(cardKey, changedContent);
-    }
-    if (this.checkout.findCard(cardKey)) {
-      const actionGuard = new ActionGuard(this.checkout.calculationEngine);
-      await actionGuard.checkPermission('editContent', cardKey);
-      await this.checkout.updateCardContent(cardKey, changedContent);
-    }
-  }
-
-  /**
-   * Updates card metadata.
-   * @param cardKey The card to update
-   * @param changedKey Which metadata property was changed
-   * @param newValue New value for the metadata property
-   */
-  @write((cardKey) => `Edit metadata of ${cardKey}`)
-  public async editCardMetadata(
-    cardKey: string,
-    changedKey: string,
-    newValue: MetadataContent,
-  ) {
-    if (!changedKey) {
-      throw new Error(`Changed key cannot be empty`);
-    }
-
-    const card = this.checkout.findCard(cardKey);
-    this.assertFieldIsEditable(card, changedKey, newValue);
-
-    // A template card has no workflow state, so there is nothing to guard.
-    if (this.checkout.treeOf(cardKey).kind !== 'project') {
-      return this.checkout.updateCardMetadataKey(cardKey, changedKey, newValue);
-    }
-
-    // check for editing rights
-    const actionGuard = new ActionGuard(this.checkout.calculationEngine);
-    await actionGuard.checkPermission('editField', cardKey, changedKey);
-    await this.checkout.updateCardMetadataKey(cardKey, changedKey, newValue);
-  }
-
-  /**
-   * Rejects edits to calculated custom fields unless the card type enables
-   * override for that field. Applies to project and template cards alike, so
-   * that the CLI, MCP and the API agree with what the editors allow.
-   * @param card Card being edited.
-   * @param fieldName Metadata key being changed.
-   * @param newValue Value being written.
-   */
-  private assertFieldIsEditable(
-    card: Card,
-    fieldName: string,
-    newValue: MetadataContent,
-  ) {
-    // Clearing is always allowed: removing a stored value can only move the
-    // card towards validity, and it is the only way out when a card type
-    // change has turned an existing value into a validation error.
-    if (newValue == null) {
-      return;
-    }
-    if (!card.metadata?.cardType) {
-      return;
-    }
-    let customField: CustomField | undefined;
-    try {
-      const cardType = this.checkout.resources
-        .byType(card.metadata.cardType, 'cardTypes')
-        .show();
-      customField = cardType.customFields.find((f) => f.name === fieldName);
-    } catch (error) {
-      // Project validation reports a broken card type separately.
-      logger.warn(
-        error,
-        `Could not resolve card type '${card.metadata.cardType}' of card '${card.key}'; skipping the calculated-field edit guard`,
-      );
-      return;
-    }
-    if (customField?.isCalculated && !customField.enableOverride) {
-      throw new Error(
-        `Cannot edit calculated field '${fieldName}'; the card type does not enable override for it`,
-      );
     }
   }
 

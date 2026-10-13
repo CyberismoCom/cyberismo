@@ -23,7 +23,6 @@ import type { Remove } from '../commands/remove.js';
 import type { Version } from '../commands/version.js';
 import type { Rename } from '../commands/rename.js';
 import type { Show } from '../commands/show.js';
-import type { Transition } from '../commands/transition.js';
 import type { Update } from '../commands/update.js';
 import type { Validate } from '../commands/validate.js';
 import { Cards } from '../cards/cards.js';
@@ -191,9 +190,6 @@ export class Workspace {
   }
   get showCmd(): Show {
     return this.legacy('showCmd');
-  }
-  get transitionCmd(): Transition {
-    return this.legacy('transitionCmd');
   }
   get updateCmd(): Update {
     return this.legacy('updateCmd');

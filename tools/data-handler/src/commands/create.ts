@@ -17,7 +17,6 @@ import { mkdir, mkdtemp, rename, rm, writeFile } from 'node:fs/promises';
 
 import { SCHEMA_VERSION } from '@cyberismo/migrations';
 import { scanForProjects } from '../project-scanner.js';
-import { errorFunction } from '../utils/error-utils.js';
 import { createGit, gitTimeout } from '../utils/git-config.js';
 import { pathExists } from '../utils/file-utils.js';
 import { Checkout } from '../containers/project.js';
@@ -29,17 +28,12 @@ import { Validate } from './validate.js';
 
 import { compare, EMPTY_RANK, sortItems } from '../utils/lexorank.js';
 import { ROOT } from '../utils/constants.js';
-import { isExternalItemKey } from '../utils/card-utils.js';
-import type {
-  DataType,
-  ExternalLink,
-  Card,
-  ProjectFile,
-} from '@cyberismo/model';
+import type { DataType, Card, ProjectFile } from '@cyberismo/model';
 import { resourceName, resourceNameToString } from '../utils/resource-utils.js';
 import { write } from '../utils/rw-lock.js';
 import { writeJsonFile } from '../utils/json.js';
 import { getChildLogger } from '../utils/log-utils.js';
+import { runCreationSideEffects } from '../cards/transition.js';
 
 const logger = getChildLogger({ module: 'create' });
 
@@ -140,7 +134,7 @@ export class Create {
       throw new Error(`Invalid value for 'repeat:' "${count}"`);
     }
 
-    await this.checkout.runCreationSideEffects(cardsContainer);
+    await runCreationSideEffects(this.checkout, cardsContainer);
 
     return cardsContainer;
   }
@@ -152,29 +146,6 @@ export class Create {
   @write((hubUrl) => `Add hub ${hubUrl}`)
   public async addHubLocation(hubUrl: string) {
     return this.checkout.configuration.addHub(hubUrl);
-  }
-
-  /**
-   * Adds an attachment to a card.
-   * @param cardKey card ID
-   * @param attachment path to an attachment file or attachment name if buffer is defined
-   * @param buffer (Optional) attachment buffer
-   */
-  @write((cardKey, attachment) => `Add attachment ${attachment} to ${cardKey}`)
-  public async createAttachment(
-    cardKey: string,
-    attachment: string,
-    buffer?: Buffer,
-  ) {
-    try {
-      await this.checkout.createCardAttachment(
-        cardKey,
-        attachment,
-        buffer || attachment,
-      );
-    } catch (error) {
-      throw new Error(errorFunction(error), { cause: error });
-    }
   }
 
   /**
@@ -225,7 +196,8 @@ export class Create {
       specificCard,
     );
     if (createdCards.length > 0) {
-      await this.checkout.runCreationSideEffects(
+      await runCreationSideEffects(
+        this.checkout,
         createdCards.map((card) => card.key),
       );
 
@@ -297,267 +269,12 @@ export class Create {
   }
 
   /**
-   * Creates  a label in the given card
-   * @param cardKey The card to which the label is added to
-   * @param label The label being added
-   */
-  @write((cardKey, label) => `Add label ${label} to ${cardKey}`)
-  public async createLabel(cardKey: string, label: string) {
-    if (!Validate.isValidLabelName(label)) {
-      throw new Error(`Not a valid label name'`);
-    }
-
-    const card = this.checkout.findCard(cardKey);
-    const labels = structuredClone(card.metadata?.labels) ?? [];
-
-    if (labels.includes(label)) {
-      throw new Error('Label already exists');
-    }
-
-    labels.push(label);
-    return this.checkout.updateCardMetadataKey(cardKey, 'labels', labels);
-  }
-
-  /**
    * Creates a new link type.
    * @param linkTypeName name for the link type.
    */
   @write((linkTypeName) => `Create link type ${linkTypeName}`)
   public async createLinkType(linkTypeName: string) {
     return this.checkout.resources.byType(linkTypeName, 'linkTypes').create();
-  }
-
-  /**
-   * Creates a link between two cards, or between a card and an external item.
-   * Target can be external using format "connector:itemKey" (e.g., "jira:PROJECT-1032").
-   * @param cardKey The card key making the request
-   * @param targetKey The target card key or external item (connector:itemKey)
-   * @param linkType The type of link to add
-   * @param linkDescription Optional description of the link
-   * @param direction Direction of the link: 'outbound' (card→target) or 'inbound' (target→card), defaults to 'outbound'
-   */
-  @write(
-    (source, destination, linkType) =>
-      `Create ${linkType} link from ${source} to ${destination}`,
-  )
-  public async createLink(
-    source: string,
-    destination: string,
-    linkType: string,
-    linkDescription?: string,
-    direction?: 'outbound' | 'inbound',
-  ) {
-    if (source === destination) {
-      throw new Error('Cannot link card to itself');
-    }
-
-    const isExternalSource = isExternalItemKey(source);
-    const isExternalDestination = isExternalItemKey(destination);
-
-    if (isExternalSource && isExternalDestination) {
-      throw new Error(
-        'Cannot create link between two external items. One must be a card.',
-      );
-    }
-
-    if (isExternalSource || isExternalDestination) {
-      const cardKey = isExternalDestination ? source : destination;
-      const externalItem = isExternalDestination ? destination : source;
-      // Use provided direction, or auto-detect from argument order
-      const effectiveDirection =
-        direction ?? (isExternalDestination ? 'outbound' : 'inbound');
-      return this.createExternalLink(
-        cardKey,
-        externalItem,
-        linkType,
-        effectiveDirection,
-        linkDescription,
-      );
-    }
-
-    // For local card-to-card links, source links to destination
-    return this.createLocalLink(source, destination, linkType, linkDescription);
-  }
-
-  /**
-   * Creates a link between two cards.
-   */
-  private async createLocalLink(
-    source: string,
-    destination: string,
-    linkType: string,
-    linkDescription?: string,
-  ) {
-    const sourceCard = this.checkout.findCard(source);
-    const destinationCard = this.checkout.findCard(destination);
-
-    const linkTypeObject = this.getLinkTypeWithValidation(
-      linkType,
-      linkDescription,
-    );
-
-    this.validateCardTypeForLink(
-      sourceCard.metadata!.cardType,
-      linkTypeObject,
-      'source',
-      linkType,
-    );
-    this.validateCardTypeForLink(
-      destinationCard.metadata!.cardType,
-      linkTypeObject,
-      'destination',
-      linkType,
-    );
-
-    const existingLink = sourceCard.metadata?.links.find(
-      (l) =>
-        l.linkType === linkType &&
-        l.cardKey === destination &&
-        l.linkDescription === linkDescription,
-    );
-    if (existingLink) {
-      throw new Error(
-        `Link from card '${source}' to card '${destination}' already exists`,
-      );
-    }
-
-    const links = sourceCard.metadata?.links || [];
-    links.push({
-      linkType,
-      cardKey: destination,
-      linkDescription,
-    });
-
-    await this.checkout.updateCardMetadataKey(source, 'links', links);
-  }
-
-  /**
-   * Gets the link type object and validates link description is allowed.
-   */
-  private getLinkTypeWithValidation(
-    linkType: string,
-    linkDescription?: string,
-  ) {
-    const linkTypeObject = this.checkout.resources
-      .byType(linkType, 'linkTypes')
-      .show();
-
-    if (
-      !linkTypeObject.enableLinkDescription &&
-      linkDescription !== undefined
-    ) {
-      throw new Error(
-        `Link type '${linkType}' does not allow link description`,
-      );
-    }
-
-    return linkTypeObject;
-  }
-
-  /**
-   * Validates that a card type is allowed as source or destination for a link type.
-   */
-  private validateCardTypeForLink(
-    cardType: string,
-    linkTypeObject: {
-      sourceCardTypes: string[];
-      destinationCardTypes: string[];
-    },
-    role: 'source' | 'destination',
-    linkType: string,
-  ): void {
-    const allowedTypes =
-      role === 'source'
-        ? linkTypeObject.sourceCardTypes
-        : linkTypeObject.destinationCardTypes;
-
-    if (allowedTypes.length > 0 && !allowedTypes.includes(cardType)) {
-      throw new Error(
-        `Card type '${cardType}' cannot be used as ${role} with link type '${linkType}'`,
-      );
-    }
-  }
-
-  /**
-   * Creates a link between a card and an external item.
-   * @param cardKey The card key that will store the link
-   * @param externalItem The external item in format "connector:itemKey"
-   * @param linkType The type of link to add
-   * @param direction 'outbound' = card links to external, 'inbound' = external links to card
-   * @param linkDescription Optional description of the link
-   */
-  private async createExternalLink(
-    cardKey: string,
-    externalItem: string,
-    linkType: string,
-    direction: 'outbound' | 'inbound',
-    linkDescription?: string,
-  ) {
-    // Parse connector:itemKey
-    const [connector, ...rest] = externalItem.split(':');
-    const externalItemKey = rest.join(':');
-
-    if (!connector || !externalItemKey) {
-      throw new Error(
-        `Invalid external item format: '${externalItem}'. Expected 'connector:itemKey'.`,
-      );
-    }
-
-    const card = this.checkout.findCard(cardKey);
-    const linkTypeObject = this.getLinkTypeWithValidation(
-      linkType,
-      linkDescription,
-    );
-
-    // Validate card type based on direction
-    const role = direction === 'outbound' ? 'source' : 'destination';
-    this.validateCardTypeForLink(
-      card.metadata!.cardType,
-      linkTypeObject,
-      role,
-      linkType,
-    );
-
-    // Validate connector if restrictions are defined
-    if (
-      linkTypeObject.destinationConnectors &&
-      linkTypeObject.destinationConnectors.length > 0 &&
-      !linkTypeObject.destinationConnectors.includes(connector)
-    ) {
-      throw new Error(
-        `Link type '${linkType}' does not support links to connector '${connector}'`,
-      );
-    }
-
-    // Check for duplicate external link
-    const existingLink = card.metadata?.externalLinks?.find(
-      (l) =>
-        l.linkType === linkType &&
-        l.connector === connector &&
-        l.externalItemKey === externalItemKey &&
-        l.direction === direction &&
-        l.linkDescription === linkDescription,
-    );
-    if (existingLink) {
-      throw new Error(
-        `External link from card '${cardKey}' to '${connector}:${externalItemKey}' already exists`,
-      );
-    }
-
-    const externalLinks: ExternalLink[] = card.metadata?.externalLinks || [];
-    externalLinks.push({
-      linkType,
-      connector,
-      externalItemKey,
-      direction,
-      linkDescription,
-    });
-
-    await this.checkout.updateCardMetadataKey(
-      cardKey,
-      'externalLinks',
-      externalLinks,
-    );
   }
 
   /**

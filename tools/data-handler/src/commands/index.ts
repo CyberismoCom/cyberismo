@@ -23,7 +23,6 @@ import { Publish } from './publish.js';
 import { Remove } from './remove.js';
 import { Rename } from './rename.js';
 import { Show } from './show.js';
-import { Transition } from './transition.js';
 import { Update } from './update.js';
 import { Validate } from './validate.js';
 import { Version } from './version.js';
@@ -41,7 +40,6 @@ export {
   Remove,
   Rename,
   Show,
-  Transition,
   Update,
   Validate,
   Version,

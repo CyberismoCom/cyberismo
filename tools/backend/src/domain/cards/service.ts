@@ -51,21 +51,21 @@ export async function updateCard(
   let written = false;
   await ws.atomic(async () => {
     if (body.state) {
-      await ws.transitionCmd.cardTransition(key, body.state);
+      await ws.cards.transition(key, body.state);
       written = true;
     }
     if (body.content != null) {
-      await ws.editCmd.editCardContent(key, body.content);
+      await ws.cards.edit(key, body.content);
       written = true;
     }
     if (body.metadata) {
       for (const [metadataKey, metadataValue] of Object.entries(
         body.metadata,
       )) {
-        await ws.editCmd.editCardMetadata(
+        await ws.cards.editField(
           key,
           metadataKey,
-          metadataValue as MetadataContent,
+          metadataValue as Exclude<MetadataContent, bigint>,
         );
         written = true;
       }
@@ -83,7 +83,7 @@ export async function updateCard(
 }
 
 export async function deleteCard(ws: Workspace, key: string) {
-  await ws.removeCmd.remove('card', key);
+  await ws.cards.remove(key);
 }
 
 export async function createCard(
@@ -112,11 +112,7 @@ export async function uploadAttachments(
     for (const file of files) {
       if (file instanceof File) {
         const buffer = await file.arrayBuffer();
-        await ws.createCmd.createAttachment(
-          key,
-          file.name,
-          Buffer.from(buffer),
-        );
+        await ws.cards.addAttachment(key, file.name, Buffer.from(buffer));
         succeeded.push(file.name);
       }
     }
@@ -141,7 +137,7 @@ export async function removeAttachment(
   filename: string,
 ) {
   validateAttachmentFileName(filename);
-  await ws.removeCmd.remove('attachment', key, filename);
+  await ws.cards.removeAttachment(key, filename);
   return { message: 'Attachment removed successfully' };
 }
 
@@ -191,13 +187,7 @@ export async function createLink(
   const source = direction === 'outbound' ? key : target;
   const destination = direction === 'outbound' ? target : key;
 
-  await ws.createCmd.createLink(
-    source,
-    destination,
-    linkType,
-    description,
-    direction,
-  );
+  await ws.cards.addLink(source, destination, linkType, description, direction);
 
   return { message: 'Link created successfully' };
 }
@@ -214,7 +204,7 @@ export async function removeLink(
   // For inbound: target is source, key is destination
   const source = direction === 'outbound' ? key : target;
   const destination = direction === 'outbound' ? target : key;
-  await ws.removeCmd.remove('link', source, destination, linkType, description);
+  await ws.cards.removeLink(source, destination, linkType, description);
   return { message: 'Link removed successfully' };
 }
 

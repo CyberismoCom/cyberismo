@@ -17,6 +17,7 @@ import type { EditInput } from '../types.js';
 import { resourceNameToString } from '../../utils/resource-utils.js';
 import { ResourcesFrom } from '../../containers/project/resources-from.js';
 import type { Card, ChangeOperation, EnumDefinition } from '@cyberismo/model';
+import { updateCardMetadataKey } from '../../cards/update.js';
 
 /**
  * FieldTypeResource.update renames the value in the enum definition; the
@@ -44,7 +45,7 @@ export class FieldTypeEnumRenameHandler implements Handler<EditInput> {
 
     for (const card of this.affectedCards(ctx, name)) {
       if (card.metadata?.[name] === oldValue) {
-        await ctx.checkout.updateCardMetadataKey(card.key, name, newValue);
+        await updateCardMetadataKey(ctx.checkout, card.key, name, newValue);
       }
     }
   }
