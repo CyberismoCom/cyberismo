@@ -11,13 +11,12 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import type { Card } from '@cyberismo/data-handler/interfaces/project-interfaces';
+import type { Card, QueryResult } from '@cyberismo/model';
 import { type Workspace, evaluateMacros } from '@cyberismo/data-handler';
 import { preprocessMermaidBlocksForHtml } from '@cyberismo/data-handler/utils/mermaid-renderer';
 import { rewriteAsciidocCardXrefs } from '@cyberismo/data-handler/utils/asciidoc-xref';
 import { getCardQueryResult } from '../../export.js';
 import type { TreeOptions } from '../../types.js';
-import type { QueryResult } from '@cyberismo/data-handler/types/queries';
 
 interface result {
   status: number;

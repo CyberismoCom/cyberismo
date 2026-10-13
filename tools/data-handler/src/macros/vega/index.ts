@@ -13,7 +13,7 @@
 */
 import type { MacroGenerationContext } from '../../interfaces/macros.js';
 import BaseMacro from '../base-macro.js';
-import macroMetadata from './metadata.js';
+import macroMetadata from '@cyberismo/model/macros/vega/metadata';
 import type TaskQueue from '../task-queue.js';
 import {
   createHtmlPlaceholder,
@@ -21,7 +21,7 @@ import {
   validateMacroContent,
 } from '../index.js';
 import { sanitizeSvgBase64 } from '../../utils/sanitize-svg.js';
-import type { VegaMacroInput } from './types.js';
+import type { VegaMacroInput } from '@cyberismo/model';
 
 class VegaMacro extends BaseMacro {
   constructor(tasksQueue: TaskQueue) {

@@ -17,7 +17,7 @@ import type { MacroContext } from '.';
 import { useAppDispatch, useAppRouter } from '@/lib/hooks';
 import { addNotification } from '@/lib/slices/notifications';
 import { useState } from 'react';
-import type { LinkDirection } from '@cyberismo/data-handler/types/queries';
+import type { LinkDirection } from '@cyberismo/model';
 import { UserRole, useHasMinRole } from '@/lib/auth';
 
 export type CreateCardsProps = {

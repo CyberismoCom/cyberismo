@@ -26,12 +26,12 @@ import type {
   ProjectMetadata,
   RemovableResourceTypes,
   ResourceTypes,
-} from './interfaces/project-interfaces.js';
-import type {
   DataType,
   AnyResourceContent,
   UpdateKey,
-} from './interfaces/resource-interfaces.js';
+  Operation,
+  UpdateOperations,
+} from '@cyberismo/model';
 import type {
   AddCommandOptions,
   AllCommandOptions,
@@ -51,10 +51,6 @@ import { Create } from './commands/create.js';
 import { migrate as migrateProject } from './commands/migrate.js';
 import { Validate } from './commands/validate.js';
 import { Workspace } from './workspace/workspace.js';
-import type {
-  Operation,
-  UpdateOperations,
-} from './resources/resource-object.js';
 import { Checkout } from './containers/project.js';
 
 import { pathExists, resolveTilde } from './utils/file-utils.js';
@@ -65,8 +61,7 @@ import { getChildLogger } from './utils/log-utils.js';
 import { resourceName, resourceNameToString } from './utils/resource-utils.js';
 
 import { type Level } from 'pino';
-import { type Context } from './interfaces/project-interfaces.js';
-import { type QueryName } from './types/queries.js';
+import { type Context, type QueryName } from '@cyberismo/model';
 import { validBumps, type BumpType } from './commands/version.js';
 
 // Commands that this class supports.

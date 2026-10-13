@@ -17,7 +17,11 @@ import type {
   Workflow,
   WorkflowState,
   WorkflowTransition,
-} from '../interfaces/resource-interfaces.js';
+  Card,
+  ChangeOperation,
+  Operation,
+  RemoveOperation,
+} from '@cyberismo/model';
 import { DefaultContent } from './create-defaults.js';
 import { FileResource } from './file-resource.js';
 import {
@@ -26,12 +30,6 @@ import {
 } from '../utils/resource-utils.js';
 import { sortCards } from '../utils/card-utils.js';
 
-import type { Card } from '../interfaces/project-interfaces.js';
-import type {
-  ChangeOperation,
-  Operation,
-  RemoveOperation,
-} from './resource-object.js';
 import type { Checkout } from '../containers/project.js';
 import type { ResourceName } from '../utils/resource-utils.js';
 

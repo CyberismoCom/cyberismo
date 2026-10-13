@@ -17,7 +17,7 @@ import {
   ChecksAccordion,
   type CheckCollection,
 } from '@/components/ChecksAccordion';
-import type { PolicyCheckCollection } from '@cyberismo/data-handler/types/queries';
+import type { PolicyCheckCollection } from '@cyberismo/model';
 
 export const CardPolicyChecks = ({
   policyChecks,

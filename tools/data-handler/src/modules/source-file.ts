@@ -27,7 +27,7 @@ import { readModuleConfig } from '../containers/project/cards-config.js';
 import { isFileLocation, stripFileProtocol } from './location.js';
 import type { FetchTarget, SourceLayer } from './source.js';
 import type { Source } from './types.js';
-import type { ProjectSettings } from '../interfaces/project-interfaces.js';
+import type { ProjectSettings } from '@cyberismo/model';
 
 /**
  * Source layer for `file:` URLs and bare filesystem paths.

@@ -22,12 +22,8 @@ import type {
   Workflow,
 } from './definitions';
 import { useForm } from 'react-hook-form';
-import type { LinkType } from '@cyberismo/data-handler/interfaces/resource-interfaces';
-import { WorkflowCategory } from '@cyberismo/data-handler/interfaces/resource-interfaces';
-import type {
-  QueryResult,
-  CalculationLink,
-} from '@cyberismo/data-handler/types/queries';
+import type { LinkType, QueryResult, CalculationLink } from '@cyberismo/model';
+import { WorkflowCategory } from '@cyberismo/model';
 import type { AnyNode } from './api/types';
 import type { CardResponse } from './api/types';
 import type { AppConfig } from './definitions';

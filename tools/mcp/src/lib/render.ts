@@ -16,7 +16,7 @@
 import { convert } from '@asciidoctor/core';
 import { type Workspace, evaluateMacros } from '@cyberismo/data-handler';
 import { rewriteAsciidocCardXrefs } from '@cyberismo/data-handler/utils/asciidoc-xref';
-import type { QueryResult } from '@cyberismo/data-handler/types/queries';
+import type { QueryResult } from '@cyberismo/model';
 
 // Special constant for transitions that work from any state
 const ANY_STATE = '*';

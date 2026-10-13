@@ -13,7 +13,7 @@
 
 import { Command, Option } from 'commander';
 
-import { validContexts } from '@cyberismo/data-handler';
+import { validContexts } from '@cyberismo/model';
 
 // Resource types that have commands affecting them.
 const Resources = [

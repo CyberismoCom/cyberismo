@@ -17,7 +17,7 @@ import { MockAuthProvider } from './auth/mock.js';
 import { KeycloakAuthProvider } from './auth/keycloak.js';
 import type { AuthProvider } from './auth/types.js';
 import { ProjectRegistry } from './project-registry.js';
-import { formatProjectErrors } from './project-errors.js';
+import { formatProjectErrors } from '@cyberismo/model';
 import { gitOptionsFromEnv } from './utils.js';
 import { parseArgs } from 'node:util';
 import dotenv from 'dotenv';

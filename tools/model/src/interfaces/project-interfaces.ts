@@ -17,7 +17,7 @@ import type {
   Link,
   TemplateConfiguration,
 } from './resource-interfaces.js';
-import type { VersionSource } from '../modules/types.js';
+import type { VersionSource } from './version-source.js';
 
 // Single card; either in project or in template.
 export interface Card {

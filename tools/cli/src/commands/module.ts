@@ -16,12 +16,8 @@ import { resolve } from 'node:path';
 
 import { Argument, type Command } from 'commander';
 
-import {
-  Cmd,
-  type CommandOptions,
-  type ModuleSettingFromHub,
-  type UpdatePlan,
-} from '@cyberismo/data-handler';
+import { Cmd, type CommandOptions } from '@cyberismo/data-handler';
+import { type ModuleSettingFromHub, type UpdatePlan } from '@cyberismo/model';
 
 import {
   CommandGroup,

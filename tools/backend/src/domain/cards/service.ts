@@ -11,11 +11,8 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import type {
-  ExportPdfOptions,
-  MetadataContent,
-} from '@cyberismo/data-handler/interfaces/project-interfaces';
-import type { attachmentPayload } from '@cyberismo/data-handler/interfaces/request-status-interfaces';
+import type { ExportPdfOptions, MetadataContent } from '@cyberismo/model';
+import type { attachmentPayload } from '@cyberismo/data-handler';
 import { type Workspace, evaluateMacros } from '@cyberismo/data-handler';
 import { preprocessMermaidBlocksForHtml } from '@cyberismo/data-handler/utils/mermaid-renderer';
 import { rewriteAsciidocCardXrefs } from '@cyberismo/data-handler/utils/asciidoc-xref';

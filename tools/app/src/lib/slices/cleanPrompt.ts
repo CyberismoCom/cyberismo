@@ -13,7 +13,7 @@
 
 import { createSlice } from '@reduxjs/toolkit';
 import type { PayloadAction } from '@reduxjs/toolkit';
-import type { CleanResult } from '@cyberismo/data-handler';
+import type { CleanResult } from '@cyberismo/model';
 
 // The findings live in the store rather than in the component that asked for
 // them: deleting a resource navigates away, which would unmount the asking

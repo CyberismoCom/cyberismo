@@ -29,7 +29,7 @@ import {
   DEFAULT_REPORT_FORM_VALUES,
   type MacroModalProps,
 } from '../shared/types';
-import type { ReportOptions } from '@cyberismo/data-handler';
+import type { ReportOptions } from '@cyberismo/model';
 
 export function ReportMacroModal({
   open,

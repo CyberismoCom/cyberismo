@@ -27,15 +27,13 @@ import type {
   DotSchemaContent,
   ProjectSettings,
   ResourceTypes,
-} from '../interfaces/project-interfaces.js';
-import type {
   CardType,
   CustomField,
   FieldType,
   ReportMetadata,
   AnyResourceContent,
   Workflow,
-} from '../interfaces/resource-interfaces.js';
+} from '@cyberismo/model';
 import { errorFunction } from '../utils/error-utils.js';
 import { sortCards } from '../utils/card-utils.js';
 import { isPredefinedField } from '../utils/constants.js';

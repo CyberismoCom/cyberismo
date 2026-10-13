@@ -13,7 +13,7 @@ import {
 } from '../../../src/modules/resolve/solver.js';
 import { conflictReason } from '../../../src/modules/resolve/format.js';
 import type { Version, VersionRange } from '../../../src/modules/types.js';
-import type { ModuleSetting } from '../../../src/interfaces/project-interfaces.js';
+import type { ModuleSetting } from '@cyberismo/model';
 
 const baseDir = import.meta.dirname;
 const testDir = join(baseDir, 'tmp-resolve-solver-tests');

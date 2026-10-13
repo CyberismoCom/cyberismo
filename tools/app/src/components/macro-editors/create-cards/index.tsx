@@ -24,8 +24,10 @@ import {
 } from '@mui/joy';
 import { useTranslation } from 'react-i18next';
 import { useTemplates } from '@/lib/api/templates';
-import type { TemplateConfiguration } from '@cyberismo/data-handler/interfaces/resource-interfaces';
-import type { CreateCardsOptions } from '@cyberismo/data-handler';
+import type {
+  TemplateConfiguration,
+  CreateCardsOptions,
+} from '@cyberismo/model';
 import { BaseMacroModal } from '../shared/MacroModal';
 import {
   DEFAULT_CREATE_CARDS_FORM_VALUES,

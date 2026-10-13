@@ -35,10 +35,7 @@ import {
 } from '../types.js';
 import { createSourceLayer, type SourceLayer } from '../source.js';
 import type { Checkout } from '../../containers/project.js';
-import type {
-  Credentials,
-  ModuleSetting,
-} from '../../interfaces/project-interfaces.js';
+import type { Credentials, ModuleSetting } from '@cyberismo/model';
 import type {
   Change,
   ConflictDemand,

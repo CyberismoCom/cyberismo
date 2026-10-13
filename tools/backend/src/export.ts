@@ -19,10 +19,9 @@ import { MockAuthProvider } from './auth/mock.js';
 import type { ProjectRegistry } from './project-registry.js';
 import { cp } from 'node:fs/promises';
 import { staticFrontendDirRelative } from './utils.js';
-import type { QueryResult } from '@cyberismo/data-handler/types/queries';
+import type { QueryResult, ProjectErrors } from '@cyberismo/model';
 import { toSSG } from 'hono/ssg';
 import type { TreeOptions } from './types.js';
-import type { ProjectErrors } from './project-errors.js';
 import {
   findAllCards,
   findRelevantAttachments,

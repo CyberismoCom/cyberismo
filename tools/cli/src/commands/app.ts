@@ -17,13 +17,12 @@ import { type Command } from 'commander';
 import { simpleGit } from 'simple-git';
 
 import {
-  formatProjectErrors,
   MockAuthProvider,
   type MockUserConfig,
-  type ProjectErrors,
   ProjectRegistry,
   startServer,
 } from '@cyberismo/backend';
+import { formatProjectErrors, type ProjectErrors } from '@cyberismo/model';
 import {
   Cmd,
   type StartCommandOptions,

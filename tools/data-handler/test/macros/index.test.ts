@@ -28,7 +28,7 @@ import TaskQueue from '../../src/macros/task-queue.js';
 
 import { MAX_LEVEL_OFFSET, ROOT } from '../../src/utils/constants.js';
 
-import type { Card } from '../../src/interfaces/project-interfaces.js';
+import type { Card } from '@cyberismo/model';
 import type { MacroGenerationContext } from '../../src/interfaces/macros.js';
 import { CardNotFoundError } from '../../src/exceptions/index.js';
 import type { Mode } from '../../src/interfaces/macros.js';

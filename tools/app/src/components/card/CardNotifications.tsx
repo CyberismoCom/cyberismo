@@ -24,7 +24,7 @@ import {
 } from '@mui/joy';
 import { useTranslation } from 'react-i18next';
 import ExpandMore from '@mui/icons-material/ExpandMore';
-import type { Notification } from '@cyberismo/data-handler/types/queries';
+import type { Notification } from '@cyberismo/model';
 import { CountBadge } from '@/components/CountBadge';
 
 export const CardNotifications = ({

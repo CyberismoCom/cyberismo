@@ -18,7 +18,7 @@ import type {
   Card,
   CardAttachment,
   CardWithChildrenCards,
-} from '../interfaces/project-interfaces.js';
+} from '@cyberismo/model';
 import type { Checkout } from '../containers/project.js';
 
 /**

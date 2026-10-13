@@ -8,7 +8,7 @@ import {
   isTemplateContainerKey,
 } from '@/lib/templateMoveTree';
 import type { AnyNode } from '@/lib/api/types';
-import type { QueryResult } from '@cyberismo/data-handler/types/queries';
+import type { QueryResult } from '@cyberismo/model';
 
 function cardNode(
   id: string,

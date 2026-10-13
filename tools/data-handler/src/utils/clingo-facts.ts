@@ -19,8 +19,6 @@ import type {
   CardNode,
   Context,
   ModuleContent,
-} from '../interfaces/project-interfaces.js';
-import type {
   CardType,
   CustomField,
   ExternalLink,
@@ -31,7 +29,7 @@ import type {
   SkillMetadata,
   TemplateMetadata,
   Workflow,
-} from '../interfaces/resource-interfaces.js';
+} from '@cyberismo/model';
 import { ClingoProgramBuilder } from './clingo-program-builder.js';
 import { isPredefinedField, ROOT } from './constants.js';
 import { getChildLogger } from './log-utils.js';

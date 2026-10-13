@@ -10,8 +10,7 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import type { DataType } from '../interfaces/resource-interfaces.js';
-import type { BaseResult, ParseResult } from '../types/queries.js';
+import type { DataType, BaseResult, ParseResult } from '@cyberismo/model';
 
 /**
  * This function reverses the encoding made by the "encodeClingoValue" function

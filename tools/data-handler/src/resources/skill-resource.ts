@@ -21,13 +21,15 @@ import { getStaticDirectoryPath } from '@cyberismo/assets';
 import { resourceNameToString } from '../utils/resource-utils.js';
 import { sortCards } from '../utils/card-utils.js';
 
-import type { Card } from '../interfaces/project-interfaces.js';
-import type { Operation } from './resource-object.js';
+import type {
+  Card,
+  Operation,
+  SkillContent,
+  SkillMetadata,
+  UpdateKey,
+} from '@cyberismo/model';
 import type { Checkout } from '../containers/project.js';
-import type { SkillContent } from '../interfaces/folder-content-interfaces.js';
-import type { SkillMetadata } from '../interfaces/resource-interfaces.js';
 import type { ResourceName } from '../utils/resource-utils.js';
-import type { UpdateKey } from '../interfaces/resource-interfaces.js';
 
 /**
  * Skill resource class.

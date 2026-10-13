@@ -22,7 +22,7 @@ import { deleteDir, pathExists } from '../utils/file-utils.js';
 import { getChildLogger } from '../utils/log-utils.js';
 
 import type { ResolvedModule } from './resolve/types.js';
-import type { ModuleSetting } from '../interfaces/project-interfaces.js';
+import type { ModuleSetting } from '@cyberismo/model';
 import type { Checkout } from '../containers/project.js';
 
 const logger = getChildLogger({ module: 'applier' });

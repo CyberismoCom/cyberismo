@@ -8,7 +8,7 @@ import {
   moduleNameFromCardKey,
   sortCards,
 } from '../../src/utils/card-utils.js';
-import type { Card } from '../../src/interfaces/project-interfaces.js';
+import type { Card } from '@cyberismo/model';
 
 describe('card utils', () => {
   const moduleCard: Card = {

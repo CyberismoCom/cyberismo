@@ -15,12 +15,12 @@
 import { createImage, validateMacroContent } from '../index.js';
 
 import type { MacroGenerationContext } from '../../interfaces/macros.js';
-import macroMetadata from './metadata.js';
+import macroMetadata from '@cyberismo/model/macros/scoreCard/metadata';
 import BaseMacro from '../base-macro.js';
 import type TaskQueue from '../task-queue.js';
 import { scoreCard } from '../../svg/index.js';
 import { sanitizeSvgBase64 } from '../../utils/sanitize-svg.js';
-import type { ScoreCardOptions } from './types.js';
+import type { ScoreCardOptions } from '@cyberismo/model';
 
 class ScoreCardMacro extends BaseMacro {
   constructor(tasksQueue: TaskQueue) {

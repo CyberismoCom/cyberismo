@@ -10,7 +10,7 @@ import {
 import { basename, join, resolve, sep } from 'node:path';
 
 import { copyDir } from '../src/utils/file-utils.js';
-import { CardLocation } from '../src/interfaces/project-interfaces.js';
+import { CardLocation } from '@cyberismo/model';
 
 import {
   buildCardHierarchy,

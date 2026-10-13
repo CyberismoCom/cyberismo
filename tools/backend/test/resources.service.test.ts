@@ -1,10 +1,7 @@
 import { expect, test, describe, vi, beforeEach } from 'vitest';
 import { buildResourceTree } from '../src/domain/resources/service.js';
 import type { Workspace } from '@cyberismo/data-handler';
-import type {
-  Card,
-  CardWithChildrenCards,
-} from '@cyberismo/data-handler/interfaces/project-interfaces';
+import type { Card, CardWithChildrenCards } from '@cyberismo/model';
 
 // Helper interface for tests.
 interface testDataNode {

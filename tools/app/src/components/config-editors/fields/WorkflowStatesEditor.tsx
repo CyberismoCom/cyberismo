@@ -41,8 +41,8 @@ import type {
   Workflow,
   WorkflowState,
   WorkflowTransition,
-} from '@cyberismo/data-handler/interfaces/resource-interfaces';
-import { WorkflowCategory } from '@cyberismo/data-handler/interfaces/resource-interfaces';
+} from '@cyberismo/model';
+import { WorkflowCategory } from '@cyberismo/model';
 
 // Zod schemas
 const createStateSchema = (

@@ -7,7 +7,7 @@ import { resourceName } from '../src/utils/resource-utils.js';
 import { Workspace } from '../src/workspace/workspace.js';
 import { type Edit } from '../src/commands/index.js';
 import { CardNotFoundError } from '../src/exceptions/index.js';
-import type { Card } from '../src/index.js';
+import type { Card } from '@cyberismo/model';
 
 describe('edit card', () => {
   const baseDir = import.meta.dirname;

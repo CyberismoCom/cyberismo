@@ -15,10 +15,10 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import BaseMacro from '../base-macro.js';
-import macroMetadata from './metadata.js';
+import macroMetadata from '@cyberismo/model/macros/image/metadata';
 import { validateMacroContent } from '../index.js';
 
-import type { ImageMacroOptions } from './types.js';
+import type { ImageMacroOptions } from '@cyberismo/model';
 import type { MacroGenerationContext } from '../../interfaces/macros.js';
 import type TaskQueue from '../task-queue.js';
 

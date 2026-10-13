@@ -12,7 +12,7 @@
 import Handlebars from 'handlebars';
 import type { CalculationEngine } from '../containers/project/calculation-engine.js';
 import { registerEmptyMacros } from '../macros/index.js';
-import type { Context } from '../interfaces/project-interfaces.js';
+import type { Context } from '@cyberismo/model';
 import {
   registerComparisonHelpers,
   registerMathHelpers,

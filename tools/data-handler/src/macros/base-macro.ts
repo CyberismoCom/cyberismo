@@ -13,9 +13,9 @@
 import type {
   HandlebarsOptions,
   MacroGenerationContext,
-  MacroMetadata,
   MacroTaskState,
 } from '../interfaces/macros.js';
+import type { MacroMetadata } from '@cyberismo/model';
 import { generateRandomString } from '../utils/random.js';
 import { MacroError } from '../exceptions/index.js';
 import type TaskQueue from './task-queue.js';
