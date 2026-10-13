@@ -384,6 +384,22 @@ function extractTypes() {
       full.slice(d.getPos(), d.getEnd()).replace(/^\s+/, ''),
     );
     const used = identifiersIn(decls);
+    // A local the bodies name must move with them.
+    const locals = [
+      ...sf.getTypeAliases(),
+      ...sf.getInterfaces(),
+      ...sf.getEnums(),
+      ...sf.getClasses(),
+      ...sf.getFunctions(),
+      ...sf.getVariableDeclarations(),
+    ].map((d) => d.getName());
+    for (const name of locals) {
+      if (used.has(name) && !ex.names.includes(name)) {
+        throw new Error(
+          `${ex.from}: extracted types use local ${name}; add it to names`,
+        );
+      }
+    }
     // Imports the extracted types need, re-pointed from the new file.
     const imports = [];
     const pruned = [];
@@ -662,37 +678,30 @@ function movedName(mp, m, name) {
 
 // Phase 3: re-exports inside data-handler/src and backend/src.
 function dropReexports(mp) {
-  for (let pass = 1; ; pass++) {
-    let progress = 0;
-    for (const sf of mp.getSourceFiles()) {
-      if (!inSrc(sf, SOURCES)) continue;
-      const gone = [];
-      for (const d of sf.getExportDeclarations()) {
-        const spec = d.getModuleSpecifierValue();
-        const m = spec && srcModule(sf, spec);
-        if (!m) continue;
-        if (isWhole(m)) {
-          console.log(`removed re-export ${where(d)}`);
-          gone.push(d);
-          stats.reexports++;
-          progress++;
-          continue;
-        }
-        for (const s of d.getNamedExports()) {
-          if (!movedName(mp, m, s.getName())) continue;
-          console.log(`removed re-export of ${s.getName()} ${where(s)}`);
-          s.remove();
-          stats.reexports++;
-          progress++;
-        }
-        if (!d.isNamespaceExport() && d.getNamedExports().length === 0) {
-          gone.push(d);
-        }
+  for (const sf of mp.getSourceFiles()) {
+    if (!inSrc(sf, SOURCES)) continue;
+    const gone = [];
+    for (const d of sf.getExportDeclarations()) {
+      const spec = d.getModuleSpecifierValue();
+      const m = spec && srcModule(sf, spec);
+      if (!m) continue;
+      if (isWhole(m)) {
+        console.log(`removed re-export ${where(d)}`);
+        gone.push(d);
+        stats.reexports++;
+        continue;
       }
-      if (gone.length) removeStatements(sf, gone);
+      for (const s of d.getNamedExports()) {
+        if (!movedName(mp, m, s.getName())) continue;
+        console.log(`removed re-export of ${s.getName()} ${where(s)}`);
+        s.remove();
+        stats.reexports++;
+      }
+      if (!d.isNamespaceExport() && d.getNamedExports().length === 0) {
+        gone.push(d);
+      }
     }
-    if (!progress) break;
-    if (pass >= 10) throw new Error('Re-export removal did not converge');
+    if (gone.length) removeStatements(sf, gone);
   }
 }
 

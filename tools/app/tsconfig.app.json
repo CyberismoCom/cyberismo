@@ -6,8 +6,7 @@
     "lib": ["ES2020", "DOM", "DOM.Iterable"],
     "module": "ESNext",
     "skipLibCheck": true,
-    // Node types reached the app through data-handler's declarations
-    // (store.ts reads process.env; tests use Array.prototype.at).
+    // store.ts reads process.env; tests use Array.prototype.at.
     "types": ["node"],
 
     /* Bundler mode */
