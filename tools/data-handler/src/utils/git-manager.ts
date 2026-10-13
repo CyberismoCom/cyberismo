@@ -15,6 +15,10 @@ import semver from 'semver';
 import { createGit, gitTimeout } from './git-config.js';
 import { getChildLogger } from './log-utils.js';
 import { stripTagPrefix, versionToTag } from '../modules/version.js';
+import type { CommitIdentity } from './commit-context.js';
+
+// Whitespace and control characters, so a value can't add lines or trailers.
+const LINE_BREAKING = /[\s\p{Cc}]+/gu;
 
 export class GitManager {
   private git: ReturnType<typeof createGit>;
@@ -48,10 +52,16 @@ export class GitManager {
     }
   }
 
-  /** Commit current changes (cardRoot + .cards). */
+  /**
+   * Commit current changes (cardRoot + .cards).
+   * @param message Commit message.
+   * @param identity Author; unset lets git resolve it.
+   * @param trailers Git trailers, each value put on one line.
+   */
   async commit(
     message: string = 'Autocommit',
-    author?: { name: string; email: string },
+    identity?: CommitIdentity,
+    trailers: Record<string, string> = {},
   ): Promise<void> {
     // Stage only the directories we care about
     this.logger.debug('Staging changes');
@@ -72,10 +82,17 @@ export class GitManager {
       'Committing changes',
     );
     const commitOpts: Record<string, string> = {};
-    if (author) {
-      commitOpts['--author'] = `${author.name} <${author.email}>`;
+    if (identity) {
+      commitOpts['--author'] = `${identity.name} <${identity.email}>`;
     }
-    await this.git.commit(message, undefined, commitOpts);
+    const trailerBlock = Object.entries(trailers)
+      .map(([key, value]) => [key, value.replace(LINE_BREAKING, ' ').trim()])
+      .filter(([, value]) => value !== '')
+      .map(([key, value]) => `${key}: ${value}`)
+      .join('\n');
+    // simple-git passes each array item as its own -m (i.e. paragraph)
+    const fullMessage = trailerBlock ? [message, trailerBlock] : message;
+    await this.git.commit(fullMessage, undefined, commitOpts);
   }
 
   /** Rollback: restore cardRoot and .cards to last committed state. */

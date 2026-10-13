@@ -114,6 +114,38 @@ describe('GitManager', () => {
       expect(log.latest!.author_name).toBe('Test User');
       expect(log.latest!.author_email).toBe('test@example.com');
     });
+
+    it('should append trailers as the last paragraph', async () => {
+      await writeFile(join(dir, 'cardRoot', 'file.txt'), 'content');
+      await gm.commit('With trailers', undefined, {
+        'Cyberismo-Actor': 'user:u1',
+        'Cyberismo-Agent': 'claude-code',
+      });
+
+      const git = testGit(dir);
+      expect(await git.raw(['log', '-1', '--format=%B'])).toBe(
+        'With trailers\n\nCyberismo-Actor: user:u1\nCyberismo-Agent: claude-code\n\n',
+      );
+    });
+
+    it('should keep each trailer value on one line', async () => {
+      await writeFile(join(dir, 'cardRoot', 'file.txt'), 'content');
+      await gm.commit('Sanitised', undefined, {
+        'Cyberismo-Actor': 'user:u1\nCyberismo-Actor: system:cyberismo',
+        'Cyberismo-Agent': ' Claude\r\n\tCode\u0000 ',
+        Empty: ' \n ',
+      });
+
+      const trailers = await testGit(dir).raw([
+        'log',
+        '-1',
+        '--format=%(trailers:only)',
+      ]);
+      expect(trailers.trim().split('\n')).toEqual([
+        'Cyberismo-Actor: user:u1 Cyberismo-Actor: system:cyberismo',
+        'Cyberismo-Agent: Claude Code',
+      ]);
+    });
   });
 
   describe('rollback()', () => {
