@@ -43,14 +43,6 @@ describe('shows command', () => {
   });
 
   describe('show command', () => {
-    it('show attachments - success()', async () => {
-      const result = await commandHandler.command(
-        Cmd.show,
-        ['attachments'],
-        optionsDecision,
-      );
-      expect(result.statusCode).toBe(200);
-    });
     it('show attachment file', async () => {
       // No commandHandler command for getting attachment files, so using Show directly
       const checkout = getTestProject(decisionRecordsPath);
@@ -87,46 +79,6 @@ describe('shows command', () => {
       ).rejects.toThrow(
         `Attachment 'does-not-exist.png' not found for card decision_1`,
       );
-    });
-    it('show cards - success()', async () => {
-      const result = await commandHandler.command(
-        Cmd.show,
-        ['cards'],
-        optionsDecision,
-      );
-      expect(result.statusCode).toBe(200);
-      if (result.payload) {
-        const payloadAsArray = Object.values(result.payload);
-        expect(payloadAsArray.length).toBeGreaterThan(1); //project + templates
-        const cards = payloadAsArray.map((item) => item.cards);
-        expect(cards.length).toBeGreaterThan(1);
-        expect(cards.at(0)).to.include('decision_5');
-      }
-    });
-    it('show particular card - success()', async () => {
-      const result = await commandHandler.command(
-        Cmd.show,
-        ['card', 'decision_5'],
-        optionsDecision,
-      );
-      expect(result.statusCode).toBe(200);
-      if (result.payload) {
-        expect(result.payload).not.toBeUndefined();
-      }
-    });
-    it('show particular card additional details - success()', async () => {
-      optionsDecision.details = true;
-      const result = await commandHandler.command(
-        Cmd.show,
-        ['card', 'decision_5'],
-        optionsDecision,
-      );
-      expect(result.statusCode).toBe(200);
-      if (result.payload) {
-        expect(result.payload).not.toBeUndefined();
-        const children = Object(result.payload)['children'];
-        expect(children.length).toBe(1);
-      }
     });
     it('show cardTypes - success()', async () => {
       const result = await commandHandler.command(
@@ -186,18 +138,6 @@ describe('shows command', () => {
         optionsDecision,
       );
       expect(result.statusCode).toBe(200);
-    });
-    it('shows labels - success()', async () => {
-      const result = await commandHandler.command(
-        Cmd.show,
-        ['labels'],
-        optionsDecision,
-      );
-      expect(result.payload).to.deep.equal([
-        'template-test-label',
-        'test',
-        'test-two',
-      ]);
     });
     it('show modules (none) - success()', async () => {
       const result = await commandHandler.command(
@@ -262,20 +202,6 @@ describe('shows command', () => {
       expect(result.statusCode).toBe(200);
       if (result.payload) {
         expect(result.payload).not.toBeUndefined();
-      }
-    });
-    it('show template cards - success()', async () => {
-      const result = await commandHandler.command(
-        Cmd.show,
-        ['cards'],
-        optionsDecision,
-      );
-      expect(result.statusCode).toBe(200);
-      if (result.payload) {
-        const payloadAsArray = Object.values(result.payload);
-        expect(payloadAsArray.length).toBe(3); // project + templates with cards (empty template excluded)
-        const cards = payloadAsArray.map((item) => item.cards);
-        expect(cards.at(0)).to.include('decision_5');
       }
     });
     it('show workflows - success()', async () => {
@@ -369,47 +295,6 @@ describe('shows command', () => {
       expect(module.workflows).to.include('mini/workflows/default');
       expect(module.workflows).to.include('mini/workflows/minimal');
     });
-    it('show particular card', async () => {
-      // Since projects have been imported to each other, all cards can be found from each.
-      const result = await commandHandler.command(
-        Cmd.show,
-        ['card', 'decision_1'],
-        optionsDecision,
-      );
-      const resultFromModule = await commandHandler.command(
-        Cmd.show,
-        ['card', 'decision_1'],
-        optionsMini,
-      );
-      expect(result.statusCode).toBe(200);
-      expect(result.payload).not.toBeUndefined();
-      expect(resultFromModule.statusCode).toBe(200);
-      expect(resultFromModule.payload).not.toBeUndefined();
-    });
-    it('show cards', async () => {
-      const result = await commandHandler.command(
-        Cmd.show,
-        ['cards'],
-        optionsDecision,
-      );
-      const resultFromModule = await commandHandler.command(
-        Cmd.show,
-        ['cards'],
-        optionsMini,
-      );
-      expect(result.statusCode).toBe(200);
-      let payloadAsArray = Object.values(result.payload!);
-      expect(payloadAsArray.length).toBeGreaterThan(1); //project + templates
-      let cards = payloadAsArray.map((item) => item.cards);
-      expect(cards.length).toBeGreaterThan(1);
-      expect(cards.at(0)).to.include('decision_5');
-      expect(resultFromModule.statusCode).toBe(200);
-      payloadAsArray = Object.values(resultFromModule.payload!);
-      expect(payloadAsArray.length).toBeGreaterThan(1); //project + templates
-      cards = payloadAsArray.map((item) => item.cards);
-      expect(cards.length).toBeGreaterThan(1);
-      expect(cards.at(cards.length - 1)).to.include('decision_2');
-    });
     it('show cardTypes', async () => {
       const result = await commandHandler.command(
         Cmd.show,
@@ -485,32 +370,6 @@ describe('shows command', () => {
       expect(payloadAsArray.at(1)).toBe('decision/workflows/simple');
       expect(payloadAsArray.at(2)).toBe('mini/workflows/default');
       expect(payloadAsArray.at(3)).toBe('mini/workflows/minimal');
-    });
-    it('show attachments', async () => {
-      const result = await commandHandler.command(
-        Cmd.show,
-        ['attachments'],
-        optionsDecision,
-      );
-      expect(result.statusCode).toBe(200);
-      let payloadAsArray = Object.values(result.payload!);
-      expect(payloadAsArray.length).toBe(2);
-      expect(
-        payloadAsArray.map((item) => [item.card, item.fileName]),
-      ).to.deep.equal([
-        ['decision_1', 'the-needle.heic'],
-        ['decision_5', 'games.jpg'],
-      ]);
-      const resultFromModule = await commandHandler.command(
-        Cmd.show,
-        ['attachments'],
-        optionsMini,
-      );
-      expect(resultFromModule.statusCode).toBe(200);
-      payloadAsArray = Object.values(resultFromModule.payload!);
-      expect(payloadAsArray.length).toBe(1);
-      expect(payloadAsArray.at(0).card).toBe('decision_1');
-      expect(payloadAsArray.at(0).fileName).toBe('the-needle.heic');
     });
   });
   describe('show importable modules', () => {

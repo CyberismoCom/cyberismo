@@ -15,6 +15,7 @@ import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
+import { ReadOnlyContainerError } from '../../src/exceptions/index.js';
 import type { Workspace } from '../../src/workspace/workspace.js';
 import { expectRefused, projects, readOnlyModule } from './fixture.js';
 
@@ -139,6 +140,11 @@ describe('card attachments', () => {
       'removing an attachment the card lacks',
       (c, k) => c.removeAttachment(k, 'nope.txt'),
       /nope\.txt/,
+    ],
+    [
+      'removing from an imported template card',
+      (c, _k, t) => c.removeAttachment(t['mod/templates/mt'][0], 'x.txt'),
+      ReadOnlyContainerError,
     ],
     [
       'removing without a file name',
