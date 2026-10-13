@@ -62,14 +62,14 @@ describe('autocommit', () => {
       message: () => 'Edit content of decision_5',
     },
     'card move': {
-      write: () => cm.moveCmd.moveCard('decision_6', 'root'),
+      write: () => cm.cards.move('decision_6', 'root'),
       message: () => 'Move card decision_6 to root',
     },
     'card rank': {
       // A second root card, ranked after decision_5, to move first.
       setup: async () =>
         (await cm.createCmd.createCard('decision/templates/decision'))[0].key,
-      write: (key) => cm.moveCmd.rankFirst(key),
+      write: (key) => cm.cards.rankFirst(key),
       message: (key) => `Rank card ${key} first`,
     },
     'card remove': {
