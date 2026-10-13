@@ -59,6 +59,11 @@ it.each([
     path: ['content', 'contentTemplate'],
   },
   {
+    read: 'resources.show: a folder resource, nested content',
+    get: () => ws.resources.show('decision/reports/testReport'),
+    path: ['content', 'contentTemplate'],
+  },
+  {
     read: 'card types with details',
     get: () => ws.showCmd.showCardTypesWithDetails(),
     path: [0, 'displayName'],

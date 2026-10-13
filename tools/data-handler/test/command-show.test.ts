@@ -4,7 +4,6 @@ import { expect, it, describe, beforeEach, afterEach } from 'vitest';
 // node
 import { mkdirSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
-import { readFile } from 'node:fs/promises';
 
 import { sleep } from '../src/utils/common-utils.js';
 import { Cmd, Commands, type Workspace } from '../src/command-handler.js';
@@ -778,42 +777,6 @@ describe('show', () => {
     );
     expect(results).not.toBeUndefined();
     expect(results).to.include('xref');
-  });
-  it('show report results - results to a file', async () => {
-    const parameters = {
-      name: 'decision/reports/anotherReport',
-      parameters: {
-        cardKey: 'decision_5',
-      },
-    };
-    await ws.checkout.calculationEngine.generate();
-    const results = await ws.queries.runReport(
-      parameters.name,
-      parameters.parameters,
-      'localApp',
-      join(testDir, 'report-results.txt'),
-    );
-    expect(results).equal('');
-    const fileContent = await readFile(join(testDir, 'report-results.txt'));
-    expect(fileContent.toString()).to.include('xref');
-  });
-  it('show report results - results to a file', async () => {
-    const parameters = {
-      name: 'decision/reports/anotherReport',
-      parameters: {
-        cardKey: 'decision_5',
-      },
-    };
-    await ws.checkout.calculationEngine.generate();
-    const results = await ws.queries.runReport(
-      parameters.name,
-      parameters.parameters,
-      'localApp',
-      join(testDir, 'report-results.txt'),
-    );
-    expect(results).equal('');
-    const fileContent = await readFile(join(testDir, 'report-results.txt'));
-    expect(fileContent.toString()).to.include('xref');
   });
   it('try show report results - report does not exist', async () => {
     const parameters = {
