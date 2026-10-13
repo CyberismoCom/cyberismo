@@ -18,6 +18,7 @@ import { join } from 'node:path';
 import semver from 'semver';
 
 import { ProjectPaths } from '../../containers/project/project-paths.js';
+import { DomainError } from '../../exceptions/index.js';
 import { ResourceMutations } from '../resource-mutations.js';
 import { checkLinearity, computeChain } from './chain.js';
 import { entryToMutationInput } from './convert.js';
@@ -71,7 +72,8 @@ export interface ReplayStep {
  * user sees every problem at once; planning never touches the project,
  * so nothing needs to be rolled back.
  */
-export class ModuleReplayConflictError extends Error {
+export class ModuleReplayConflictError extends DomainError {
+  readonly code = 'conflict';
   constructor(readonly conflicts: ReplayConflict[]) {
     const lines = conflicts.map(
       (c) => `  - module '${c.modulePrefix}' (${c.kind}): ${c.detail}`,
@@ -90,7 +92,8 @@ export class ModuleReplayConflictError extends Error {
  * conversion or apply fails. By this point module files have already been
  * overwritten and earlier cascades have run, so recovery is via git.
  */
-export class ModuleReplayFailedError extends Error {
+export class ModuleReplayFailedError extends DomainError {
+  readonly code = 'replay-failed';
   constructor(
     readonly modulePrefix: string,
     readonly sealFileName: string,
@@ -118,7 +121,8 @@ export class ModuleReplayFailedError extends Error {
  * validation after replays ran. The module update and its replays have
  * already been applied to disk.
  */
-export class ModuleValidationFailedError extends Error {
+export class ModuleValidationFailedError extends DomainError {
+  readonly code = 'validation';
   /** Summary of the replay chains that ran before validation failed. */
   readonly steps: {
     modulePrefix: string;

@@ -185,7 +185,7 @@ describe('move command', () => {
 
     const ws = await Workspace.getInstance(options.projectPath!);
     await expect(ws.moveCmd.moveCard(parent, child)).rejects.toThrow(
-      'Card cannot be moved to inside itself',
+      'cannot be placed under itself or one of its descendants',
     );
   });
   it('try to move card - project missing', async () => {

@@ -32,7 +32,11 @@ import type {
   CardMetadata,
   CardNode,
 } from '@cyberismo/model';
-import { CardNotFoundError } from '../../exceptions/index.js';
+import {
+  CardNotFoundError,
+  CycleError,
+  ReadOnlyContainerError,
+} from '../../exceptions/index.js';
 import { copyDir, deleteDir, pathExists } from '../../utils/file-utils.js';
 import { getChildLogger } from '../../utils/log-utils.js';
 import { writeJsonFile } from '../../utils/json.js';
@@ -181,15 +185,15 @@ export class CardTree {
   private stored(cardKey: string): StoredCard {
     const card = this.cardStore.get(cardKey);
     if (!card) {
-      throw new CardNotFoundError(cardKey);
+      throw new CardNotFoundError(cardKey, this.treeName);
     }
     return card;
   }
 
-  // Module trees refuse writes; command-layer checks are courtesy errors.
+  // Module trees refuse writes.
   private assertWritable() {
     if (!this.options.writable) {
-      throw new Error(`Cannot modify imported module`);
+      throw new ReadOnlyContainerError(this.treeName);
     }
   }
 
@@ -200,9 +204,7 @@ export class CardTree {
     let ancestor: string | undefined = parent;
     while (ancestor && ancestor !== ROOT) {
       if (ancestor === cardKey) {
-        throw new Error(
-          `Card '${cardKey}' cannot be placed under '${parent}', which is the card itself or one of its descendants`,
-        );
+        throw new CycleError(cardKey);
       }
       ancestor = this.cardStore.get(ancestor)?.parent;
     }
@@ -586,11 +588,13 @@ export class CardTree {
    * other than the ranked card may be reranked too.
    * @param cardKey Card to rank.
    * @param afterKey Sibling to place it after.
-   * @throws CardNotFoundError if the tree does not hold either card
+   * @throws CardNotFoundError if the tree does not hold either card; Error if
+   *   the two cards are not siblings
    */
   public async reorderAfter(cardKey: string, afterKey: string): Promise<void> {
-    // The plan is built from afterKey's siblings, which need not hold cardKey.
-    this.stored(cardKey);
+    if (this.stored(cardKey).parent !== this.stored(afterKey).parent) {
+      throw new Error(`Cards must be from the same parent`);
+    }
     await this.applyRanks(
       planAfter(this.rankedSiblingsOf(afterKey), cardKey, afterKey),
     );
