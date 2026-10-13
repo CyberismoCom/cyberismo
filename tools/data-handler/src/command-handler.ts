@@ -32,8 +32,6 @@ import type {
 import type {
   AllCommandOptions,
   CalcCommandOptions,
-  ExportCommandOptions,
-  ReportCommandOptions,
   ShowCommandOptions,
   RenameCommandOptions,
   StartCommandOptions,
@@ -61,7 +59,7 @@ import { readJsonFile } from './utils/json.js';
 import { resourceName, resourceNameToString } from './utils/resource-utils.js';
 
 import { type Level } from 'pino';
-import { type Context, type QueryName } from '@cyberismo/model';
+import { type Context } from '@cyberismo/model';
 import { type BumpType } from './versions/version.js';
 
 // Commands that this class supports.
@@ -250,10 +248,6 @@ export class Commands {
             (options as CalcCommandOptions).context || 'commandLine',
           );
         }
-        if (command === 'generate') {
-          const [destination, query] = rest;
-          return this.exportLogicProgram(destination, query);
-        }
       } else if (command === Cmd.create) {
         const [type, ...rest] = args;
         const target = this.commandType(type);
@@ -311,14 +305,6 @@ export class Commands {
         } else {
           throw new Error(`Unknown type to create: '${target}'`);
         }
-      } else if (command === Cmd.export) {
-        const [format, output, cardKey] = args;
-        return await this.export(
-          output,
-          format as ExportFormats,
-          cardKey,
-          options,
-        );
       } else if (command === Cmd.fetch) {
         const [target] = args;
         if (target !== 'hubs') {
@@ -398,13 +384,6 @@ export class Commands {
           this.commandType(type),
           this.commandTarget(type, detail),
           options,
-        );
-      } else if (command === Cmd.report) {
-        const [parameters, outputPath] = args;
-        return this.runReport(
-          parameters,
-          (options as ReportCommandOptions).context || 'commandLine',
-          outputPath,
         );
       } else if (command === Cmd.update) {
         const [resource, operation, key, value, newValue] = args;
@@ -657,44 +636,6 @@ export class Commands {
     };
   }
 
-  // Exports whole or partial card tree to a given format.
-  private async export(
-    destination: string = 'output',
-    format: ExportFormats,
-    parentCardKey?: string,
-    pdfOptions?: ExportCommandOptions,
-  ): Promise<requestStatus> {
-    if (!this.ws) {
-      return { statusCode: 500 };
-    }
-    let message: string;
-    if (format === 'pdf') {
-      message = await this.ws?.export.exportPdf(destination, {
-        ...pdfOptions,
-        cardKey: parentCardKey,
-      });
-    } else {
-      message = await this.ws?.export.exportToADoc(destination, parentCardKey);
-    }
-    return { statusCode: 200, message: message };
-  }
-
-  private async exportLogicProgram(
-    destination: string,
-    query?: string,
-  ): Promise<requestStatus> {
-    try {
-      await this.ws?.queries.exportLogicProgram(
-        destination,
-        ['all'],
-        query as QueryName, // TODO: validate with zod
-      );
-      return { statusCode: 200 };
-    } catch (e) {
-      return { statusCode: 500, message: errorFunction(e) };
-    }
-  }
-
   // Imports another project to the 'destination' project as a module.
   private async import(
     source: string,
@@ -747,29 +688,6 @@ export class Commands {
     } catch (e) {
       return { statusCode: 500, message: errorFunction(e) };
     }
-  }
-
-  // Runs a report using Handlebars and the provided parameters.
-  private async runReport(
-    parametersPath: string,
-    context: Context,
-    outputPath?: string,
-  ) {
-    const { name, parameters } = await readJsonFile(parametersPath);
-    let result: string | undefined;
-    try {
-      result = await this.ws?.queries.runReport(
-        name,
-        parameters,
-        context,
-        outputPath,
-      );
-    } catch (e) {
-      return { statusCode: 500, message: errorFunction(e) };
-    }
-
-    const message = !result && !outputPath ? 'No report results' : result;
-    return { statusCode: 200, message: message };
   }
 
   // Shows wanted resources from a project / template.

@@ -11,7 +11,8 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { resolve } from 'node:path';
+import { mkdir, truncate, writeFile } from 'node:fs/promises';
+import { dirname, join, resolve } from 'node:path';
 
 import cliProgress from 'cli-progress';
 import { Argument, type Command } from 'commander';
@@ -19,15 +20,79 @@ import { Argument, type Command } from 'commander';
 import { exportSite, ProjectRegistry } from '@cyberismo/backend';
 import { formatProjectErrors } from '@cyberismo/model';
 import {
-  Cmd,
+  AsciidoctorPdfError,
   type CommandOptions,
   ExportFormats,
   scanForProjects,
+  type Workspace,
 } from '@cyberismo/data-handler';
+import type { AdocFiles } from '@cyberismo/model';
 
 import { CommandWithPath } from '../lib/args.js';
-import { commandHandler } from '../lib/dispatch.js';
-import { handleResponse } from '../lib/output.js';
+import { onProject } from '../lib/errors.js';
+import { handleResponse, printResult } from '../lib/output.js';
+
+// Writes the PDF of a card (or the project) to 'destination'.
+async function exportPdf(
+  ws: Workspace,
+  destination: string,
+  cardKey: string | undefined,
+  options: CommandOptions<'export'>,
+): Promise<string> {
+  let rendered;
+  try {
+    // The dispatcher never passed 'recursive', and reads 'version' rather
+    // than '--doc-version'; both kept as they were.
+    rendered = await ws.export.pdf({
+      title: options.title,
+      name: options.name,
+      version: options.version,
+      revremark: options.revremark,
+      cardKey,
+      date: options.date,
+    });
+  } catch (error) {
+    if (error instanceof AsciidoctorPdfError) {
+      throw new Error([error.message, ...error.diagnostics].join('\n'), {
+        cause: error,
+      });
+    }
+    throw error;
+  }
+  const { pdf, warnings } = rendered;
+  await writeFile(destination, pdf);
+  const summary =
+    warnings.length === 1
+      ? ' with 1 rendering warning'
+      : warnings.length > 1
+        ? ` with ${warnings.length} rendering warnings`
+        : '';
+  return `Content exported as PDF to ${destination}${summary}`;
+}
+
+// Writes the AsciiDoc export of a card (or the project) into 'destination'.
+async function exportAdoc(
+  ws: Workspace,
+  destination: string,
+  cardKey: string | undefined,
+): Promise<string> {
+  const files: AdocFiles = await ws.export.adoc(cardKey);
+  // The document's imagesdir exists even when no card has attachments.
+  await mkdir(join(destination, 'a'), { recursive: true });
+  const document = join(destination, 'index.adoc');
+  let message: string;
+  try {
+    await truncate(document, 0);
+    message = `Using existing output file '${document}'`;
+  } catch {
+    message = `Creating output file '${document}'`;
+  }
+  for (const [path, content] of Object.entries(files)) {
+    await mkdir(dirname(join(destination, path)), { recursive: true });
+    await writeFile(join(destination, path), content);
+  }
+  return message;
+}
 
 export function registerExport(program: Command) {
   // Export command
@@ -152,12 +217,14 @@ export function registerExport(program: Command) {
             progress.stop();
           }
         }
-        const result = await commandHandler.command(
-          Cmd.export,
-          [format, output, cardKey],
-          Object.assign({}, options, program.opts()),
+        const merged = Object.assign({}, options, program.opts());
+        printResult(
+          await onProject(merged, (ws) =>
+            format === 'pdf'
+              ? exportPdf(ws, output, cardKey, merged)
+              : exportAdoc(ws, output, cardKey),
+          ),
         );
-        handleResponse(result);
       },
     );
 }
