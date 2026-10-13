@@ -16,10 +16,12 @@ function fakeCommands(prefix: string): Workspace {
 describe('ProjectRegistry.replace', () => {
   it('disposes old entries and installs the new ones', async () => {
     const oldCmd = fakeCommands('old');
-    const registry = new ProjectRegistry([{ prefix: 'old', ws: oldCmd }]);
+    const registry = new ProjectRegistry([
+      { prefix: 'old', checkout: oldCmd.checkout },
+    ]);
 
     const newCmd = fakeCommands('new');
-    await registry.replace([{ prefix: 'new', ws: newCmd }]);
+    await registry.replace([{ prefix: 'new', checkout: newCmd.checkout }]);
 
     expect(oldCmd.checkout.dispose).toHaveBeenCalledOnce();
     expect(registry.get('old')).toBeUndefined();
@@ -28,7 +30,9 @@ describe('ProjectRegistry.replace', () => {
 
   it('handles replace with empty array', async () => {
     const oldCmd = fakeCommands('old');
-    const registry = new ProjectRegistry([{ prefix: 'old', ws: oldCmd }]);
+    const registry = new ProjectRegistry([
+      { prefix: 'old', checkout: oldCmd.checkout },
+    ]);
     await registry.replace([]);
     expect(oldCmd.checkout.dispose).toHaveBeenCalledOnce();
     expect(registry.list()).toEqual([]);

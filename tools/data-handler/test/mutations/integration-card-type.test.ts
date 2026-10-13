@@ -5,9 +5,10 @@ import { join } from 'node:path';
 import { copyDir } from '../../src/utils/file-utils.js';
 import type { Checkout } from '../../src/containers/project.js';
 import { getTestProject } from '../helpers/test-utils.js';
-import { ResourceMutations } from '../../src/mutations/resource-mutations.js';
 import { ConfigurationLogger } from '../../src/utils/configuration-logger.js';
 import { resourceName } from '../../src/utils/resource-utils.js';
+import { Workspace } from '../../src/workspace/workspace.js';
+import { SYSTEM_ACTOR } from '../../src/utils/tx-record.js';
 
 const baseDir = import.meta.dirname;
 const testDir = join(baseDir, 'tmp-card-type-integration');
@@ -26,10 +27,12 @@ describe('CardType mutation engine end-to-end', () => {
   });
 
   it('apply → log entry for a CardType delete with cards', async () => {
-    const mutations = new ResourceMutations(checkout);
     const target = resourceName(`${checkout.projectPrefix}/cardTypes/decision`);
 
-    await mutations.apply({ kind: 'delete', target });
+    await Workspace.over(checkout, SYSTEM_ACTOR).updateCmd.apply({
+      kind: 'delete',
+      target,
+    });
 
     await checkout.populateCaches();
     expect(
@@ -55,10 +58,9 @@ describe('CardType mutation engine end-to-end', () => {
   });
 
   it('apply → log entry for a CardType rename', async () => {
-    const mutations = new ResourceMutations(checkout);
     const target = resourceName(`${checkout.projectPrefix}/cardTypes/decision`);
 
-    await mutations.apply({
+    await Workspace.over(checkout, SYSTEM_ACTOR).updateCmd.apply({
       kind: 'rename',
       target,
       newIdentifier: 'choice',
@@ -75,8 +77,7 @@ describe('CardType mutation engine end-to-end', () => {
   });
 
   it('display-only changes route to the plain handler (no log entry)', async () => {
-    const mutations = new ResourceMutations(checkout);
-    await mutations.apply({
+    await Workspace.over(checkout, SYSTEM_ACTOR).updateCmd.apply({
       kind: 'edit',
       target: resourceName(`${checkout.projectPrefix}/cardTypes/decision`),
       updateKey: { key: 'displayName' },
@@ -107,7 +108,7 @@ describe('CardType mutation engine end-to-end', () => {
     expect(cardOnDisk(cardPath).cardType).toBe(cardType);
     expect(field in cardOnDisk(cardPath)).toBe(false);
 
-    await new ResourceMutations(checkout).apply({
+    await Workspace.over(checkout, SYSTEM_ACTOR).updateCmd.apply({
       kind: 'edit',
       target: resourceName(cardType),
       updateKey: { key: 'customFields' },
@@ -138,7 +139,7 @@ describe('CardType mutation engine end-to-end', () => {
     checkout = getTestProject(decisionRecordsPath);
     await checkout.populateCaches();
 
-    await new ResourceMutations(checkout).apply({
+    await Workspace.over(checkout, SYSTEM_ACTOR).updateCmd.apply({
       kind: 'edit',
       target: resourceName(cardType),
       updateKey: { key: 'customFields' },

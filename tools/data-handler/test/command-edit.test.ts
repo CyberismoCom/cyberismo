@@ -4,10 +4,11 @@ import { mkdirSync, rmSync, readFileSync, writeFileSync } from 'node:fs';
 
 import { copyDir } from '../src/utils/file-utils.js';
 import { resourceName } from '../src/utils/resource-utils.js';
-import { Workspace } from '../src/workspace/workspace.js';
+import { type Workspace } from '../src/workspace/workspace.js';
 import { type Edit } from '../src/commands/index.js';
 import { CardNotFoundError } from '../src/exceptions/index.js';
 import type { Card } from '@cyberismo/model';
+import { openTestWorkspace } from './helpers/open-test-workspace.js';
 
 describe('edit card', () => {
   const baseDir = import.meta.dirname;
@@ -19,8 +20,7 @@ describe('edit card', () => {
   beforeAll(async () => {
     mkdirSync(testDir, { recursive: true });
     await copyDir('test/test-data/', testDir);
-    ws = new Workspace(decisionRecordsPath, {});
-    await ws.initialize();
+    ws = await openTestWorkspace(decisionRecordsPath, {});
     editCmd = ws.editCmd;
   });
 
@@ -94,8 +94,7 @@ describe('edit card', () => {
       freshTestDir,
       'valid/decision-records',
     );
-    const freshCommands = new Workspace(freshDecisionRecordsPath, {});
-    await freshCommands.initialize();
+    const freshCommands = await openTestWorkspace(freshDecisionRecordsPath, {});
     const freshEditCmd = freshCommands.editCmd;
 
     const templateCards = freshCommands.checkout
@@ -115,12 +114,10 @@ describe('edit card', () => {
     const freshTestDir = join(baseDir, 'tmp-edit-shorttext-test');
     mkdirSync(freshTestDir, { recursive: true });
     await copyDir('test/test-data/', freshTestDir);
-    const freshCommands = new Workspace(
+    const freshCommands = await openTestWorkspace(
       join(freshTestDir, 'valid/decision-records'),
       {},
     );
-    await freshCommands.initialize();
-
     await freshCommands.createCmd.createFieldType('myShort', 'shortText');
     await freshCommands.updateCmd.apply({
       kind: 'edit',
@@ -196,8 +193,7 @@ describe('edit card', () => {
     field.enableOverride = true;
     writeFileSync(cardTypePath, JSON.stringify(cardType));
 
-    const freshCommands = new Workspace(projectPath, {});
-    await freshCommands.initialize();
+    const freshCommands = await openTestWorkspace(projectPath, {});
     return { freshTestDir, freshCommands };
   }
 
@@ -312,9 +308,7 @@ describe('edit card', () => {
     metadata['decision/fieldTypes/obsoletedBy'] = 'decision_999';
     writeFileSync(metadataFile, JSON.stringify(metadata));
 
-    const freshCommands = new Workspace(projectPath, {});
-    await freshCommands.initialize();
-
+    const freshCommands = await openTestWorkspace(projectPath, {});
     try {
       await expect(
         freshCommands.editCmd.editCardMetadata(
@@ -369,11 +363,10 @@ describe('edit card', () => {
     beforeAll(async () => {
       mkdirSync(clearTestDir, { recursive: true });
       await copyDir('test/test-data/', clearTestDir);
-      clearCommands = new Workspace(
+      clearCommands = await openTestWorkspace(
         join(clearTestDir, 'valid/decision-records'),
         {},
       );
-      await clearCommands.initialize();
     });
 
     afterAll(() => {

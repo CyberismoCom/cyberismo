@@ -5,7 +5,8 @@ import { join } from 'node:path';
 import { Checkout } from '../../../src/containers/project.js';
 import { resourceName } from '../../../src/utils/resource-utils.js';
 import { copyDir } from '../../../src/utils/file-utils.js';
-import { ResourceMutations } from '../../../src/mutations/resource-mutations.js';
+import { Workspace } from '../../../src/workspace/workspace.js';
+import { SYSTEM_ACTOR } from '../../../src/utils/tx-record.js';
 
 const FIXTURE_PATH = join(
   import.meta.dirname,
@@ -80,8 +81,7 @@ describe.each(CASES)(
     });
 
     it('apply renames the resource', async () => {
-      const mutations = new ResourceMutations(checkout);
-      await mutations.apply({
+      await Workspace.over(checkout, SYSTEM_ACTOR).updateCmd.apply({
         kind: 'rename',
         target: resourceName(oldName),
         newIdentifier,
@@ -92,9 +92,8 @@ describe.each(CASES)(
     });
 
     it('apply throws when the resource does not exist', async () => {
-      const mutations = new ResourceMutations(checkout);
       await expect(
-        mutations.apply({
+        Workspace.over(checkout, SYSTEM_ACTOR).updateCmd.apply({
           kind: 'rename',
           target: resourceName(`decision/${type}/does-not-exist`),
           newIdentifier: 'whatever',
@@ -131,9 +130,7 @@ describe('LeafResourceRenameHandler (reports) card content cascade', () => {
     );
     // Sanity: the fixture card references the old report name to start with.
     expect(await readFile(cardContentPath, 'utf-8')).toContain(oldName);
-
-    const mutations = new ResourceMutations(checkout);
-    await mutations.apply({
+    await Workspace.over(checkout, SYSTEM_ACTOR).updateCmd.apply({
       kind: 'rename',
       target: resourceName(oldName),
       newIdentifier: 'testReportV2',
@@ -183,8 +180,7 @@ describe('LeafResourceRenameHandler (graphModels) own model.lp cascade', () => {
   });
 
   it('apply rewrites references inside the graph model own model.lp', async () => {
-    const mutations = new ResourceMutations(checkout);
-    await mutations.apply({
+    await Workspace.over(checkout, SYSTEM_ACTOR).updateCmd.apply({
       kind: 'rename',
       target: resourceName(oldName),
       newIdentifier: 'test-v2',
@@ -252,8 +248,7 @@ describe('LeafResourceRenameHandler (skills)', () => {
   });
 
   it('apply renames the skill metadata and content folder', async () => {
-    const mutations = new ResourceMutations(checkout);
-    await mutations.apply({
+    await Workspace.over(checkout, SYSTEM_ACTOR).updateCmd.apply({
       kind: 'rename',
       target: resourceName(oldName),
       newIdentifier: 'testSkillV2',

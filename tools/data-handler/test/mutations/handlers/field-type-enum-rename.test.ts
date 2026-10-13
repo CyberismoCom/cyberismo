@@ -8,6 +8,8 @@ import { getTestProject } from '../../helpers/test-utils.js';
 import { route } from '../../../src/mutations/route.js';
 import { resourceName } from '../../../src/utils/resource-utils.js';
 import { ResourceMutations } from '../../../src/mutations/resource-mutations.js';
+import { Workspace } from '../../../src/workspace/workspace.js';
+import { SYSTEM_ACTOR, SYSTEM_FRAME } from '../../../src/utils/tx-record.js';
 
 const baseDir = import.meta.dirname;
 const testDir = join(baseDir, 'tmp-field-type-enum-rename');
@@ -107,7 +109,7 @@ describe('FieldTypeEnumRenameHandler', () => {
   });
 
   it('renames the value in the field definition', async () => {
-    await new ResourceMutations(checkout).apply(renameOp);
+    await Workspace.over(checkout, SYSTEM_ACTOR).updateCmd.apply(renameOp);
     const updated = checkout.resources.byType(fieldName(), 'fieldTypes').show();
     const values = (updated.enumValues ?? []).map((e) => e.enumValue);
     expect(values).toContain('minor');
@@ -115,7 +117,7 @@ describe('FieldTypeEnumRenameHandler', () => {
   });
 
   it('migrates card values to the new value', async () => {
-    await new ResourceMutations(checkout).apply(renameOp);
+    await Workspace.over(checkout, SYSTEM_ACTOR).updateCmd.apply(renameOp);
     const cards = checkout.cardTree.cards();
     const anyStillLow = cards.some((c) => c.metadata?.[fieldName()] === 'low');
     const migrated = cards.filter((c) => c.metadata?.[fieldName()] === 'minor');
@@ -130,10 +132,12 @@ describe('FieldTypeEnumRenameHandler', () => {
       .byType(fieldName(), 'fieldTypes')
       .update(renameOp.updateKey, renameOp.operation);
 
-    await new ResourceMutations(checkout).apply(renameOp, {
-      kind: 'replay',
-      modulePrefix: checkout.projectPrefix,
-    });
+    await checkout.lock.write(SYSTEM_FRAME, () =>
+      new ResourceMutations(checkout).apply(renameOp, {
+        kind: 'replay',
+        modulePrefix: checkout.projectPrefix,
+      }),
+    );
 
     const anyStillLow = checkout.cardTree
       .cards()

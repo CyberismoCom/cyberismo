@@ -2,11 +2,12 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { join } from 'node:path';
 
 import type { Checkout } from '../../src/containers/project.js';
-import { ResourceMutations } from '../../src/mutations/resource-mutations.js';
 import { ConfigurationLogger } from '../../src/utils/configuration-logger.js';
 import { resourceName } from '../../src/utils/resource-utils.js';
 import { deleteDir } from '../../src/utils/file-utils.js';
 import { createLinkSeededProject } from './helpers.js';
+import { Workspace } from '../../src/workspace/workspace.js';
+import { SYSTEM_ACTOR } from '../../src/utils/tx-record.js';
 
 const tmpDir = join(import.meta.dirname, 'tmp-integration');
 
@@ -22,14 +23,13 @@ describe('mutation engine end-to-end', () => {
   });
 
   it('apply runs the cascade and writes a log entry', async () => {
-    const mutations = new ResourceMutations(checkout);
     const input = {
       kind: 'rename' as const,
       target: resourceName(`${checkout.projectPrefix}/linkTypes/test`),
       newIdentifier: 'is-caused-by',
     };
 
-    await mutations.apply(input);
+    await Workspace.over(checkout, SYSTEM_ACTOR).updateCmd.apply(input);
 
     // The cascade ran: every card link that referenced the old name now
     // points at the new name.

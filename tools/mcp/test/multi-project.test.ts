@@ -16,10 +16,11 @@
 import { beforeAll, afterAll, describe, expect, test } from 'vitest';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
-import { Workspace } from '@cyberismo/data-handler';
+import { type Workspace } from '@cyberismo/data-handler';
 import { createMcpServer } from '../src/server.js';
 import type { ProjectProvider } from '../src/lib/resolve-project.js';
 import { testDataPath } from './test-utils.js';
+import { openTestWorkspace } from './helpers/open-test-workspace.js';
 
 let ws: Workspace;
 let client: Client;
@@ -42,7 +43,7 @@ function multiProjectProvider(cmd: Workspace): ProjectProvider {
 // Fixes weird issue with asciidoctor
 beforeAll(async () => {
   process.argv = [];
-  ws = await Workspace.getInstance(testDataPath);
+  ws = await openTestWorkspace(testDataPath);
 
   const server = createMcpServer(multiProjectProvider(ws));
   const [clientTransport, serverTransport] =

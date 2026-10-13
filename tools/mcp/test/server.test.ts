@@ -14,16 +14,17 @@
 */
 
 import { beforeAll, afterAll, describe, expect, test } from 'vitest';
-import { Workspace } from '@cyberismo/data-handler';
+import { type Workspace } from '@cyberismo/data-handler';
 import { createMcpServer, singleProjectProvider } from '../src/server.js';
 import { testDataPath } from './test-utils.js';
+import { openTestWorkspace } from './helpers/open-test-workspace.js';
 
 let ws: Workspace;
 
 // Fixes weird issue with asciidoctor
 beforeAll(async () => {
   process.argv = [];
-  ws = await Workspace.getInstance(testDataPath);
+  ws = await openTestWorkspace(testDataPath);
 });
 
 afterAll(async () => {
@@ -32,12 +33,12 @@ afterAll(async () => {
 
 describe('createMcpServer', () => {
   test('creates an MCP server instance with default options', () => {
-    const server = createMcpServer(singleProjectProvider(ws));
+    const server = createMcpServer(singleProjectProvider(ws.checkout));
     expect(server).toBeDefined();
   });
 
   test('creates server with custom name and version', () => {
-    const server = createMcpServer(singleProjectProvider(ws), {
+    const server = createMcpServer(singleProjectProvider(ws.checkout), {
       name: 'test-server',
       version: '2.0.0',
     });
