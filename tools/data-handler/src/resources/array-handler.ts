@@ -18,7 +18,7 @@ import type {
   Operation,
   RankOperation,
   RemoveOperation,
-} from './resource-object.js';
+} from '@cyberismo/model';
 
 export class ArrayHandler<T> {
   private isValidIndex(index: number, array: T[]): boolean {

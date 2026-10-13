@@ -13,10 +13,7 @@
 
 import type { SWRConfiguration } from 'swr';
 import useSWR, { mutate } from 'swr';
-import type {
-  CleanResult,
-  ModuleSettingFromHub,
-} from '@cyberismo/data-handler';
+import type { CleanResult, ModuleSettingFromHub } from '@cyberismo/model';
 import { projectApiPaths, callApi } from '../swr';
 import { useSWRHook } from './common';
 import type { Hub, HubFetchResult, ProjectSettingsUpdate } from './types';

@@ -23,7 +23,7 @@ import '@testing-library/jest-dom';
 import { Provider } from 'react-redux';
 import { configureStore } from '@reduxjs/toolkit';
 import type * as AppHooks from '@/lib/hooks';
-import type { CleanResult } from '@cyberismo/data-handler';
+import type { CleanResult } from '@cyberismo/model';
 
 const update = vi.fn().mockResolvedValue(undefined);
 const cleanProject = vi.fn();

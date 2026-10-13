@@ -16,11 +16,8 @@ import { resolve } from 'node:path';
 import cliProgress from 'cli-progress';
 import { Argument, type Command } from 'commander';
 
-import {
-  exportSite,
-  formatProjectErrors,
-  ProjectRegistry,
-} from '@cyberismo/backend';
+import { exportSite, ProjectRegistry } from '@cyberismo/backend';
+import { formatProjectErrors } from '@cyberismo/model';
 import {
   Cmd,
   type CommandOptions,

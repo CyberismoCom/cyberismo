@@ -21,12 +21,11 @@ import type { CardDetails } from '../definitions';
 import { useAppDispatch, useUpdating } from '../hooks';
 import { cardDeleted } from '../actions';
 import { createLink, removeLink, updateLink } from './actions';
-import type { LinkDirection } from '@cyberismo/data-handler/types/queries';
+import type { LinkDirection, Card } from '@cyberismo/model';
 import type { CardAction } from './action-types';
 import { setRecentlyCreated } from '../slices/card';
 import { addNotification, removeNotification } from '../slices/notifications';
 import { useTranslation } from 'react-i18next';
-import type { Card } from '@cyberismo/data-handler/interfaces/project-interfaces';
 
 const useCardData = (
   key: string | null,

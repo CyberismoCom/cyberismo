@@ -22,7 +22,7 @@ import { ProjectPaths } from '../../src/containers/project/project-paths.js';
 import type { Checkout } from '../../src/containers/project.js';
 import { isGitLocation } from '../../src/modules/location.js';
 import type { FetchTarget, SourceLayer } from '../../src/modules/source.js';
-import type { ModuleSetting } from '../../src/interfaces/project-interfaces.js';
+import type { ModuleSetting } from '@cyberismo/model';
 
 // ---------------------------------------------------------------------------
 // Fake on-disk module fixture.

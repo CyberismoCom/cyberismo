@@ -17,7 +17,7 @@ import { CompositeSourceLayer } from './source-composite.js';
 import { FileSourceLayer } from './source-file.js';
 import { GitSourceLayer } from './source-git.js';
 import { type Source, type Version } from './types.js';
-import type { ProjectSettings } from '../interfaces/project-interfaces.js';
+import type { ProjectSettings } from '@cyberismo/model';
 import type { SealFile } from '../mutations/replay/seal-files.js';
 
 /** A concrete fetch target. `remoteUrl` is pre-built with any credentials injected. */

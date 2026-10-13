@@ -15,24 +15,26 @@
 import { basename, dirname, join, normalize } from 'node:path';
 import { mkdir, readdir, readFile, rename, rm } from 'node:fs/promises';
 
-import { isContentKey } from '../interfaces/resource-interfaces.js';
 import {
+  isContentKey,
   filename,
   contentPropertyName,
   ALL_FILE_MAPPINGS,
-} from '../interfaces/folder-content-interfaces.js';
+} from '@cyberismo/model';
 import { formatJson } from '../utils/json.js';
 import { VALID_FOLDER_RESOURCE_FILES } from '../utils/constants.js';
 import { writeFileSafe } from '../utils/file-utils.js';
 import { ResourceObject } from './resource-object.js';
 import { resourceName } from '../utils/resource-utils.js';
 
-import type { UpdateKey } from '../interfaces/resource-interfaces.js';
-import type { FolderResourceContent } from '../interfaces/folder-content-interfaces.js';
-import type { Operation } from './resource-object.js';
+import type {
+  UpdateKey,
+  FolderResourceContent,
+  Operation,
+  ResourceFolderType,
+  ResourceBaseMetadata,
+} from '@cyberismo/model';
 import type { Checkout } from '../containers/project.js';
-import type { ResourceFolderType } from '../interfaces/project-interfaces.js';
-import type { ResourceBaseMetadata } from '../interfaces/resource-interfaces.js';
 import type { ResourceName } from '../utils/resource-utils.js';
 import type { ShowReturnType } from './resource-object.js';
 

@@ -12,7 +12,7 @@
 */
 
 import type { Level } from 'pino';
-import type { Context } from './project-interfaces.js';
+import type { Context } from '@cyberismo/model';
 import type { CmdKey } from '../command-handler.js';
 
 // Base options shared across multiple commands

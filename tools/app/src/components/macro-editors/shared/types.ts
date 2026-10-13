@@ -18,7 +18,7 @@ import type {
   CreateCardsOptions,
   ReportOptions,
   GraphOptions,
-} from '@cyberismo/data-handler';
+} from '@cyberismo/model';
 
 export const DEFAULT_INCLUDE_FORM_VALUES = {
   cardKey: '',

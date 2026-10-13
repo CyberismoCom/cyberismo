@@ -31,7 +31,7 @@ import type {
   CardAttachment,
   CardMetadata,
   CardNode,
-} from '../../interfaces/project-interfaces.js';
+} from '@cyberismo/model';
 import { CardNotFoundError } from '../../exceptions/index.js';
 import { copyDir, deleteDir, pathExists } from '../../utils/file-utils.js';
 import { getChildLogger } from '../../utils/log-utils.js';

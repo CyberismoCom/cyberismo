@@ -30,11 +30,7 @@ import { GenericConfirmModal } from '@/components/modals';
 import { EditableRowActions } from './EditableRowActions';
 import { ListRow } from './ListRow';
 import { ReorderButton, ReorderButtonContainer } from './ReorderButtons';
-import type {
-  FieldType,
-  EnumDefinition,
-  DataType,
-} from '@cyberismo/data-handler/interfaces/resource-interfaces';
+import type { FieldType, EnumDefinition, DataType } from '@cyberismo/model';
 
 type EnumDraft = {
   enumValue: string;

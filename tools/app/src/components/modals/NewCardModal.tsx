@@ -31,7 +31,7 @@ import { useCard, useTemplates } from '@/lib/api';
 import { useAppDispatch } from '@/lib/hooks';
 import { useAppRouter } from '@/lib/hooks';
 import { addNotification } from '@/lib/slices/notifications';
-import type { TemplateConfiguration } from '@cyberismo/data-handler/interfaces/project-interfaces';
+import type { TemplateConfiguration } from '@cyberismo/model';
 import RadioGroup from '@mui/joy/RadioGroup';
 import { OptionCard, OptionCardGrid } from '@/components/OptionCard';
 

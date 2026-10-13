@@ -13,11 +13,8 @@
 
 import { type Command } from 'commander';
 
-import {
-  Cmd,
-  type CommandOptions,
-  type UpdateOperations,
-} from '@cyberismo/data-handler';
+import { Cmd, type CommandOptions } from '@cyberismo/data-handler';
+import { type UpdateOperations } from '@cyberismo/model';
 
 import { CommandWithPath } from '../lib/args.js';
 import { commandHandler } from '../lib/dispatch.js';

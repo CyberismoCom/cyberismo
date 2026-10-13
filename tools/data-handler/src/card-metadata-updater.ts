@@ -12,11 +12,10 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import type { CardMetadata } from './interfaces/project-interfaces.js';
+import type { CardMetadata, UpdateField } from '@cyberismo/model';
 import { FieldTypeResource } from './resources/field-type-resource.js';
 import { getChildLogger } from './utils/log-utils.js';
 import type { Checkout } from './containers/project.js';
-import type { UpdateField } from './types/queries.js';
 
 /**
  * Card metadata update result.

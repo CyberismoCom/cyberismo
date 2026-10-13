@@ -17,11 +17,7 @@ import type { EditInput } from '../types.js';
 import { resourceNameToString } from '../../utils/resource-utils.js';
 import { ResourcesFrom } from '../../containers/project/resources-from.js';
 import { getChildLogger } from '../../utils/log-utils.js';
-import type { Card } from '../../interfaces/project-interfaces.js';
-import type {
-  ChangeOperation,
-  Operation,
-} from '../../resources/resource-object.js';
+import type { Card, ChangeOperation, Operation } from '@cyberismo/model';
 
 /**
  * When a mapping is supplied, the handler validates it before writing

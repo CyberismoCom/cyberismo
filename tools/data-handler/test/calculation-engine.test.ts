@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import { appendFileSync, mkdirSync, rmSync } from 'node:fs';
 import { copyDir } from '../src/utils/file-utils.js';
 import type { Checkout } from '../src/containers/project.js';
-import type { QueryResult } from '../src/types/queries.js';
+import type { QueryResult } from '@cyberismo/model';
 import Handlebars from 'handlebars';
 import { lpFiles, pdfReport } from '@cyberismo/assets';
 import { Calculate } from '../src/commands/calculate.js';

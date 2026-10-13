@@ -20,7 +20,7 @@ import {
   Option,
 } from '@mui/joy';
 import { useTranslation } from 'react-i18next';
-import type { Workflow } from '@cyberismo/data-handler/interfaces/resource-interfaces';
+import type { Workflow } from '@cyberismo/model';
 import type { ResourceFormProps } from './BaseResourceModal';
 import type { CreateCardTypeData } from '@/lib/definitions';
 import BaseCreateForm from './BaseCreateForm';

@@ -13,7 +13,7 @@
 */
 
 import { useMemo } from 'react';
-import type { QueryResult } from '@cyberismo/data-handler/types/queries';
+import type { QueryResult } from '@cyberismo/model';
 import { flattenTree } from '@/lib/utils';
 import { useTree } from '@/lib/api/tree';
 import type { AnyNode, GenericNode, NodeKey } from '@/lib/api/types';

@@ -33,8 +33,9 @@ import { isModulePath, isExternalItemKey } from '../utils/card-utils.js';
 import type {
   DataType,
   ExternalLink,
-} from '../interfaces/resource-interfaces.js';
-import type { Card, ProjectFile } from '../interfaces/project-interfaces.js';
+  Card,
+  ProjectFile,
+} from '@cyberismo/model';
 import { resourceName, resourceNameToString } from '../utils/resource-utils.js';
 import { write } from '../utils/rw-lock.js';
 import { writeJsonFile } from '../utils/json.js';

@@ -19,14 +19,15 @@ import { sortCards } from '../utils/card-utils.js';
 
 import * as EmailValidator from 'email-validator';
 
-import type { ChangeOperation, Operation } from './resource-object.js';
-import type { Card } from '../interfaces/project-interfaces.js';
 import type {
+  ChangeOperation,
+  Operation,
+  Card,
   DataType,
   EnumDefinition,
   FieldType,
   UpdateKey,
-} from '../interfaces/resource-interfaces.js';
+} from '@cyberismo/model';
 import type { Checkout } from '../containers/project.js';
 import type { ResourceName } from '../utils/resource-utils.js';
 

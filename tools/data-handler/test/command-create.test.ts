@@ -18,10 +18,7 @@ import { FieldTypeResource } from '../src/resources/field-type-resource.js';
 import { getTestProject } from './helpers/test-utils.js';
 
 import type { CreateCommandOptions } from '../src/interfaces/command-options.js';
-import type {
-  Card,
-  CardListContainer,
-} from '../src/interfaces/project-interfaces.js';
+import type { Card, CardListContainer } from '@cyberismo/model';
 import { Checkout } from '../src/containers/project.js';
 import { Validate } from '../src/commands/index.js';
 

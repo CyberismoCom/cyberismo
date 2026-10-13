@@ -15,7 +15,7 @@
 
 import { beforeAll, afterAll, describe, expect, test } from 'vitest';
 import { Workspace } from '@cyberismo/data-handler';
-import type { QueryResult } from '@cyberismo/data-handler/types/queries';
+import type { QueryResult } from '@cyberismo/model';
 import {
   renderCard,
   getCardTree,

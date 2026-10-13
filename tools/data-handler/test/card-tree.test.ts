@@ -31,10 +31,7 @@ import { copyDir } from '../src/utils/file-utils.js';
 import { CardKeyRegistry } from '../src/containers/project/card-keys.js';
 import { CardTree } from '../src/containers/project/card-tree.js';
 import type { NewCard } from '../src/containers/project/card-tree.js';
-import type {
-  Card,
-  CardMetadata,
-} from '../src/interfaces/project-interfaces.js';
+import type { Card, CardMetadata } from '@cyberismo/model';
 import { Workspace } from '../src/workspace/workspace.js';
 import { ROOT } from '../src/utils/constants.js';
 import {

@@ -66,7 +66,7 @@ import type {
   ProjectModuleInfo,
   UpdatePlan,
   UpdateTarget,
-} from '../interfaces/project-interfaces.js';
+} from '@cyberismo/model';
 import type { Source } from '../modules/types.js';
 import type { Fetch } from './fetch.js';
 import type { Checkout } from '../containers/project.js';

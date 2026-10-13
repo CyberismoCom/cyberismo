@@ -14,10 +14,13 @@
 import type { SWRConfiguration } from 'swr';
 import { mutate } from 'swr';
 import { projectApiPaths, callApi } from '../swr';
-import type { ResourceBaseMetadata } from '@cyberismo/data-handler/interfaces/resource-interfaces';
+import type {
+  ResourceBaseMetadata,
+  OperationFor,
+  UpdateOperations,
+} from '@cyberismo/model';
 import { useSWRHook } from './common';
 import type { AnyNode } from './types';
-import type { OperationFor, UpdateOperations } from '@cyberismo/data-handler';
 import { useUpdating } from '../hooks';
 
 // Helper to check if a node has data (is a resource, not a group)

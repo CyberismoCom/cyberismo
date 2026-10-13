@@ -16,7 +16,7 @@ import { Box, Divider, Link, Stack, Tooltip, Typography } from '@mui/joy';
 import { Link as RouterLink } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import LockOutlined from '@mui/icons-material/LockOutlined';
-import type { CalculationLink } from '@cyberismo/data-handler/types/queries';
+import type { CalculationLink } from '@cyberismo/model';
 
 type LinkRowProps = {
   link: CalculationLink;

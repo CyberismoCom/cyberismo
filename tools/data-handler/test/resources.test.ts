@@ -28,13 +28,10 @@ import type {
   Workflow,
   WorkflowState,
   WorkflowTransition,
-} from '../src/interfaces/resource-interfaces.js';
-
-import type {
   AddOperation,
   ChangeOperation,
   RemoveOperation,
-} from '../src/resources/resource-object.js';
+} from '@cyberismo/model';
 
 // Helper type for resource test configurations
 type ResourceType =

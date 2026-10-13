@@ -10,7 +10,7 @@ import type {
   Credentials,
   ModuleSetting,
   UpdateTarget,
-} from '../../src/interfaces/project-interfaces.js';
+} from '@cyberismo/model';
 import type { Checkout } from '../../src/containers/project.js';
 
 let dir: string;

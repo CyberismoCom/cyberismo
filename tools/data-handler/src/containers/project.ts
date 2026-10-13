@@ -32,7 +32,7 @@ import {
   type CardNode,
   type MetadataContent,
   type ModuleContent,
-} from '../interfaces/project-interfaces.js';
+} from '@cyberismo/model';
 import { pathExists } from '../utils/file-utils.js';
 import { isModulePath, sortCards } from '../utils/card-utils.js';
 import { ActionGuard } from '../permissions/action-guard.js';

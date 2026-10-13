@@ -16,7 +16,7 @@ import type { Handler, MutationContext } from '../handler.js';
 import type { DeleteInput } from '../types.js';
 import { resourceNameToString } from '../../utils/resource-utils.js';
 import { ResourcesFrom } from '../../containers/project/resources-from.js';
-import type { Operation } from '../../resources/resource-object.js';
+import type { Operation } from '@cyberismo/model';
 
 /**
  * The handler owns the cascade: the field is stripped from every local card

@@ -16,11 +16,7 @@ import type { Handler, MutationContext } from '../handler.js';
 import type { EditInput } from '../types.js';
 import { resourceNameToString } from '../../utils/resource-utils.js';
 import { fromDate, fromNumber, fromString } from '../../utils/value-utils.js';
-import type {
-  Card,
-  MetadataContent,
-} from '../../interfaces/project-interfaces.js';
-import type { DataType } from '../../interfaces/resource-interfaces.js';
+import type { Card, MetadataContent, DataType } from '@cyberismo/model';
 
 const SHORT_TEXT_MAX_LENGTH = 80;
 

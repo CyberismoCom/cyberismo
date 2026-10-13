@@ -21,7 +21,7 @@ import { Fetch, MODULE_LIST_FULL_PATH } from '../src/commands/fetch.js';
 import { Show } from '../src/commands/show.js';
 import { Checkout } from '../src/containers/project.js';
 
-import type { HubSetting } from '../src/interfaces/project-interfaces.js';
+import type { HubSetting } from '@cyberismo/model';
 import type * as Undici from 'undici';
 
 // Hub requests go out through egressFetch, which uses undici's fetch rather

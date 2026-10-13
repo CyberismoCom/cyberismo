@@ -12,7 +12,7 @@
 */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import type { CleanResult } from '@cyberismo/data-handler';
+import type { CleanResult } from '@cyberismo/model';
 import type * as Swr from 'swr';
 
 const mutate = vi.fn();

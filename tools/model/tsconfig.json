@@ -1,0 +1,14 @@
+{
+  "compilerOptions": {
+    "strict": true,
+    "alwaysStrict": true,
+    "sourceMap": true,
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "target": "es2023",
+    "lib": ["ES2023"],
+    "types": [],
+    "skipLibCheck": true
+  },
+  "include": ["src/**/*"]
+}

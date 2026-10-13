@@ -6,8 +6,7 @@ import { Workspace } from '../src/workspace/workspace.js';
 import { copyDir } from '../src/utils/file-utils.js';
 import { resourceName } from '../src/utils/resource-utils.js';
 
-import type { Operation } from '../src/resources/resource-object.js';
-import type { Skill } from '../src/interfaces/resource-interfaces.js';
+import type { Operation, Skill } from '@cyberismo/model';
 
 const baseDir = import.meta.dirname;
 const testDir = join(baseDir, 'tmp-skill-edit-tests');

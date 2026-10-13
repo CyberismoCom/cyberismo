@@ -18,8 +18,7 @@ import { copyDir } from '../../src/utils/file-utils.js';
 import { Workspace } from '../../src/workspace/workspace.js';
 import { createCardFacts } from '../../src/utils/clingo-facts.js';
 import { resourceName } from '../../src/utils/resource-utils.js';
-import type { Card } from '../../src/index.js';
-import type { CardType } from '../../src/interfaces/resource-interfaces.js';
+import type { Card, CardType } from '@cyberismo/model';
 
 const FIELD = 'decision/fieldTypes/obsoletedBy';
 const RESPONSIBLE_FIELD = 'decision/fieldTypes/responsible';
