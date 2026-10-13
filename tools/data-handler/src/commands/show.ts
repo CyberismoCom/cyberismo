@@ -40,7 +40,7 @@ import type { ResourceName } from '../utils/resource-utils.js';
 import type { ResourceMap } from '../containers/project/resource-cache.js';
 
 import { read } from '../utils/rw-lock.js';
-import { moduleInfos } from '../modules/index.js';
+import { projectInfo } from '../workspace/settings.js';
 import ReportMacro from '../macros/report/index.js';
 import { generateReportContent } from '../utils/report.js';
 import TaskQueue from '../macros/task-queue.js';
@@ -209,19 +209,7 @@ export class Show {
    */
   @read
   public async showProject(): Promise<ProjectMetadata> {
-    const p = this.checkout;
-    const modules = await moduleInfos(p);
-    return {
-      name: p.projectName,
-      path: p.basePath,
-      prefix: p.projectPrefix,
-      category: p.configuration.category,
-      description: p.configuration.description,
-      version: p.configuration.version,
-      hubs: p.configuration.hubs,
-      modules,
-      numberOfCards: p.cardTree.count,
-    };
+    return projectInfo(this.checkout);
   }
 
   /**
@@ -539,18 +527,5 @@ export class Show {
       options: { cardKey: options.cardKey },
       context,
     });
-  }
-
-  /**
-   * Shows the git remote URL for the project.
-   * @returns the remote URL (possibly empty string if no remote is configured),
-   *          or null if the project is not a git repo.
-   */
-  @read
-  public async showGitRemoteUrl(): Promise<string | null> {
-    if (!(await this.checkout.git.isRepo())) {
-      return null;
-    }
-    return (await this.checkout.git.getRemoteUrl()) ?? '';
   }
 }

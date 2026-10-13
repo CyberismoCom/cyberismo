@@ -16,6 +16,7 @@
 // (Uint8Array allowed for bytes): no functions, class instances or Dates.
 
 import type { Cards } from '../../src/cards/cards.js';
+import type { Settings } from '../../src/workspace/settings.js';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnyFunction = (...args: any[]) => unknown;
@@ -49,6 +50,11 @@ type FacadeSerializable<F> = {
       ? Serializable<Awaited<R>>
       : false
     : false;
+};
+
+// Per property: its value is serialisable.
+type PropertiesSerializable<F> = {
+  [K in keyof F as F[K] extends AnyFunction ? never : K]: Serializable<F[K]>;
 };
 
 // The check itself rejects what it should.
@@ -87,4 +93,20 @@ export const cards: FacadeSerializable<Cards> = {
   attachment: true,
   labels: true,
   logicProgram: true,
+};
+
+export const settings: FacadeSerializable<Settings> &
+  PropertiesSerializable<Settings> = {
+  actor: true,
+  identity: true,
+  name: true,
+  prefix: true,
+  category: true,
+  description: true,
+  info: true,
+  gitRemoteUrl: true,
+  setName: true,
+  setDescription: true,
+  setCategory: true,
+  setGitRemoteUrl: true,
 };
