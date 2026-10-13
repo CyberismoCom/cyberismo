@@ -20,6 +20,7 @@ import type {
 } from '@cyberismo/model';
 import {
   type Workspace,
+  CardNotFoundError,
   isResourceFolderType,
   moduleNameFromCardKey,
   resourceName,
@@ -547,10 +548,7 @@ export async function previewSkill(
       try {
         await ws.showCmd.showCardDetails(cardKey);
       } catch (error) {
-        if (
-          error instanceof Error &&
-          error.message.includes('does not exist')
-        ) {
+        if (error instanceof CardNotFoundError) {
           throw new Error(`Card '${cardKey}' not found`, { cause: error });
         }
         throw error;

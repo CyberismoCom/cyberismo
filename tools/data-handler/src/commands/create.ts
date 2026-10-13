@@ -29,7 +29,7 @@ import { Validate } from './validate.js';
 
 import { compare, EMPTY_RANK, sortItems } from '../utils/lexorank.js';
 import { ROOT } from '../utils/constants.js';
-import { isModulePath, isExternalItemKey } from '../utils/card-utils.js';
+import { isExternalItemKey } from '../utils/card-utils.js';
 import type {
   DataType,
   ExternalLink,
@@ -120,19 +120,12 @@ export class Create {
       templateName,
       'templates',
     );
-    if (card && !templateResource.cardTree.has(card)) {
-      throw new Error(`Card '${card}' is not part of template`);
-    }
     const specificCard = card
       ? templateResource.cardTree.card(card)
       : undefined;
 
     if (!templateResource.isCreated()) {
       throw new Error(`Template '${templateResource.fullName}' does not exist`);
-    }
-
-    if (isModulePath(templateResource.templateFolder())) {
-      throw new Error(`Cannot add cards to imported module templates`);
     }
 
     const cardsContainer = await addTemplateCards(
