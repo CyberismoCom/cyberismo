@@ -14,6 +14,7 @@ import { Hono, type MiddlewareHandler } from 'hono';
 import { gitOptionsFromEnv, staticFrontendDirRelative } from './utils.js';
 import { serveStatic } from '@hono/node-server/serve-static';
 import { attachProjectRegistry } from './middleware/commandManager.js';
+import { errorResponse } from './common/errors.js';
 import calculationsRouter from './domain/calculations/index.js';
 import cardsRouter from './domain/cards/index.js';
 import cardTypesRouter from './domain/cardTypes/index.js';
@@ -254,12 +255,8 @@ export function createApp(
         console.error(err.stack);
       }
     }
-    return c.json(
-      {
-        error: err.message || 'Internal Server Error',
-      },
-      500,
-    );
+    const { status, body } = errorResponse(err);
+    return c.json(body, status);
   });
 
   return app;
