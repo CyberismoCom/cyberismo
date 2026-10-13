@@ -91,7 +91,7 @@ router.put(
   zValidator('json', presenceSchema),
   (c) => {
     const { connectionId, sequence, cardKey, mode } = c.req.valid('json');
-    if (cardKey && !c.get('ws').checkout.hasCard(cardKey)) {
+    if (cardKey && !c.get('ws').cards.has(cardKey)) {
       return c.json({ error: 'Card not found' }, 404);
     }
     const events = c.get('events');

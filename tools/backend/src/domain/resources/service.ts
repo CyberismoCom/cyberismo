@@ -305,7 +305,7 @@ function createCardNode(
 // Helper function to process templates using templateTree query
 async function processTemplates(ws: Workspace, projectPrefix: string) {
   const templates = await ws.showCmd.showResources('templates');
-  const templateTree = await ws.showCmd.showAllTemplateCards();
+  const templateTree = await ws.cards.templateCards();
 
   const rootTemplates: { [templateName: string]: unknown[] } = {};
   const moduleTemplates: {
@@ -503,7 +503,7 @@ export async function getWorkflowGraph(
     if (cardKey) {
       let card;
       try {
-        card = await ws.showCmd.showCardDetails(cardKey);
+        card = await ws.cards.details(cardKey);
       } catch (error) {
         throw new Error(`Card '${cardKey}' not found`, { cause: error });
       }
@@ -546,7 +546,7 @@ export async function previewSkill(
     }
     if (cardKey) {
       try {
-        await ws.showCmd.showCardDetails(cardKey);
+        await ws.cards.details(cardKey);
       } catch (error) {
         if (error instanceof CardNotFoundError) {
           throw new Error(`Card '${cardKey}' not found`, { cause: error });

@@ -37,7 +37,7 @@ export async function addTemplateCard(
   if (type !== 'templates') {
     throw new Error('Invalid template resource');
   }
-  const added = await ws.createCmd.addCards(
+  const added = await ws.cards.addToTemplate(
     cardType,
     identifier,
     parentKey,

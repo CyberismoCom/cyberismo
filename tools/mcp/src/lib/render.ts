@@ -151,8 +151,8 @@ export async function renderCard(
   options: { raw?: boolean } = {},
 ): Promise<RenderedCard> {
   return ws.consistent(async () => {
-    // showCardDetails throws on invalid keys, so no null-check needed
-    const card = await ws.showCmd.showCardDetails(cardKey);
+    // details throws on invalid keys, so no null-check needed
+    const card = await ws.cards.details(cardKey);
     const rawContent = card.content || '';
     let parsedContent = rawContent;
 

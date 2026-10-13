@@ -13,17 +13,124 @@
 
 import { join } from 'node:path';
 
-import { DefaultContent } from '../../resources/create-defaults.js';
-import { isInitialTransition } from '../../utils/resource-utils.js';
-import { getChildLogger } from '../../utils/log-utils.js';
-import { EMPTY_RANK, sortItems } from '../../utils/lexorank.js';
-import { isPredefinedField, ROOT } from '../../utils/constants.js';
+import { Validate } from '../commands/validate.js';
+import { DefaultContent } from '../resources/create-defaults.js';
+import {
+  isInitialTransition,
+  resourceName,
+  resourceNameToString,
+} from '../utils/resource-utils.js';
+import { getChildLogger } from '../utils/log-utils.js';
+import { compare, EMPTY_RANK, sortItems } from '../utils/lexorank.js';
+import { isPredefinedField, ROOT } from '../utils/constants.js';
+import { findCard } from './read.js';
+import { runCreationSideEffects } from './transition.js';
 
 import type { Card, CardAttachment, CardMetadata } from '@cyberismo/model';
-import type { CardTree, NewCard } from './card-tree.js';
-import type { Checkout } from '../project.js';
+import type { CardTree, NewCard } from '../containers/project/card-tree.js';
+import type { Checkout } from '../containers/project.js';
 
 const logger = getChildLogger({ module: 'template' });
+
+// Adds cards of a card type to a template, then runs the creation side effects.
+export async function addCards(
+  checkout: Checkout,
+  cardTypeName: string,
+  templateName: string,
+  card?: string,
+  count: number = 1,
+): Promise<string[]> {
+  if (
+    !templateName ||
+    !Validate.validateFolder(join(checkout.basePath, templateName))
+  ) {
+    throw new Error(
+      `Input validation error: template name is invalid '${templateName}'`,
+    );
+  }
+  if (cardTypeName === undefined) {
+    throw new Error(`Input validation error: card type cannot be empty`);
+  }
+  const templateResource = checkout.resources.byType(templateName, 'templates');
+  const specificCard = card ? templateResource.cardTree.card(card) : undefined;
+
+  if (!templateResource.isCreated()) {
+    throw new Error(`Template '${templateResource.fullName}' does not exist`);
+  }
+
+  const cardsContainer = await addTemplateCards(
+    checkout,
+    templateResource.cardTree,
+    cardTypeName,
+    count,
+    specificCard,
+  );
+
+  if (cardsContainer.length === 0) {
+    throw new Error(`Invalid value for 'repeat:' "${count}"`);
+  }
+
+  await runCreationSideEffects(checkout, cardsContainer);
+
+  return cardsContainer;
+}
+
+// Creates project cards from a template, then runs the creation side effects.
+export async function createCard(
+  checkout: Checkout,
+  templateName: string,
+  parentCardKey?: string,
+): Promise<Card[]> {
+  const templateResource = checkout.resources.byType(templateName, 'templates');
+
+  Validate.getInstance().validResourceName(
+    'templates',
+    resourceNameToString(resourceName(templateName)),
+    checkout.allModulePrefixes(),
+  );
+
+  await templateResource.validate();
+
+  const specificCard = parentCardKey
+    ? findCard(checkout, parentCardKey)
+    : undefined;
+  if (!templateResource.isCreated()) {
+    throw new Error(`Template '${templateName}' not found from project`);
+  }
+
+  const createdCards = await instantiateTemplate(
+    checkout,
+    templateResource.cardTree,
+    specificCard,
+  );
+  if (createdCards.length > 0) {
+    await runCreationSideEffects(
+      checkout,
+      createdCards.map((card) => card.key),
+    );
+
+    const rootParent = specificCard?.key ?? ROOT;
+    const rootCards: Card[] = [];
+    const childCards: Card[] = [];
+    for (const card of createdCards) {
+      if (card.parent === rootParent) {
+        rootCards.push(card);
+      } else {
+        childCards.push(card);
+      }
+    }
+    const rankOf = (card: Card) => card.metadata?.rank || EMPTY_RANK;
+    return sortItems(rootCards, rankOf).concat(
+      childCards.toSorted(
+        (a, b) =>
+          compare(a.parent, b.parent) ||
+          compare(rankOf(a), rankOf(b)) ||
+          compare(a.key, b.key),
+      ),
+    );
+  }
+  return [];
+}
 
 /**
  * Adds new cards to a template.
@@ -91,7 +198,7 @@ export async function instantiateTemplate(
       );
     }
     if (parentCard) {
-      checkout.findCard(parentCard.key);
+      findCard(checkout, parentCard.key);
     }
 
     const destination = checkout.cardTree;
