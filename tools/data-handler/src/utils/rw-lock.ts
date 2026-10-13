@@ -14,6 +14,7 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
 import {
   getCommitContext,
+  outsideCommitContext,
   runWithDefaultCommitMessage,
 } from './commit-context.js';
 import { MissingActorError } from '../exceptions/index.js';
@@ -38,6 +39,8 @@ interface LockContext {
  * - After-write hooks fire after the outermost write completes successfully.
  * - The outermost write needs a WriteFrame and creates a TxRecord from it;
  *   nested writes join that record. The hooks receive it.
+ * - Release hooks get the record after the outermost write has released the
+ *   lock, whatever its outcome.
  */
 export class RWLock {
   private readers = 0;
@@ -48,6 +51,7 @@ export class RWLock {
   private afterWriteHooks: ((tx: TxRecord) => Promise<void>)[] = [];
   private writeErrorHooks: ((error: unknown, tx: TxRecord) => Promise<void>)[] =
     [];
+  private releaseHooks: ((tx: TxRecord) => void)[] = [];
   private readonly logger;
 
   constructor(private readonly name: string = 'RWLock') {
@@ -68,6 +72,15 @@ export class RWLock {
    */
   onWriteError(hook: (error: unknown, tx: TxRecord) => Promise<void>): void {
     this.writeErrorHooks.push(hook);
+  }
+
+  /**
+   * Register a callback that fires after the outermost write has released
+   * the lock, outside its context, whether the write succeeded or not.
+   * Hooks run synchronously; a hook's error is logged and swallowed.
+   */
+  onReleased(hook: (tx: TxRecord) => void): void {
+    this.releaseHooks.push(hook);
   }
 
   /** Record of the write being run in this async context, if any. */
@@ -144,6 +157,20 @@ export class RWLock {
     } finally {
       ctx.active = false;
       this.releaseWrite();
+      // releaseWrite() hands the lock to the next queued writer, but that
+      // writer resumes on a later microtask. Running the hooks synchronously
+      // here keeps their order the order of the writes; awaiting would not.
+      // Outside the writer's commit context, so a hook's own write does not
+      // take the writer's message.
+      outsideCommitContext(() => {
+        for (const hook of this.releaseHooks) {
+          try {
+            hook(tx);
+          } catch (error) {
+            this.logger.error({ error }, 'release hook failed');
+          }
+        }
+      });
     }
   }
 

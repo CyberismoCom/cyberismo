@@ -14,7 +14,8 @@
 */
 
 // Smoke tests for every MCP write tool under autocommit: the write lands, makes
-// exactly the expected commits with the expected author, and leaves the tree clean.
+// exactly the expected commits with the expected author, publishes one change
+// event per commit, and leaves the tree clean.
 
 import { execFile } from 'node:child_process';
 import { mkdtemp, rm, writeFile } from 'node:fs/promises';
@@ -25,6 +26,7 @@ import { afterEach, beforeEach, describe, expect, test } from 'vitest';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
 import { resourceName, type Workspace } from '@cyberismo/data-handler';
+import type { ChangeEvent } from '@cyberismo/model';
 import { createMcpServer, singleProjectProvider } from '../src/server.js';
 import {
   buildProject,
@@ -44,6 +46,7 @@ let ws: Workspace;
 const savedEnv = new Map<string, string | undefined>();
 let configDir: string;
 let client: Client;
+let events: ChangeEvent[];
 // Root card keys: alpha (with child), beta, gamma and labelled.
 let alpha: string, child: string, beta: string, gamma: string;
 let labelled: string;
@@ -78,6 +81,8 @@ beforeEach(async () => {
   });
   [alpha, child, beta, gamma, labelled] = project.keys;
   ws = await openTestWorkspace(project.path, { autocommit: true });
+  events = [];
+  ws.changes.subscribe((event) => events.push(event));
   const [clientTransport, serverTransport] =
     InMemoryTransport.createLinkedPair();
   await createMcpServer(singleProjectProvider(ws.checkout)).connect(
@@ -116,12 +121,27 @@ async function call(name: string, args: Record<string, unknown> = {}) {
   return JSON.parse(text);
 }
 
-// Calls a write tool and checks its commits, their author and trailers, and a
-// clean tree.
+// Calls a write tool and checks its commits, their author and trailers, their
+// change events, and a clean tree.
 async function write(name: string, args: Record<string, unknown>, commits = 1) {
   const before = await commitCount();
+  events.length = 0;
   const payload = await call(name, args);
   expect(await commitCount()).toBe(before + commits);
+  expect(events.map(({ actor, commit }) => ({ actor, commit }))).toEqual(
+    (await git('log', `-${commits}`, '--format=%H'))
+      .split('\n')
+      .reverse()
+      .map((commit) => ({
+        actor: {
+          kind: TEST_USER.kind,
+          id: TEST_USER.id,
+          name: TEST_USER.name,
+          agent: { name: 'test-client' },
+        },
+        commit,
+      })),
+  );
   const authors = await git(
     'log',
     `-${commits}`,

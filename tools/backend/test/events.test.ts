@@ -12,6 +12,7 @@ import type { MockInstance } from 'vitest';
 import { type Checkout, type Workspace } from '@cyberismo/data-handler';
 import { X_HONO_DISABLE_SSG_HEADER_KEY } from 'hono/ssg';
 import type { SSEMessage } from 'hono/streaming';
+import type { ChangeEvent } from '@cyberismo/model';
 import { createApp } from '../src/app.js';
 import type { AuthProvider } from '../src/auth/types.js';
 import { MockAuthProvider } from '../src/auth/mock.js';
@@ -236,6 +237,19 @@ describe('project event stream over HTTP', () => {
     });
   });
 
+  test('a write no route made reaches the stream as its actor', async () => {
+    const { reader, ready } = await connect('bob');
+    await presence(ready.connectionId, 'decision_6', 1, 'bob');
+
+    // The test's handle acts as the system.
+    await ws.cards.edit('decision_6', 'Written without a route');
+    expect(await nextEvent(reader, 'card.updated')).toEqual({
+      cardKey: 'decision_6',
+      userId: 'cyberismo',
+      userName: 'Cyberismo Bot',
+    });
+  });
+
   test('static generation skips the event stream', async () => {
     const response = await app.request(
       `${base}/events`,
@@ -338,7 +352,7 @@ describe('presence bookkeeping', () => {
 
       vi.advanceTimersByTime(1_000);
       events.update(six, admin.id, 2, 'decision_6', 'editing');
-      events.cardsUpdated(['decision_6'], admin);
+      events.cardsUpdated(['decision_6'], { kind: 'user', ...admin });
 
       expect(onDecision5).toEqual([]);
       expect(onDecision6.map((m) => m.event)).toEqual([
@@ -398,8 +412,10 @@ describe('presence bookkeeping', () => {
       events.dispose();
     }
 
-    const one = {} as Checkout;
-    const two = {} as Checkout;
+    // eventsFor subscribes to the checkout's changes.
+    const changeFeed = { subscribe: () => () => {} };
+    const one = { changeFeed } as unknown as Checkout;
+    const two = { changeFeed } as unknown as Checkout;
     const projects = new ProjectRegistry();
     projects.add('one', one);
     projects.add('two', two);
@@ -442,7 +458,10 @@ describe('presence bookkeeping', () => {
       const connectionId = connect();
       events.update(connectionId, user.id, 1, 'decision_5', 'viewing');
       messages.length = 0;
-      events.cardsUpdated(['decision_5', 'decision_6', 'decision_5'], user);
+      events.cardsUpdated(['decision_5', 'decision_6', 'decision_5'], {
+        kind: 'user',
+        ...user,
+      });
       expect(
         messages.map((message) => JSON.parse(String(message.data)).cardKey),
       ).toEqual(['decision_5']);
@@ -516,6 +535,53 @@ describe('presence bookkeeping', () => {
     } finally {
       events.dispose();
     }
+  });
+});
+
+describe('change events', () => {
+  test('announce the cards an event names, as its actor, until disposed', () => {
+    let listener: ((event: ChangeEvent) => void) | undefined;
+    const events = new ProjectEvents({
+      subscribe: (added) => {
+        listener = added;
+        return () => (listener = undefined);
+      },
+    });
+    const messages: SSEMessage[] = [];
+    const editor = { id: 'editor', name: 'Editor' };
+    const connectionId = events.connect(
+      editor,
+      fullCapabilities,
+      testDelivery(messages),
+    );
+    events.update(connectionId, editor.id, 1, 'decision_5', 'viewing');
+
+    listener!({
+      project: 'decision',
+      workspace: 'main',
+      epoch: 'epoch',
+      revision: 1,
+      actor: {
+        kind: 'connector',
+        id: 'bot',
+        name: 'Bot',
+        agent: { name: 'claude' },
+      },
+      cause: 'direct',
+      at: '2026-10-13T00:00:00.000Z',
+      changes: [
+        { kind: 'resource.changed', name: 'decision/cardTypes/decision' },
+        { kind: 'card.removed', key: 'decision_5' },
+      ],
+    });
+    events.dispose();
+
+    expect(listener).toBeUndefined();
+    expect(
+      messages
+        .filter((message) => message.event === 'card.updated')
+        .map((message) => JSON.parse(String(message.data))),
+    ).toEqual([{ cardKey: 'decision_5', userId: 'bot', userName: 'Bot' }]);
   });
 });
 
@@ -804,7 +870,12 @@ describe('card update notifications', () => {
   });
   afterEach(() => notify.mockRestore());
 
-  const bodies: { field: string; body: () => unknown; notifies: number }[] = [
+  const bodies: {
+    field: string;
+    body: () => unknown;
+    notifies: number;
+    prepare?: () => Promise<unknown>;
+  }[] = [
     { field: 'nothing', body: () => ({}), notifies: 0 },
     { field: 'state', body: () => ({ state: 'Approve' }), notifies: 1 },
     { field: 'content', body: () => ({ content: 'Edited body' }), notifies: 1 },
@@ -814,16 +885,37 @@ describe('card update notifications', () => {
       notifies: 1,
     },
     { field: 'parent', body: () => ({ parent: 'decision_6' }), notifies: 1 },
-    { field: 'index', body: () => ({ index: 0 }), notifies: 1 },
+    {
+      field: 'index',
+      body: () => ({ index: 0 }),
+      notifies: 1,
+      // A sibling ranked first, so that index 0 is a move: a write that
+      // changes nothing notifies no one.
+      prepare: async () => {
+        const [sibling] = await ws.cards.create(
+          'decision/templates/decision',
+          'decision_6',
+        );
+        await ws.cards.rankFirst(sibling.key);
+      },
+    },
   ];
 
   test.each(bodies)(
     'a PATCH body carrying $field notifies $notifies time(s)',
-    async ({ body, notifies }) => {
+    async ({ body, notifies, prepare }) => {
+      await prepare?.();
+      notify.mockClear();
       expect((await patch(edited, body())).status).toBe(200);
       expect(notify.mock.calls).toEqual(
         notifies
-          ? [[[edited], expect.objectContaining({ id: 'mock-user-bob' })]]
+          ? [
+              [
+                // Re-ranking also names the siblings it re-ranked.
+                expect.arrayContaining([edited]),
+                expect.objectContaining({ id: 'mock-user-bob' }),
+              ],
+            ]
           : [],
       );
     },

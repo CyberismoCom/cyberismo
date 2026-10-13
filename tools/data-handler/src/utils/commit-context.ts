@@ -33,6 +33,11 @@ export function getCommitContext(): CommitContext {
   return context.getStore() ?? {};
 }
 
+/** Runs `fn` synchronously with no commit context. */
+export function outsideCommitContext<T>(fn: () => T): T {
+  return context.exit(fn);
+}
+
 export function runWithDefaultCommitMessage<T>(
   message: string,
   fn: () => Promise<T>,
