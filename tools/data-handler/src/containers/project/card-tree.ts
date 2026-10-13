@@ -14,7 +14,6 @@
 // node
 import { basename, dirname, join, resolve, sep } from 'node:path';
 import {
-  constants as fsConstants,
   copyFile,
   mkdir,
   rename,
@@ -971,14 +970,14 @@ export class CardTree {
    * Adds an attachment to a card: writes the file and records it in the store.
    * @param cardKey Card to attach to.
    * @param attachmentName Name for the attachment file.
-   * @param attachmentData Buffer to write, or path of a file to copy.
+   * @param attachmentData Bytes to write.
    * @throws CardNotFoundError if the tree does not hold the card; if the
-   *   source file cannot be read, or the card already has the file.
+   *   card already has the file.
    */
   public async addAttachment(
     cardKey: string,
     attachmentName: string,
-    attachmentData: string | Buffer,
+    attachmentData: Buffer,
   ): Promise<void> {
     this.assertWritable();
     const attachmentFolder = this.attachmentFolderOf(cardKey);
@@ -987,19 +986,7 @@ export class CardTree {
     const fileName = basename(attachmentName);
     const attachmentPath = join(attachmentFolder, fileName);
 
-    if (Buffer.isBuffer(attachmentData)) {
-      await writeFile(attachmentPath, attachmentData, { flag: 'wx' });
-    } else {
-      try {
-        await copyFile(
-          attachmentData,
-          attachmentPath,
-          fsConstants.COPYFILE_EXCL,
-        );
-      } catch {
-        throw new Error(`Attachment file not found: ${attachmentData}`);
-      }
-    }
+    await writeFile(attachmentPath, attachmentData, { flag: 'wx' });
 
     this.recordAttachment(cardKey, fileName);
   }
