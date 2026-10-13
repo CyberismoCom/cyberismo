@@ -14,7 +14,7 @@ import sinon from 'sinon';
 import { GitManager } from '../src/utils/git-manager.js';
 import { pathExists } from '../src/utils/file-utils.js';
 import { RWLock } from '../src/utils/rw-lock.js';
-import type { Version } from '../src/commands/version.js';
+import type { Version } from '../src/versions/version.js';
 import { ConfigurationLogger } from '../src/utils/configuration-logger.js';
 import type { ConfigurationOperation } from '../src/utils/configuration-logger.js';
 import { getCommitContext } from '../src/utils/commit-context.js';

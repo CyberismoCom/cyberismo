@@ -10,16 +10,16 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import type { Calculate } from '../commands/calculate.js';
-import { Clean } from '../commands/clean.js';
+import type { Calculate } from '../queries/queries.js';
+import { Clean } from '../clean/clean.js';
 import { Create } from '../commands/create.js';
-import type { Export } from '../commands/export.js';
+import type { Export } from '../export/export.js';
 import type { Fetch } from '../commands/fetch.js';
 import type { Import } from '../commands/import.js';
 import type { Modules } from '../commands/modules.js';
-import type { Publish } from '../commands/publish.js';
+import type { Publish } from '../versions/publish.js';
 import type { Remove } from '../commands/remove.js';
-import type { Version } from '../commands/version.js';
+import type { Version } from '../versions/version.js';
 import type { Rename } from '../commands/rename.js';
 import type { Show } from '../commands/show.js';
 import type { Validate } from '../commands/validate.js';
