@@ -36,8 +36,7 @@ import { TemplateResource } from '../../resources/template-resource.js';
 import { WorkflowResource } from '../../resources/workflow-resource.js';
 
 import type { Checkout } from '../project.js';
-import type { ResourceFolderType } from '@cyberismo/model';
-import type { ResourceName } from '../../utils/resource-utils.js';
+import type { ResourceFolderType, ResourceName } from '@cyberismo/model';
 import { ResourcesFrom } from './resources-from.js';
 
 // Project resource, such as workflow, template or card type as file system object.

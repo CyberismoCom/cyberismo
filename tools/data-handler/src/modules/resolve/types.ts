@@ -12,7 +12,7 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import type { SealFile } from '../../mutations/replay/seal-files.js';
+import type { SealFile } from '../../infra/replay-log/seal-files.js';
 import type {
   ModuleDeclaration,
   Source,

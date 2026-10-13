@@ -33,10 +33,10 @@ import type {
   TemplateConfiguration,
   Workflow,
   SkillContent,
+  ResourceName,
 } from '@cyberismo/model';
 
 import type { Checkout } from '../containers/project.js';
-import type { ResourceName } from '../utils/resource-utils.js';
 import type { ResourceMap } from '../containers/project/resource-cache.js';
 
 import { read } from '../utils/rw-lock.js';

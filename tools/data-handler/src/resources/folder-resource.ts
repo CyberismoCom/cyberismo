@@ -20,6 +20,7 @@ import {
   filename,
   contentPropertyName,
   ALL_FILE_MAPPINGS,
+  type ResourceName,
 } from '@cyberismo/model';
 import { formatJson } from '../utils/json.js';
 import { VALID_FOLDER_RESOURCE_FILES } from '../utils/constants.js';
@@ -35,7 +36,6 @@ import type {
   ResourceBaseMetadata,
 } from '@cyberismo/model';
 import type { Checkout } from '../containers/project.js';
-import type { ResourceName } from '../utils/resource-utils.js';
 import type { ShowReturnType } from './resource-object.js';
 
 /**
