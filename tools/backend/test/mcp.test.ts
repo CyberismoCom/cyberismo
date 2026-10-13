@@ -164,6 +164,101 @@ describe('MCP HTTP Endpoint', () => {
     }
   });
 
+  describe('a session belongs to the user who opened it', () => {
+    const owner: UserInfo = {
+      id: 'owner-1',
+      email: 'owner@example.com',
+      name: 'Owner',
+      role: UserRole.Editor,
+    };
+    let user: UserInfo;
+    let sessionApp: ReturnType<typeof createApp>;
+
+    beforeAll(async () => {
+      const ws = await openTestWorkspace(
+        path.resolve(
+          dirname,
+          '../../data-handler/test/test-data/valid/decision-records',
+        ),
+      );
+      sessionApp = createApp(
+        { authenticate: async () => user },
+        ProjectRegistry.fromCheckout(ws.checkout),
+      );
+    });
+
+    const send = (method: string, sessionId: string, body?: object) =>
+      sessionApp.request('/mcp', {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json, text/event-stream',
+          'mcp-session-id': sessionId,
+        },
+        ...(body && { body: JSON.stringify(body) }),
+      });
+
+    const openSession = async () => {
+      const init = await sessionApp.request('/mcp', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json, text/event-stream',
+        },
+        body: JSON.stringify({
+          jsonrpc: '2.0',
+          id: 1,
+          method: 'initialize',
+          params: {
+            protocolVersion: '2024-11-05',
+            capabilities: {},
+            clientInfo: { name: 'test-client', version: '1.0.0' },
+          },
+        }),
+      });
+      const sessionId = init.headers.get('mcp-session-id')!;
+      await send('POST', sessionId, {
+        jsonrpc: '2.0',
+        method: 'notifications/initialized',
+      });
+      return sessionId;
+    };
+
+    test.each([
+      { method: 'POST', body: { jsonrpc: '2.0', id: 2, method: 'ping' } },
+      { method: 'GET', body: undefined },
+      { method: 'DELETE', body: undefined },
+    ])(
+      '$method by another user is answered as an unknown session',
+      async ({ method, body }) => {
+        user = owner;
+        const sessionId = await openSession();
+
+        user = { ...owner, id: 'other-1', email: 'other@example.com' };
+        const unknown = await send(method, 'nonexistent-session-id', body);
+        const response = await send(method, sessionId, body);
+        expect(response.status).toBe(unknown.status);
+        expect(await response.json()).toEqual(await unknown.json());
+
+        user = owner;
+        const call = await send('POST', sessionId, {
+          jsonrpc: '2.0',
+          id: 3,
+          method: 'tools/call',
+          params: { name: 'list_projects', arguments: {} },
+        });
+        expect(call.status).toBe(200);
+        const message = JSON.parse(
+          (await call.text())
+            .split('\n')
+            .find((line) => line.startsWith('data: '))!
+            .slice('data: '.length),
+        );
+        expect(message.result.isError).toBeFalsy();
+      },
+    );
+  });
+
   test('DELETE /mcp without session returns success', async () => {
     const response = await app.request('/mcp', {
       method: 'DELETE',

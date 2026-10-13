@@ -102,22 +102,25 @@ export function createMcpRouter(
    * Supports POST (messages) and DELETE (session cleanup).
    */
   router.all('/', requireRole(UserRole.Editor), async (c) => {
+    const user = c.get('user')!;
     const sessionId = c.req.header('mcp-session-id');
+    // Another user's session is answered as if it did not exist.
+    const found = sessionId ? sessions.get(sessionId) : undefined;
+    const session = found?.userId === user.id ? found : undefined;
 
     // Handle DELETE before routing to existing session so it always runs cleanup
     if (c.req.method === 'DELETE') {
-      if (sessionId) {
-        await destroySession(sessionId);
+      if (session) {
+        await destroySession(sessionId!);
       }
       return c.json({ message: 'Session closed' });
     }
 
     // Handle existing session
-    if (sessionId && sessions.has(sessionId)) {
-      const session = sessions.get(sessionId)!;
+    if (session) {
       session.lastActivity = Date.now();
       const response = await session.transport.handleRequest(c.req.raw, {
-        authInfo: authInfoOf(c.get('user')!),
+        authInfo: authInfoOf(user),
       });
       return response;
     }
@@ -140,7 +143,6 @@ export function createMcpRouter(
       return c.json({ error: 'Too many active sessions' }, 503);
     }
 
-    const user = c.get('user')!;
     const userSessionCount = [...sessions.values()].filter(
       (s) => s.userId === user.id,
     ).length;
