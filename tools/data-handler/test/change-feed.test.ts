@@ -242,7 +242,7 @@ describe('change feed', () => {
 
   it('publishes a version bump as a settings change', async () => {
     await open(true);
-    await ws.versionCmd.bumpVersion('minor');
+    await ws.versions.bump('minor');
     expect(changesOf()).toEqual([[{ kind: 'settings.changed' }]]);
   });
 

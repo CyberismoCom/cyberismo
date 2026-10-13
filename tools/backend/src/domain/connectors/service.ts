@@ -25,7 +25,7 @@ export interface Connector {
 }
 
 export async function getConnectors(ws: Workspace): Promise<Connector[]> {
-  const results = await ws.calculateCmd.runQuery('connectors', 'localApp');
+  const results = await ws.queries.runQuery('connectors', 'localApp');
 
   // Separate connectors from items based on type field
   const connectorsMap = new Map<string, Connector>();

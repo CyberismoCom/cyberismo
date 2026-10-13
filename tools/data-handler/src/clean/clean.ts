@@ -19,14 +19,17 @@ import { sortCards } from '../utils/card-utils.js';
 import { read, write } from '../utils/rw-lock.js';
 
 import type {
+  ActorRef,
   Card,
   CardMetadata,
   MetadataContent,
   CustomField,
   CleanFinding,
   CleanResult,
+  DormantSummary,
 } from '@cyberismo/model';
 import { updateCardMetadata } from '../cards/update.js';
+import type { CommitIdentity } from '../utils/tx-record.js';
 
 // The logger is initialized while the project loads, so the child logger is
 // taken at call time; binding it at module scope would keep the silent default.
@@ -39,7 +42,11 @@ const logger = () => getChildLogger({ module: 'clean' });
  * ("dormant") until this command runs; dry-run reports without writing.
  */
 export class Clean {
-  constructor(private checkout: Checkout) {}
+  constructor(
+    private readonly checkout: Checkout,
+    public readonly actor: ActorRef,
+    public readonly identity: CommitIdentity | undefined,
+  ) {}
 
   /**
    * Removes unused custom field values from project cards and local template
@@ -61,8 +68,34 @@ export class Clean {
    * @returns What was removed, or would be removed in a dry run. Findings and
    *   card lists are sorted by card key.
    */
-  public async clean(dryRun: boolean, cardType?: string): Promise<CleanResult> {
+  public async run(dryRun: boolean, cardType?: string): Promise<CleanResult> {
     return dryRun ? this.report(cardType) : this.removeUnused(cardType);
+  }
+
+  /**
+   * The dormant field values the project, or the cards of one card type,
+   * hold; undefined when there are none. Never fails: a failed scan is logged
+   * and gives undefined.
+   *
+   * The scan reports the project (or card type), not a caller's change: it
+   * counts values that were already dormant.
+   */
+  public async dormantSummary(
+    cardType?: string,
+  ): Promise<DormantSummary | undefined> {
+    try {
+      const result = await this.run(true, cardType);
+      if (result.findings.length === 0) {
+        return undefined;
+      }
+      return {
+        valueCount: result.findings.length,
+        cardCount: result.cardCount,
+      };
+    } catch (error) {
+      logger().warn(error, 'Could not scan for dormant field values');
+      return undefined;
+    }
   }
 
   @read

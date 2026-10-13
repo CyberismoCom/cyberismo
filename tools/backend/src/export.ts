@@ -59,7 +59,7 @@ export async function getCardQueryResult(
   if (!_cardQueryCache.has(prefix)) {
     _cardQueryCache.set(
       prefix,
-      ws.calculateCmd.runQuery('card', 'exportedSite', {}),
+      ws.queries.runQuery('card', 'exportedSite', {}),
     );
   }
   return _cardQueryCache.get(prefix)!.then((results) => {
