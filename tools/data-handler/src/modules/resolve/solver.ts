@@ -17,11 +17,11 @@ import semver from 'semver';
 
 import { ModuleRequestError, unreachable } from '../../exceptions/index.js';
 import { readJsonFile } from '../../utils/json.js';
-import { checkLinearity, computeChain } from '../../mutations/replay/chain.js';
+import { checkLinearity, computeChain } from '../../infra/replay-log/chain.js';
 import {
   listSealFiles,
   type SealFile,
-} from '../../mutations/replay/seal-files.js';
+} from '../../infra/replay-log/seal-files.js';
 import { installedModulesWithSources, declaredModules } from '../inventory.js';
 import { buildRemoteUrl } from '../remote-url.js';
 import { versionToTag } from '../version.js';

@@ -15,11 +15,10 @@
 import type { Checkout } from '../containers/project.js';
 import { dispatch } from './dispatcher.js';
 import type { MutationContext, MutationOrigin } from './handler.js';
-import type { MutationInput } from './types.js';
 import { ConfigurationLogger } from '../utils/configuration-logger.js';
 import { runWithDefaultCommitMessage } from '../utils/commit-context.js';
 import { resourceName, resourceNameToString } from '../utils/resource-utils.js';
-import type { ChangeOperation } from '@cyberismo/model';
+import type { ChangeOperation, MutationInput } from '@cyberismo/model';
 
 // Generic edit surfaces (CLI strings, HTTP bodies) encode a rename as a
 // 'change' on the 'name' key. Normalize here so handlers only ever see

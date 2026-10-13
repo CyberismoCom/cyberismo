@@ -13,7 +13,7 @@
 */
 
 import type { Checkout } from '../containers/project.js';
-import type { MutationInput } from './types.js';
+import type { MutationInput } from '@cyberismo/model';
 
 export type MutationOrigin =
   | { kind: 'local' }

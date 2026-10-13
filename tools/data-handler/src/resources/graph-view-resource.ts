@@ -25,9 +25,9 @@ import type {
   Card,
   GraphViewContent,
   GraphViewMetadata,
+  ResourceName,
 } from '@cyberismo/model';
 import type { Checkout } from '../containers/project.js';
-import type { ResourceName } from '../utils/resource-utils.js';
 
 /**
  * Graph view resource class.

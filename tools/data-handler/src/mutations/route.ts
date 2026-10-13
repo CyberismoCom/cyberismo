@@ -12,9 +12,13 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import type { MutationInput, MutationKind } from './types.js';
-import type { ResourceName } from '../utils/resource-utils.js';
-import type { ChangeOperation, EnumDefinition } from '@cyberismo/model';
+import type { MutationKind } from './types.js';
+import type {
+  ChangeOperation,
+  EnumDefinition,
+  MutationInput,
+  ResourceName,
+} from '@cyberismo/model';
 
 export type RouteOp = 'add' | 'remove' | 'rank' | 'change' | 'rename-member';
 

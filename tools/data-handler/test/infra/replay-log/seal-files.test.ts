@@ -6,7 +6,7 @@ import {
   lastSealedVersion,
   listSealFiles,
   parseSealFileName,
-} from '../../../src/mutations/replay/seal-files.js';
+} from '../../../src/infra/replay-log/seal-files.js';
 
 const tmpDir = join(import.meta.dirname, 'tmp-seal-files');
 

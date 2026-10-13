@@ -25,10 +25,10 @@ import type {
   Card,
   TemplateConfiguration,
   TemplateMetadata,
+  ResourceName,
 } from '@cyberismo/model';
 import type { CardTree } from '../containers/project/card-tree.js';
 import type { Checkout } from '../containers/project.js';
-import type { ResourceName } from '../utils/resource-utils.js';
 
 /**
  * Template resource class.

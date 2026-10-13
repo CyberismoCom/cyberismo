@@ -21,7 +21,7 @@ import { getChildLogger } from './log-utils.js';
 import {
   formatSealFileName,
   lastSealedVersion,
-} from '../mutations/replay/seal-files.js';
+} from '../infra/replay-log/seal-files.js';
 import { ProjectPaths } from '../containers/project/project-paths.js';
 import { writeFileSafe, pathExists } from './file-utils.js';
 

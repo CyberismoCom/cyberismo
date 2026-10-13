@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { ResourceMutations } from '../../src/mutations/resource-mutations.js';
 import { dispatch } from '../../src/mutations/dispatcher.js';
-import type { MutationInput } from '../../src/mutations/types.js';
+import type { MutationInput } from '@cyberismo/model';
 import { ConfigurationLogger } from '../../src/utils/configuration-logger.js';
 import { resourceName } from '../../src/utils/resource-utils.js';
 import type { Checkout } from '../../src/containers/project.js';

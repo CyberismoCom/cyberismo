@@ -33,6 +33,7 @@ import type {
   ReportMetadata,
   AnyResourceContent,
   Workflow,
+  ResourceName,
 } from '@cyberismo/model';
 import { errorFunction } from '../utils/error-utils.js';
 import { sortCards } from '../utils/card-utils.js';
@@ -40,7 +41,7 @@ import { isPredefinedField } from '../utils/constants.js';
 import { pathExists } from '../utils/file-utils.js';
 import type { Checkout } from '../containers/project.js';
 import { readJsonFile } from '../utils/json.js';
-import { type ResourceName, resourceName } from '../utils/resource-utils.js';
+import { resourceName } from '../utils/resource-utils.js';
 import { normalizeSchemaId, schemaValidator } from '../utils/validate.js';
 
 const invalidNames = new RegExp(
