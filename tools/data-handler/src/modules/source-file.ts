@@ -21,7 +21,7 @@ import { copyDir, deleteDir, pathExists } from '../utils/file-utils.js';
 import {
   listSealFiles,
   type SealFile,
-} from '../mutations/replay/seal-files.js';
+} from '../infra/replay-log/seal-files.js';
 import { readModuleConfig } from '../containers/project/cards-config.js';
 
 import { isFileLocation, stripFileProtocol } from './location.js';

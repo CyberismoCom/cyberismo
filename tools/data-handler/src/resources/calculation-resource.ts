@@ -16,7 +16,7 @@ import { join } from 'node:path';
 
 import { validateProgram } from '@cyberismo/node-clingo';
 
-import { CONTENT_FILES } from '@cyberismo/model';
+import { CONTENT_FILES, type ResourceName } from '@cyberismo/model';
 import { DefaultContent } from '../resources/create-defaults.js';
 import { FolderResource } from './folder-resource.js';
 import { resourceNameToString } from '../utils/resource-utils.js';
@@ -30,7 +30,6 @@ import type {
   Card,
 } from '@cyberismo/model';
 import type { Checkout } from '../containers/project.js';
-import type { ResourceName } from '../utils/resource-utils.js';
 
 /**
  * Calculation resource class.

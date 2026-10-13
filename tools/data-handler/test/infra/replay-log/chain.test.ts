@@ -2,8 +2,8 @@ import { describe, it, expect } from 'vitest';
 import {
   checkLinearity,
   computeChain,
-} from '../../../src/mutations/replay/chain.js';
-import type { SealFile } from '../../../src/mutations/replay/seal-files.js';
+} from '../../../src/infra/replay-log/chain.js';
+import type { SealFile } from '../../../src/infra/replay-log/seal-files.js';
 
 const seal = (from: string, to: string): SealFile => ({
   from,
