@@ -11,6 +11,8 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
+import { readFile } from 'node:fs/promises';
+
 import { Argument, type Command } from 'commander';
 
 import { DEFAULT_HUB } from '@cyberismo/assets';
@@ -41,8 +43,16 @@ export function registerCreate(program: Command) {
         filename: string,
         options: CommandOptions<'create'>,
       ) => {
-        await onProject(Object.assign({}, options, program.opts()), (ws) =>
-          ws.cards.addAttachment(cardKey, filename),
+        await onProject(
+          Object.assign({}, options, program.opts()),
+          async (ws) =>
+            ws.cards.addAttachment(
+              cardKey,
+              filename,
+              await readFile(filename).catch(() => {
+                throw new Error(`Attachment file not found: ${filename}`);
+              }),
+            ),
         );
         printResult();
       },
