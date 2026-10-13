@@ -11,8 +11,8 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import type { CommandManager } from '@cyberismo/data-handler';
+import type { Workspace } from '@cyberismo/data-handler';
 
-export async function createSkill(commands: CommandManager, skillName: string) {
-  await commands.createCmd.createSkill(skillName);
+export async function createSkill(ws: Workspace, skillName: string) {
+  await ws.createCmd.createSkill(skillName);
 }

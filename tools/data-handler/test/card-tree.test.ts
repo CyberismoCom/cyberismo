@@ -35,7 +35,7 @@ import type {
   Card,
   CardMetadata,
 } from '../src/interfaces/project-interfaces.js';
-import { CommandManager } from '../src/command-manager.js';
+import { Workspace } from '../src/workspace/workspace.js';
 import { ROOT } from '../src/utils/constants.js';
 import {
   CardNotFoundError,
@@ -1188,7 +1188,7 @@ describe('Card tree', () => {
   describe('Template and module operations', () => {
     const tempDir = join(baseDir, 'tmp-card-tree-tests');
     let decisionProjectPath: string;
-    let commands: CommandManager;
+    let ws: Workspace;
 
     beforeEach(async () => {
       mkdirSync(tempDir, { recursive: true });
@@ -1197,8 +1197,8 @@ describe('Card tree', () => {
       // Set path and create CommandManager after directory exists
       decisionProjectPath = join(tempDir, 'valid', 'decision-records');
 
-      commands = new CommandManager(decisionProjectPath, {});
-      await commands.initialize();
+      ws = new Workspace(decisionProjectPath, {});
+      await ws.initialize();
     });
 
     afterEach(() => {
@@ -1207,14 +1207,11 @@ describe('Card tree', () => {
 
     it('should create new template, add cards, and verify cards in cache', async () => {
       const name = 'decision/templates/testTemplate';
-      const templateResource = commands.project.resources.byType(
-        name,
-        'templates',
-      );
+      const templateResource = ws.checkout.resources.byType(name, 'templates');
       await templateResource.create();
-      commands.project.resources.changed();
-      await commands.createCmd.addCards('decision/cardTypes/decision', name);
-      await commands.createCmd.addCards('decision/cardTypes/simplepage', name);
+      ws.checkout.resources.changed();
+      await ws.createCmd.addCards('decision/cardTypes/decision', name);
+      await ws.createCmd.addCards('decision/cardTypes/simplepage', name);
 
       // Verify cards from template are in cache
       const templateCards = templateResource.cardTree.cards();
@@ -1222,8 +1219,8 @@ describe('Card tree', () => {
 
       // Check that template cards exist in project cache
       for (const templateCard of templateCards) {
-        expect(commands.project.hasCard(templateCard.key)).toBe(true);
-        const cachedCard = commands.project.findCard(templateCard.key);
+        expect(ws.checkout.hasCard(templateCard.key)).toBe(true);
+        const cachedCard = ws.checkout.findCard(templateCard.key);
         expect(cachedCard).toBeDefined();
         expect(cachedCard!.key).toBe(templateCard.key);
       }
@@ -1231,43 +1228,40 @@ describe('Card tree', () => {
 
     it('should remove template and verify cards are gone from the cache', async () => {
       const name = 'decision/templates/testTemplate';
-      const templateResource = commands.project.resources.byType(
-        name,
-        'templates',
-      );
+      const templateResource = ws.checkout.resources.byType(name, 'templates');
       await templateResource.create();
-      commands.project.resources.changed();
+      ws.checkout.resources.changed();
 
-      const template = commands.project.resources.byType(name, 'templates');
-      await commands.createCmd.addCards('decision/cardTypes/decision', name);
+      const template = ws.checkout.resources.byType(name, 'templates');
+      await ws.createCmd.addCards('decision/cardTypes/decision', name);
 
       const templateCards = template.cardTree.cards();
       const templateCardKeys = templateCards.map((card) => card.key);
       for (const cardKey of templateCardKeys) {
-        expect(commands.project.hasCard(cardKey)).toBe(true);
+        expect(ws.checkout.hasCard(cardKey)).toBe(true);
       }
 
       // Remove template
-      const removeCmd = commands.removeCmd;
+      const removeCmd = ws.removeCmd;
       await removeCmd.remove('template', name);
       for (const cardKey of templateCardKeys) {
-        expect(commands.project.hasCard(cardKey)).toBe(false);
+        expect(ws.checkout.hasCard(cardKey)).toBe(false);
       }
     });
 
     it('should import base module and verify template cards in cache', async () => {
       const baseModule = 'https://github.com/CyberismoCom/module-base.git';
-      await commands.modulesCmd.install(baseModule);
+      await ws.modulesCmd.install(baseModule);
 
-      const allTemplateCards = commands.project.allTemplateCards();
+      const allTemplateCards = ws.checkout.allTemplateCards();
       const baseTemplateCards = allTemplateCards.filter((card: Card) =>
         card.path.includes(`base${sep}templates`),
       );
 
       expect(baseTemplateCards.length).toBeGreaterThan(0);
       for (const templateCard of baseTemplateCards) {
-        expect(commands.project.hasCard(templateCard.key)).toBe(true);
-        const cachedCard = commands.project.findCard(templateCard.key);
+        expect(ws.checkout.hasCard(templateCard.key)).toBe(true);
+        const cachedCard = ws.checkout.findCard(templateCard.key);
         expect(cachedCard).toBeDefined();
         expect(cachedCard!.key).toBe(templateCard.key);
       }
@@ -1276,9 +1270,9 @@ describe('Card tree', () => {
     it('should remove base module and verify template cards are gone from the cache', async () => {
       const baseModule = 'https://github.com/CyberismoCom/module-base.git';
 
-      await commands.modulesCmd.install(baseModule);
+      await ws.modulesCmd.install(baseModule);
 
-      const allTemplateCards = commands.project.allTemplateCards();
+      const allTemplateCards = ws.checkout.allTemplateCards();
       const baseTemplateCards = allTemplateCards.filter((card: Card) =>
         card.path.includes(`base${sep}templates`),
       );
@@ -1286,29 +1280,29 @@ describe('Card tree', () => {
       // Verify that module template cards are in cache
       expect(baseTemplateCards.length).toBeGreaterThan(0);
       for (const templateCard of baseTemplateCards) {
-        expect(commands.project.hasCard(templateCard.key)).toBe(true);
-        const cachedCard = commands.project.findCard(templateCard.key);
+        expect(ws.checkout.hasCard(templateCard.key)).toBe(true);
+        const cachedCard = ws.checkout.findCard(templateCard.key);
         expect(cachedCard).toBeDefined();
         expect(cachedCard!.key).toBe(templateCard.key);
       }
 
       // Get the imported module name
-      const moduleEntry = commands.project.configuration.modules.find(
+      const moduleEntry = ws.checkout.configuration.modules.find(
         (m) => m.location && m.location.includes('module-base'),
       );
       expect(moduleEntry).toBeDefined();
 
       // Remove module
-      await commands.removeCmd.remove('module', moduleEntry!.name);
+      await ws.removeCmd.remove('module', moduleEntry!.name);
 
       // Verify module template cards are gone from the cache after removal
-      const remainingTemplateCards = commands.project
+      const remainingTemplateCards = ws.checkout
         .allTemplateCards()
         .filter((card: Card) => card.path.includes(`base${sep}templates`));
 
       expect(remainingTemplateCards.length).toBe(0);
       for (const card of baseTemplateCards) {
-        expect(commands.project.hasCard(card.key)).toBe(false);
+        expect(ws.checkout.hasCard(card.key)).toBe(false);
       }
     }, 60000);
   });
@@ -1400,8 +1394,8 @@ describe('Card tree', () => {
         'clashing template card',
       );
 
-      const project = getTestProject(projectPath);
-      await expect(project.populateCaches()).rejects.toThrow(
+      const checkout = getTestProject(projectPath);
+      await expect(checkout.populateCaches()).rejects.toThrow(
         /Duplicate card keys found: decision_5/,
       );
     });

@@ -43,7 +43,7 @@ import type {
   TemplateConfiguration,
   Workflow,
 } from '../interfaces/resource-interfaces.js';
-import type { Project } from '../containers/project.js';
+import type { Checkout } from '../containers/project.js';
 import type { ResourceName } from '../utils/resource-utils.js';
 import type { ResourceMap } from '../containers/project/resource-cache.js';
 
@@ -84,7 +84,7 @@ export class Show {
     workflows: (from) => this.resourceNames('workflows', from),
   };
 
-  constructor(private project: Project) {}
+  constructor(private checkout: Checkout) {}
 
   private get logger() {
     return getChildLogger({
@@ -95,7 +95,7 @@ export class Show {
   // Gets all template attachments
   private async attachmentsFromTemplates() {
     const templateAttachments: CardAttachment[] = [];
-    const templates = this.project.resources.templates();
+    const templates = this.checkout.resources.templates();
     for (const template of templates) {
       templateAttachments.push(...template.cardTree.attachments());
     }
@@ -107,7 +107,7 @@ export class Show {
     resourceType: T,
     from?: ResourcesFrom,
   ): string[] {
-    return this.project.resources
+    return this.checkout.resources
       .resourceTypes(resourceType, from)
       .map((item) => item.data?.name || '');
   }
@@ -125,7 +125,7 @@ export class Show {
 
   // Returns attachment details
   private getAttachment(cardKey: string, filename: string) {
-    return this.project
+    return this.checkout
       .cardAttachments(cardKey)
       .find((a) => a.fileName === filename);
   }
@@ -141,7 +141,7 @@ export class Show {
       cards: CardWithChildrenCards[];
     }[]
   > {
-    return this.project.resources.templates().map((template) => {
+    return this.checkout.resources.templates().map((template) => {
       const cards = template.cardTree.cards();
       const buildCards = buildCardHierarchy(cards);
 
@@ -158,7 +158,7 @@ export class Show {
    */
   @read
   public async showAttachments(): Promise<CardAttachment[]> {
-    const attachments = this.project.cardTree.attachments();
+    const attachments = this.checkout.cardTree.attachments();
     const templateAttachments = await this.attachmentsFromTemplates();
     attachments.push(...templateAttachments);
     return attachments.sort(compareAttachments);
@@ -203,7 +203,7 @@ export class Show {
     if (!cardKey) {
       throw new Error(`Mandatory parameter 'cardKey' missing`);
     }
-    return this.project.findCard(cardKey);
+    return this.checkout.findCard(cardKey);
   }
 
   /**
@@ -215,7 +215,7 @@ export class Show {
   public async showCards(
     cardsFrom?: CardLocation,
   ): Promise<CardListContainer[]> {
-    return this.project.listCards(cardsFrom);
+    return this.checkout.listCards(cardsFrom);
   }
 
   /**
@@ -225,7 +225,7 @@ export class Show {
    */
   @read
   public async showCardLogicProgram(cardKey: string) {
-    return this.project.calculationEngine.cardLogicProgram(cardKey);
+    return this.checkout.calculationEngine.cardLogicProgram(cardKey);
   }
 
   /**
@@ -235,7 +235,7 @@ export class Show {
   @read
   public async showCardTypesWithDetails(): Promise<(CardType | undefined)[]> {
     const container = [];
-    for (const cardType of this.project.resources.cardTypes()) {
+    for (const cardType of this.checkout.resources.cardTypes()) {
       if (cardType.data) {
         container.push(cardType.data);
       }
@@ -262,10 +262,10 @@ export class Show {
     try {
       const moduleList = (
         await readJsonFile(
-          resolve(this.project.basePath, MODULE_LIST_FULL_PATH),
+          resolve(this.checkout.basePath, MODULE_LIST_FULL_PATH),
         )
       ).modules;
-      const currentModules = this.project.resources.moduleNames();
+      const currentModules = this.checkout.resources.moduleNames();
       const nonImportedModules = moduleList.filter(
         (item: ModuleSettingFromHub) => {
           return !currentModules.some((module) => item.name === module);
@@ -299,10 +299,10 @@ export class Show {
   @read
   public async showLabels(): Promise<string[]> {
     const cards = flattenCardArray(
-      this.project.cardTree.rootCards(),
-      this.project,
+      this.checkout.cardTree.rootCards(),
+      this.checkout,
     );
-    const templateCards = this.project.allTemplateCards();
+    const templateCards = this.checkout.allTemplateCards();
 
     const labels = this.collectLabels([...cards, ...templateCards]);
     return Array.from(new Set(labels)).sort();
@@ -315,7 +315,7 @@ export class Show {
    */
   @read
   public async showLogicProgram(resource: ResourceName) {
-    return this.project.calculationEngine.resourceLogicProgram(resource);
+    return this.checkout.calculationEngine.resourceLogicProgram(resource);
   }
 
   /**
@@ -324,7 +324,7 @@ export class Show {
    */
   @read
   public async showHubs(): Promise<HubSetting[]> {
-    return this.project.configuration.hubs;
+    return this.checkout.configuration.hubs;
   }
 
   /**
@@ -337,7 +337,7 @@ export class Show {
     let cachedHubs: ModuleListFile['hubs'] = [];
     try {
       const moduleList = (await readJsonFile(
-        resolve(this.project.basePath, MODULE_LIST_FULL_PATH),
+        resolve(this.checkout.basePath, MODULE_LIST_FULL_PATH),
       )) as ModuleListFile;
       cachedHubs = moduleList.hubs ?? [];
     } catch (error) {
@@ -347,7 +347,7 @@ export class Show {
       );
     }
 
-    return this.project.configuration.hubs.map((hub) => {
+    return this.checkout.configuration.hubs.map((hub) => {
       const cached = cachedHubs.find((item) => item.location === hub.location);
       return {
         location: hub.location,
@@ -364,7 +364,7 @@ export class Show {
    */
   @read
   public async showProjectCards(): Promise<Card[]> {
-    return this.project.cardTree.rootCards();
+    return this.checkout.cardTree.rootCards();
   }
 
   /**
@@ -373,7 +373,7 @@ export class Show {
    */
   @read
   public async showProject(): Promise<ProjectMetadata> {
-    const p = this.project;
+    const p = this.checkout;
     const modules = await moduleInfos(p);
     return {
       name: p.projectName,
@@ -407,7 +407,7 @@ export class Show {
     outputPath?: string,
   ): Promise<string> {
     if (
-      !this.project.resources
+      !this.checkout.resources
         .reports()
         .some((report) => report.data?.name === reportName)
     ) {
@@ -417,7 +417,7 @@ export class Show {
     const reportMacro = new ReportMacro(new TaskQueue());
     let result = await reportMacro.handleStatic(
       {
-        project: this.project,
+        checkout: this.checkout,
         cardKey: cardKey,
         mode: 'static',
         context,
@@ -426,7 +426,7 @@ export class Show {
     );
 
     result = await evaluateMacros(result, {
-      project: this.project,
+      checkout: this.checkout,
       cardKey: cardKey,
       mode: 'static',
       context,
@@ -469,18 +469,18 @@ export class Show {
     arg2?: boolean | ResourceType,
     arg3?: boolean,
   ): Promise<AnyResourceContent> {
-    return this.project.lock.read(async () => {
+    return this.checkout.lock.read(async () => {
       const hasResourceType = typeof arg2 === 'string';
       const resourceType = hasResourceType ? arg2 : null;
       const showUse = hasResourceType ? arg3 : arg2;
 
-      const type = this.project.resources.extractType(name);
+      const type = this.checkout.resources.extractType(name);
       if (resourceType !== null && resourceType !== type) {
         throw new Error(
           `While fetching '${name}': Expected type '${resourceType}', but got '${type}' instead`,
         );
       }
-      const resource = this.project.resources.byType(name, type);
+      const resource = this.checkout.resources.byType(name, type);
       const [details, usage] = await Promise.all([
         resource?.show(),
         showUse ? resource?.usage() : [],
@@ -515,7 +515,7 @@ export class Show {
   @read
   public async showTemplatesWithDetails(): Promise<TemplateConfiguration[]> {
     const templates = [];
-    for (const template of this.project.resources.templates()) {
+    for (const template of this.checkout.resources.templates()) {
       templates.push(template.show());
     }
     return templates;
@@ -528,7 +528,7 @@ export class Show {
   @read
   public async showWorkflowsWithDetails(): Promise<(Workflow | undefined)[]> {
     const workflows = [];
-    for (const workflow of this.project.resources.workflows()) {
+    for (const workflow of this.checkout.resources.workflows()) {
       workflows.push(workflow.data);
     }
     return workflows;
@@ -569,14 +569,14 @@ export class Show {
     options: { cardKey?: string; category?: string } = {},
     context: Context = 'localApp',
   ): Promise<SkillSummary[]> {
-    const enabled = await this.project.calculationEngine.runQuery(
+    const enabled = await this.checkout.calculationEngine.runQuery(
       'enabledSkills',
       context,
       { cardKey: options.cardKey },
     );
     const summaries: SkillSummary[] = [];
     for (const { key, scope } of enabled) {
-      const resource = this.project.resources.byType(key, 'skills');
+      const resource = this.checkout.resources.byType(key, 'skills');
       if (!resource) continue;
       const skill = resource.show();
       if (options.category && skill.category !== options.category) continue;
@@ -606,7 +606,7 @@ export class Show {
 
     let exists: boolean;
     try {
-      exists = this.project.resources.exists(name);
+      exists = this.checkout.resources.exists(name);
     } catch {
       exists = false;
     }
@@ -616,7 +616,7 @@ export class Show {
 
     if (cardKey) {
       try {
-        this.project.findCard(cardKey);
+        this.checkout.findCard(cardKey);
       } catch (error) {
         if (error instanceof CardNotFoundError) {
           return { status: 'card-not-found' };
@@ -625,7 +625,7 @@ export class Show {
       }
     }
 
-    const enabled = await this.project.calculationEngine.runQuery(
+    const enabled = await this.checkout.calculationEngine.runQuery(
       'enabledSkills',
       context,
       { cardKey },
@@ -638,7 +638,7 @@ export class Show {
     if (entry.scope === 'card' && !cardKey) {
       return { status: 'needs-card' };
     }
-    const skill = this.project.resources.byType(name, 'skills').show();
+    const skill = this.checkout.resources.byType(name, 'skills').show();
     const instructions = await this.renderSkillTemplates(
       skill.content,
       { cardKey },
@@ -674,10 +674,10 @@ export class Show {
     } = {},
     context: Context = 'localApp',
   ): Promise<string> {
-    const skill = this.project.resources.byType(name, 'skills').show();
+    const skill = this.checkout.resources.byType(name, 'skills').show();
 
     if (options.cardKey) {
-      this.project.findCard(options.cardKey);
+      this.checkout.findCard(options.cardKey);
     }
 
     return this.renderSkillTemplates(skill.content, options, context);
@@ -698,7 +698,7 @@ export class Show {
     context: Context,
   ): Promise<string> {
     return generateReportContent({
-      calculate: this.project.calculationEngine,
+      calculate: this.checkout.calculationEngine,
       contentTemplate: options.skillContent ?? content.skillContent,
       queryTemplate: options.skillQuery ?? content.skillQuery,
       options: { cardKey: options.cardKey },
@@ -713,9 +713,9 @@ export class Show {
    */
   @read
   public async showGitRemoteUrl(): Promise<string | null> {
-    if (!(await this.project.git.isRepo())) {
+    if (!(await this.checkout.git.isRepo())) {
       return null;
     }
-    return (await this.project.git.getRemoteUrl()) ?? '';
+    return (await this.checkout.git.getRemoteUrl()) ?? '';
   }
 }

@@ -13,7 +13,7 @@
 
 import { CardMetadataUpdater } from './card-metadata-updater.js';
 import { getChildLogger } from './utils/log-utils.js';
-import type { Project } from './containers/project.js';
+import type { Checkout } from './containers/project.js';
 import type { ExecuteTransition, UpdateField } from './types/queries.js';
 
 const logger = getChildLogger({ module: 'sideEffects' });
@@ -50,7 +50,7 @@ export type PerformTransition = (
  * rest of the queue still runs.
  */
 export async function applySideEffects(
-  project: Project,
+  checkout: Checkout,
   initial: SideEffects | undefined,
   visited: Set<string>,
   performTransition: PerformTransition,
@@ -62,7 +62,7 @@ export async function applySideEffects(
       return;
     }
     if (effects.updateFields?.length) {
-      await CardMetadataUpdater.apply(project, effects.updateFields);
+      await CardMetadataUpdater.apply(checkout, effects.updateFields);
     }
     queue.push(...(effects.executeTransition ?? []));
   };

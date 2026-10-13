@@ -31,7 +31,7 @@ import { generateReportContent } from '../utils/report.js';
 import { preprocessMermaidBlocksForPdf } from '../utils/mermaid-renderer.js';
 import { rewriteAsciidocCardXrefs } from '../utils/asciidoc-xref.js';
 import { getStaticDirectoryPath, pdfReport } from '@cyberismo/assets';
-import { Project } from '../containers/project.js';
+import { Checkout } from '../containers/project.js';
 import { ROOT } from '../utils/constants.js';
 import type { QueryResult } from '../types/queries.js';
 import { read } from '../utils/rw-lock.js';
@@ -58,11 +58,11 @@ class AsciidoctorPdfError extends Error {
 export class Export {
   /**
    * Creates an instance of export.
-   * @param project Project to use
+   * @param checkout Project to use
    * @param showCmd Instance of Export command to use.
    */
   constructor(
-    protected project: Project,
+    protected checkout: Checkout,
     protected showCmd: Show,
   ) {}
 
@@ -231,7 +231,7 @@ export class Export {
       }
 
       if (card.metadata) {
-        const cardTypeForCard = this.project.resources
+        const cardTypeForCard = this.checkout.resources
           .byType(card.metadata?.cardType, 'cardTypes')
           .show();
         const metaDataContent = this.metaToAdoc(card, cardTypeForCard);
@@ -267,7 +267,7 @@ export class Export {
         await this.toAdocFileAsContent(
           path,
           sortItems(
-            this.project.cardKeysToCards(card.children),
+            this.checkout.cardKeysToCards(card.children),
             (child) => child.metadata?.rank || '1|z',
           ),
         );
@@ -279,7 +279,7 @@ export class Export {
     options: ExportPdfOptions,
   ): Promise<string> {
     const result = await generateReportContent({
-      calculate: this.project.calculationEngine,
+      calculate: this.checkout.calculationEngine,
       contentTemplate: pdfReport.content,
       queryTemplate: pdfReport.query,
       context: 'exportedDocument',
@@ -292,7 +292,7 @@ export class Export {
     const evaluated = await evaluateMacros(result, {
       context: 'exportedDocument',
       mode: 'static',
-      project: this.project,
+      checkout: this.checkout,
       cardKey: '', // top level report does not contain any macros that use cardKey
     });
     return evaluated;
@@ -340,7 +340,7 @@ export class Export {
     };
     const cardDetailsResponse = await this.showCmd.showCardDetails(card.key);
     let asciiDocContent = '';
-    const project = this.project;
+    const checkout = this.checkout;
     try {
       const { evaluateMacros } = await import('../macros/index.js');
       asciiDocContent = await evaluateMacros(
@@ -348,7 +348,7 @@ export class Export {
         {
           context: 'exportedDocument',
           mode: 'static',
-          project,
+          checkout,
           cardKey: card.key,
         },
       );
@@ -382,7 +382,7 @@ export class Export {
     const withMermaid = await preprocessMermaidBlocksForPdf(evaluated);
     return rewriteAsciidocCardXrefs(
       withMermaid,
-      this.project,
+      this.checkout,
       'static',
       onWarning,
     );
@@ -461,11 +461,11 @@ export class Export {
     destination: string,
     cardKey?: string,
   ): Promise<string> {
-    const sourcePath: string = this.project.paths.cardRootFolder;
+    const sourcePath: string = this.checkout.paths.cardRootFolder;
     let cards: Card[] = [];
 
     // If doing a partial tree export, put the parent information as it would have already been gathered.
-    if (cardKey && this.project.findCard(cardKey)) {
+    if (cardKey && this.checkout.findCard(cardKey)) {
       cards.push({
         key: cardKey,
         path: sourcePath,
@@ -475,7 +475,7 @@ export class Export {
       });
     }
 
-    const tree = await this.project.calculationEngine.runQuery(
+    const tree = await this.checkout.calculationEngine.runQuery(
       'tree',
       'exportedDocument',
     );
@@ -500,7 +500,7 @@ export class Export {
     await mkdir(join(destination, attachmentFolder), { recursive: true });
     const resultDocumentPath: string = join(
       destination,
-      Project.cardContentFile,
+      Checkout.cardContentFile,
     );
     let message: string;
     try {

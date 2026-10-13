@@ -13,7 +13,7 @@
 
 import fs from 'node:fs/promises';
 
-import type { CommandManager } from '@cyberismo/data-handler';
+import type { Workspace } from '@cyberismo/data-handler';
 import { createApp } from './app.js';
 import { MockAuthProvider } from './auth/mock.js';
 import type { ProjectRegistry } from './project-registry.js';
@@ -48,19 +48,19 @@ export function reset() {
 /**
  * Get the card query result for a given card key. Should only be called during
  * static site generation
- * @param commands - CommandManager instance for the project.
+ * @param ws - CommandManager instance for the project.
  * @param cardKey - Key of the card to get the query result for.
  * @returns The card query result for the given card key.
  */
 export async function getCardQueryResult(
-  commands: CommandManager,
+  ws: Workspace,
   cardKey?: string,
 ): Promise<QueryResult<'card'>[]> {
-  const prefix = commands.project.configuration.cardKeyPrefix;
+  const prefix = ws.checkout.configuration.cardKeyPrefix;
   if (!_cardQueryCache.has(prefix)) {
     _cardQueryCache.set(
       prefix,
-      commands.calculateCmd.runQuery('card', 'exportedSite', {}),
+      ws.calculateCmd.runQuery('card', 'exportedSite', {}),
     );
   }
   return _cardQueryCache.get(prefix)!.then((results) => {
@@ -122,9 +122,9 @@ export async function exportSite(
 
   // estimate total based on the number of cards to export across all projects
   let total = OVERHEAD_CALLS;
-  for (const commands of registry.values()) {
-    const cards = await findAllCards(commands, opts);
-    const attachments = await findRelevantAttachments(commands, opts);
+  for (const ws of registry.values()) {
+    const cards = await findAllCards(ws, opts);
+    const attachments = await findRelevantAttachments(ws, opts);
     total += cards.length + attachments.length;
   }
 

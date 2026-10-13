@@ -1,7 +1,7 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
-import { Project } from '../../src/containers/project.js';
+import { Checkout } from '../../src/containers/project.js';
 import { copyDir } from '../../src/utils/file-utils.js';
 
 // Reuse the existing decision-records fixture.
@@ -23,7 +23,7 @@ const FIXTURE_PATH = join(
  */
 export async function createLinkSeededProject(
   tmpDir: string,
-): Promise<Project> {
+): Promise<Checkout> {
   const projectPath = join(tmpDir, `proj-${Date.now()}`);
   await mkdir(projectPath, { recursive: true });
   await copyDir(FIXTURE_PATH, projectPath);
@@ -40,7 +40,7 @@ export async function createLinkSeededProject(
   ];
   await writeFile(decision5Path, JSON.stringify(decision5, null, 4));
 
-  const project = new Project(projectPath);
-  await project.populateCaches();
-  return project;
+  const checkout = new Checkout(projectPath);
+  await checkout.populateCaches();
+  return checkout;
 }

@@ -1,5 +1,5 @@
 import { expect, test, beforeAll, afterAll } from 'vitest';
-import { CommandManager } from '@cyberismo/data-handler';
+import { Workspace } from '@cyberismo/data-handler';
 import { createApp } from '../src/app.js';
 import { ProjectRegistry } from '../src/project-registry.js';
 import { MockAuthProvider } from '../src/auth/mock.js';
@@ -21,10 +21,10 @@ beforeAll(async () => {
   // Fixes weird issue with asciidoctor
   process.argv = [];
   tempTestDataPath = await createTempTestData('decision-records');
-  const commands = await CommandManager.getInstance(tempTestDataPath);
+  const ws = await Workspace.getInstance(tempTestDataPath);
   app = createApp(
     new MockAuthProvider(),
-    ProjectRegistry.fromCommandManager(commands),
+    ProjectRegistry.fromCommandManager(ws),
   );
 });
 

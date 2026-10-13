@@ -49,13 +49,13 @@ export class LeafResourceRenameHandler implements Handler<RenameInput> {
     const oldName = resourceNameToString(ctx.input.target);
 
     // Interactive rename of a module-owned resource is not allowed.
-    if (ctx.input.target.prefix !== ctx.project.projectPrefix) {
+    if (ctx.input.target.prefix !== ctx.checkout.projectPrefix) {
       throw new Error(
         `Cannot rename resource ${oldName}: It is a module resource`,
       );
     }
 
-    const resource = ctx.project.resources.byType(oldName, this.type);
+    const resource = ctx.checkout.resources.byType(oldName, this.type);
     if (!resource) {
       throw new Error(`${this.label} '${oldName}' not found`);
     }
@@ -74,7 +74,7 @@ export class LeafResourceRenameHandler implements Handler<RenameInput> {
     const oldName = resourceNameToString(ctx.input.target);
     const newName = `${ctx.input.target.prefix}/${this.type}/${ctx.input.newIdentifier}`;
 
-    await rewriteContentFileRefs(ctx.project, oldName, newName);
-    await rewriteCardContentRefs(ctx.project, oldName, newName);
+    await rewriteContentFileRefs(ctx.checkout, oldName, newName);
+    await rewriteCardContentRefs(ctx.checkout, oldName, newName);
   }
 }

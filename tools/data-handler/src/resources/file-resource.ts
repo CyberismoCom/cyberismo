@@ -15,7 +15,7 @@ import { resourceName } from '../utils/resource-utils.js';
 import { ResourceObject } from './resource-object.js';
 
 import type { ResourceFolderType } from '../interfaces/project-interfaces.js';
-import type { Project } from '../containers/project.js';
+import type { Checkout } from '../containers/project.js';
 import type { ResourceBaseMetadata } from '../interfaces/resource-interfaces.js';
 import type { ResourceName } from '../utils/resource-utils.js';
 import type { Operation, ShowReturnType } from './resource-object.js';
@@ -27,8 +27,12 @@ import type { UpdateKey } from '../interfaces/resource-interfaces.js';
 export abstract class FileResource<
   T extends ResourceBaseMetadata,
 > extends ResourceObject<T, never> {
-  constructor(project: Project, name: ResourceName, type: ResourceFolderType) {
-    super(project, name, type);
+  constructor(
+    checkout: Checkout,
+    name: ResourceName,
+    type: ResourceFolderType,
+  ) {
+    super(checkout, name, type);
     this.initialize();
   }
   /**

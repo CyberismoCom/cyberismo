@@ -10,7 +10,7 @@ import {
 } from '../../src/utils/configuration-logger.js';
 import { copyDir, deleteDir, pathExists } from '../../src/utils/file-utils.js';
 import { ProjectPaths } from '../../src/containers/project/project-paths.js';
-import { Project } from '../../src/containers/project.js';
+import { Checkout } from '../../src/containers/project.js';
 import { ResourceMutations } from '../../src/mutations/resource-mutations.js';
 import { resourceName } from '../../src/utils/resource-utils.js';
 
@@ -362,17 +362,19 @@ describe('configuration logger', () => {
   it('records a resource_delete entry when a leaf resource is deleted', async () => {
     const projectRoot = join(testDir, 'leaf-delete-project');
     await copyDir('test/test-data/', projectRoot);
-    const project = new Project(join(projectRoot, 'valid', 'decision-records'));
-    await project.populateCaches();
+    const checkout = new Checkout(
+      join(projectRoot, 'valid', 'decision-records'),
+    );
+    await checkout.populateCaches();
 
-    const mutations = new ResourceMutations(project);
-    const target = `${project.projectPrefix}/reports/anotherReport`;
+    const mutations = new ResourceMutations(checkout);
+    const target = `${checkout.projectPrefix}/reports/anotherReport`;
     await mutations.apply({
       kind: 'delete',
       target: resourceName(target),
     });
 
-    const entries = await ConfigurationLogger.entries(project.basePath);
+    const entries = await ConfigurationLogger.entries(checkout.basePath);
     const deleteEntry = entries.find(
       (entry) => entry.operation === 'resource_delete',
     );

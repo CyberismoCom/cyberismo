@@ -23,7 +23,7 @@ import { sortCards } from '../utils/card-utils.js';
 import { Validate } from '../commands/validate.js';
 
 import type { Card } from '../interfaces/project-interfaces.js';
-import type { Project } from '../containers/project.js';
+import type { Checkout } from '../containers/project.js';
 import type { ReportContent } from '../interfaces/folder-content-interfaces.js';
 import type { ReportMetadata } from '../interfaces/resource-interfaces.js';
 import type { ResourceName } from '../utils/resource-utils.js';
@@ -39,11 +39,11 @@ export class ReportResource extends FolderResource<
 > {
   /**
    * Creates instance of ReportResource
-   * @param project Project to use
+   * @param checkout Project to use
    * @param name Resource name
    */
-  constructor(project: Project, name: ResourceName) {
-    super(project, name, 'reports');
+  constructor(checkout: Checkout, name: ResourceName) {
+    super(checkout, name, 'reports');
 
     this.contentSchemaId = 'reportSchema';
     this.contentSchema = super.contentSchemaContent(this.contentSchemaId);

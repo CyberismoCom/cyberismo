@@ -1,5 +1,5 @@
 import { expect, test, beforeEach, afterEach } from 'vitest';
-import { CommandManager } from '@cyberismo/data-handler';
+import { Workspace } from '@cyberismo/data-handler';
 import { createApp } from '../src/app.js';
 import { ProjectRegistry } from '../src/project-registry.js';
 import { MockAuthProvider } from '../src/auth/mock.js';
@@ -10,10 +10,10 @@ let tempTestDataPath: string;
 
 beforeEach(async () => {
   tempTestDataPath = await createTempTestData('module-test');
-  const commands = await CommandManager.getInstance(tempTestDataPath);
+  const ws = await Workspace.getInstance(tempTestDataPath);
   app = createApp(
     new MockAuthProvider(),
-    ProjectRegistry.fromCommandManager(commands),
+    ProjectRegistry.fromCommandManager(ws),
   );
 });
 

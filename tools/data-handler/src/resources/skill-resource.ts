@@ -23,7 +23,7 @@ import { sortCards } from '../utils/card-utils.js';
 
 import type { Card } from '../interfaces/project-interfaces.js';
 import type { Operation } from './resource-object.js';
-import type { Project } from '../containers/project.js';
+import type { Checkout } from '../containers/project.js';
 import type { SkillContent } from '../interfaces/folder-content-interfaces.js';
 import type { SkillMetadata } from '../interfaces/resource-interfaces.js';
 import type { ResourceName } from '../utils/resource-utils.js';
@@ -35,11 +35,11 @@ import type { UpdateKey } from '../interfaces/resource-interfaces.js';
 export class SkillResource extends FolderResource<SkillMetadata, SkillContent> {
   /**
    * Creates instance of SkillResource
-   * @param project Project to use
+   * @param checkout Project to use
    * @param name Resource name
    */
-  constructor(project: Project, name: ResourceName) {
-    super(project, name, 'skills');
+  constructor(checkout: Checkout, name: ResourceName) {
+    super(checkout, name, 'skills');
 
     this.contentSchemaId = 'skillSchema';
     this.contentSchema = super.contentSchemaContent(this.contentSchemaId);

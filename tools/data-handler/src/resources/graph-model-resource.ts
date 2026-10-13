@@ -24,7 +24,7 @@ import { CONTENT_FILES } from '../interfaces/folder-content-interfaces.js';
 import type { Card } from '../interfaces/project-interfaces.js';
 import type { GraphModelMetadata } from '../interfaces/resource-interfaces.js';
 import type { GraphModelContent } from '../interfaces/folder-content-interfaces.js';
-import type { Project } from '../containers/project.js';
+import type { Checkout } from '../containers/project.js';
 import type { ResourceName } from '../utils/resource-utils.js';
 
 /**
@@ -36,11 +36,11 @@ export class GraphModelResource extends FolderResource<
 > {
   /**
    * Creates an instance of GraphModelResource
-   * @param project Project to use
+   * @param checkout Project to use
    * @param name Resource name
    */
-  constructor(project: Project, name: ResourceName) {
-    super(project, name, 'graphModels');
+  constructor(checkout: Checkout, name: ResourceName) {
+    super(checkout, name, 'graphModels');
 
     this.contentSchemaId = 'graphModelSchema';
     this.contentSchema = super.contentSchemaContent(this.contentSchemaId);

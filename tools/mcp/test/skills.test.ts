@@ -18,7 +18,7 @@ import { cp, mkdir, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
-import { CommandManager } from '@cyberismo/data-handler';
+import { Workspace } from '@cyberismo/data-handler';
 import { createMcpServer, singleProjectProvider } from '../src/server.js';
 import { testDataPath } from './test-utils.js';
 
@@ -27,7 +27,7 @@ const projectPath = join(baseDir, 'tmp-skills-mcp');
 const skillsFolder = join(projectPath, '.cards/local/skills');
 const calcFolder = join(projectPath, '.cards/local/calculations');
 
-let commands: CommandManager;
+let ws: Workspace;
 let client: Client;
 
 type TextContent = { type: string; text: string };
@@ -91,8 +91,8 @@ beforeAll(async () => {
     'utf-8',
   );
 
-  commands = await CommandManager.getInstance(projectPath);
-  const server = createMcpServer(singleProjectProvider(commands));
+  ws = await Workspace.getInstance(projectPath);
+  const server = createMcpServer(singleProjectProvider(ws));
   const [clientTransport, serverTransport] =
     InMemoryTransport.createLinkedPair();
   await server.connect(serverTransport);
@@ -102,7 +102,7 @@ beforeAll(async () => {
 
 afterAll(async () => {
   await client.close();
-  commands.project.dispose();
+  ws.checkout.dispose();
   await rm(projectPath, { recursive: true, force: true });
 });
 
@@ -293,7 +293,7 @@ describe('skill discovery MCP prompts', () => {
   test('getPrompt resolves a skill whose name prefix differs from the provider key', async () => {
     const moduleLikeProvider = {
       get: (prefix: string) =>
-        prefix === 'registeredUnderOtherKey' ? commands : undefined,
+        prefix === 'registeredUnderOtherKey' ? ws : undefined,
       list: () => [{ prefix: 'registeredUnderOtherKey', name: 'decision' }],
     };
     const server = createMcpServer(moduleLikeProvider);

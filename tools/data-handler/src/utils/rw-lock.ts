@@ -222,13 +222,13 @@ export class RWLock {
   }
 }
 
-// Helper to access the lock from a command instance via its `project` property.
+// Helper to access the lock from a command instance via its `checkout` property.
 function getLock(instance: object): RWLock {
-  const lock = (instance as { project?: { lock?: RWLock } }).project?.lock;
+  const lock = (instance as { checkout?: { lock?: RWLock } }).checkout?.lock;
   if (!lock) {
     throw new Error(
-      '@read/@write decorator: instance.project.lock is not defined. ' +
-        'Ensure the class has a `project` property with `lock: RWLock`.',
+      '@read/@write decorator: instance.checkout.lock is not defined. ' +
+        'Ensure the class has a `checkout` property with `lock: RWLock`.',
     );
   }
   return lock;

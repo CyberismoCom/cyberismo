@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import { mkdirSync, rmSync, readFileSync, writeFileSync } from 'node:fs';
 
 import { copyDir } from '../src/utils/file-utils.js';
-import { CommandManager } from '../src/command-manager.js';
+import { Workspace } from '../src/workspace/workspace.js';
 import { Cmd, Commands } from '../src/command-handler.js';
 import { Clean } from '../src/commands/clean.js';
 
@@ -15,15 +15,15 @@ describe('clean command', () => {
   const baseDir = import.meta.dirname;
   const testDir = join(baseDir, 'tmp-clean-tests');
   const decisionRecordsPath = join(testDir, 'valid/decision-records');
-  let commands: CommandManager;
+  let ws: Workspace;
   let cleanCmd: Clean;
 
   beforeAll(async () => {
     mkdirSync(testDir, { recursive: true });
     await copyDir('test/test-data/', testDir);
-    commands = new CommandManager(decisionRecordsPath, {});
-    await commands.initialize();
-    cleanCmd = commands.cleanCmd;
+    ws = new Workspace(decisionRecordsPath, {});
+    await ws.initialize();
+    cleanCmd = ws.cleanCmd;
   });
 
   afterAll(() => {
@@ -42,27 +42,27 @@ describe('clean command', () => {
     const projectPath = join(freshTestDir, 'valid/decision-records');
     prepare?.(projectPath);
 
-    const freshCommands = new CommandManager(projectPath, {});
+    const freshCommands = new Workspace(projectPath, {});
     await freshCommands.initialize();
     return { freshTestDir, freshCommands };
   }
 
   async function storeValue(
-    manager: CommandManager,
+    manager: Workspace,
     cardKey: string,
     field: string,
     value: string,
   ) {
-    const card = manager.project.findCard(cardKey);
+    const card = manager.checkout.findCard(cardKey);
     card.metadata![field] = value;
-    await manager.project.updateCardMetadata(card, card.metadata!);
+    await manager.checkout.updateCardMetadata(card, card.metadata!);
   }
 
   it('dry-run reports null-valued custom fields without writing', async () => {
     const { freshTestDir, freshCommands } =
       await freshProject('tmp-clean-dry-run');
     try {
-      const card = freshCommands.project.findCard('decision_6');
+      const card = freshCommands.checkout.findCard('decision_6');
       const file = join(card.path, 'index.json');
       const before = readFileSync(file, 'utf-8');
 
@@ -83,7 +83,7 @@ describe('clean command', () => {
       const result = await freshCommands.cleanCmd.clean(false);
 
       expect(result.findings.length).toBeGreaterThan(0);
-      for (const card of freshCommands.project.cardTree.cards()) {
+      for (const card of freshCommands.checkout.cardTree.cards()) {
         const nulls = Object.entries(card.metadata!).filter(
           ([key, value]) => value === null && key.includes('/'),
         );
@@ -95,7 +95,7 @@ describe('clean command', () => {
   });
 
   it('removes keys the card type does not declare', async () => {
-    await storeValue(commands, 'decision_6', GHOST, 'stale');
+    await storeValue(ws, 'decision_6', GHOST, 'stale');
 
     const result = await cleanCmd.clean(false);
 
@@ -104,13 +104,13 @@ describe('clean command', () => {
       field: GHOST,
       reason: 'undeclared',
     });
-    expect(
-      commands.project.findCard('decision_6').metadata!,
-    ).not.toHaveProperty([GHOST]);
+    expect(ws.checkout.findCard('decision_6').metadata!).not.toHaveProperty([
+      GHOST,
+    ]);
   });
 
   it('removes stored values on calculated fields without override', async () => {
-    await storeValue(commands, 'decision_6', OBSOLETED_BY, 'stale');
+    await storeValue(ws, 'decision_6', OBSOLETED_BY, 'stale');
 
     const result = await cleanCmd.clean(false);
 
@@ -119,9 +119,9 @@ describe('clean command', () => {
       field: OBSOLETED_BY,
       reason: 'calculated-locked',
     });
-    expect(
-      commands.project.findCard('decision_6').metadata!,
-    ).not.toHaveProperty([OBSOLETED_BY]);
+    expect(ws.checkout.findCard('decision_6').metadata!).not.toHaveProperty([
+      OBSOLETED_BY,
+    ]);
   });
 
   it('keeps a calculated field value when the card type enables override', async () => {
@@ -156,7 +156,7 @@ describe('clean command', () => {
       });
       expect(result.findings.every((f) => f.field !== OBSOLETED_BY)).toBe(true);
 
-      const cleaned = freshCommands.project.findCard('decision_6');
+      const cleaned = freshCommands.checkout.findCard('decision_6');
       expect(cleaned.metadata!).not.toHaveProperty([GHOST]);
       expect(cleaned.metadata![OBSOLETED_BY]).toBe('decision_5');
     } finally {
@@ -171,13 +171,13 @@ describe('clean command', () => {
       // The write lock's after-write hooks commit and recalculate; a dry run
       // changes nothing and must not trigger either.
       const afterWrite = vi.fn().mockResolvedValue(undefined);
-      freshCommands.project.lock.onAfterWrite(afterWrite);
+      freshCommands.checkout.lock.onAfterWrite(afterWrite);
 
       await freshCommands.cleanCmd.clean(true);
       expect(afterWrite).not.toHaveBeenCalled();
 
       // A read lock is reentrant from a read context; a write lock throws.
-      const nested = await freshCommands.project.lock.read(() =>
+      const nested = await freshCommands.checkout.lock.read(() =>
         freshCommands.cleanCmd.clean(true),
       );
       expect(nested.findings.length).toBeGreaterThan(0);
@@ -205,7 +205,7 @@ describe('clean command', () => {
     );
     try {
       const cardFile = join(
-        freshCommands.project.findCard('decision_6').path,
+        freshCommands.checkout.findCard('decision_6').path,
         'index.json',
       );
       const before = readFileSync(cardFile, 'utf-8');
@@ -228,11 +228,11 @@ describe('clean command', () => {
     );
     try {
       const failingFile = join(
-        freshCommands.project.findCard('decision_6').path,
+        freshCommands.checkout.findCard('decision_6').path,
         'index.json',
       );
       const before = readFileSync(failingFile, 'utf-8');
-      const templateCard = freshCommands.project
+      const templateCard = freshCommands.checkout
         .templateTree('decision/templates/decision')
         .cards()
         .at(0)!;
@@ -241,7 +241,7 @@ describe('clean command', () => {
       // Project cards are visited first, and decision_6 is the only one with
       // removals, so the single rejection lands on it.
       const failingWrite = vi
-        .spyOn(freshCommands.project, 'updateCardMetadata')
+        .spyOn(freshCommands.checkout, 'updateCardMetadata')
         .mockRejectedValueOnce(new Error('write failed'));
       const result = await freshCommands.cleanCmd.clean(false);
       failingWrite.mockRestore();
@@ -263,17 +263,14 @@ describe('clean command', () => {
     const moduleTestDir = join(baseDir, 'tmp-clean-module');
     mkdirSync(moduleTestDir, { recursive: true });
     await copyDir('test/test-data/', moduleTestDir);
-    const importing = new CommandManager(
-      join(moduleTestDir, 'valid/minimal'),
-      {},
-    );
+    const importing = new Workspace(join(moduleTestDir, 'valid/minimal'), {});
     await importing.initialize();
     try {
       // The imported project's template card carries null placeholders.
       await importing.modulesCmd.install(
         join(moduleTestDir, 'valid/decision-records'),
       );
-      const moduleCards = importing.project
+      const moduleCards = importing.checkout
         .allTemplateCards()
         .filter((card) => card.path.includes(join('.cards', 'modules')));
       expect(moduleCards.length).toBeGreaterThan(0);
@@ -298,11 +295,11 @@ describe('clean command', () => {
   });
 
   it('cleans local template cards too', async () => {
-    const templateCard = commands.project
+    const templateCard = ws.checkout
       .templateTree('decision/templates/decision')
       .cards()
       .at(0)!;
-    await storeValue(commands, templateCard.key, GHOST, 'stale');
+    await storeValue(ws, templateCard.key, GHOST, 'stale');
 
     const result = await cleanCmd.clean(false);
 
@@ -311,23 +308,23 @@ describe('clean command', () => {
       field: GHOST,
       reason: 'undeclared',
     });
-    expect(
-      commands.project.findCard(templateCard.key).metadata!,
-    ).not.toHaveProperty([GHOST]);
+    expect(ws.checkout.findCard(templateCard.key).metadata!).not.toHaveProperty(
+      [GHOST],
+    );
   });
 
   it('never touches predefined fields', async () => {
     await cleanCmd.clean(false);
 
-    const card = commands.project.findCard('decision_6');
+    const card = ws.checkout.findCard('decision_6');
     expect(card.metadata!.title).toBeDefined();
     expect(card.metadata!.cardType).toBe('decision/cardTypes/decision');
     expect(card.metadata!.workflowState).toBeDefined();
   });
 
   it('cardType filter scopes the scan', async () => {
-    await storeValue(commands, 'decision_5', GHOST, 'stale');
-    await storeValue(commands, 'decision_6', GHOST, 'stale');
+    await storeValue(ws, 'decision_5', GHOST, 'stale');
+    await storeValue(ws, 'decision_6', GHOST, 'stale');
 
     const result = await cleanCmd.clean(true, 'decision/cardTypes/simplepage');
 
@@ -338,7 +335,7 @@ describe('clean command', () => {
     });
     expect(result.findings.every((f) => f.cardKey !== 'decision_6')).toBe(true);
     for (const finding of result.findings) {
-      const card = commands.project.findCard(finding.cardKey);
+      const card = ws.checkout.findCard(finding.cardKey);
       expect(card.metadata!.cardType).toBe('decision/cardTypes/simplepage');
     }
   });

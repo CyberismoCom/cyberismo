@@ -17,7 +17,7 @@ import {
 } from 'node:fs';
 import { join, resolve as pathResolve } from 'node:path';
 
-import { CommandManager } from '../src/command-manager.js';
+import { Workspace } from '../src/workspace/workspace.js';
 import { copyDir } from '../src/utils/file-utils.js';
 import { Cmd, Commands } from '../src/command-handler.js';
 import { GitManager } from '../src/utils/git-manager.js';
@@ -485,10 +485,10 @@ describe('module update — spec behaviours', () => {
     );
     expect(create.statusCode).toBe(200);
 
-    const commands = new CommandManager(projectDir, {});
-    await commands.initialize();
+    const ws = new Workspace(projectDir, {});
+    await ws.initialize();
 
-    await commands.modulesCmd.install(hostRoot);
+    await ws.modulesCmd.install(hostRoot);
 
     const installedHost = join(projectDir, '.cards', 'modules', 'fkhost');
     const installedDep = join(projectDir, '.cards', 'modules', 'fkdep');
@@ -501,9 +501,9 @@ describe('module update — spec behaviours', () => {
       modules: [],
     });
 
-    const plan = await commands.modulesCmd.planUpdate({});
+    const plan = await ws.modulesCmd.planUpdate({});
     expect(plan.removed).toEqual(['fkdep']);
-    await commands.modulesCmd.update({});
+    await ws.modulesCmd.update({});
 
     // host is still around; dep must have been removed by the orphan
     // cascade that runs at the end of updateAll.
@@ -533,11 +533,11 @@ describe('module update — spec behaviours', () => {
     );
     expect(create.statusCode).toBe(200);
 
-    const commands = new CommandManager(projectDir, {});
-    await commands.initialize();
+    const ws = new Workspace(projectDir, {});
+    await ws.initialize();
 
     // First import: host is declared, dep is installed transitively on disk.
-    await commands.modulesCmd.install(hostRoot);
+    await ws.modulesCmd.install(hostRoot);
 
     const installedHost = join(projectDir, '.cards', 'modules', 'reimphost');
     const installedDep = join(projectDir, '.cards', 'modules', 'reimpdep');
@@ -545,9 +545,7 @@ describe('module update — spec behaviours', () => {
     expect(existsSync(installedDep)).toBe(true);
     // Only top-level declarations appear in configuration.modules.
     expect(
-      commands.project.configuration.modules.some(
-        (m) => m.name === 'reimphost',
-      ),
+      ws.checkout.configuration.modules.some((m) => m.name === 'reimphost'),
     ).toBe(true);
 
     // Upstream drops its transitive dep.
@@ -557,16 +555,14 @@ describe('module update — spec behaviours', () => {
     });
 
     // Re-import via install (not updateAll).
-    await commands.modulesCmd.install(hostRoot);
+    await ws.modulesCmd.install(hostRoot);
 
     // cleanOrphans must have run: dep folder gone, host still present.
     expect(existsSync(installedHost)).toBe(true);
     expect(existsSync(installedDep)).toBe(false);
     // Host declaration is still intact.
     expect(
-      commands.project.configuration.modules.some(
-        (m) => m.name === 'reimphost',
-      ),
+      ws.checkout.configuration.modules.some((m) => m.name === 'reimphost'),
     ).toBe(true);
   });
 
@@ -594,13 +590,13 @@ describe('module update — spec behaviours', () => {
     );
     expect(create.statusCode).toBe(200);
 
-    const commands = new CommandManager(projectDir, {});
-    await commands.initialize();
+    const ws = new Workspace(projectDir, {});
+    await ws.initialize();
 
-    await commands.modulesCmd.install(hostRoot);
+    await ws.modulesCmd.install(hostRoot);
     // Initially only `newhost` is installed — no `newdep` yet.
-    expect(commands.project.allModulePrefixes()).toContain('newhost');
-    expect(commands.project.allModulePrefixes()).not.toContain('newdep');
+    expect(ws.checkout.allModulePrefixes()).toContain('newhost');
+    expect(ws.checkout.allModulePrefixes()).not.toContain('newdep');
 
     // Upstream starts declaring the new transitive.
     rewriteFakeModuleFixture(hostRoot, {
@@ -608,7 +604,7 @@ describe('module update — spec behaviours', () => {
       modules: [{ name: 'newdep', location: `file:${pathResolve(depRoot)}` }],
     });
 
-    await commands.modulesCmd.update({});
+    await ws.modulesCmd.update({});
 
     // The new transitive is installed on disk...
     expect(existsSync(join(projectDir, '.cards', 'modules', 'newdep'))).toBe(
@@ -616,8 +612,8 @@ describe('module update — spec behaviours', () => {
     );
     // ...and immediately visible through the cached prefix list without any
     // manual refresh call.
-    expect(commands.project.allModulePrefixes()).toContain('newdep');
-    expect(commands.project.allModulePrefixes()).toContain('newhost');
+    expect(ws.checkout.allModulePrefixes()).toContain('newdep');
+    expect(ws.checkout.allModulePrefixes()).toContain('newhost');
   });
 
   it('update with an override version that violates the declared range throws', async () => {
@@ -636,21 +632,21 @@ describe('module update — spec behaviours', () => {
     const depRoot = join(moduleTestDir, 'fake-override-mod');
     makeFakeModuleFixture(depRoot, { cardKeyPrefix: 'ovmod' });
 
-    const commands = new CommandManager(projectDir, {});
-    await commands.initialize();
-    await commands.modulesCmd.install(depRoot);
+    const ws = new Workspace(projectDir, {});
+    await ws.initialize();
+    await ws.modulesCmd.install(depRoot);
 
     // Synthesise a declared range on the persisted module so the
     // constraint-validation path fires. The caller-supplied override
     // `2.0.0` violates `^1.0.0`.
-    const modSetting = commands.project.configuration.modules.find(
+    const modSetting = ws.checkout.configuration.modules.find(
       (m) => m.name === 'ovmod',
     );
     expect(modSetting).toBeDefined();
     modSetting!.version = '^1.0.0';
 
     await expect(
-      commands.modulesCmd.update({ module: 'ovmod', version: '2.0.0' }),
+      ws.modulesCmd.update({ module: 'ovmod', version: '2.0.0' }),
     ).rejects.toThrow(/does not satisfy constraint '\^1\.0\.0'/);
   });
 
@@ -671,11 +667,11 @@ describe('module update — spec behaviours', () => {
     const depRoot = join(moduleTestDir, 'fake-override-mod-ok');
     makeFakeModuleFixture(depRoot, { cardKeyPrefix: 'ovkmod' });
 
-    const commands = new CommandManager(projectDir, {});
-    await commands.initialize();
-    await commands.modulesCmd.install(depRoot);
+    const ws = new Workspace(projectDir, {});
+    await ws.initialize();
+    await ws.modulesCmd.install(depRoot);
 
-    const modSetting = commands.project.configuration.modules.find(
+    const modSetting = ws.checkout.configuration.modules.find(
       (m) => m.name === 'ovkmod',
     );
     expect(modSetting).toBeDefined();
@@ -684,9 +680,9 @@ describe('module update — spec behaviours', () => {
     // No throw: constraint check passes, file source fetch/install runs
     // end-to-end. The persisted range stays at `^1.0.0` — the applier
     // only writes back the declared range, never the resolved tag.
-    await commands.modulesCmd.update({ module: 'ovkmod', version: '1.3.0' });
+    await ws.modulesCmd.update({ module: 'ovkmod', version: '1.3.0' });
 
-    const after = commands.project.configuration.modules.find(
+    const after = ws.checkout.configuration.modules.find(
       (m) => m.name === 'ovkmod',
     );
     expect(after?.version).toBe(toVersionRange('^1.0.0'));
@@ -717,21 +713,17 @@ describe('module update — spec behaviours', () => {
     );
     expect(create.statusCode).toBe(200);
 
-    const commands = new CommandManager(projectDir, {});
-    await commands.initialize();
+    const ws = new Workspace(projectDir, {});
+    await ws.initialize();
 
-    await commands.modulesCmd.install(hostRoot);
-    const topLevelNames = commands.project.configuration.modules.map(
-      (m) => m.name,
-    );
+    await ws.modulesCmd.install(hostRoot);
+    const topLevelNames = ws.checkout.configuration.modules.map((m) => m.name);
     expect(topLevelNames).toEqual(['tuphost']);
     expect(existsSync(join(projectDir, '.cards', 'modules', 'tupdep'))).toBe(
       true,
     );
 
-    await expect(
-      commands.modulesCmd.update({ module: 'tupdep' }),
-    ).rejects.toThrow(
+    await expect(ws.modulesCmd.update({ module: 'tupdep' })).rejects.toThrow(
       "Cannot use module 'tupdep' because it is required by 'tuphost'. Use the parent module(s) instead.",
     );
   });
@@ -754,9 +746,9 @@ describe('module update — spec behaviours', () => {
     );
     expect(create.statusCode).toBe(200);
 
-    const commands = new CommandManager(projectDir, {});
-    await commands.initialize();
-    await commands.modulesCmd.install(modRoot);
+    const ws = new Workspace(projectDir, {});
+    await ws.initialize();
+    await ws.modulesCmd.install(modRoot);
 
     // Seed the INSTALLED config with a version newer than the override
     // target. The fixture's own config carries no version, so a
@@ -775,7 +767,7 @@ describe('module update — spec behaviours', () => {
     writeFileSync(installedConfigPath, JSON.stringify(installedConfig));
 
     await expect(
-      commands.modulesCmd.update({ module: 'dgmod', version: '0.1.0' }),
+      ws.modulesCmd.update({ module: 'dgmod', version: '0.1.0' }),
     ).rejects.toThrow(/cannot downgrade from 1\.0\.0 to 0\.1\.0/i);
 
     // The refusal fired during resolution: the seeded marker survives.
@@ -799,16 +791,16 @@ describe('module update — spec behaviours', () => {
     const depRoot = join(moduleTestDir, 'fake-backfill-mod');
     makeFakeModuleFixture(depRoot, { cardKeyPrefix: 'bkfmod' });
 
-    const commands = new CommandManager(projectDir, {
+    const ws = new Workspace(projectDir, {
       autoSaveConfiguration: false,
     });
-    await commands.initialize();
-    await commands.modulesCmd.install(depRoot);
+    await ws.initialize();
+    await ws.modulesCmd.install(depRoot);
 
     // Reshape the persisted declaration into the legacy form: a versioned
     // (git) source with no declared range. Importing from a file source
     // already leaves the range off, so only the location has to change.
-    const declaration = commands.project.configuration.modules.find(
+    const declaration = ws.checkout.configuration.modules.find(
       (m) => m.name === 'bkfmod',
     );
     expect(declaration).toBeDefined();
@@ -831,9 +823,9 @@ describe('module update — spec behaviours', () => {
     // 1.0.0 is the only tag, so the module stays exactly where it is.
     vi.spyOn(GitManager, 'listRemoteVersionTags').mockResolvedValue(['1.0.0']);
 
-    const plan = await commands.modulesCmd.planUpdate({});
+    const plan = await ws.modulesCmd.planUpdate({});
     expect(plan.rangeWrites).toEqual([{ module: 'bkfmod', range: '1.x' }]);
-    await commands.modulesCmd.update({});
+    await ws.modulesCmd.update({});
 
     const persisted = JSON.parse(
       readFileSync(
@@ -889,11 +881,11 @@ describe('module update — spec behaviours', () => {
     );
     expect(create.statusCode).toBe(200);
 
-    const commands = new CommandManager(projectDir, {});
-    await commands.initialize();
-    await commands.modulesCmd.install(moduleSource);
+    const ws = new Workspace(projectDir, {});
+    await ws.initialize();
+    await ws.modulesCmd.install(moduleSource);
 
-    await commands.createCmd.createCardType(
+    await ws.createCmd.createCardType(
       `${prefix}/cardTypes/consumer`,
       'decision/workflows/decision',
     );
@@ -909,7 +901,7 @@ describe('module update — spec behaviours', () => {
       config.version = '1.0.0';
     });
 
-    return { moduleSource, projectDir, commands, installedConfigPath };
+    return { moduleSource, projectDir, ws, installedConfigPath };
   }
 
   /**
@@ -929,7 +921,7 @@ describe('module update — spec behaviours', () => {
   }
 
   it('refuses an update whose source changed its prefix', async () => {
-    const { moduleSource, projectDir, commands, installedConfigPath } =
+    const { moduleSource, projectDir, ws, installedConfigPath } =
       await seedReplayHost('replay-renamed-proj', 'rren');
 
     // Upstream 2.0.0 renamed its own prefix. A prefix is the module's
@@ -943,7 +935,7 @@ describe('module update — spec behaviours', () => {
     sealSourceRelease(moduleSource, []);
 
     await expect(
-      commands.modulesCmd.update({ module: 'decision', version: '2.0.0' }),
+      ws.modulesCmd.update({ module: 'decision', version: '2.0.0' }),
     ).rejects.toThrow(/Module 'decision' now declares the prefix 'decrec'/);
 
     // Nothing moved: the installation is still there at its old version.
@@ -956,7 +948,7 @@ describe('module update — spec behaviours', () => {
   }, 30000);
 
   it('update replays a sealed workflow rename into the consumer (happy path)', async () => {
-    const { moduleSource, projectDir, commands, installedConfigPath } =
+    const { moduleSource, projectDir, ws, installedConfigPath } =
       await seedReplayHost('replay-happy-proj', 'rhap');
 
     // Upstream 2.0.0: workflow renamed decision -> resolution. The source
@@ -987,7 +979,7 @@ describe('module update — spec behaviours', () => {
     ]);
 
     // plan -> applyModules -> replay -> final validation; must not throw.
-    await commands.modulesCmd.update({ module: 'decision', version: '2.0.0' });
+    await ws.modulesCmd.update({ module: 'decision', version: '2.0.0' });
 
     // Module files landed: new version, renamed workflow file.
     const afterConfig = JSON.parse(readFileSync(installedConfigPath, 'utf-8'));
@@ -1013,17 +1005,17 @@ describe('module update — spec behaviours', () => {
   }, 30000);
 
   it('update replays a sealed workflow delete: dependent local card types and their cards are removed', async () => {
-    const { moduleSource, projectDir, commands, installedConfigPath } =
+    const { moduleSource, projectDir, ws, installedConfigPath } =
       await seedReplayHost('replay-delete-proj', 'rdel');
 
     // A template card and a project card of the consumer type; the delete
     // cascade must remove the card type and both cards.
-    await commands.createCmd.createTemplate('rdel/templates/seed', '');
-    await commands.createCmd.addCards(
+    await ws.createCmd.createTemplate('rdel/templates/seed', '');
+    await ws.createCmd.addCards(
       'rdel/cardTypes/consumer',
       'rdel/templates/seed',
     );
-    const created = await commands.createCmd.createCard('rdel/templates/seed');
+    const created = await ws.createCmd.createCard('rdel/templates/seed');
     expect(created.length).toBeGreaterThan(0);
 
     // Upstream 2.0.0 deletes the workflow; its own card type moves to the
@@ -1042,7 +1034,7 @@ describe('module update — spec behaviours', () => {
     // A card type requires a workflow, so the replayed delete repairs the
     // consumer by removal: card type and all of its cards. The project is
     // then valid and the update succeeds.
-    await commands.modulesCmd.update({ module: 'decision', version: '2.0.0' });
+    await ws.modulesCmd.update({ module: 'decision', version: '2.0.0' });
 
     const afterConfig = JSON.parse(readFileSync(installedConfigPath, 'utf-8'));
     expect(afterConfig.version).toBe('2.0.0');
@@ -1069,13 +1061,13 @@ describe('module update — spec behaviours', () => {
   }, 30000);
 
   it('update surfaces ModuleValidationFailedError when the update leaves a dangling workflow reference', async () => {
-    const { moduleSource, projectDir, commands, installedConfigPath } =
+    const { moduleSource, projectDir, ws, installedConfigPath } =
       await seedReplayHost('replay-invalid-proj', 'rinv');
 
     // A project card of the MODULE's own card type. The delete cascade only
     // repairs LOCAL card types, so this card's type survives pointing at the
     // deleted workflow and card-level validation must fail.
-    const created = await commands.createCmd.createCard(
+    const created = await ws.createCmd.createCard(
       'decision/templates/decision',
     );
     expect(created.length).toBeGreaterThan(0);
@@ -1090,7 +1082,7 @@ describe('module update — spec behaviours', () => {
       }),
     ]);
 
-    const error = await commands.modulesCmd
+    const error = await ws.modulesCmd
       .update({ module: 'decision', version: '2.0.0' })
       .catch((e) => e);
 
@@ -1164,34 +1156,34 @@ describe('module schema version enforcement on import', () => {
 
   it('migrates an older module before installing it', async () => {
     setModuleSchemaVersion(4);
-    const commands = new CommandManager(hostPath);
-    await commands.initialize();
-    await commands.modulesCmd.install(modulePath);
+    const ws = new Workspace(hostPath);
+    await ws.initialize();
+    await ws.modulesCmd.install(modulePath);
     const installed = readJsonFileSync(installedConfigPath) as {
       schemaVersion: number;
     };
     expect(installed.schemaVersion).toBe(SCHEMA_VERSION);
-    commands.project.dispose();
+    ws.checkout.dispose();
   });
 
   it('refuses a module newer than the tool, before any disk change', async () => {
     setModuleSchemaVersion(SCHEMA_VERSION + 1);
-    const commands = new CommandManager(hostPath);
-    await commands.initialize();
-    await expect(commands.modulesCmd.install(modulePath)).rejects.toThrow(
+    const ws = new Workspace(hostPath);
+    await ws.initialize();
+    await expect(ws.modulesCmd.install(modulePath)).rejects.toThrow(
       'Upgrade cyberismo',
     );
     expect(existsSync(installedConfigPath)).toBe(false);
-    commands.project.dispose();
+    ws.checkout.dispose();
   });
 
   it('refuses a module without a schema version', async () => {
     setModuleSchemaVersion(undefined);
-    const commands = new CommandManager(hostPath);
-    await commands.initialize();
-    await expect(commands.modulesCmd.install(modulePath)).rejects.toThrow(
+    const ws = new Workspace(hostPath);
+    await ws.initialize();
+    await expect(ws.modulesCmd.install(modulePath)).rejects.toThrow(
       "no 'schemaVersion'",
     );
-    commands.project.dispose();
+    ws.checkout.dispose();
   });
 });

@@ -32,7 +32,7 @@ import {
 import type { ConfigurationLogEntry } from '../../utils/configuration-logger.js';
 import type { ModuleInstallation } from '../../modules/types.js';
 import type { MutationInput } from '../types.js';
-import type { Project } from '../../containers/project.js';
+import type { Checkout } from '../../containers/project.js';
 import type { ResolvedModule } from '../../modules/resolve/types.js';
 import type { SealFile } from './seal-files.js';
 
@@ -364,7 +364,7 @@ export function filterStepsToApplied(
  * @throws ModuleReplayFailedError on the first failing entry.
  */
 export async function executeModuleReplays(
-  project: Project,
+  checkout: Checkout,
   steps: ReplayStep[],
 ): Promise<void> {
   if (steps.length === 0) return;
@@ -372,7 +372,7 @@ export async function executeModuleReplays(
   // A card keeps its old type until the (later) rename entry applies.
   const cardTypeRenames = buildCardTypeRenameMap(steps);
 
-  const mutations = new ResourceMutations(project);
+  const mutations = new ResourceMutations(checkout);
   for (const step of steps) {
     for (const { seal, entries } of step.seals) {
       for (const [index, entry] of entries.entries()) {
@@ -398,10 +398,10 @@ export async function executeModuleReplays(
   }
 
   // Module trees were overwritten on disk before replay; refresh both caches.
-  project.resources.changed();
-  project.resources.changedModules();
-  project.clearCards();
-  await project.populateCaches();
+  checkout.resources.changed();
+  checkout.resources.changedModules();
+  checkout.clearCards();
+  await checkout.populateCaches();
 }
 
 /** Every card-type rename in the batch (old name -> new). */

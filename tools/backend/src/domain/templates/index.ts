@@ -40,10 +40,10 @@ router.get('/', requireRole(UserRole.Reader), async (c) => {
   if (isSSGContext(c)) {
     return c.json([]);
   }
-  const commands = c.get('commands');
+  const ws = c.get('ws');
 
   try {
-    const response = await templateService.getTemplatesWithDetails(commands);
+    const response = await templateService.getTemplatesWithDetails(ws);
     return c.json(response);
   } catch (error) {
     return c.json(
@@ -85,10 +85,10 @@ router.post(
   requireRole(UserRole.Admin),
   zValidator('json', createTemplateSchema),
   async (c) => {
-    const commands = c.get('commands');
+    const ws = c.get('ws');
     const { identifier } = c.req.valid('json');
 
-    await templateService.createTemplate(commands, identifier);
+    await templateService.createTemplate(ws, identifier);
     return c.json({ message: 'Template created successfully' });
   },
 );
@@ -131,11 +131,11 @@ router.post(
   requireRole(UserRole.Admin),
   zValidator('json', addTemplateCardSchema),
   async (c) => {
-    const commands = c.get('commands');
+    const ws = c.get('ws');
     const { template, cardType, parentKey, count } = c.req.valid('json');
 
     const added = await templateService.addTemplateCard(
-      commands,
+      ws,
       template,
       cardType,
       parentKey,

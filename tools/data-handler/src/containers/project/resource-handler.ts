@@ -14,7 +14,7 @@
 
 import { ResourceCache, type ResourceMap } from './resource-cache.js';
 import { resourceName } from '../../utils/resource-utils.js';
-import type { Project } from '../project.js';
+import type { Checkout } from '../project.js';
 import type { ResourceFolderType } from '../../interfaces/project-interfaces.js';
 import type { ResourceName } from '../../utils/resource-utils.js';
 import { ResourcesFrom } from './resources-from.js';
@@ -42,10 +42,10 @@ export class ResourceHandler {
 
   /**
    * Creates instance of ResourceHandler.
-   * @param project Project to use in cache
+   * @param checkout Project to use in cache
    */
-  constructor(project: Project) {
-    this.cache = ResourceCache.create(project);
+  constructor(checkout: Checkout) {
+    this.cache = ResourceCache.create(checkout);
   }
 
   /**

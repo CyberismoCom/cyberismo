@@ -12,11 +12,7 @@
 */
 
 import { join } from 'node:path';
-import {
-  CommandManager,
-  Create,
-  scanForProjects,
-} from '@cyberismo/data-handler';
+import { Workspace, Create, scanForProjects } from '@cyberismo/data-handler';
 import type { ProjectRegistry } from '../../project-registry.js';
 
 export interface CreateProjectParams {
@@ -42,16 +38,12 @@ export async function createProject(
   const { name, prefix, category, description } = params;
   const projectPath = join(rootPath, prefix);
 
-  const commands = await CommandManager.createProjectWithDefaults(
-    projectPath,
-    params,
-    {
-      ...registry.options,
-      gitUser: user ?? undefined,
-    },
-  );
+  const ws = await Workspace.createProjectWithDefaults(projectPath, params, {
+    ...registry.options,
+    gitUser: user ?? undefined,
+  });
 
-  registry.add(prefix, commands);
+  registry.add(prefix, ws);
 
   return {
     prefix,
@@ -82,9 +74,9 @@ export async function cloneProject(
       skippedDuplicates.push(project.prefix);
       continue;
     }
-    const commands = new CommandManager(project.path, registry.options);
-    await commands.initialize();
-    registry.add(project.prefix, commands);
+    const ws = new Workspace(project.path, registry.options);
+    await ws.initialize();
+    registry.add(project.prefix, ws);
     registered.push({
       prefix: project.prefix,
       name: project.name,

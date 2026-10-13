@@ -15,7 +15,7 @@ import Handlebars from 'handlebars';
 import { workflowGraph } from '@cyberismo/assets';
 
 import type { Context } from '../interfaces/project-interfaces.js';
-import type { Project } from '../containers/project.js';
+import type { Checkout } from '../containers/project.js';
 import type { QueryName, QueryResult } from '../types/queries.js';
 import { registerClingoHelpers } from '../utils/handlebars-helpers.js';
 import { read } from '../utils/rw-lock.js';
@@ -29,7 +29,7 @@ const workflowGraphView = workflowGraphHandlebars.compile<{
 
 // Class that calculates with logic program card / project level calculations.
 export class Calculate {
-  constructor(private project: Project) {}
+  constructor(private checkout: Checkout) {}
 
   /**
    * Exports logic program to a given file
@@ -43,7 +43,7 @@ export class Calculate {
     programs: string[] = ['all'],
     query?: QueryName,
   ) {
-    await this.project.calculationEngine.exportLogicProgram(
+    await this.checkout.calculationEngine.exportLogicProgram(
       destination,
       programs,
       query,
@@ -58,7 +58,7 @@ export class Calculate {
    */
   @read
   public async runGraph(model: string, view: string, context: Context) {
-    return this.project.calculationEngine.runGraph(model, view, context);
+    return this.checkout.calculationEngine.runGraph(model, view, context);
   }
 
   /**
@@ -76,7 +76,7 @@ export class Calculate {
       workflow: workflowName,
       currentState: options.currentState,
     });
-    return this.project.calculationEngine.runGraph(
+    return this.checkout.calculationEngine.runGraph(
       workflowGraph.model,
       view,
       options.context ?? 'localApp',
@@ -90,7 +90,7 @@ export class Calculate {
    */
   @read
   public async runLogicProgram(query: string, context: Context = 'localApp') {
-    return this.project.calculationEngine.runLogicProgram(query, context);
+    return this.checkout.calculationEngine.runLogicProgram(query, context);
   }
 
   /**
@@ -104,8 +104,8 @@ export class Calculate {
     context: Context = 'localApp',
     options?: unknown,
   ): Promise<QueryResult<T>[]> {
-    return this.project.lock.read(async () =>
-      this.project.calculationEngine.runQuery(queryName, context, options),
+    return this.checkout.lock.read(async () =>
+      this.checkout.calculationEngine.runQuery(queryName, context, options),
     );
   }
 }

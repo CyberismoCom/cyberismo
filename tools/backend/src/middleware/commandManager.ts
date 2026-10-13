@@ -11,7 +11,7 @@
 */
 
 import type { Context, MiddlewareHandler } from 'hono';
-import type { CommandManager } from '@cyberismo/data-handler';
+import type { Workspace } from '@cyberismo/data-handler';
 import { getCurrentUser } from './auth.js';
 import type { ProjectRegistry } from '../project-registry.js';
 import type { ProjectEvents } from '../domain/events/project-events.js';
@@ -19,7 +19,7 @@ import type { ProjectEvents } from '../domain/events/project-events.js';
 // Extend Hono Context type to include our custom properties
 declare module 'hono' {
   interface ContextVariableMap {
-    commands: CommandManager;
+    ws: Workspace;
     events: ProjectEvents;
     projectPath: string;
     registry: ProjectRegistry;
@@ -31,25 +31,21 @@ declare module 'hono' {
  */
 async function runWithCommands(
   c: Context,
-  commands: CommandManager,
+  ws: Workspace,
   next: () => Promise<void>,
 ) {
   const user = getCurrentUser(c);
   if (!user) {
     throw new Error('CommandManager expects a user');
   }
-  c.set('commands', commands);
-  c.set('projectPath', commands.project.basePath);
-  await commands.runAsAuthor({ name: user.name, email: user.email }, () =>
-    next(),
-  );
+  c.set('ws', ws);
+  c.set('projectPath', ws.checkout.basePath);
+  await ws.runAsAuthor({ name: user.name, email: user.email }, () => next());
 }
 
 // TODO: Remove once MCP is made project-scoped via attachProjectRegistry
-export const attachCommandManager = (
-  commands: CommandManager,
-): MiddlewareHandler => {
-  return (c, next) => runWithCommands(c, commands, next);
+export const attachCommandManager = (ws: Workspace): MiddlewareHandler => {
+  return (c, next) => runWithCommands(c, ws, next);
 };
 
 /**
@@ -71,11 +67,11 @@ export const attachProjectRegistry = (
     if (!prefix) {
       return c.json({ error: 'Project prefix is required' }, 400);
     }
-    const commands = registry.get(prefix);
-    if (!commands) {
+    const ws = registry.get(prefix);
+    if (!ws) {
       return c.json({ error: `Project '${prefix}' not found` }, 404);
     }
-    c.set('events', registry.eventsFor(commands));
-    return runWithCommands(c, commands, next);
+    c.set('events', registry.eventsFor(ws));
+    return runWithCommands(c, ws, next);
   };
 };

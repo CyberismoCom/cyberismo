@@ -40,7 +40,7 @@ import { errorFunction } from '../utils/error-utils.js';
 import { sortCards } from '../utils/card-utils.js';
 import { isPredefinedField } from '../utils/constants.js';
 import { pathExists } from '../utils/file-utils.js';
-import type { Project } from '../containers/project.js';
+import type { Checkout } from '../containers/project.js';
 import { readJsonFile } from '../utils/json.js';
 import { type ResourceName, resourceName } from '../utils/resource-utils.js';
 import { normalizeSchemaId, schemaValidator } from '../utils/validate.js';
@@ -223,12 +223,12 @@ export class Validate {
 
   // Handles reading and validating 'contentSchema' in a directory.
   private async readAndValidateContentFiles(
-    project: Project,
+    checkout: Checkout,
     path: string,
   ): Promise<string[]> {
     const message: string[] = [];
     try {
-      const prefixes = project.allModulePrefixes();
+      const prefixes = checkout.allModulePrefixes();
       const files = await readdir(path, {
         withFileTypes: true,
       });
@@ -384,7 +384,7 @@ export class Validate {
 
   // Validate array of custom field names
   private async validateArrayOfFields(
-    project: Project,
+    checkout: Checkout,
     cardType: CardType,
     fieldArray: string[],
     nameOfArray: string,
@@ -394,7 +394,7 @@ export class Validate {
       const validationPromises = fieldArray.map(async (field) => {
         let fieldType;
         try {
-          fieldType = project.resources.byType(field, 'fieldTypes').show();
+          fieldType = checkout.resources.byType(field, 'fieldTypes').show();
         } catch {
           fieldType = undefined;
         }
@@ -524,7 +524,7 @@ export class Validate {
    */
   public async validate(
     projectPath: string,
-    projectFn: () => Project,
+    projectFn: () => Checkout,
   ): Promise<string> {
     let validationErrors = '';
     this.validatedFieldTypes.clear();
@@ -547,12 +547,12 @@ export class Validate {
         return validationErrors;
       } else {
         const errorMsg: string[] = [];
-        const project = projectFn();
-        await project.populateCaches();
+        const checkout = projectFn();
+        await checkout.populateCaches();
 
         // Then, validate that each 'contentSchema' children as well.
         const result = await this.readAndValidateContentFiles(
-          project,
+          checkout,
           projectPath,
         );
         if (result.length > 0) {
@@ -561,7 +561,7 @@ export class Validate {
 
         // Validate workflow-specific rules; files on disk may have been
         // edited by hand and bypassed validation at creation or update time.
-        for (const workflow of project.resources.workflows()) {
+        for (const workflow of checkout.resources.workflows()) {
           try {
             await workflow.validate();
           } catch (error) {
@@ -572,7 +572,7 @@ export class Validate {
         // Validate calculations; files on disk may have been edited by hand
         // and bypassed validation at creation or update time. Each is checked
         // independently so all failures are reported.
-        for (const calculation of project.resources.calculations()) {
+        for (const calculation of checkout.resources.calculations()) {
           try {
             await calculation.validate();
           } catch (error) {
@@ -583,17 +583,17 @@ export class Validate {
         // Finally, validate that each card is correct. Sorted so the reported
         // errors come out in the same order on every run.
         const cards = [
-          ...project.cardTree.cards(),
-          ...project.allTemplateCards(),
+          ...checkout.cardTree.cards(),
+          ...checkout.allTemplateCards(),
         ].sort((a, b) => sortCards(a.key, b.key));
 
-        const allPrefixes = project.allModulePrefixes();
+        const allPrefixes = checkout.allModulePrefixes();
 
         for (const card of cards) {
           if (card.metadata) {
-            if (project.treeOf(card.key).kind === 'project') {
+            if (checkout.treeOf(card.key).kind === 'project') {
               const validWorkflow = await this.validateWorkflowState(
-                project,
+                checkout,
                 card,
               );
               if (validWorkflow.length !== 0) {
@@ -602,7 +602,7 @@ export class Validate {
             }
           }
           const validCustomFields = await this.validateCustomFields(
-            project,
+            checkout,
             card,
             allPrefixes,
           );
@@ -622,7 +622,7 @@ export class Validate {
               await evaluateMacros(card.content, {
                 context: 'localApp',
                 mode: 'validate',
-                project: project,
+                checkout,
                 cardKey: card.key,
               });
             } catch (error) {
@@ -731,13 +731,13 @@ export class Validate {
 
   /**
    * Validates that card's custom fields are according to schema and have correct data in them.
-   * @param project currently used Project
+   * @param checkout currently used Project
    * @param card specific card
    * @throws when card does not have metadata
    * @returns validation errors, if any.
    */
   public async validateCustomFields(
-    project: Project,
+    checkout: Checkout,
     card: Card,
     prefixes: string[],
   ): Promise<string> {
@@ -751,7 +751,7 @@ export class Validate {
 
     let cardType;
     try {
-      cardType = project.resources
+      cardType = checkout.resources
         .byType(card.metadata?.cardType, 'cardTypes')
         .show();
     } catch {
@@ -767,14 +767,14 @@ export class Validate {
 
     // Check that arrays of field types refer to existing fields.
     let fieldErrors = await this.validateArrayOfFields(
-      project,
+      checkout,
       cardType,
       cardType.optionallyVisibleFields,
       'optionally visible fields',
     );
     validationErrors.push(...fieldErrors);
     fieldErrors = await this.validateArrayOfFields(
-      project,
+      checkout,
       cardType,
       cardType.alwaysVisibleFields,
       'always visible fields',
@@ -784,7 +784,7 @@ export class Validate {
     for (const field of cardType.customFields) {
       let fieldType;
       try {
-        fieldType = await project.resources
+        fieldType = await checkout.resources
           .byType(field.name, 'fieldTypes')
           .show();
       } catch {
@@ -899,12 +899,12 @@ export class Validate {
   /**
    * Checks if card's current workflow state matches workflow that card's card type is using.
    * Template cards are expected to have empty workflow state.
-   * @param project Project object.
+   * @param checkout Project object.
    * @param card Card object to validate
    * @returns validation errors, if any.
    */
   public async validateWorkflowState(
-    project: Project,
+    checkout: Checkout,
     card: Card,
   ): Promise<string> {
     const validationErrors: string[] = [];
@@ -918,7 +918,7 @@ export class Validate {
     let cardType;
     try {
       cardType = card.metadata?.cardType
-        ? project.resources.byType(card.metadata?.cardType, 'cardTypes').show()
+        ? checkout.resources.byType(card.metadata?.cardType, 'cardTypes').show()
         : undefined;
     } catch {
       cardType = undefined;
@@ -938,7 +938,7 @@ export class Validate {
 
     let workflow;
     try {
-      workflow = project.resources
+      workflow = checkout.resources
         .byType(cardType.workflow, 'workflows')
         .show();
     } catch {
@@ -953,7 +953,7 @@ export class Validate {
     }
 
     const cardState = card.metadata?.workflowState;
-    if (project.treeOf(card.key).kind === 'project') {
+    if (checkout.treeOf(card.key).kind === 'project') {
       const found = workflow.states.find((item) => item.name === cardState);
       if (!found) {
         validationErrors.push(
@@ -973,15 +973,15 @@ export class Validate {
   /**
    * Validates a single resource.
    * @param resourceName Resource to validate
-   * @param project Project instance to use.
+   * @param checkout Project instance to use.
    * @returns validation errors, if any.
    */
   public async validateResource(
     resourceName: ResourceName,
-    project: Project,
+    checkout: Checkout,
   ): Promise<string> {
     try {
-      const resource = project.resources.byType(resourceName);
+      const resource = checkout.resources.byType(resourceName);
       await resource.validate();
       return '';
     } catch (error) {

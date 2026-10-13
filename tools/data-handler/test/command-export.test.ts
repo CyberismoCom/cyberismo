@@ -2,7 +2,7 @@ import { mkdirSync, rmSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
-import { Cmd, CommandManager, Commands } from '../src/command-handler.js';
+import { Cmd, Workspace, Commands } from '../src/command-handler.js';
 import { copyDir } from '../src/utils/file-utils.js';
 import type { ExportCommandOptions } from '../src/interfaces/command-options.js';
 import {
@@ -108,27 +108,25 @@ describe('adoc export section order', () => {
   });
 
   it('orders the descendants of a card by rank', async () => {
-    const commands = await CommandManager.getInstance(projectPath);
+    const ws = await Workspace.getInstance(projectPath);
     const template = 'decision/templates/decision';
 
     // Two cards below the level the tree query orders, cached in creation
     // order and ranked the other way around.
     const firstCreated = (
-      await commands.createCmd.createCard(template, 'decision_6')
+      await ws.createCmd.createCard(template, 'decision_6')
     )[0].key;
     const lastCreated = (
-      await commands.createCmd.createCard(template, 'decision_6')
+      await ws.createCmd.createCard(template, 'decision_6')
     )[0].key;
-    await commands.moveCmd.rankFirst(lastCreated);
+    await ws.moveCmd.rankFirst(lastCreated);
 
     const rankOrder = [lastCreated, firstCreated];
-    expect(commands.project.findCard('decision_6').children).not.toEqual(
-      rankOrder,
-    );
+    expect(ws.checkout.findCard('decision_6').children).not.toEqual(rankOrder);
 
-    await commands.project.calculationEngine.generate();
+    await ws.checkout.calculationEngine.generate();
     const output = join(orderTestDir, 'output');
-    await commands.exportCmd.exportToADoc(output);
+    await ws.exportCmd.exportToADoc(output);
 
     const adoc = await readFile(join(output, 'index.adoc'), 'utf-8');
     const positionOf = (cardKey: string) =>

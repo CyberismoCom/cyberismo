@@ -29,7 +29,7 @@ import { validateJson } from '../utils/validate.js';
 import { write } from '../utils/rw-lock.js';
 
 import type { ModuleSetting } from '../interfaces/project-interfaces.js';
-import type { Project } from '../containers/project.js';
+import type { Checkout } from '../containers/project.js';
 
 // Cached data of a single hub.
 export interface CachedHub {
@@ -77,8 +77,11 @@ export const MODULE_LIST_FULL_PATH = `${TEMP_FOLDER}/${MODULE_LIST_FILE}`;
 
 export class Fetch {
   private moduleListPath;
-  constructor(private project: Project) {
-    this.moduleListPath = resolve(this.project.basePath, MODULE_LIST_FULL_PATH);
+  constructor(private checkout: Checkout) {
+    this.moduleListPath = resolve(
+      this.checkout.basePath,
+      MODULE_LIST_FULL_PATH,
+    );
   }
 
   private get logger() {
@@ -184,7 +187,7 @@ export class Fetch {
   // each hub's version with the stored version.
   private async fetchModuleList(): Promise<boolean> {
     try {
-      const configuredHubs = this.project.configuration.hubs;
+      const configuredHubs = this.checkout.configuration.hubs;
       if (configuredHubs.length === 0) {
         return false;
       }
@@ -308,7 +311,7 @@ export class Fetch {
     // location: a hub can be removed by any spelling of its location, but the
     // entries left in the configuration are exactly the ones worth keeping.
     const configured = new Set(
-      this.project.configuration.hubs.map((hub) =>
+      this.checkout.configuration.hubs.map((hub) =>
         canonicalHubLocation(hub.location),
       ),
     );
@@ -369,7 +372,7 @@ export class Fetch {
       }
     }
 
-    const hubs = this.project.configuration.hubs;
+    const hubs = this.checkout.configuration.hubs;
     const cachedHubs: CachedHub[] = [];
     const failures: HubFetchFailure[] = [];
     const previous = await this.cachedHubs();
@@ -397,7 +400,7 @@ export class Fetch {
     }
 
     try {
-      const normalizedBasePath = resolve(this.project.basePath);
+      const normalizedBasePath = resolve(this.checkout.basePath);
       if (
         !this.moduleListPath.startsWith(normalizedBasePath + sep) &&
         this.moduleListPath !== normalizedBasePath
@@ -407,7 +410,7 @@ export class Fetch {
         );
       }
 
-      await mkdir(resolve(this.project.basePath, TEMP_FOLDER), {
+      await mkdir(resolve(this.checkout.basePath, TEMP_FOLDER), {
         recursive: true,
       });
       await writeJsonFile(this.moduleListPath, {

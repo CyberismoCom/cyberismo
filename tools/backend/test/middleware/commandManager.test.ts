@@ -4,7 +4,7 @@ import {
   attachCommandManager,
   attachProjectRegistry,
 } from '../../src/middleware/commandManager.js';
-import type { CommandManager } from '@cyberismo/data-handler';
+import type { Workspace } from '@cyberismo/data-handler';
 import { UserRole } from '../../src/types.js';
 import type { UserInfo } from '../../src/types.js';
 import { ProjectRegistry } from '../../src/project-registry.js';
@@ -16,26 +16,26 @@ const testUser: UserInfo = {
   role: UserRole.Editor,
 };
 
-function mockCommands(overrides?: Partial<CommandManager>) {
+function mockCommands(overrides?: Partial<Workspace>) {
   return {
-    project: { basePath: '/tmp/test-project' },
+    checkout: { basePath: '/tmp/test-project' },
     runAsAuthor: vi.fn((_author, fn) => fn()),
     ...overrides,
-  } as unknown as CommandManager;
+  } as unknown as Workspace;
 }
 
 describe('attachCommandManager', () => {
   it('sets commands and projectPath on context', async () => {
-    const commands = mockCommands();
+    const ws = mockCommands();
     const app = new Hono();
     app.use('*', async (c, next) => {
       c.set('user', testUser);
       await next();
     });
-    app.use('*', attachCommandManager(commands));
+    app.use('*', attachCommandManager(ws));
     app.get('/test', (c) =>
       c.json({
-        hasCommands: c.get('commands') === commands,
+        hasCommands: c.get('ws') === ws,
         projectPath: c.get('projectPath'),
       }),
     );
@@ -51,7 +51,7 @@ describe('attachCommandManager', () => {
   });
 
   it('wraps next() with runAsAuthor when user is present', async () => {
-    const commands = mockCommands();
+    const ws = mockCommands();
     const app = new Hono();
 
     // Simulate auth middleware setting user
@@ -59,27 +59,27 @@ describe('attachCommandManager', () => {
       c.set('user', testUser);
       await next();
     });
-    app.use('*', attachCommandManager(commands));
+    app.use('*', attachCommandManager(ws));
     app.get('/test', (c) => c.json({ ok: true }));
 
     const res = await app.request('/test');
     expect(res.status).toBe(200);
-    expect(commands.runAsAuthor).toHaveBeenCalledOnce();
-    expect(commands.runAsAuthor).toHaveBeenCalledWith(
+    expect(ws.runAsAuthor).toHaveBeenCalledOnce();
+    expect(ws.runAsAuthor).toHaveBeenCalledWith(
       { name: testUser.name, email: testUser.email },
       expect.any(Function),
     );
   });
 
   it('throws when no user is present', async () => {
-    const commands = mockCommands();
+    const ws = mockCommands();
     const app = new Hono();
-    app.use('*', attachCommandManager(commands));
+    app.use('*', attachCommandManager(ws));
     app.get('/test', (c) => c.json({ ok: true }));
 
     const res = await app.request('/test');
     expect(res.status).toBe(500);
-    expect(commands.runAsAuthor).not.toHaveBeenCalled();
+    expect(ws.runAsAuthor).not.toHaveBeenCalled();
   });
 });
 
@@ -88,9 +88,9 @@ describe('attachProjectRegistry', () => {
     return new ProjectRegistry(
       entries.map(({ prefix }) => ({
         prefix,
-        commands: mockCommands({
-          project: { basePath: `/tmp/${prefix}` },
-        } as Partial<CommandManager>),
+        ws: mockCommands({
+          checkout: { basePath: `/tmp/${prefix}` },
+        } as Partial<Workspace>),
       })),
     );
   }

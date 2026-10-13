@@ -11,7 +11,7 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { type Project } from '../containers/project.js';
+import { type Checkout } from '../containers/project.js';
 import { renameProjectPrefix } from '../utils/prefix-rename.js';
 import { write } from '../utils/rw-lock.js';
 
@@ -27,9 +27,9 @@ import { write } from '../utils/rw-lock.js';
 export class Rename {
   /**
    * Creates an instance of Rename command.
-   * @param project Project instance to use.
+   * @param checkout Project instance to use.
    */
-  constructor(private project: Project) {}
+  constructor(private checkout: Checkout) {}
 
   /**
    * Renames project prefix.
@@ -45,10 +45,10 @@ export class Rename {
     if (!to) {
       throw new Error(`Input validation error: empty 'to' is not allowed`);
     }
-    const published = this.project.configuration.version;
+    const published = this.checkout.configuration.version;
     if (published && !force) {
       throw new Error(
-        `Project prefix '${this.project.projectPrefix}' is this module's ` +
+        `Project prefix '${this.checkout.projectPrefix}' is this module's ` +
           `identity and was fixed when version ${published} was published. ` +
           `Consumers reference every resource and card key by that prefix, ` +
           `so a renamed module is a new module. Create a new module, or run ` +
@@ -56,6 +56,6 @@ export class Rename {
           `must then install it and remove the old one.`,
       );
     }
-    await renameProjectPrefix(this.project, to);
+    await renameProjectPrefix(this.checkout, to);
   }
 }

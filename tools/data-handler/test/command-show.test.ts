@@ -7,7 +7,7 @@ import { join } from 'node:path';
 import { readFile } from 'node:fs/promises';
 
 import { sleep } from '../src/utils/common-utils.js';
-import { Cmd, Commands, CommandManager } from '../src/command-handler.js';
+import { Cmd, Commands, Workspace } from '../src/command-handler.js';
 import { copyDir } from '../src/utils/file-utils.js';
 import { resourceName } from '../src/utils/resource-utils.js';
 import { Show } from '../src/commands/index.js';
@@ -50,9 +50,9 @@ describe('shows command', () => {
     });
     it('show attachment file', async () => {
       // No commandHandler command for getting attachment files, so using Show directly
-      const project = getTestProject(decisionRecordsPath);
-      await project.populateCaches();
-      const showCommand = new Show(project);
+      const checkout = getTestProject(decisionRecordsPath);
+      await checkout.populateCaches();
+      const showCommand = new Show(checkout);
       const result = await showCommand.showAttachment(
         'decision_1',
         'the-needle.heic',
@@ -63,18 +63,18 @@ describe('shows command', () => {
     });
     it('show attachment file, card not found', async () => {
       // No commandHandler command for getting attachment files, so using Show directly
-      const project = getTestProject(decisionRecordsPath);
-      await project.populateCaches();
-      const showCommand = new Show(project);
+      const checkout = getTestProject(decisionRecordsPath);
+      await checkout.populateCaches();
+      const showCommand = new Show(checkout);
       await expect(
         showCommand.showAttachment('invalid_key', 'does-not-exist.png'),
       ).rejects.toThrow(CardNotFoundError);
     });
     it('show attachment file, file not found', async () => {
       // No commandHandler command for getting attachment files, so using Show directly
-      const project = getTestProject(decisionRecordsPath);
-      await project.populateCaches();
-      const showCommand = new Show(project);
+      const checkout = getTestProject(decisionRecordsPath);
+      await checkout.populateCaches();
+      const showCommand = new Show(checkout);
       await expect(
         showCommand.showAttachment('decision_1', 'does-not-exist.png'),
       ).rejects.toThrow(
@@ -638,15 +638,15 @@ describe('show', () => {
   const baseDir = getTestBaseDir(import.meta.dirname, import.meta.url);
   const testDir = join(baseDir, 'tmp-show-tests');
   const decisionRecordsPath = join(testDir, 'valid/decision-records');
-  let commands: CommandManager;
+  let ws: Workspace;
   let showCmd: Show;
 
   beforeEach(async () => {
     mkdirSync(testDir, { recursive: true });
     await copyDir('test/test-data/', testDir);
-    commands = new CommandManager(decisionRecordsPath, {});
-    await commands.initialize();
-    showCmd = commands.showCmd;
+    ws = new Workspace(decisionRecordsPath, {});
+    await ws.initialize();
+    showCmd = ws.showCmd;
   });
 
   afterEach(() => {
@@ -774,12 +774,12 @@ describe('show', () => {
   it('modules show - no module name defined', async () => {
     const moduleName = '';
 
-    await expect(commands.modulesCmd.show(moduleName)).rejects.toThrow(
+    await expect(ws.modulesCmd.show(moduleName)).rejects.toThrow(
       `Module '' does not exist in the project`,
     );
   });
   it('modules list (success)', async () => {
-    const results = await commands.modulesCmd.list();
+    const results = await ws.modulesCmd.list();
     expect(results).not.toBeUndefined();
   });
   it('showProject (success)', async () => {
@@ -912,7 +912,7 @@ describe('show', () => {
         cardKey: 'decision_5',
       },
     };
-    await commands.project.calculationEngine.generate();
+    await ws.checkout.calculationEngine.generate();
     const results = await showCmd.showReportResults(
       parameters.name,
       parameters.parameters.cardKey,
@@ -929,7 +929,7 @@ describe('show', () => {
         cardKey: 'decision_5',
       },
     };
-    await commands.project.calculationEngine.generate();
+    await ws.checkout.calculationEngine.generate();
     const results = await showCmd.showReportResults(
       parameters.name,
       parameters.parameters.cardKey,
@@ -948,7 +948,7 @@ describe('show', () => {
         cardKey: 'decision_5',
       },
     };
-    await commands.project.calculationEngine.generate();
+    await ws.checkout.calculationEngine.generate();
     const results = await showCmd.showReportResults(
       parameters.name,
       parameters.parameters.cardKey,
@@ -967,7 +967,7 @@ describe('show', () => {
         wrongKey: 'blaah',
       },
     };
-    await commands.project.calculationEngine.generate();
+    await ws.checkout.calculationEngine.generate();
     await expect(
       showCmd.showReportResults(
         parameters.name,
@@ -981,9 +981,7 @@ describe('show', () => {
   it('show content template (success)', async () => {
     // TODO: should be moved to resource tests
     const name = 'decision/reports/anotherReport';
-    const result = await commands.project.resources
-      .byType(name, 'reports')
-      .show();
+    const result = await ws.checkout.resources.byType(name, 'reports').show();
     expect(result).not.toBeUndefined();
     const content = result.content.contentTemplate;
     expect(content).not.toBeUndefined();

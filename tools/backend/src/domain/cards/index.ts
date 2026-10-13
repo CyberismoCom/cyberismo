@@ -49,10 +49,10 @@ function notifyCardsUpdated(c: Context, keys: string[]) {
  *         description: project_path not set.
  */
 router.get('/', requireRole(UserRole.Reader), async (c) => {
-  const commands = c.get('commands');
+  const ws = c.get('ws');
 
   try {
-    const response = await cardService.getProjectInfo(commands);
+    const response = await cardService.getProjectInfo(ws);
     return c.json(response);
   } catch (error) {
     return c.text(
@@ -104,10 +104,10 @@ router.post(
   requireRole(UserRole.Reader),
   zValidator('json', exportCardPdfSchema),
   async (c) => {
-    const commands = c.get('commands');
+    const ws = c.get('ws');
     const body = (await c.req.json()) as ExportCardPdfRequestBody;
     try {
-      const result = await cardService.exportCard(commands, {
+      const result = await cardService.exportCard(ws, {
         cardKey: body.cardKey,
         title: body.title,
         name: body.name,
@@ -162,9 +162,9 @@ router.get(
   '/:key',
   requireRole(UserRole.Reader),
   ssgParams(async (c: AppContext) => {
-    const commands = c.get('commands');
+    const ws = c.get('ws');
     const opts = c.get('tree');
-    const cards = await cardService.findAllCards(commands, opts);
+    const cards = await cardService.findAllCards(ws, opts);
     return cards.map((card) => ({ key: card.key }));
   }),
   async (c) => {
@@ -176,7 +176,7 @@ router.get(
     const raw = c.req.query('raw');
 
     const result = await getCardDetails(
-      c.get('commands'),
+      c.get('ws'),
       key,
       isSSGContext(c),
       raw?.toLowerCase() === 'true' ? true : false,
@@ -231,7 +231,7 @@ router.get(
  *         description: project_path not set.
  */
 router.patch('/:key', requireRole(UserRole.Editor), async (c) => {
-  const commands = c.get('commands');
+  const ws = c.get('ws');
   const key = c.req.param('key');
   if (!key) {
     return c.text('No search key', 400);
@@ -242,11 +242,11 @@ router.patch('/:key', requireRole(UserRole.Editor), async (c) => {
   const body = await c.req.json();
 
   try {
-    if (await cardService.updateCard(commands, key, body)) {
+    if (await cardService.updateCard(ws, key, body)) {
       notifyCardsUpdated(c, [key]);
     }
     const result = await getCardDetails(
-      c.get('commands'),
+      c.get('ws'),
       key,
       isSSGContext(c),
       raw?.toLowerCase() === 'true' ? true : false,
@@ -290,14 +290,14 @@ router.patch('/:key', requireRole(UserRole.Editor), async (c) => {
  *         description: project_path not set.
  */
 router.delete('/:key', requireRole(UserRole.Editor), async (c) => {
-  const commands = c.get('commands');
+  const ws = c.get('ws');
   const key = c.req.param('key');
   if (!key) {
     return c.text('No search key', 400);
   }
 
   try {
-    await cardService.deleteCard(commands, key);
+    await cardService.deleteCard(ws, key);
     return new Response(null, { status: 204 });
   } catch (error) {
     return c.json(
@@ -345,7 +345,7 @@ router.post('/:key', requireRole(UserRole.Editor), async (c) => {
 
   try {
     const result = await cardService.createCard(
-      c.get('commands'),
+      c.get('ws'),
       body.template,
       key,
     );
@@ -389,7 +389,7 @@ router.post('/:key', requireRole(UserRole.Editor), async (c) => {
  *         description: Server error
  */
 router.post('/:key/attachments', requireRole(UserRole.Editor), async (c) => {
-  const commands = c.get('commands');
+  const ws = c.get('ws');
   const key = c.req.param('key');
 
   try {
@@ -400,7 +400,7 @@ router.post('/:key/attachments', requireRole(UserRole.Editor), async (c) => {
     }
 
     const result = await cardService.uploadAttachments(
-      commands,
+      ws,
       key,
       files as File[],
     );
@@ -447,15 +447,11 @@ router.delete(
   '/:key/attachments/:filename',
   requireRole(UserRole.Editor),
   async (c) => {
-    const commands = c.get('commands');
+    const ws = c.get('ws');
     const { key, filename } = c.req.param();
 
     try {
-      const result = await cardService.removeAttachment(
-        commands,
-        key,
-        filename,
-      );
+      const result = await cardService.removeAttachment(ws, key, filename);
       notifyCardsUpdated(c, [key]);
       return c.json(result);
     } catch (error) {
@@ -500,7 +496,7 @@ router.delete(
  *         description: Server error
  */
 router.post('/:key/parse', requireRole(UserRole.Reader), async (c) => {
-  const commands = c.get('commands');
+  const ws = c.get('ws');
   const key = c.req.param('key');
   const { content } = await c.req.json();
 
@@ -509,7 +505,7 @@ router.post('/:key/parse', requireRole(UserRole.Reader), async (c) => {
   }
 
   try {
-    const result = await cardService.parseContent(commands, key, content);
+    const result = await cardService.parseContent(ws, key, content);
     return c.json(result);
   } catch (error) {
     return c.json(
@@ -558,13 +554,13 @@ router.post(
   requireRole(UserRole.Editor),
   zValidator('json', createLinkSchema),
   async (c) => {
-    const commands = c.get('commands');
+    const ws = c.get('ws');
     const key = c.req.param('key');
     const { toCard, linkType, description, direction } = c.req.valid('json');
 
     try {
       const result = await cardService.createLink(
-        commands,
+        ws,
         key,
         toCard,
         linkType,
@@ -621,13 +617,13 @@ router.delete(
   requireRole(UserRole.Editor),
   zValidator('json', removeLinkSchema),
   async (c) => {
-    const commands = c.get('commands');
+    const ws = c.get('ws');
     const key = c.req.param('key');
     const { toCard, linkType, description, direction } = c.req.valid('json');
 
     try {
       const result = await cardService.removeLink(
-        commands,
+        ws,
         key,
         toCard,
         linkType,
@@ -694,7 +690,7 @@ router.put(
   requireRole(UserRole.Editor),
   zValidator('json', updateLinkSchema),
   async (c) => {
-    const commands = c.get('commands');
+    const ws = c.get('ws');
     const key = c.req.param('key');
 
     const {
@@ -710,7 +706,7 @@ router.put(
 
     try {
       const result = await cardService.updateLink(
-        commands,
+        ws,
         key,
         toCard,
         linkType,
@@ -763,11 +759,11 @@ router.get(
   '/:key/a/:attachment',
   requireRole(UserRole.Reader),
   ssgParams(async (c: Context) => {
-    const commands = c.get('commands');
-    return await cardService.findRelevantAttachments(commands, c.get('tree'));
+    const ws = c.get('ws');
+    return await cardService.findRelevantAttachments(ws, c.get('tree'));
   }),
   async (c) => {
-    const commands = c.get('commands');
+    const ws = c.get('ws');
     const { key, attachment } = c.req.param();
     const filename = decodeURI(attachment);
 
@@ -777,7 +773,7 @@ router.get(
 
     try {
       const attachmentResponse = await cardService.getAttachment(
-        commands,
+        ws,
         key,
         filename,
       );

@@ -6,7 +6,7 @@ import { readFile } from 'node:fs/promises';
 import { join, sep, resolve as pathResolve } from 'node:path';
 
 // cyberismo
-import { Cmd, Commands, CommandManager } from '../src/command-handler.js';
+import { Cmd, Commands, Workspace } from '../src/command-handler.js';
 import { copyDir } from '../src/utils/file-utils.js';
 import { Fetch, Modules, Remove } from '../src/commands/index.js';
 import {
@@ -293,9 +293,9 @@ describe('remove command', () => {
       const card = await createCard(commandHandler);
 
       // To avoid logged errors from clingo queries during tests, generate calculations.
-      const project = getTestProject(decisionRecordsPath);
-      await project.populateCaches();
-      await project.calculationEngine.generate();
+      const checkout = getTestProject(decisionRecordsPath);
+      await checkout.populateCaches();
+      await checkout.calculationEngine.generate();
 
       const cardId = card.affectsCards![0];
       await commandHandler.command(
@@ -578,13 +578,13 @@ describe('remove command', () => {
     });
     it('try to remove non-existing attachment', async () => {
       const cardId = 'decision_5';
-      const project = getTestProject(decisionRecordsPath);
-      await project.populateCaches();
-      const fetchCmd = new Fetch(project);
+      const checkout = getTestProject(decisionRecordsPath);
+      await checkout.populateCaches();
+      const fetchCmd = new Fetch(checkout);
       const removeCmd = new Remove(
-        project,
+        checkout,
         fetchCmd,
-        new Modules(project, fetchCmd),
+        new Modules(checkout, fetchCmd),
       );
 
       await expect(
@@ -593,13 +593,13 @@ describe('remove command', () => {
     });
     it('try to remove attachment from non-existing card', async () => {
       const cardId = 'decision_999';
-      const project = getTestProject(decisionRecordsPath);
-      await project.populateCaches();
-      const fetchCmd = new Fetch(project);
+      const checkout = getTestProject(decisionRecordsPath);
+      await checkout.populateCaches();
+      const fetchCmd = new Fetch(checkout);
       const removeCmd = new Remove(
-        project,
+        checkout,
         fetchCmd,
-        new Modules(project, fetchCmd),
+        new Modules(checkout, fetchCmd),
       );
 
       await expect(
@@ -607,13 +607,13 @@ describe('remove command', () => {
       ).rejects.toThrow();
     });
     it('try to remove non-existing module', async () => {
-      const project = getTestProject(decisionRecordsPath);
-      await project.populateCaches();
-      const fetchCmd = new Fetch(project);
+      const checkout = getTestProject(decisionRecordsPath);
+      await checkout.populateCaches();
+      const fetchCmd = new Fetch(checkout);
       const removeCmd = new Remove(
-        project,
+        checkout,
         fetchCmd,
-        new Modules(project, fetchCmd),
+        new Modules(checkout, fetchCmd),
       );
 
       await expect(
@@ -645,13 +645,13 @@ describe('remove card', () => {
   const baseDir = getTestBaseDir(import.meta.dirname, import.meta.url);
   const testDir = join(baseDir, 'tmp-remove-tests');
   const decisionRecordsPath = join(testDir, 'valid/decision-records');
-  let commands: CommandManager;
+  let ws: Workspace;
 
   beforeEach(async () => {
     mkdirSync(testDir, { recursive: true });
     await copyDir('test/test-data/', testDir);
-    commands = new CommandManager(decisionRecordsPath, {});
-    await commands.initialize();
+    ws = new Workspace(decisionRecordsPath, {});
+    await ws.initialize();
   });
 
   afterEach(() => {
@@ -661,8 +661,7 @@ describe('remove card', () => {
   it('should remove links to children when parent card is removed', async () => {
     // Create a parent+child pair from the simplepage template
     const simplePageTemplate = 'decision/templates/simplepage';
-    const createdCards =
-      await commands.createCmd.createCard(simplePageTemplate);
+    const createdCards = await ws.createCmd.createCard(simplePageTemplate);
     const parentCard = createdCards.find(
       (card) => card.parent === 'root' && card.children.length > 0,
     );
@@ -671,24 +670,24 @@ describe('remove card', () => {
 
     // Create another card and link it to the child
     const decisionTemplate = 'decision/templates/decision';
-    const otherCards = await commands.createCmd.createCard(decisionTemplate);
+    const otherCards = await ws.createCmd.createCard(decisionTemplate);
     const otherCardKey = otherCards[0].key;
 
     const linkType = 'decision/linkTypes/test';
-    await commands.createCmd.createLink(otherCardKey, childKey, linkType);
+    await ws.createCmd.createLink(otherCardKey, childKey, linkType);
 
     // Verify the link exists
-    let otherCard = commands.project.findCard(otherCardKey);
+    let otherCard = ws.checkout.findCard(otherCardKey);
     const linksBefore = otherCard.metadata?.links?.filter(
       (l) => l.cardKey === childKey,
     );
     expect(linksBefore).toHaveLength(1);
 
     // Remove the parent card (which also removes its children)
-    await commands.removeCmd.remove('card', parentCard!.key);
+    await ws.removeCmd.remove('card', parentCard!.key);
 
     // The link from otherCard to the child should also be removed
-    otherCard = commands.project.findCard(otherCardKey);
+    otherCard = ws.checkout.findCard(otherCardKey);
     const linksAfter = otherCard.metadata?.links?.filter(
       (l) => l.cardKey === childKey,
     );
@@ -697,26 +696,24 @@ describe('remove card', () => {
 
   it('should remove card that has children', async () => {
     const cardId = 'decision_5';
-    const fetchCmd = new Fetch(commands.project);
+    const fetchCmd = new Fetch(ws.checkout);
     const removeCmd = new Remove(
-      commands.project,
+      ws.checkout,
       fetchCmd,
-      new Modules(commands.project, fetchCmd),
+      new Modules(ws.checkout, fetchCmd),
     );
     await removeCmd.remove('card', cardId);
 
-    expect(() => commands.project.findCard(cardId)).toThrow(CardNotFoundError);
+    expect(() => ws.checkout.findCard(cardId)).toThrow(CardNotFoundError);
     // Since decision_6 is decision_5's child, it should have been removed as well.
-    expect(() => commands.project.findCard('decision_6')).toThrow(
-      CardNotFoundError,
-    );
+    expect(() => ws.checkout.findCard('decision_6')).toThrow(CardNotFoundError);
   });
 
   it('should not delete template cards when removing project cards', async () => {
     // Use simple-page template which has a parent card (decision_3) with a child card (decision_4)
     const templateName = 'decision/templates/simplepage';
-    await commands.project.populateCaches();
-    const templateResource = commands.project.resources.byType(
+    await ws.checkout.populateCaches();
+    const templateResource = ws.checkout.resources.byType(
       templateName,
       'templates',
     );
@@ -732,27 +729,25 @@ describe('remove card', () => {
     expect(templateCardsWithChildren.length).toBeGreaterThan(0);
 
     // Create cards from template
-    const createdCards = await commands.createCmd.createCard(templateName);
+    const createdCards = await ws.createCmd.createCard(templateName);
     expect(createdCards.length).toBeGreaterThan(0);
 
     const parentCardKey = createdCards.find(
       (card) => card.parent === 'root' && card.children.length > 0,
     )!.key;
-    const parentCard = commands.project.findCard(parentCardKey);
+    const parentCard = ws.checkout.findCard(parentCardKey);
     expect(parentCard.children.length).toBeGreaterThan(0);
 
     // Delete the created project cards
-    await commands.removeCmd.remove('card', parentCardKey!);
+    await ws.removeCmd.remove('card', parentCardKey!);
 
     // Verify project card and its children are deleted
-    expect(() => commands.project.findCard(parentCardKey)).toThrow(
+    expect(() => ws.checkout.findCard(parentCardKey)).toThrow(
       CardNotFoundError,
     );
 
     for (const childKey of parentCard.children) {
-      expect(() => commands.project.findCard(childKey)).toThrow(
-        CardNotFoundError,
-      );
+      expect(() => ws.checkout.findCard(childKey)).toThrow(CardNotFoundError);
     }
 
     // Verify template cards still exist and were not deleted
@@ -804,10 +799,10 @@ describe('remove module — spec behaviours', () => {
     );
     expect(create.statusCode).toBe(200);
 
-    const commands = new CommandManager(projectDir, {});
-    await commands.initialize();
+    const ws = new Workspace(projectDir, {});
+    await ws.initialize();
 
-    await commands.modulesCmd.install(hostRoot);
+    await ws.modulesCmd.install(hostRoot);
     // Both are installed; only `trhost` is a top-level declaration.
     expect(existsSync(join(projectDir, '.cards', 'modules', 'trhost'))).toBe(
       true,
@@ -815,12 +810,10 @@ describe('remove module — spec behaviours', () => {
     expect(existsSync(join(projectDir, '.cards', 'modules', 'trdep'))).toBe(
       true,
     );
-    const topLevelNames = commands.project.configuration.modules.map(
-      (m) => m.name,
-    );
+    const topLevelNames = ws.checkout.configuration.modules.map((m) => m.name);
     expect(topLevelNames).toEqual(['trhost']);
 
-    await expect(commands.removeCmd.remove('module', 'trdep')).rejects.toThrow(
+    await expect(ws.removeCmd.remove('module', 'trdep')).rejects.toThrow(
       "Cannot remove module 'trdep' because it is required by 'trhost'. Remove the parent module(s) first.",
     );
 
@@ -846,11 +839,11 @@ describe('remove module — spec behaviours', () => {
     );
     expect(create.statusCode).toBe(200);
 
-    const commands = new CommandManager(projectDir, {});
-    await commands.initialize();
+    const ws = new Workspace(projectDir, {});
+    await ws.initialize();
 
     await expect(
-      commands.removeCmd.remove('module', 'never-imported'),
+      ws.removeCmd.remove('module', 'never-imported'),
     ).rejects.toThrow("Module 'never-imported' is not part of the project");
   });
 
@@ -879,17 +872,17 @@ describe('remove module — spec behaviours', () => {
     );
     expect(create.statusCode).toBe(200);
 
-    const commands = new CommandManager(projectDir, {});
-    await commands.initialize();
+    const ws = new Workspace(projectDir, {});
+    await ws.initialize();
 
-    await commands.modulesCmd.install(aRoot);
+    await ws.modulesCmd.install(aRoot);
 
     // A, B, C all installed.
     expect(existsSync(join(projectDir, '.cards', 'modules', 'cha'))).toBe(true);
     expect(existsSync(join(projectDir, '.cards', 'modules', 'chb'))).toBe(true);
     expect(existsSync(join(projectDir, '.cards', 'modules', 'chc'))).toBe(true);
 
-    await commands.removeCmd.remove('module', 'cha');
+    await ws.removeCmd.remove('module', 'cha');
 
     // Fixed-point cascade removes all three.
     expect(existsSync(join(projectDir, '.cards', 'modules', 'cha'))).toBe(
@@ -902,9 +895,7 @@ describe('remove module — spec behaviours', () => {
       false,
     );
     // Top-level declaration gone too.
-    const topLevelNames = commands.project.configuration.modules.map(
-      (m) => m.name,
-    );
+    const topLevelNames = ws.checkout.configuration.modules.map((m) => m.name);
     expect(topLevelNames).not.toContain('cha');
   });
 
@@ -935,22 +926,22 @@ describe('remove module — spec behaviours', () => {
     );
     expect(create.statusCode).toBe(200);
 
-    const commands = new CommandManager(projectDir, {});
-    await commands.initialize();
+    const ws = new Workspace(projectDir, {});
+    await ws.initialize();
 
-    await commands.modulesCmd.install(aRoot);
+    await ws.modulesCmd.install(aRoot);
     // All three transitives live in the cached prefix list.
-    expect(commands.project.allModulePrefixes()).toContain('drpa');
-    expect(commands.project.allModulePrefixes()).toContain('drpb');
-    expect(commands.project.allModulePrefixes()).toContain('drpc');
+    expect(ws.checkout.allModulePrefixes()).toContain('drpa');
+    expect(ws.checkout.allModulePrefixes()).toContain('drpb');
+    expect(ws.checkout.allModulePrefixes()).toContain('drpc');
 
-    await commands.removeCmd.remove('module', 'drpa');
+    await ws.removeCmd.remove('module', 'drpa');
 
     // Orphan cascade removed the transitives from disk *and* from the
     // cached prefix list.
-    expect(commands.project.allModulePrefixes()).not.toContain('drpa');
-    expect(commands.project.allModulePrefixes()).not.toContain('drpb');
-    expect(commands.project.allModulePrefixes()).not.toContain('drpc');
+    expect(ws.checkout.allModulePrefixes()).not.toContain('drpa');
+    expect(ws.checkout.allModulePrefixes()).not.toContain('drpb');
+    expect(ws.checkout.allModulePrefixes()).not.toContain('drpc');
   });
 });
 
@@ -982,14 +973,18 @@ describe('remove hub', () => {
   }
 
   async function projectWithHubs(locations: string[]) {
-    const project = getTestProject(projectPath);
-    await project.populateCaches();
-    project.configuration.hubs = locations.map((location) => ({ location }));
-    const fetchCmd = new Fetch(project);
+    const checkout = getTestProject(projectPath);
+    await checkout.populateCaches();
+    checkout.configuration.hubs = locations.map((location) => ({ location }));
+    const fetchCmd = new Fetch(checkout);
     return {
-      project,
+      checkout,
       fetchCmd,
-      removeCmd: new Remove(project, fetchCmd, new Modules(project, fetchCmd)),
+      removeCmd: new Remove(
+        checkout,
+        fetchCmd,
+        new Modules(checkout, fetchCmd),
+      ),
     };
   }
 
@@ -1025,12 +1020,12 @@ describe('remove hub', () => {
   });
 
   it('succeeds when no module list has been cached', async () => {
-    const { project, removeCmd } = await projectWithHubs([hubA, hubB]);
+    const { checkout, removeCmd } = await projectWithHubs([hubA, hubB]);
     expect(existsSync(cachePath)).toBe(false);
 
     await removeCmd.remove('hub', hubA);
 
-    expect(project.configuration.hubs.map((hub) => hub.location)).toEqual([
+    expect(checkout.configuration.hubs.map((hub) => hub.location)).toEqual([
       hubB,
     ]);
     expect(existsSync(cachePath)).toBe(false);

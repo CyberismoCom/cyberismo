@@ -1,6 +1,6 @@
 import { expect, test, describe, vi, beforeEach } from 'vitest';
 import { buildResourceTree } from '../src/domain/resources/service.js';
-import type { CommandManager } from '@cyberismo/data-handler';
+import type { Workspace } from '@cyberismo/data-handler';
 import type {
   Card,
   CardWithChildrenCards,
@@ -42,7 +42,7 @@ const createMockCommandManager = (overrides: any = {}) => {
       ...overrides.showCmd,
     },
     ...overrides,
-  } as unknown as CommandManager;
+  } as unknown as Workspace;
 };
 
 // Mock resource data

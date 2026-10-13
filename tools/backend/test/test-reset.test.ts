@@ -1,7 +1,7 @@
 import { describe, expect, it, beforeAll, afterAll } from 'vitest';
 import { cp, rm, writeFile, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { CommandManager } from '@cyberismo/data-handler';
+import { Workspace } from '@cyberismo/data-handler';
 import { createApp } from '../src/app.js';
 import { ProjectRegistry } from '../src/project-registry.js';
 import { MockAuthProvider } from '../src/auth/mock.js';
@@ -23,8 +23,8 @@ describe('POST /api/test/reset', () => {
     process.env.npm_config_project_path = projectPath;
     process.env.CYBERISMO_GOLDEN_PATH = goldenPath;
 
-    const commands = await CommandManager.getInstance(projectPath);
-    registry = ProjectRegistry.fromCommandManager(commands);
+    const ws = await Workspace.getInstance(projectPath);
+    registry = ProjectRegistry.fromCommandManager(ws);
     app = createApp(new MockAuthProvider(), registry);
   }, 60_000);
 

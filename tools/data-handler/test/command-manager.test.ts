@@ -17,7 +17,7 @@ import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { SCHEMA_VERSION } from '@cyberismo/migrations';
-import { CommandManager } from '../src/command-manager.js';
+import { Workspace } from '../src/workspace/workspace.js';
 import { copyDir } from '../src/utils/file-utils.js';
 import { readJsonFileSync } from '../src/utils/json.js';
 
@@ -47,25 +47,23 @@ describe('CommandManager schema version gate', () => {
   });
 
   it('constructs when schema versions match', () => {
-    const commands = new CommandManager(projectPath);
-    expect(commands.project).toBeDefined();
-    commands.project.dispose();
+    const ws = new Workspace(projectPath);
+    expect(ws.checkout).toBeDefined();
+    ws.checkout.dispose();
   });
 
   it('throws when the project schema is older', () => {
     setSchemaVersion(SCHEMA_VERSION - 1);
-    expect(() => new CommandManager(projectPath)).toThrow(
-      "Run 'cyberismo migrate'",
-    );
+    expect(() => new Workspace(projectPath)).toThrow("Run 'cyberismo migrate'");
   });
 
   it('throws when the project schema is newer', () => {
     setSchemaVersion(SCHEMA_VERSION + 1);
-    expect(() => new CommandManager(projectPath)).toThrow('Upgrade cyberismo');
+    expect(() => new Workspace(projectPath)).toThrow('Upgrade cyberismo');
   });
 
   it('throws when schemaVersion is missing', () => {
     setSchemaVersion(undefined);
-    expect(() => new CommandManager(projectPath)).toThrow("no 'schemaVersion'");
+    expect(() => new Workspace(projectPath)).toThrow("no 'schemaVersion'");
   });
 });

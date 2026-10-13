@@ -50,10 +50,10 @@ router.post(
   requireRole(UserRole.Admin),
   zValidator('json', createWorkflowSchema),
   async (c) => {
-    const commands = c.get('commands');
+    const ws = c.get('ws');
     const { identifier } = c.req.valid('json');
 
-    await workflowService.createWorkflow(commands, identifier);
+    await workflowService.createWorkflow(ws, identifier);
     return c.json({ message: 'Workflow created successfully' });
   },
 );

@@ -32,7 +32,7 @@ const SHORT_TEXT_MAX_LENGTH = 80;
 export class FieldTypeDataTypeHandler implements Handler<EditInput> {
   async apply(ctx: MutationContext<EditInput>): Promise<void> {
     const fieldName = resourceNameToString(ctx.input.target);
-    const resource = ctx.project.resources.byType(fieldName, 'fieldTypes');
+    const resource = ctx.checkout.resources.byType(fieldName, 'fieldTypes');
     if (!resource) {
       throw new Error(`Field type '${fieldName}' not found`);
     }
@@ -65,7 +65,7 @@ export class FieldTypeDataTypeHandler implements Handler<EditInput> {
         // Conversion indeterminate — leave the card untouched.
         if (converted === null || converted === undefined) continue;
         metadata[fieldName] = converted as MetadataContent;
-        await ctx.project.updateCardMetadata(card, metadata);
+        await ctx.checkout.updateCardMetadata(card, metadata);
       } catch (error) {
         console.error(
           `In card '${card.key}': ${error instanceof Error ? error.message : String(error)}`,
@@ -82,10 +82,10 @@ export class FieldTypeDataTypeHandler implements Handler<EditInput> {
     const holdsField = (card: Card): boolean =>
       card.metadata != null && fieldName in card.metadata;
 
-    const projectCards = ctx.project.cardTree.cards().filter(holdsField);
-    const templateCards = ctx.project
+    const projectCards = ctx.checkout.cardTree.cards().filter(holdsField);
+    const templateCards = ctx.checkout
       .allTemplateCards()
-      .filter((card) => ctx.project.treeOf(card.key).writable)
+      .filter((card) => ctx.checkout.treeOf(card.key).writable)
       .filter(holdsField);
     return [...projectCards, ...templateCards];
   }

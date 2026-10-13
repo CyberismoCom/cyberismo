@@ -3,7 +3,7 @@ import { mkdirSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { copyDir } from '../../../src/utils/file-utils.js';
-import type { Project } from '../../../src/containers/project.js';
+import type { Checkout } from '../../../src/containers/project.js';
 import { getTestProject } from '../../helpers/test-utils.js';
 import { resourceName } from '../../../src/utils/resource-utils.js';
 import { ResourceMutations } from '../../../src/mutations/resource-mutations.js';
@@ -11,47 +11,47 @@ import { ResourceMutations } from '../../../src/mutations/resource-mutations.js'
 const baseDir = import.meta.dirname;
 const testDir = join(baseDir, 'tmp-card-type-delete');
 const decisionRecordsPath = join(testDir, 'valid/decision-records');
-let project: Project;
+let checkout: Checkout;
 
 describe('CardTypeDeleteHandler', () => {
   beforeEach(async () => {
     mkdirSync(testDir, { recursive: true });
     await copyDir(join(baseDir, '..', '..', 'test-data'), testDir);
-    project = getTestProject(decisionRecordsPath);
-    await project.populateCaches();
+    checkout = getTestProject(decisionRecordsPath);
+    await checkout.populateCaches();
   });
   afterEach(() => {
     rmSync(testDir, { recursive: true, force: true });
   });
 
-  const cardTypeName = () => `${project.projectPrefix}/cardTypes/decision`;
+  const cardTypeName = () => `${checkout.projectPrefix}/cardTypes/decision`;
 
   it('deletes every card of this type', async () => {
-    const before = project.cardTree
+    const before = checkout.cardTree
       .cards()
       .filter((c) => c.metadata?.cardType === cardTypeName());
     expect(before.length).toBeGreaterThan(0);
 
-    const mutations = new ResourceMutations(project);
+    const mutations = new ResourceMutations(checkout);
     await mutations.apply({
       kind: 'delete',
       target: resourceName(cardTypeName()),
     });
     // Re-read after apply (caches were invalidated by removeCard calls).
-    await project.populateCaches();
-    const after = project.cardTree
+    await checkout.populateCaches();
+    const after = checkout.cardTree
       .cards()
       .filter((c) => c.metadata?.cardType === cardTypeName());
     expect(after).toHaveLength(0);
   });
 
   it('strips the card type from every link type sourceCardTypes/destinationCardTypes', async () => {
-    const mutations = new ResourceMutations(project);
+    const mutations = new ResourceMutations(checkout);
     await mutations.apply({
       kind: 'delete',
       target: resourceName(cardTypeName()),
     });
-    for (const lt of project.resources.linkTypes()) {
+    for (const lt of checkout.resources.linkTypes()) {
       const data = lt.data!;
       expect(data.sourceCardTypes).not.toContain(cardTypeName());
       expect(data.destinationCardTypes).not.toContain(cardTypeName());
@@ -59,11 +59,11 @@ describe('CardTypeDeleteHandler', () => {
   });
 
   it('deletes the card type resource file from disk', async () => {
-    const mutations = new ResourceMutations(project);
+    const mutations = new ResourceMutations(checkout);
     await mutations.apply({
       kind: 'delete',
       target: resourceName(cardTypeName()),
     });
-    expect(project.resources.exists(cardTypeName())).toBe(false);
+    expect(checkout.resources.exists(cardTypeName())).toBe(false);
   });
 });

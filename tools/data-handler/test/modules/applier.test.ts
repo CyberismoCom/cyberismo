@@ -101,7 +101,7 @@ describe('modules/applier', () => {
       }),
       'cardTypes/marker.json': '{"x":1}',
     });
-    const { project, modules } = makeProjectStub({ basePath: projectDir });
+    const { checkout, modules } = makeProjectStub({ basePath: projectDir });
 
     const resolved = [
       buildResolved('A', 'https://example.com/A.git', stagedPath, {
@@ -109,7 +109,7 @@ describe('modules/applier', () => {
       }),
     ];
 
-    await expect(applyModules(project, resolved, { tempDir })).rejects.toThrow(
+    await expect(applyModules(checkout, resolved, { tempDir })).rejects.toThrow(
       /Module 'A' now declares the prefix 'renamed'.*module remove A/s,
     );
 
@@ -128,7 +128,7 @@ describe('modules/applier', () => {
       }),
       'cardTypes/marker.json': '{"x":1}',
     });
-    const { project, modules } = makeProjectStub({ basePath: projectDir });
+    const { checkout, modules } = makeProjectStub({ basePath: projectDir });
 
     const resolved = [
       buildResolved('A', 'https://example.com/A.git', stagedPath, {
@@ -137,7 +137,7 @@ describe('modules/applier', () => {
       }),
     ];
 
-    const applied = await applyModules(project, resolved, { tempDir });
+    const applied = await applyModules(checkout, resolved, { tempDir });
     expect(applied).toEqual(['A']);
 
     const moduleDir = join(projectDir, '.cards', 'modules', 'A');
@@ -162,7 +162,7 @@ describe('modules/applier', () => {
         modules: [],
       }),
     });
-    const { project, modules } = makeProjectStub({
+    const { checkout, modules } = makeProjectStub({
       basePath: projectDir,
       modules: [{ name: 'H', location: 'https://example.com/H.git' }],
     });
@@ -174,7 +174,7 @@ describe('modules/applier', () => {
       }),
     ];
 
-    const applied = await applyModules(project, resolved, {
+    const applied = await applyModules(checkout, resolved, {
       tempDir,
       backfill: [
         {
@@ -206,7 +206,7 @@ describe('modules/applier', () => {
         modules: [],
       }),
     });
-    const { project, modules } = makeProjectStub({ basePath: projectDir });
+    const { checkout, modules } = makeProjectStub({ basePath: projectDir });
 
     const resolved = [
       buildResolved('A', 'https://example.com/A.git', stagedA, {
@@ -218,7 +218,7 @@ describe('modules/applier', () => {
       }),
     ];
 
-    await applyModules(project, resolved, { tempDir });
+    await applyModules(checkout, resolved, { tempDir });
 
     // Both folders installed.
     expect(existsSync(join(projectDir, '.cards', 'modules', 'A'))).toBe(true);
@@ -245,7 +245,7 @@ describe('modules/applier', () => {
         modules: [],
       }),
     });
-    const { project, modules } = makeProjectStub({ basePath: projectDir });
+    const { checkout, modules } = makeProjectStub({ basePath: projectDir });
 
     const resolved = [
       buildResolved('A', 'https://example.com/A.git', stagedA, {
@@ -259,7 +259,7 @@ describe('modules/applier', () => {
       }),
     ];
 
-    const applied = await applyModules(project, resolved, { tempDir });
+    const applied = await applyModules(checkout, resolved, { tempDir });
 
     // The returned set names exactly the modules that landed.
     expect(applied).toEqual(['A', 'C']);
@@ -274,7 +274,7 @@ describe('modules/applier', () => {
   });
 
   it('replaces a prior installation, removing files that the new version no longer ships', async () => {
-    const { project, modules } = makeProjectStub({ basePath: projectDir });
+    const { checkout, modules } = makeProjectStub({ basePath: projectDir });
 
     // First install: ships an orphan file.
     const stagedV1 = await stage(tempDir, 'A', {
@@ -286,7 +286,7 @@ describe('modules/applier', () => {
       'cardTypes/orphan.json': '{"old":true}',
     });
     await applyModules(
-      project,
+      checkout,
       [
         buildResolved('A', 'https://example.com/A.git', stagedV1, {
           range: '^1.0.0',
@@ -311,7 +311,7 @@ describe('modules/applier', () => {
       'cardTypes/replacement.json': '{"new":true}',
     });
     await applyModules(
-      project,
+      checkout,
       [
         buildResolved('A', 'https://example.com/A.git', stagedV2, {
           range: '^2.0.0',
@@ -332,7 +332,7 @@ describe('modules/applier', () => {
   });
 
   it('does not leave .removing-* directories behind on a successful re-install', async () => {
-    const { project } = makeProjectStub({ basePath: projectDir });
+    const { checkout } = makeProjectStub({ basePath: projectDir });
 
     const stagedV1 = await stage(tempDir, 'A', {
       'cardsConfig.json': JSON.stringify({
@@ -342,7 +342,7 @@ describe('modules/applier', () => {
       }),
     });
     await applyModules(
-      project,
+      checkout,
       [buildResolved('A', 'https://example.com/A.git', stagedV1)],
       { tempDir },
     );
@@ -355,7 +355,7 @@ describe('modules/applier', () => {
       }),
     });
     await applyModules(
-      project,
+      checkout,
       [buildResolved('A', 'https://example.com/A.git', stagedV2)],
       { tempDir },
     );
@@ -376,12 +376,12 @@ describe('modules/applier', () => {
         modules: [],
       }),
     });
-    const { project, refreshAfterModuleChange } = makeProjectStub({
+    const { checkout, refreshAfterModuleChange } = makeProjectStub({
       basePath: projectDir,
     });
 
     await applyModules(
-      project,
+      checkout,
       [
         buildResolved('A', 'https://example.com/A.git', stagedA, {
           range: '^1.0.0',
