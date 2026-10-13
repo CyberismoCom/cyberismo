@@ -4,7 +4,7 @@ import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { copyDir } from '../src/utils/file-utils.js';
-import { Cmd, Commands } from '../src/command-handler.js';
+import { Cmd, Commands, type Workspace } from '../src/command-handler.js';
 import { Show } from '../src/commands/index.js';
 import { getTestProject } from './helpers/test-utils.js';
 import { openTestWorkspace } from './helpers/open-test-workspace.js';
@@ -15,7 +15,9 @@ const testDir = join(baseDir, 'tmp-command-handler-rank-tests');
 
 const decisionRecordsPath = join(testDir, 'valid/decision-records');
 
-const commandHandler: Commands = new Commands();
+// The dispatcher runs on the handle the tests set up.
+let shared: Workspace;
+const commandHandler: Commands = new Commands(async () => shared);
 const options = { projectPath: decisionRecordsPath };
 
 describe('rank command', () => {
@@ -26,7 +28,7 @@ describe('rank command', () => {
     mkdirSync(testDir, { recursive: true });
     await copyDir('test/test-data', testDir);
 
-    const shared = await openTestWorkspace(decisionRecordsPath);
+    shared = await openTestWorkspace(decisionRecordsPath);
     shared.checkout.clearCards();
     await shared.checkout.populateCaches();
 
@@ -118,7 +120,6 @@ describe('rank command', () => {
     it('reranks a sibling without validating or timestamping it', async () => {
       const sibling = 'decision_6';
       const lastUpdated = '2020-01-01T00:00:00.000Z';
-      const shared = await openTestWorkspace(decisionRecordsPath);
       const cardFile = join(
         shared.checkout.findCard(sibling).path,
         'index.json',

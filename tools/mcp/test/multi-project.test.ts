@@ -19,7 +19,7 @@ import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
 import { type Workspace } from '@cyberismo/data-handler';
 import { createMcpServer } from '../src/server.js';
 import type { ProjectProvider } from '../src/lib/resolve-project.js';
-import { testDataPath } from './test-utils.js';
+import { authenticated, testDataPath } from './test-utils.js';
 import { openTestWorkspace } from './helpers/open-test-workspace.js';
 
 let ws: Workspace;
@@ -32,7 +32,7 @@ let client: Client;
 function multiProjectProvider(cmd: Workspace): ProjectProvider {
   const realPrefix = cmd.checkout.configuration.cardKeyPrefix;
   return {
-    get: (prefix: string) => (prefix === realPrefix ? cmd : undefined),
+    get: (prefix: string) => (prefix === realPrefix ? cmd.checkout : undefined),
     list: () => [
       { prefix: realPrefix, name: cmd.checkout.configuration.name },
       { prefix: 'other', name: 'Other project' },
@@ -49,7 +49,7 @@ beforeAll(async () => {
   const [clientTransport, serverTransport] =
     InMemoryTransport.createLinkedPair();
 
-  await server.connect(serverTransport);
+  await server.connect(authenticated(serverTransport));
 
   client = new Client({ name: 'test-client', version: '1.0.0' });
   await client.connect(clientTransport);

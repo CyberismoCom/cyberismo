@@ -87,3 +87,27 @@ it('lets GIT_AUTHOR_* name the author of a CLI write', async () => {
     'Xavier <x@example.com>',
   ]);
 }, 30000);
+
+it('commits a CLI write as the git-config user', async () => {
+  const git = (...args: string[]) => run('git', args, { cwd: project.path });
+  await git('config', 'user.name', 'Casey Local');
+  await git('config', 'user.email', 'casey@example.com');
+
+  expect(await addLabel(gitEnv)).toEqual([
+    `Add label urgent to ${project.keys[0]}`,
+    'Casey Local <casey@example.com>',
+  ]);
+}, 30000);
+
+it('prefers author.* over user.* for a CLI write', async () => {
+  const git = (...args: string[]) => run('git', args, { cwd: project.path });
+  await git('config', 'user.name', 'Casey Local');
+  await git('config', 'user.email', 'casey@example.com');
+  await git('config', 'author.name', 'Avery Author');
+  await git('config', 'author.email', 'avery@example.com');
+
+  expect(await addLabel(gitEnv)).toEqual([
+    `Add label urgent to ${project.keys[0]}`,
+    'Avery Author <avery@example.com>',
+  ]);
+}, 30000);

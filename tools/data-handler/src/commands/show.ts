@@ -462,36 +462,35 @@ export class Show {
     resourceType: T,
     showUse?: boolean,
   ): Promise<ResourceContent<T>>;
+  @read
   public async showResource(
     name: string,
     arg2?: boolean | ResourceType,
     arg3?: boolean,
   ): Promise<AnyResourceContent> {
-    return this.checkout.lock.read(async () => {
-      const hasResourceType = typeof arg2 === 'string';
-      const resourceType = hasResourceType ? arg2 : null;
-      const showUse = hasResourceType ? arg3 : arg2;
+    const hasResourceType = typeof arg2 === 'string';
+    const resourceType = hasResourceType ? arg2 : null;
+    const showUse = hasResourceType ? arg3 : arg2;
 
-      const type = this.checkout.resources.extractType(name);
-      if (resourceType !== null && resourceType !== type) {
-        throw new Error(
-          `While fetching '${name}': Expected type '${resourceType}', but got '${type}' instead`,
-        );
-      }
-      const resource = this.checkout.resources.byType(name, type);
-      const [details, usage] = await Promise.all([
-        resource?.show(),
-        showUse ? resource?.usage() : [],
-      ]);
-      if (showUse) {
-        return {
-          ...details,
-          usedIn: [...usage],
-        };
-      } else {
-        return details;
-      }
-    });
+    const type = this.checkout.resources.extractType(name);
+    if (resourceType !== null && resourceType !== type) {
+      throw new Error(
+        `While fetching '${name}': Expected type '${resourceType}', but got '${type}' instead`,
+      );
+    }
+    const resource = this.checkout.resources.byType(name, type);
+    const [details, usage] = await Promise.all([
+      resource?.show(),
+      showUse ? resource?.usage() : [],
+    ]);
+    if (showUse) {
+      return {
+        ...details,
+        usedIn: [...usage],
+      };
+    } else {
+      return details;
+    }
   }
 
   /**
