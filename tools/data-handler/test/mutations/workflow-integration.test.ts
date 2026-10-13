@@ -29,7 +29,7 @@ describe('Workflow mutation engine end-to-end', () => {
   });
 
   it('apply → log entry for a workflow rename, dependent card types rewritten', async () => {
-    await Workspace.over(checkout, SYSTEM_ACTOR).updateCmd.apply({
+    await Workspace.over(checkout, SYSTEM_ACTOR).changes.apply({
       kind: 'rename',
       target: resourceName(WF),
       newIdentifier: 'decision-v2',
@@ -49,7 +49,7 @@ describe('Workflow mutation engine end-to-end', () => {
   });
 
   it('apply → state removal records a log entry', async () => {
-    await Workspace.over(checkout, SYSTEM_ACTOR).updateCmd.apply({
+    await Workspace.over(checkout, SYSTEM_ACTOR).changes.apply({
       kind: 'edit',
       target: resourceName(WF),
       updateKey: { key: 'states' },
@@ -74,7 +74,7 @@ describe('Workflow mutation engine end-to-end', () => {
   });
 
   it('apply → state rename records a log entry', async () => {
-    await Workspace.over(checkout, SYSTEM_ACTOR).updateCmd.apply({
+    await Workspace.over(checkout, SYSTEM_ACTOR).changes.apply({
       kind: 'edit',
       target: resourceName(WF),
       updateKey: { key: 'states' },
@@ -100,7 +100,7 @@ describe('Workflow mutation engine end-to-end', () => {
   });
 
   it('apply → add state records NO log entry', async () => {
-    await Workspace.over(checkout, SYSTEM_ACTOR).updateCmd.apply({
+    await Workspace.over(checkout, SYSTEM_ACTOR).changes.apply({
       kind: 'edit',
       target: resourceName(WF),
       updateKey: { key: 'states' },
@@ -118,7 +118,7 @@ describe('Workflow mutation engine end-to-end', () => {
   });
 
   it('apply → transition change records NO log entry', async () => {
-    await Workspace.over(checkout, SYSTEM_ACTOR).updateCmd.apply({
+    await Workspace.over(checkout, SYSTEM_ACTOR).changes.apply({
       kind: 'edit',
       target: resourceName(WF),
       updateKey: { key: 'transitions' },
@@ -133,7 +133,7 @@ describe('Workflow mutation engine end-to-end', () => {
   });
 
   it('display-only changes route to the plain handler (no log entry)', async () => {
-    await Workspace.over(checkout, SYSTEM_ACTOR).updateCmd.apply({
+    await Workspace.over(checkout, SYSTEM_ACTOR).changes.apply({
       kind: 'edit',
       target: resourceName(WF),
       updateKey: { key: 'displayName' },
@@ -152,7 +152,7 @@ describe('Workflow mutation engine end-to-end', () => {
   });
 
   it('apply → deleting an in-use workflow cascade-deletes dependent card types and logs', async () => {
-    await Workspace.over(checkout, SYSTEM_ACTOR).updateCmd.apply({
+    await Workspace.over(checkout, SYSTEM_ACTOR).changes.apply({
       kind: 'delete',
       target: resourceName(WF),
     });

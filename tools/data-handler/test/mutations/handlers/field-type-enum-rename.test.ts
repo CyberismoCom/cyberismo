@@ -110,7 +110,7 @@ describe('FieldTypeEnumRenameHandler', () => {
   });
 
   it('renames the value in the field definition', async () => {
-    await Workspace.over(checkout, SYSTEM_ACTOR).updateCmd.apply(renameOp);
+    await Workspace.over(checkout, SYSTEM_ACTOR).changes.apply(renameOp);
     const updated = checkout.resources.byType(fieldName(), 'fieldTypes').show();
     const values = (updated.enumValues ?? []).map((e) => e.enumValue);
     expect(values).toContain('minor');
@@ -118,7 +118,7 @@ describe('FieldTypeEnumRenameHandler', () => {
   });
 
   it('migrates card values to the new value', async () => {
-    await Workspace.over(checkout, SYSTEM_ACTOR).updateCmd.apply(renameOp);
+    await Workspace.over(checkout, SYSTEM_ACTOR).changes.apply(renameOp);
     const cards = checkout.cardTree.cards();
     const anyStillLow = cards.some((c) => c.metadata?.[fieldName()] === 'low');
     const migrated = cards.filter((c) => c.metadata?.[fieldName()] === 'minor');

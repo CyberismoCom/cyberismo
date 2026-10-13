@@ -81,12 +81,24 @@ describe('autocommit', () => {
       message: () => 'Add label urgent to decision_5',
     },
     'resource create': {
-      write: () => cm.createCmd.createFieldType('newField', 'shortText'),
+      write: () =>
+        cm.resources.create('newField', 'fieldTypes', {
+          dataType: 'shortText',
+        }),
       message: () => 'Create field type newField',
+    },
+    'resource create by change': {
+      write: () =>
+        cm.changes.apply({
+          kind: 'create',
+          target: resourceName('decision/fieldTypes/newField'),
+          params: { dataType: 'shortText' },
+        }),
+      message: () => 'Create field type decision/fieldTypes/newField',
     },
     'resource edit': {
       write: () =>
-        cm.updateCmd.apply({
+        cm.changes.apply({
           kind: 'edit',
           target: resourceName('decision/fieldTypes/admins'),
           updateKey: { key: 'displayName' },

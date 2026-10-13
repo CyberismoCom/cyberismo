@@ -235,7 +235,7 @@ describe('card query: calculated value without a stored override', () => {
   // persisted card type, which would break the fixture assumptions above.
   it('disabling enableOverride succeeds when no card holds an override value', async () => {
     await expect(
-      ws.updateCmd.apply({
+      ws.changes.apply({
         kind: 'edit',
         target: resourceName('decision/cardTypes/decision'),
         updateKey: { key: 'customFields' },
@@ -296,7 +296,7 @@ describe('disabling override on a calculated field that holds values', () => {
 
   it('succeeds and persists instead of refusing on the stored values', async () => {
     await expect(
-      ws.updateCmd.apply({
+      ws.changes.apply({
         kind: 'edit',
         target: resourceName('decision/cardTypes/decision'),
         updateKey: { key: 'customFields' },

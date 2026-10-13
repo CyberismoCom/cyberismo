@@ -81,7 +81,7 @@ describe.each(CASES)(
     });
 
     it('apply renames the resource', async () => {
-      await Workspace.over(checkout, SYSTEM_ACTOR).updateCmd.apply({
+      await Workspace.over(checkout, SYSTEM_ACTOR).changes.apply({
         kind: 'rename',
         target: resourceName(oldName),
         newIdentifier,
@@ -93,7 +93,7 @@ describe.each(CASES)(
 
     it('apply throws when the resource does not exist', async () => {
       await expect(
-        Workspace.over(checkout, SYSTEM_ACTOR).updateCmd.apply({
+        Workspace.over(checkout, SYSTEM_ACTOR).changes.apply({
           kind: 'rename',
           target: resourceName(`decision/${type}/does-not-exist`),
           newIdentifier: 'whatever',
@@ -130,7 +130,7 @@ describe('LeafResourceRenameHandler (reports) card content cascade', () => {
     );
     // Sanity: the fixture card references the old report name to start with.
     expect(await readFile(cardContentPath, 'utf-8')).toContain(oldName);
-    await Workspace.over(checkout, SYSTEM_ACTOR).updateCmd.apply({
+    await Workspace.over(checkout, SYSTEM_ACTOR).changes.apply({
       kind: 'rename',
       target: resourceName(oldName),
       newIdentifier: 'testReportV2',
@@ -180,7 +180,7 @@ describe('LeafResourceRenameHandler (graphModels) own model.lp cascade', () => {
   });
 
   it('apply rewrites references inside the graph model own model.lp', async () => {
-    await Workspace.over(checkout, SYSTEM_ACTOR).updateCmd.apply({
+    await Workspace.over(checkout, SYSTEM_ACTOR).changes.apply({
       kind: 'rename',
       target: resourceName(oldName),
       newIdentifier: 'test-v2',
@@ -248,7 +248,7 @@ describe('LeafResourceRenameHandler (skills)', () => {
   });
 
   it('apply renames the skill metadata and content folder', async () => {
-    await Workspace.over(checkout, SYSTEM_ACTOR).updateCmd.apply({
+    await Workspace.over(checkout, SYSTEM_ACTOR).changes.apply({
       kind: 'rename',
       target: resourceName(oldName),
       newIdentifier: 'testSkillV2',

@@ -6,7 +6,8 @@ import { mkdirSync, rmSync } from 'node:fs';
 import type { CardType } from '@cyberismo/model';
 import { copyDir } from '../src/utils/file-utils.js';
 import type { Checkout } from '../src/containers/project.js';
-import { Show, type Update } from '../src/commands/index.js';
+import { Show } from '../src/commands/index.js';
+import type { Changes } from '../src/workspace/changes.js';
 import { getTestProject } from './helpers/test-utils.js';
 import { resourceName } from '../src/utils/resource-utils.js';
 import { Workspace } from '../src/workspace/workspace.js';
@@ -16,7 +17,7 @@ const baseDir = import.meta.dirname;
 const testDir = join(baseDir, 'tmp-update-tests');
 const decisionRecordsPath = join(testDir, 'valid/decision-records');
 let checkout: Checkout;
-let update: Update;
+let update: Changes;
 
 describe('update command', () => {
   afterEach(() => {
@@ -28,7 +29,7 @@ describe('update command', () => {
     await copyDir('test/test-data', testDir);
     checkout = getTestProject(decisionRecordsPath);
     await checkout.populateCaches();
-    update = Workspace.over(checkout, SYSTEM_ACTOR).updateCmd;
+    update = Workspace.over(checkout, SYSTEM_ACTOR).changes;
   });
 
   it('update file resource (rename via change on name)', async () => {

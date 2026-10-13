@@ -41,7 +41,7 @@ describe('WorkflowDeleteHandler', () => {
     await checkout.populateCaches();
     expect(checkout.resources.exists(unusedName)).toBe(true);
 
-    await Workspace.over(checkout, SYSTEM_ACTOR).updateCmd.apply({
+    await Workspace.over(checkout, SYSTEM_ACTOR).changes.apply({
       kind: 'delete',
       target: resourceName(unusedName),
     });
@@ -52,7 +52,7 @@ describe('WorkflowDeleteHandler', () => {
   it('cascade-deletes dependent card types when deleting an in-use workflow', async () => {
     expect(checkout.resources.exists(DEPENDENT_CT)).toBe(true);
 
-    await Workspace.over(checkout, SYSTEM_ACTOR).updateCmd.apply({
+    await Workspace.over(checkout, SYSTEM_ACTOR).changes.apply({
       kind: 'delete',
       target: resourceName(WF),
     });
@@ -68,7 +68,7 @@ describe('WorkflowDeleteHandler', () => {
       .filter((c) => c.metadata?.cardType === DEPENDENT_CT);
     expect(before.length).toBeGreaterThan(0);
 
-    await Workspace.over(checkout, SYSTEM_ACTOR).updateCmd.apply({
+    await Workspace.over(checkout, SYSTEM_ACTOR).changes.apply({
       kind: 'delete',
       target: resourceName(WF),
     });
@@ -82,7 +82,7 @@ describe('WorkflowDeleteHandler', () => {
 
   it('rejects deleting a module-owned workflow', async () => {
     await expect(
-      Workspace.over(checkout, SYSTEM_ACTOR).updateCmd.apply({
+      Workspace.over(checkout, SYSTEM_ACTOR).changes.apply({
         kind: 'delete',
         target: resourceName('mymod/workflows/dummy'),
       }),
@@ -93,7 +93,7 @@ describe('WorkflowDeleteHandler', () => {
 
   it('throws when the workflow does not exist', async () => {
     await expect(
-      Workspace.over(checkout, SYSTEM_ACTOR).updateCmd.apply({
+      Workspace.over(checkout, SYSTEM_ACTOR).changes.apply({
         kind: 'delete',
         target: resourceName('decision/workflows/does-not-exist'),
       }),
