@@ -11,7 +11,11 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { resourceName, type Workspace } from '@cyberismo/data-handler';
+import {
+  ResourceNotFoundError,
+  resourceName,
+  type Workspace,
+} from '@cyberismo/data-handler';
 import type { VisibilityGroup, FieldVisibilityBody } from './schema.js';
 
 export async function getCardTypes(ws: Workspace) {
@@ -24,7 +28,9 @@ export async function createCardType(
   cardTypeName: string,
   workflowName: string,
 ) {
-  await ws.createCmd.createCardType(cardTypeName, workflowName);
+  await ws.resources.create(cardTypeName, 'cardTypes', {
+    workflow: workflowName,
+  });
 }
 
 const groupToKey: Record<Exclude<VisibilityGroup, 'hidden'>, string> = {
@@ -70,7 +76,8 @@ export async function updateFieldVisibility(
       (f: { name: string }) => f.name === fieldName,
     );
     if (!fieldExists) {
-      throw new Error(
+      throw new ResourceNotFoundError(
+        fieldName,
         `Field '${fieldName}' does not exist in card type '${cardTypeName}'. `,
       );
     }
@@ -84,7 +91,7 @@ export async function updateFieldVisibility(
     // If same group, just handle reordering
     if (currentGroup === targetGroup) {
       if (targetGroup !== 'hidden' && targetIndex !== undefined) {
-        await ws.updateCmd.apply({
+        await ws.changes.apply({
           kind: 'edit',
           target,
           updateKey: { key: groupToKey[targetGroup] },
@@ -96,7 +103,7 @@ export async function updateFieldVisibility(
 
     // Remove from current group (if not hidden)
     if (currentGroup !== 'hidden') {
-      await ws.updateCmd.apply({
+      await ws.changes.apply({
         kind: 'edit',
         target,
         updateKey: { key: groupToKey[currentGroup] },
@@ -106,7 +113,7 @@ export async function updateFieldVisibility(
 
     // Add to new group (if not hidden)
     if (targetGroup !== 'hidden') {
-      await ws.updateCmd.apply({
+      await ws.changes.apply({
         kind: 'edit',
         target,
         updateKey: { key: groupToKey[targetGroup] },
@@ -114,7 +121,7 @@ export async function updateFieldVisibility(
       });
 
       if (targetIndex !== undefined) {
-        await ws.updateCmd.apply({
+        await ws.changes.apply({
           kind: 'edit',
           target,
           updateKey: { key: groupToKey[targetGroup] },

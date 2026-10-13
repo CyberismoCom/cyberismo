@@ -23,7 +23,7 @@ describe('LinkTypeDeleteHandler', () => {
 
   it('apply strips matching links and deletes the resource', async () => {
     const linkTypeName = `${checkout.projectPrefix}/linkTypes/test`;
-    await Workspace.over(checkout, SYSTEM_ACTOR).updateCmd.apply({
+    await Workspace.over(checkout, SYSTEM_ACTOR).changes.apply({
       kind: 'delete',
       target: resourceName(linkTypeName),
     });
@@ -121,7 +121,7 @@ describe('LinkTypeDeleteHandler module scope', () => {
   // The cascade is local-only: deleting a local link type strips it from local
   // cards but must leave module-owned card links untouched.
   it('local delete leaves module template card links untouched', async () => {
-    await Workspace.over(checkout, SYSTEM_ACTOR).updateCmd.apply({
+    await Workspace.over(checkout, SYSTEM_ACTOR).changes.apply({
       kind: 'delete',
       target: resourceName(`${checkout.projectPrefix}/linkTypes/test`),
     });
@@ -142,7 +142,7 @@ describe('LinkTypeDeleteHandler module scope', () => {
 
   it('rejects a module link-type delete before stripping local card links', async () => {
     await expect(
-      Workspace.over(checkout, SYSTEM_ACTOR).updateCmd.apply({
+      Workspace.over(checkout, SYSTEM_ACTOR).changes.apply({
         kind: 'delete',
         target: resourceName('mymod/linkTypes/dummy'),
       }),

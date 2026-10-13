@@ -48,7 +48,7 @@ describe('WorkflowRemoveStateHandler', () => {
   }
 
   it('apply removes the state and strips transitions referencing it', async () => {
-    await Workspace.over(checkout, SYSTEM_ACTOR).updateCmd.apply({
+    await Workspace.over(checkout, SYSTEM_ACTOR).changes.apply({
       kind: 'edit',
       target: resourceName(WF),
       updateKey: { key: 'states' },
@@ -67,7 +67,7 @@ describe('WorkflowRemoveStateHandler', () => {
 
   it('apply with explicit replacementValue migrates cards to that state', async () => {
     const cardKey = await seedCardInState('Rejected');
-    await Workspace.over(checkout, SYSTEM_ACTOR).updateCmd.apply({
+    await Workspace.over(checkout, SYSTEM_ACTOR).changes.apply({
       kind: 'edit',
       target: resourceName(WF),
       updateKey: { key: 'states' },
@@ -148,7 +148,7 @@ describe('WorkflowRemoveStateHandler', () => {
 
   it('apply without replacementValue migrates cards to the new-card state', async () => {
     const cardKey = await seedCardInState('Rejected');
-    await Workspace.over(checkout, SYSTEM_ACTOR).updateCmd.apply({
+    await Workspace.over(checkout, SYSTEM_ACTOR).changes.apply({
       kind: 'edit',
       target: resourceName(WF),
       updateKey: { key: 'states' },

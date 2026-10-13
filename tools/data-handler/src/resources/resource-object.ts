@@ -43,6 +43,7 @@ import type { Logger } from 'pino';
 import type { Checkout } from '../containers/project.js';
 import type { Validate } from '../commands/validate.js';
 import { allTemplateCards } from '../cards/read.js';
+import { ResourceNotFoundError } from '../exceptions/index.js';
 
 // T, but U is in the content field
 export type ShowReturnType<T extends ResourceBaseMetadata, U = never> = Omit<
@@ -149,7 +150,8 @@ export abstract class ResourceObject<
     if (!this.exists()) {
       const resourceType = `${this.type[0].toUpperCase()}${this.type.slice(1, this.type.length - 1)}`;
       const name = resourceNameToString(this.resourceName);
-      throw new Error(
+      throw new ResourceNotFoundError(
+        name,
         `${resourceType} '${name}' does not exist in the project`,
       );
     }
@@ -411,7 +413,8 @@ export abstract class ResourceObject<
       throw new Error(`Cannot rename module resources`);
     }
     if (!this.exists()) {
-      throw new Error(
+      throw new ResourceNotFoundError(
+        resourceNameToString(this.resourceName),
         `Resource '${this.resourceName.identifier}' does not exist`,
       );
     }
@@ -481,8 +484,10 @@ export abstract class ResourceObject<
   ): Promise<void> {
     const content = this.data;
     if (!content) {
-      throw new Error(
-        `Resource '${resourceNameToString(this.resourceName)}' does not exist`,
+      const name = resourceNameToString(this.resourceName);
+      throw new ResourceNotFoundError(
+        name,
+        `Resource '${name}' does not exist`,
       );
     }
     if (this.moduleResource) {
@@ -501,7 +506,8 @@ export abstract class ResourceObject<
    */
   protected async usage(cards?: Card[]): Promise<string[]> {
     if (!this.exists()) {
-      throw new Error(
+      throw new ResourceNotFoundError(
+        resourceNameToString(this.resourceName),
         `Resource '${this.resourceName.identifier}' does not exist in the project`,
       );
     }
@@ -604,7 +610,8 @@ export abstract class ResourceObject<
       this.fileName += '.json';
     }
     if (!this.exists()) {
-      throw new Error(
+      throw new ResourceNotFoundError(
+        resourceNameToString(this.resourceName),
         `Resource '${this.resourceName.identifier}' does not exist in the project`,
       );
     }

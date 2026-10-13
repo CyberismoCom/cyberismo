@@ -31,7 +31,7 @@ describe('Leaf rename mutation engine end-to-end', () => {
   });
 
   it('apply → log entry for a template rename', async () => {
-    await Workspace.over(checkout, SYSTEM_ACTOR).updateCmd.apply({
+    await Workspace.over(checkout, SYSTEM_ACTOR).changes.apply({
       kind: 'rename',
       target: resourceName(TEMPLATE),
       newIdentifier: 'decision-v2',
@@ -53,7 +53,7 @@ describe('Leaf rename mutation engine end-to-end', () => {
     const cardsBefore = checkout.templateTree(TEMPLATE).cards();
     expect(cardsBefore.length).toBeGreaterThan(0);
 
-    await Workspace.over(checkout, SYSTEM_ACTOR).updateCmd.apply({
+    await Workspace.over(checkout, SYSTEM_ACTOR).changes.apply({
       kind: 'rename',
       target: resourceName(TEMPLATE),
       newIdentifier: 'decision-v2',
@@ -77,7 +77,7 @@ describe('Leaf rename mutation engine end-to-end', () => {
   });
 
   it('apply → log entry for a report rename', async () => {
-    await Workspace.over(checkout, SYSTEM_ACTOR).updateCmd.apply({
+    await Workspace.over(checkout, SYSTEM_ACTOR).changes.apply({
       kind: 'rename',
       target: resourceName(REPORT),
       newIdentifier: 'testReportV2',
@@ -96,7 +96,7 @@ describe('Leaf rename mutation engine end-to-end', () => {
   });
 
   it('apply → link-type card-type edit records NO log entry', async () => {
-    await Workspace.over(checkout, SYSTEM_ACTOR).updateCmd.apply({
+    await Workspace.over(checkout, SYSTEM_ACTOR).changes.apply({
       kind: 'edit',
       target: resourceName(LT),
       updateKey: { key: 'sourceCardTypes' },

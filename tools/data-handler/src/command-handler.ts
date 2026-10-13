@@ -264,22 +264,24 @@ export class Commands {
         }
         if (target === 'cardType') {
           const [name, workflow] = rest;
-          await this.ws?.createCmd.createCardType(name, workflow);
+          await this.ws?.resources.create(name, 'cardTypes', { workflow });
         } else if (target === 'fieldType') {
           const [name, datatype] = rest;
-          await this.ws?.createCmd.createFieldType(name, datatype as DataType);
+          await this.ws?.resources.create(name, 'fieldTypes', {
+            dataType: datatype as DataType,
+          });
         } else if (target === 'graphModel') {
           const [name] = rest;
-          await this.ws?.createCmd.createGraphModel(name);
+          await this.ws?.resources.create(name, 'graphModels', {});
         } else if (target === 'graphView') {
           const [name] = rest;
-          await this.ws?.createCmd.createGraphView(name);
+          await this.ws?.resources.create(name, 'graphViews', {});
         } else if (target === 'calculation') {
           const [name] = rest;
-          await this.ws?.createCmd.createCalculation(name);
+          await this.ws?.resources.create(name, 'calculations', {});
         } else if (target === 'linkType') {
           const [name] = rest;
-          await this.ws?.createCmd.createLinkType(name);
+          await this.ws?.resources.create(name, 'linkTypes', {});
         } else if (target === 'project') {
           // 3rd parameter - path - is skipped it is used in general command handling
           // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -293,16 +295,20 @@ export class Commands {
           );
         } else if (target === 'report') {
           const [name] = rest;
-          await this.ws?.createCmd.createReport(name);
+          await this.ws?.resources.create(name, 'reports', {});
         } else if (target === 'skill') {
           const [name] = rest;
-          await this.ws?.createCmd.createSkill(name);
+          await this.ws?.resources.create(name, 'skills', {});
         } else if (target === 'template') {
           const [name, content] = rest;
-          await this.ws?.createCmd.createTemplate(name, content);
+          await this.ws?.resources.create(name, 'templates', {
+            content: content ? JSON.parse(content) : undefined,
+          });
         } else if (target === 'workflow') {
           const [name, content] = rest;
-          await this.ws?.createCmd.createWorkflow(name, content);
+          await this.ws?.resources.create(name, 'workflows', {
+            content: content ? JSON.parse(content) : undefined,
+          });
         } else {
           throw new Error(`Unknown type to create: '${target}'`);
         }
@@ -452,7 +458,7 @@ export class Commands {
         }
 
         const target = resourceName(resource);
-        await this.ws?.updateCmd.apply({
+        await this.ws?.changes.apply({
           kind: 'edit',
           target,
           updateKey: parseUpdateKey(key),

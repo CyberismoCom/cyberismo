@@ -33,7 +33,7 @@ describe('workflow transitions routing and cascade', () => {
   });
 
   it('apply add appends the transition to the workflow definition', async () => {
-    await Workspace.over(checkout, SYSTEM_ACTOR).updateCmd.apply({
+    await Workspace.over(checkout, SYSTEM_ACTOR).changes.apply({
       kind: 'edit',
       target: resourceName('decision/workflows/decision'),
       updateKey: { key: 'transitions' },
@@ -54,7 +54,7 @@ describe('workflow transitions routing and cascade', () => {
   });
 
   it('apply remove drops the transition from the workflow definition', async () => {
-    await Workspace.over(checkout, SYSTEM_ACTOR).updateCmd.apply({
+    await Workspace.over(checkout, SYSTEM_ACTOR).changes.apply({
       kind: 'edit',
       target: resourceName('decision/workflows/decision'),
       updateKey: { key: 'transitions' },

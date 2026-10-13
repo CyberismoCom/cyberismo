@@ -14,5 +14,5 @@
 import type { Workspace } from '@cyberismo/data-handler';
 
 export async function createGraphModel(ws: Workspace, graphModelName: string) {
-  await ws.createCmd.createGraphModel(graphModelName);
+  await ws.resources.create(graphModelName, 'graphModels', {});
 }

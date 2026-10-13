@@ -621,7 +621,9 @@ export function registerTools(
     async ({ projectPrefix, name, workflowName }, extra) => {
       try {
         const ws = resolveCommands(provider, projectPrefix, extra, server);
-        await ws.createCmd.createCardType(name, workflowName);
+        await ws.resources.create(name, 'cardTypes', {
+          workflow: workflowName,
+        });
         return toolResult({ name, workflowName });
       } catch (error) {
         return toolError('creating card type', error);
@@ -655,7 +657,7 @@ export function registerTools(
     async ({ projectPrefix, name, dataType }, extra) => {
       try {
         const ws = resolveCommands(provider, projectPrefix, extra, server);
-        await ws.createCmd.createFieldType(name, dataType);
+        await ws.resources.create(name, 'fieldTypes', { dataType });
         return toolResult({ name, dataType });
       } catch (error) {
         return toolError('creating field type', error);
@@ -679,7 +681,9 @@ export function registerTools(
     async ({ projectPrefix, name, content }, extra) => {
       try {
         const ws = resolveCommands(provider, projectPrefix, extra, server);
-        await ws.createCmd.createWorkflow(name, content ?? '');
+        await ws.resources.create(name, 'workflows', {
+          content: content ? JSON.parse(content) : undefined,
+        });
         return toolResult({ name });
       } catch (error) {
         return toolError('creating workflow', error);
@@ -699,7 +703,7 @@ export function registerTools(
     async ({ projectPrefix, name }, extra) => {
       try {
         const ws = resolveCommands(provider, projectPrefix, extra, server);
-        await ws.createCmd.createLinkType(name);
+        await ws.resources.create(name, 'linkTypes', {});
         return toolResult({ name });
       } catch (error) {
         return toolError('creating link type', error);
@@ -723,7 +727,9 @@ export function registerTools(
     async ({ projectPrefix, name, content }, extra) => {
       try {
         const ws = resolveCommands(provider, projectPrefix, extra, server);
-        await ws.createCmd.createTemplate(name, content ?? '');
+        await ws.resources.create(name, 'templates', {
+          content: content ? JSON.parse(content) : undefined,
+        });
         return toolResult({ name });
       } catch (error) {
         return toolError('creating template', error);
@@ -969,7 +975,7 @@ export function registerTools(
     async ({ projectPrefix, resource, operation, key }, extra) => {
       try {
         const ws = resolveCommands(provider, projectPrefix, extra, server);
-        await ws.updateCmd.apply({
+        await ws.changes.apply({
           kind: 'edit',
           target: resourceName(resource),
           updateKey: { key },
@@ -1032,7 +1038,7 @@ export function registerTools(
           query.key === 'content'
             ? ({ key: 'content', subKey: query.subKey } as const)
             : { key: query.key };
-        await ws.updateCmd.apply({
+        await ws.changes.apply({
           kind: 'edit',
           target: resourceName(resource),
           updateKey,
@@ -1065,7 +1071,7 @@ export function registerTools(
     async ({ projectPrefix, name }, extra) => {
       try {
         const ws = resolveCommands(provider, projectPrefix, extra, server);
-        await ws.createCmd.createCalculation(name);
+        await ws.resources.create(name, 'calculations', {});
         return toolResult({ name });
       } catch (error) {
         return toolError('creating calculation', error);
@@ -1128,7 +1134,7 @@ export function registerTools(
     async ({ projectPrefix, name }, extra) => {
       try {
         const ws = resolveCommands(provider, projectPrefix, extra, server);
-        await ws.createCmd.createReport(name);
+        await ws.resources.create(name, 'reports', {});
         return toolResult({ name });
       } catch (error) {
         return toolError('creating report', error);
@@ -1148,7 +1154,7 @@ export function registerTools(
     async ({ projectPrefix, name }, extra) => {
       try {
         const ws = resolveCommands(provider, projectPrefix, extra, server);
-        await ws.createCmd.createGraphModel(name);
+        await ws.resources.create(name, 'graphModels', {});
         return toolResult({ name });
       } catch (error) {
         return toolError('creating graph model', error);
@@ -1168,7 +1174,7 @@ export function registerTools(
     async ({ projectPrefix, name }, extra) => {
       try {
         const ws = resolveCommands(provider, projectPrefix, extra, server);
-        await ws.createCmd.createGraphView(name);
+        await ws.resources.create(name, 'graphViews', {});
         return toolResult({ name });
       } catch (error) {
         return toolError('creating graph view', error);
