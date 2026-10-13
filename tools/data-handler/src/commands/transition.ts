@@ -11,7 +11,7 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import type { Project } from '../containers/project.js';
+import type { Checkout } from '../containers/project.js';
 import { write } from '../utils/rw-lock.js';
 
 /**
@@ -20,9 +20,9 @@ import { write } from '../utils/rw-lock.js';
 export class Transition {
   /**
    * Creates an instance of Transition command.
-   * @param project Project to use.
+   * @param checkout Project to use.
    */
-  constructor(private project: Project) {}
+  constructor(private checkout: Checkout) {}
 
   /**
    * Transitions a card from its current state to a new state, then executes
@@ -32,11 +32,11 @@ export class Transition {
    */
   @write((cardKey) => `Transition card ${cardKey}`)
   public async cardTransition(cardKey: string, transitionName: string) {
-    const effects = await this.project.performTransition(
+    const effects = await this.checkout.performTransition(
       cardKey,
       transitionName,
     );
-    await this.project.executeSideEffects(
+    await this.checkout.executeSideEffects(
       effects,
       new Set([`${cardKey}:${transitionName}`]),
     );

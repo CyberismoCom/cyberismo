@@ -1,7 +1,7 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
-import { CommandManager } from '@cyberismo/data-handler';
+import { Workspace } from '@cyberismo/data-handler';
 import { createApp } from '../src/app.js';
 import { ProjectRegistry } from '../src/project-registry.js';
 import { MockAuthProvider, MOCK_ROLE_COOKIE } from '../src/auth/mock.js';
@@ -24,7 +24,7 @@ const parent: Mod = {
 };
 const child: Mod = { name: 'modb', location: 'file:/nowhere/modb' };
 let app: ReturnType<typeof createApp>;
-let commands: CommandManager;
+let ws: Workspace;
 let dir: string;
 
 // Hub refreshes triggered along the way must stay off the network.
@@ -60,10 +60,10 @@ async function open(roots: Mod[], transitive: Mod[] = []) {
       JSON.stringify({ cardKeyPrefix: name, name, version: '1.0.0', modules }),
     );
   }
-  commands = await CommandManager.getInstance(dir);
+  ws = await Workspace.getInstance(dir);
   app = createApp(
     new MockAuthProvider(),
-    ProjectRegistry.fromCommandManager(commands),
+    ProjectRegistry.fromCommandManager(ws),
   );
 }
 

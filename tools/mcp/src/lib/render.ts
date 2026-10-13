@@ -14,7 +14,7 @@
 */
 
 import { convert } from '@asciidoctor/core';
-import { type CommandManager, evaluateMacros } from '@cyberismo/data-handler';
+import { type Workspace, evaluateMacros } from '@cyberismo/data-handler';
 import { rewriteAsciidocCardXrefs } from '@cyberismo/data-handler/utils/asciidoc-xref';
 import type { QueryResult } from '@cyberismo/data-handler/types/queries';
 
@@ -146,13 +146,13 @@ export interface RenderedCard {
  * Wraps all read operations in a consistent lock to prevent interleaved writes.
  */
 export async function renderCard(
-  commands: CommandManager,
+  ws: Workspace,
   cardKey: string,
   options: { raw?: boolean } = {},
 ): Promise<RenderedCard> {
-  return commands.consistent(async () => {
+  return ws.consistent(async () => {
     // showCardDetails throws on invalid keys, so no null-check needed
-    const card = await commands.showCmd.showCardDetails(cardKey);
+    const card = await ws.showCmd.showCardDetails(cardKey);
     const rawContent = card.content || '';
     let parsedContent = rawContent;
 
@@ -164,7 +164,7 @@ export async function renderCard(
         let asciidocContent = await evaluateMacros(rawContent, {
           context: 'localApp',
           mode: 'inject',
-          project: commands.project,
+          checkout: ws.checkout,
           cardKey: cardKey,
         });
 
@@ -172,7 +172,7 @@ export async function renderCard(
         // /projects/<prefix>/cards/<key> links.
         asciidocContent = rewriteAsciidocCardXrefs(
           asciidocContent,
-          commands.project,
+          ws.checkout,
           'inject',
         );
 
@@ -192,13 +192,9 @@ export async function renderCard(
 
       // Run the card query to get full details
       try {
-        const results = await commands.calculateCmd.runQuery(
-          'card',
-          'localApp',
-          {
-            cardKey,
-          },
-        );
+        const results = await ws.calculateCmd.runQuery('card', 'localApp', {
+          cardKey,
+        });
         if (results.length > 0) {
           cardQueryResult = results[0];
         }
@@ -211,7 +207,7 @@ export async function renderCard(
     const availableTransitions = options.raw
       ? []
       : await computeAvailableTransitions(
-          commands,
+          ws,
           card.metadata?.cardType,
           cardQueryResult?.workflowState || card.metadata?.workflowState || '',
           cardQueryResult?.deniedOperations?.transition || [],
@@ -269,7 +265,7 @@ export async function renderCard(
  * Compute available transitions based on workflow and current state
  */
 async function computeAvailableTransitions(
-  commands: CommandManager,
+  ws: Workspace,
   cardTypeName: string | undefined,
   currentState: string,
   deniedTransitions: Array<{ transitionName: string; errorMessage: string }>,
@@ -280,16 +276,13 @@ async function computeAvailableTransitions(
 
   try {
     // Get the card type to find the workflow
-    const cardType = await commands.showCmd.showResource(
-      cardTypeName,
-      'cardTypes',
-    );
+    const cardType = await ws.showCmd.showResource(cardTypeName, 'cardTypes');
     if (!cardType?.workflow) {
       return [];
     }
 
     // Get the workflow
-    const workflow = await commands.showCmd.showResource(
+    const workflow = await ws.showCmd.showResource(
       cardType.workflow,
       'workflows',
     );
@@ -413,9 +406,9 @@ function transformNotifications(
  * Get card tree with basic info (no content rendering).
  * Wraps operations in a consistent lock.
  */
-export async function getCardTree(commands: CommandManager): Promise<unknown> {
-  return commands.consistent(async () => {
-    const result = await commands.calculateCmd.runQuery('tree', 'localApp', {});
+export async function getCardTree(ws: Workspace): Promise<unknown> {
+  return ws.consistent(async () => {
+    const result = await ws.calculateCmd.runQuery('tree', 'localApp', {});
     return result;
   });
 }

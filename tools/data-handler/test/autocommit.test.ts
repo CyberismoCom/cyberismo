@@ -17,7 +17,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { simpleGit } from 'simple-git';
 
-import { CommandManager } from '../src/command-manager.js';
+import { Workspace } from '../src/workspace/workspace.js';
 import { resourceName } from '../src/utils/resource-utils.js';
 
 const fixture = join(import.meta.dirname, 'test-data/valid/decision-records');
@@ -26,18 +26,18 @@ const author = { name: 'Writer', email: 'writer@example.com' };
 // Each outermost write under autocommit makes exactly one commit of its own.
 describe('autocommit', () => {
   let dir: string;
-  let cm: CommandManager;
+  let cm: Workspace;
 
   beforeEach(async () => {
     // Outside the monorepo, so the project gets its own repository.
     dir = await mkdtemp(join(tmpdir(), 'autocommit-test-'));
     await cp(fixture, dir, { recursive: true });
-    cm = new CommandManager(dir, { autocommit: true });
+    cm = new Workspace(dir, { autocommit: true });
     await cm.initialize();
   });
 
   afterEach(async () => {
-    cm.project.dispose();
+    cm.checkout.dispose();
     await rm(dir, { recursive: true, force: true });
   });
 

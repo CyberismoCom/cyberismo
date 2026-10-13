@@ -14,7 +14,7 @@
 */
 
 import { describe, expect, test } from 'vitest';
-import type { CommandManager } from '@cyberismo/data-handler';
+import type { Workspace } from '@cyberismo/data-handler';
 import {
   resolveCommands,
   type ProjectProvider,
@@ -24,7 +24,7 @@ import {
 const mockCommands = (prefix: string) =>
   ({
     _prefix: prefix,
-  }) as unknown as CommandManager;
+  }) as unknown as Workspace;
 
 function makeProvider(
   projects: { prefix: string; name: string }[],

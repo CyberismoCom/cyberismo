@@ -42,10 +42,10 @@ const router = new Hono();
  *         description: project_path not set or other internal error
  */
 router.get('/tree', requireRole(UserRole.Reader), async (c) => {
-  const commands = c.get('commands');
+  const ws = c.get('ws');
 
   try {
-    const tree = await resourceService.buildResourceTree(commands);
+    const tree = await resourceService.buildResourceTree(ws);
     return c.json(tree);
   } catch (error) {
     return c.json(
@@ -106,12 +106,12 @@ router.get(
   requireRole(UserRole.Reader),
   zValidator('param', validateResourceParamsSchema),
   async (c) => {
-    const commands = c.get('commands');
+    const ws = c.get('ws');
     const resourceParams = c.req.valid('param');
 
     try {
       const response: ResourceValidationResponse =
-        await resourceService.validateResource(commands, resourceParams);
+        await resourceService.validateResource(ws, resourceParams);
       return c.json(response);
     } catch (error) {
       if (error instanceof Error && error.message.includes('not found')) {
@@ -127,9 +127,9 @@ router.delete(
   requireRole(UserRole.Admin),
   zValidator('param', resourceParamsSchema),
   async (c) => {
-    const commands = c.get('commands');
+    const ws = c.get('ws');
     const resourceParams = c.req.valid('param');
-    await resourceService.deleteResource(commands, resourceParams);
+    await resourceService.deleteResource(ws, resourceParams);
     return c.json({
       message: 'Resource deleted',
     });
@@ -186,19 +186,19 @@ router.get(
   '/:prefix/workflows/:identifier/graph',
   requireRole(UserRole.Reader),
   ssgParams(async (c: AppContext) => {
-    const commands = c.get('commands');
-    return resourceService.listWorkflowGraphParams(commands);
+    const ws = c.get('ws');
+    return resourceService.listWorkflowGraphParams(ws);
   }),
   zValidator('param', prefixIdentifierParamsSchema),
   zValidator('query', workflowGraphQuerySchema),
   async (c) => {
-    const commands = c.get('commands');
+    const ws = c.get('ws');
     const { prefix, identifier } = c.req.valid('param');
     const { card } = c.req.valid('query');
     const workflowName = `${prefix}/workflows/${identifier}`;
     try {
       const svg = await resourceService.getWorkflowGraph(
-        commands,
+        ws,
         workflowName,
         card,
       );
@@ -273,13 +273,13 @@ router.post(
   zValidator('param', prefixIdentifierParamsSchema),
   zValidator('json', skillPreviewBodySchema),
   async (c) => {
-    const commands = c.get('commands');
+    const ws = c.get('ws');
     const { prefix, identifier } = c.req.valid('param');
     const body = c.req.valid('json');
     const skillName = `${prefix}/skills/${identifier}`;
     try {
       const instructions = await resourceService.previewSkill(
-        commands,
+        ws,
         skillName,
         body,
       );
@@ -300,15 +300,14 @@ router.post(
   zValidator('param', resourceParamsSchema),
   zValidator('json', updateOperationBodySchema),
   async (c) => {
-    const commands = c.get('commands');
+    const ws = c.get('ws');
     const resourceParams = c.req.valid('param');
     const { updateKey, operation } = c.req.valid('json');
 
-    await resourceService.updateResourceWithOperation(
-      commands,
-      resourceParams,
-      { updateKey, operation },
-    );
+    await resourceService.updateResourceWithOperation(ws, resourceParams, {
+      updateKey,
+      operation,
+    });
     return c.json({ message: 'Updated' });
   },
 );

@@ -19,7 +19,7 @@ import { vi } from 'vitest';
 
 import { SCHEMA_VERSION } from '@cyberismo/migrations';
 import { ProjectPaths } from '../../src/containers/project/project-paths.js';
-import type { Project } from '../../src/containers/project.js';
+import type { Checkout } from '../../src/containers/project.js';
 import { isGitLocation } from '../../src/modules/location.js';
 import type { FetchTarget, SourceLayer } from '../../src/modules/source.js';
 import type { ModuleSetting } from '../../src/interfaces/project-interfaces.js';
@@ -181,7 +181,7 @@ export interface ProjectStub {
    * `cleanOrphans` — production signatures expect `Project`, so the
    * single cast lives here.
    */
-  project: Project;
+  checkout: Checkout;
   /** Live view of the declared modules array (mutated by `upsertModule`). */
   modules: ModuleSetting[];
   /** Vitest spy on `refreshAfterModuleChange`. */
@@ -229,7 +229,7 @@ export function makeProjectStub(opts: MakeProjectStubOptions): ProjectStub {
   // only implements the subset the module layer touches. This is the
   // single cast — tests receive `Project` directly.
   return {
-    project: stub as unknown as Project,
+    checkout: stub as unknown as Checkout,
     modules,
     refreshAfterModuleChange,
   };

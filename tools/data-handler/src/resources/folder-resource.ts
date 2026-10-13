@@ -30,7 +30,7 @@ import { resourceName } from '../utils/resource-utils.js';
 import type { UpdateKey } from '../interfaces/resource-interfaces.js';
 import type { FolderResourceContent } from '../interfaces/folder-content-interfaces.js';
 import type { Operation } from './resource-object.js';
-import type { Project } from '../containers/project.js';
+import type { Checkout } from '../containers/project.js';
 import type { ResourceFolderType } from '../interfaces/project-interfaces.js';
 import type { ResourceBaseMetadata } from '../interfaces/resource-interfaces.js';
 import type { ResourceName } from '../utils/resource-utils.js';
@@ -49,12 +49,16 @@ export abstract class FolderResource<
 
   /**
    * Constructs a FolderResource object.
-   * @param project Project in which this resource exists.
+   * @param checkout Project in which this resource exists.
    * @param name Name for the resource.
    * @param type Type for this resource.
    */
-  constructor(project: Project, name: ResourceName, type: ResourceFolderType) {
-    super(project, name, type);
+  constructor(
+    checkout: Checkout,
+    name: ResourceName,
+    type: ResourceFolderType,
+  ) {
+    super(checkout, name, type);
     this.initialize();
   }
 

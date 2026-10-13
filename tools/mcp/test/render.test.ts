@@ -14,7 +14,7 @@
 */
 
 import { beforeAll, afterAll, describe, expect, test } from 'vitest';
-import { CommandManager } from '@cyberismo/data-handler';
+import { Workspace } from '@cyberismo/data-handler';
 import type { QueryResult } from '@cyberismo/data-handler/types/queries';
 import {
   renderCard,
@@ -24,18 +24,18 @@ import {
 } from '../src/lib/render.js';
 import { testDataPath } from './test-utils.js';
 
-let commands: CommandManager;
+let ws: Workspace;
 let renderedCard: RenderedCard;
 
 // Fixes weird issue with asciidoctor
 beforeAll(async () => {
   process.argv = [];
-  commands = await CommandManager.getInstance(testDataPath);
-  renderedCard = await renderCard(commands, 'decision_5');
+  ws = await Workspace.getInstance(testDataPath);
+  renderedCard = await renderCard(ws, 'decision_5');
 });
 
 afterAll(async () => {
-  commands.project.dispose();
+  ws.checkout.dispose();
 });
 
 describe('renderCard', () => {
@@ -84,11 +84,11 @@ describe('renderCard', () => {
   });
 
   test('throws for invalid card key', async () => {
-    await expect(renderCard(commands, 'invalid_key')).rejects.toThrow();
+    await expect(renderCard(ws, 'invalid_key')).rejects.toThrow();
   });
 
   test('raw mode skips macro evaluation and transitions', async () => {
-    const card = await renderCard(commands, 'decision_5', { raw: true });
+    const card = await renderCard(ws, 'decision_5', { raw: true });
 
     expect(card.key).toBe('decision_5');
     expect(card.rawContent).toBeDefined();
@@ -157,7 +157,7 @@ describe('transformFields', () => {
 
 describe('getCardTree', () => {
   test('returns non-empty card tree with key and title', async () => {
-    const tree = (await getCardTree(commands)) as Array<{
+    const tree = (await getCardTree(ws)) as Array<{
       key: string;
       title: string;
     }>;

@@ -3,7 +3,7 @@ import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { copyDir } from '../../../src/utils/file-utils.js';
-import type { Project } from '../../../src/containers/project.js';
+import type { Checkout } from '../../../src/containers/project.js';
 import { getTestProject } from '../../helpers/test-utils.js';
 import { route } from '../../../src/mutations/route.js';
 import { resourceName } from '../../../src/utils/resource-utils.js';
@@ -12,9 +12,9 @@ import { ResourceMutations } from '../../../src/mutations/resource-mutations.js'
 const baseDir = import.meta.dirname;
 const testDir = join(baseDir, 'tmp-field-type-enum-rename');
 const decisionRecordsPath = join(testDir, 'valid/decision-records');
-let project: Project;
+let checkout: Checkout;
 
-const fieldName = () => `${project.projectPrefix}/fieldTypes/testEnum`;
+const fieldName = () => `${checkout.projectPrefix}/fieldTypes/testEnum`;
 
 function seedEnumField() {
   const enumFieldPath = join(
@@ -47,20 +47,20 @@ function seedEnumField() {
 // Register the enum field on the decision card type, then seed the value 'low'
 // onto every card of that type.
 async function seedCardTypeAndCardValues() {
-  const cardTypeName = `${project.projectPrefix}/cardTypes/decision`;
-  await project.resources.byType(cardTypeName, 'cardTypes').update(
+  const cardTypeName = `${checkout.projectPrefix}/cardTypes/decision`;
+  await checkout.resources.byType(cardTypeName, 'cardTypes').update(
     { key: 'customFields' },
     {
       name: 'add' as const,
       target: { name: fieldName() },
     },
   );
-  const cards = project.cardTree
+  const cards = checkout.cardTree
     .cards()
     .filter((c) => c.metadata?.cardType === cardTypeName);
   for (const card of cards) {
     card.metadata![fieldName()] = 'low';
-    await project.updateCardMetadata(card, card.metadata!);
+    await checkout.updateCardMetadata(card, card.metadata!);
   }
 }
 
@@ -80,8 +80,8 @@ describe('FieldTypeEnumRenameHandler', () => {
     mkdirSync(testDir, { recursive: true });
     await copyDir(join(baseDir, '..', '..', 'test-data'), testDir);
     seedEnumField();
-    project = getTestProject(decisionRecordsPath);
-    await project.populateCaches();
+    checkout = getTestProject(decisionRecordsPath);
+    await checkout.populateCaches();
     await seedCardTypeAndCardValues();
   });
   afterEach(() => {
@@ -107,16 +107,16 @@ describe('FieldTypeEnumRenameHandler', () => {
   });
 
   it('renames the value in the field definition', async () => {
-    await new ResourceMutations(project).apply(renameOp);
-    const updated = project.resources.byType(fieldName(), 'fieldTypes').show();
+    await new ResourceMutations(checkout).apply(renameOp);
+    const updated = checkout.resources.byType(fieldName(), 'fieldTypes').show();
     const values = (updated.enumValues ?? []).map((e) => e.enumValue);
     expect(values).toContain('minor');
     expect(values).not.toContain('low');
   });
 
   it('migrates card values to the new value', async () => {
-    await new ResourceMutations(project).apply(renameOp);
-    const cards = project.cardTree.cards();
+    await new ResourceMutations(checkout).apply(renameOp);
+    const cards = checkout.cardTree.cards();
     const anyStillLow = cards.some((c) => c.metadata?.[fieldName()] === 'low');
     const migrated = cards.filter((c) => c.metadata?.[fieldName()] === 'minor');
     expect(anyStillLow).toBe(false);
@@ -126,16 +126,16 @@ describe('FieldTypeEnumRenameHandler', () => {
   it('replay runs the cascade only: migrates card values without touching the definition', async () => {
     // Replay assumes the definition change is already materialized (mirrors the
     // module-file overwrite), so apply it first, then replay runs the cascade.
-    await project.resources
+    await checkout.resources
       .byType(fieldName(), 'fieldTypes')
       .update(renameOp.updateKey, renameOp.operation);
 
-    await new ResourceMutations(project).apply(renameOp, {
+    await new ResourceMutations(checkout).apply(renameOp, {
       kind: 'replay',
-      modulePrefix: project.projectPrefix,
+      modulePrefix: checkout.projectPrefix,
     });
 
-    const anyStillLow = project.cardTree
+    const anyStillLow = checkout.cardTree
       .cards()
       .some((c) => c.metadata?.[fieldName()] === 'low');
     expect(anyStillLow).toBe(false);

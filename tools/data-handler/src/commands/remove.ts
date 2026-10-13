@@ -17,7 +17,7 @@ import { ResourceMutations } from '../mutations/resource-mutations.js';
 import { resourceName as parseResourceName } from '../utils/resource-utils.js';
 import type { Fetch } from './fetch.js';
 import type { Modules } from './modules.js';
-import type { Project } from '../containers/project.js';
+import type { Checkout } from '../containers/project.js';
 import type { RemovableResourceTypes } from '../interfaces/project-interfaces.js';
 import type { ExternalLink } from '../interfaces/resource-interfaces.js';
 import { write } from '../utils/rw-lock.js';
@@ -33,11 +33,11 @@ export class Remove {
   private readonly mutations: ResourceMutations;
 
   constructor(
-    private project: Project,
+    private checkout: Checkout,
     private fetchCmd: Fetch,
     private modulesCmd: Modules,
   ) {
-    this.mutations = new ResourceMutations(project);
+    this.mutations = new ResourceMutations(checkout);
   }
 
   // True, if resource is a project resource
@@ -62,31 +62,31 @@ export class Remove {
       throw new Error(`Attachment filename required`);
     }
 
-    return this.project.removeCardAttachment(cardKey, attachment);
+    return this.checkout.removeCardAttachment(cardKey, attachment);
   }
 
   // Removes card from project or template
   private async removeCard(cardKey: string) {
-    const card = this.project.findCard(cardKey);
+    const card = this.checkout.findCard(cardKey);
 
     // Imported templates cannot be modified.
-    if (!this.project.treeOf(cardKey).writable) {
+    if (!this.checkout.treeOf(cardKey).writable) {
       throw new Error(`Cannot modify imported module`);
     }
 
     // Only a card in a workflow has a delete transition to permit.
-    if (this.project.treeOf(cardKey).kind === 'project') {
-      const actionGuard = new ActionGuard(this.project.calculationEngine);
+    if (this.checkout.treeOf(cardKey).kind === 'project') {
+      const actionGuard = new ActionGuard(this.checkout.calculationEngine);
       await actionGuard.checkPermission('delete', cardKey);
     }
 
     // Descendant cascade and link cleanup live in the project-level primitive.
-    await this.project.deleteCards([card]);
+    await this.checkout.deleteCards([card]);
   }
 
   // removes label from project
   private async removeLabel(cardKey: string, label: string) {
-    const card = this.project.findCard(cardKey);
+    const card = this.checkout.findCard(cardKey);
     let labels = card.metadata?.labels ?? [];
 
     if (!label && labels.length !== 1) {
@@ -103,7 +103,7 @@ export class Remove {
       labels.length === 1
         ? []
         : labels.filter((labelItem) => labelItem !== label);
-    return this.project.updateCardMetadataKey(cardKey, 'labels', labels);
+    return this.checkout.updateCardMetadataKey(cardKey, 'labels', labels);
   }
 
   // Removes link from project.
@@ -149,7 +149,7 @@ export class Remove {
     linkType?: string,
     linkDescription?: string,
   ) {
-    const sourceCard = this.project.findCard(source);
+    const sourceCard = this.checkout.findCard(source);
     const link = sourceCard.metadata?.links.find(
       (l) =>
         l.cardKey === destination &&
@@ -171,7 +171,7 @@ export class Remove {
         (l.linkDescription ?? '') !== (linkDescription ?? ''),
     );
 
-    await this.project.updateCardMetadataKey(source, 'links', newLinks);
+    await this.checkout.updateCardMetadataKey(source, 'links', newLinks);
   }
 
   // Removes external link from project.
@@ -192,7 +192,7 @@ export class Remove {
       );
     }
 
-    const card = this.project.findCard(cardKey);
+    const card = this.checkout.findCard(cardKey);
 
     const matches = (l: ExternalLink) =>
       l.connector === connector &&
@@ -212,7 +212,7 @@ export class Remove {
     const newExternalLinks: ExternalLink[] =
       card.metadata?.externalLinks?.filter((l) => !matches(l)) ?? [];
 
-    await this.project.updateCardMetadataKey(
+    await this.checkout.updateCardMetadataKey(
       cardKey,
       'externalLinks',
       newExternalLinks,
@@ -221,7 +221,7 @@ export class Remove {
 
   // Remove a hub from project.
   private async removeHubLocation(name: string) {
-    await this.project.configuration.removeHub(name);
+    await this.checkout.configuration.removeHub(name);
     // The cached module list still offers the removed hub's modules until it
     // is rewritten, and nothing else rewrites it without contacting a hub.
     await this.fetchCmd.pruneUnconfiguredHubs();
@@ -271,10 +271,10 @@ export class Remove {
       await this.mutations.apply({
         kind: 'delete',
         target: {
-          prefix: parsed.prefix || this.project.projectPrefix,
+          prefix: parsed.prefix || this.checkout.projectPrefix,
           type:
             parsed.type ||
-            this.project.resources.resourceTypeFromSingularType(type),
+            this.checkout.resources.resourceTypeFromSingularType(type),
           identifier: parsed.identifier,
         },
       });

@@ -10,31 +10,31 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Calculate } from './commands/calculate.js';
-import { Clean } from './commands/clean.js';
-import { Create } from './commands/create.js';
-import { Edit } from './commands/edit.js';
-import { Export } from './commands/export.js';
-import { Fetch } from './commands/fetch.js';
-import { Import } from './commands/import.js';
-import { Modules } from './commands/modules.js';
-import { Move } from './commands/move.js';
-import { Publish } from './commands/publish.js';
-import { Remove } from './commands/remove.js';
-import { Version } from './commands/version.js';
-import { Rename } from './commands/rename.js';
-import { Show } from './commands/show.js';
-import { Transition } from './commands/transition.js';
-import { Update } from './commands/update.js';
-import { Validate } from './commands/validate.js';
-import { Project } from './containers/project.js';
-import { runWithCommitContext } from './utils/commit-context.js';
+import { Calculate } from '../commands/calculate.js';
+import { Clean } from '../commands/clean.js';
+import { Create } from '../commands/create.js';
+import { Edit } from '../commands/edit.js';
+import { Export } from '../commands/export.js';
+import { Fetch } from '../commands/fetch.js';
+import { Import } from '../commands/import.js';
+import { Modules } from '../commands/modules.js';
+import { Move } from '../commands/move.js';
+import { Publish } from '../commands/publish.js';
+import { Remove } from '../commands/remove.js';
+import { Version } from '../commands/version.js';
+import { Rename } from '../commands/rename.js';
+import { Show } from '../commands/show.js';
+import { Transition } from '../commands/transition.js';
+import { Update } from '../commands/update.js';
+import { Validate } from '../commands/validate.js';
+import { Checkout } from '../containers/project.js';
+import { runWithCommitContext } from '../utils/commit-context.js';
 import { type Level } from 'pino';
 import { join } from 'node:path';
-import { initLogger } from './utils/log-utils.js';
+import { initLogger } from '../utils/log-utils.js';
 import { DEFAULT_HUB } from '@cyberismo/assets';
 
-export interface CommandManagerOptions {
+export interface WorkspaceOptions {
   watchResourceChanges?: boolean;
   logLevel?: Level;
   autocommit?: boolean;
@@ -42,10 +42,10 @@ export interface CommandManagerOptions {
 }
 
 // Handles commands and ensures that no extra instances are created.
-export class CommandManager {
-  private static instance: CommandManager;
+export class Workspace {
+  private static instance: Workspace;
 
-  public project: Project;
+  public checkout: Checkout;
   public calculateCmd: Calculate;
   public cleanCmd: Clean;
   public createCmd: Create;
@@ -64,35 +64,35 @@ export class CommandManager {
   public validateCmd: Validate;
   public versionCmd: Version;
 
-  constructor(path: string, options?: CommandManagerOptions) {
-    this.project = new Project(path, {
+  constructor(path: string, options?: WorkspaceOptions) {
+    this.checkout = new Checkout(path, {
       watchResourceChanges: options?.watchResourceChanges,
       autocommit: options?.autocommit,
       autopush: options?.autopush,
     });
-    const compat = this.project.configuration.checkSchemaVersion();
+    const compat = this.checkout.configuration.checkSchemaVersion();
     if (!compat.isCompatible) {
-      this.project.dispose();
+      this.checkout.dispose();
       throw new Error(compat.message);
     }
     this.validateCmd = Validate.getInstance();
 
-    this.calculateCmd = new Calculate(this.project);
-    this.cleanCmd = new Clean(this.project);
-    this.fetchCmd = new Fetch(this.project);
-    this.modulesCmd = new Modules(this.project, this.fetchCmd);
-    this.showCmd = new Show(this.project);
-    this.createCmd = new Create(this.project);
-    this.editCmd = new Edit(this.project);
-    this.exportCmd = new Export(this.project, this.showCmd);
-    this.importCmd = new Import(this.project, this.createCmd);
-    this.moveCmd = new Move(this.project);
-    this.publishCmd = new Publish(this.project);
-    this.removeCmd = new Remove(this.project, this.fetchCmd, this.modulesCmd);
-    this.renameCmd = new Rename(this.project);
-    this.transitionCmd = new Transition(this.project);
-    this.updateCmd = new Update(this.project);
-    this.versionCmd = new Version(this.project);
+    this.calculateCmd = new Calculate(this.checkout);
+    this.cleanCmd = new Clean(this.checkout);
+    this.fetchCmd = new Fetch(this.checkout);
+    this.modulesCmd = new Modules(this.checkout, this.fetchCmd);
+    this.showCmd = new Show(this.checkout);
+    this.createCmd = new Create(this.checkout);
+    this.editCmd = new Edit(this.checkout);
+    this.exportCmd = new Export(this.checkout, this.showCmd);
+    this.importCmd = new Import(this.checkout, this.createCmd);
+    this.moveCmd = new Move(this.checkout);
+    this.publishCmd = new Publish(this.checkout);
+    this.removeCmd = new Remove(this.checkout, this.fetchCmd, this.modulesCmd);
+    this.renameCmd = new Rename(this.checkout);
+    this.transitionCmd = new Transition(this.checkout);
+    this.updateCmd = new Update(this.checkout);
+    this.versionCmd = new Version(this.checkout);
   }
 
   /**
@@ -102,7 +102,7 @@ export class CommandManager {
    *    message - optional message related to compatibility.
    */
   public checkSchemaVersion(): { isCompatible: boolean; message?: string } {
-    return this.project.configuration.checkSchemaVersion();
+    return this.checkout.configuration.checkSchemaVersion();
   }
 
   /**
@@ -122,7 +122,7 @@ export class CommandManager {
    * Git commit fires once on success; rollback on any error.
    */
   public async atomic<T>(fn: () => Promise<T>, message: string): Promise<T> {
-    const run = () => this.project.lock.write(fn);
+    const run = () => this.checkout.lock.write(fn);
     return runWithCommitContext({ message }, run);
   }
 
@@ -132,7 +132,7 @@ export class CommandManager {
    * Writers are blocked for the duration.
    */
   public async consistent<T>(fn: () => Promise<T>): Promise<T> {
-    return this.project.lock.read(fn);
+    return this.checkout.lock.read(fn);
   }
 
   /**
@@ -140,10 +140,10 @@ export class CommandManager {
    * Add such calls here.
    */
   public async initialize() {
-    this.project.resources.changedModules();
-    await this.project.populateCaches();
-    await this.project.initializeGit();
-    await this.project.calculationEngine.generate();
+    this.checkout.resources.changedModules();
+    await this.checkout.populateCaches();
+    await this.checkout.initializeGit();
+    await this.checkout.calculationEngine.generate();
   }
 
   /**
@@ -155,28 +155,25 @@ export class CommandManager {
    */
   public static async getInstance(
     path: string,
-    options?: CommandManagerOptions,
-  ): Promise<CommandManager> {
+    options?: WorkspaceOptions,
+  ): Promise<Workspace> {
     // Set up logger before constructing anything so eager child loggers work
     if (options?.logLevel) {
       const logPath = join(path, '.logs', 'cyberismo_data-handler.log');
       initLogger(options.logLevel, logPath);
     }
 
-    if (
-      CommandManager.instance &&
-      CommandManager.instance.project.basePath !== path
-    ) {
-      CommandManager.instance.project.dispose();
-      CommandManager.instance = new CommandManager(path, options);
-      await CommandManager.instance.initialize();
+    if (Workspace.instance && Workspace.instance.checkout.basePath !== path) {
+      Workspace.instance.checkout.dispose();
+      Workspace.instance = new Workspace(path, options);
+      await Workspace.instance.initialize();
     }
-    if (!CommandManager.instance) {
-      CommandManager.instance = new CommandManager(path, options);
-      await CommandManager.instance.initialize();
+    if (!Workspace.instance) {
+      Workspace.instance = new Workspace(path, options);
+      await Workspace.instance.initialize();
     }
 
-    return CommandManager.instance;
+    return Workspace.instance;
   }
 
   /**
@@ -195,10 +192,10 @@ export class CommandManager {
       category?: string;
       description?: string;
     },
-    options?: CommandManagerOptions & {
+    options?: WorkspaceOptions & {
       gitUser?: { name: string; email: string };
     },
-  ): Promise<CommandManager> {
+  ): Promise<Workspace> {
     await Create.createProject(
       projectPath,
       params.prefix,
@@ -207,10 +204,10 @@ export class CommandManager {
       params.description ?? '',
     );
 
-    const commands = new CommandManager(projectPath, options);
-    await commands.initialize();
+    const ws = new Workspace(projectPath, options);
+    await ws.initialize();
 
-    await commands.project.git.initialize(
+    await ws.checkout.git.initialize(
       options?.gitUser
         ? { name: options.gitUser.name, email: options.gitUser.email }
         : undefined,
@@ -218,12 +215,12 @@ export class CommandManager {
 
     // Add default hub and fetch module data
     try {
-      await commands.createCmd.addHubLocation(DEFAULT_HUB);
-      await commands.fetchCmd.fetchHubs();
+      await ws.createCmd.addHubLocation(DEFAULT_HUB);
+      await ws.fetchCmd.fetchHubs();
     } catch {
       // Hub setup is non-critical; project is still usable
     }
 
-    return commands;
+    return ws;
   }
 }

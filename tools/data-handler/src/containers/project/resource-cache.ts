@@ -35,7 +35,7 @@ import { SkillResource } from '../../resources/skill-resource.js';
 import { TemplateResource } from '../../resources/template-resource.js';
 import { WorkflowResource } from '../../resources/workflow-resource.js';
 
-import type { Project } from '../project.js';
+import type { Checkout } from '../project.js';
 import type { ResourceFolderType } from '../../interfaces/project-interfaces.js';
 import type { ResourceName } from '../../utils/resource-utils.js';
 import { ResourcesFrom } from './resources-from.js';
@@ -63,7 +63,7 @@ export type ResourceMap = {
 
 // Constructor signature shared by every resource class.
 type ResourceConstructor = new (
-  project: Project,
+  checkout: Checkout,
   name: ResourceName,
 ) => ResourceMap[keyof ResourceMap];
 
@@ -135,11 +135,11 @@ export class ResourceCache {
   private resourceRegistry = new Map<string, ResourceMetadata>();
   private instanceCache = new Map<string, unknown>();
 
-  private project: Project;
+  private checkout: Checkout;
 
   // Private constructor - use ResourceCache.create() instead.
-  private constructor(project: Project) {
-    this.project = project;
+  private constructor(checkout: Checkout) {
+    this.checkout = checkout;
   }
 
   // Initialize the cache by collecting all resources.
@@ -150,7 +150,7 @@ export class ResourceCache {
   // Build a full resource name from partial name and type.
   private buildResourceName(name: string, type?: string): ResourceName {
     if (type && name && name.split('/').length === 1) {
-      name = `${this.project.projectPrefix}/${type}/${name}`;
+      name = `${this.checkout.projectPrefix}/${type}/${name}`;
     }
     return resourceName(name);
   }
@@ -166,7 +166,7 @@ export class ResourceCache {
     if (!resourceConstructor) {
       throw new Error(`Unsupported resource type '${resourceName.type}'`);
     }
-    const resource = new resourceConstructor(this.project, resourceName);
+    const resource = new resourceConstructor(this.checkout, resourceName);
 
     // Populate content files into folder resources
     if (metadata?.contentFiles && this.hasSetContentFiles(resource)) {
@@ -205,7 +205,7 @@ export class ResourceCache {
   // Collect all module resources from the filesystem
   private collectModuleResources() {
     try {
-      const moduleEntries = readdirSync(this.project.paths.modulesFolder, {
+      const moduleEntries = readdirSync(this.checkout.paths.modulesFolder, {
         withFileTypes: true,
       });
       const moduleNames = moduleEntries
@@ -287,8 +287,8 @@ export class ResourceCache {
   ) {
     const resourceFolder =
       source === 'local'
-        ? this.project.paths.resourcePath(type)
-        : join(this.project.paths.modulesFolder, moduleName!, type);
+        ? this.checkout.paths.resourcePath(type)
+        : join(this.checkout.paths.modulesFolder, moduleName!, type);
 
     try {
       const entries = readdirSync(resourceFolder, { withFileTypes: true });
@@ -297,7 +297,7 @@ export class ResourceCache {
         if (entry.isFile() && allowedExtensions.includes(extname(entry.name))) {
           const name =
             source === 'local'
-              ? `${this.project.projectPrefix}/${type}/${stripExtension(entry.name)}`
+              ? `${this.checkout.projectPrefix}/${type}/${stripExtension(entry.name)}`
               : `${moduleName}/${type}/${stripExtension(entry.name)}`;
 
           this.resourceRegistry.set(name, {
@@ -358,13 +358,13 @@ export class ResourceCache {
     const key = this.normalizeResourceName(name);
     if (!this.resourceRegistry.has(key)) {
       const resName = typeof name === 'string' ? resourceName(name) : name;
-      const isModule = resName.prefix !== this.project.projectPrefix;
+      const isModule = resName.prefix !== this.checkout.projectPrefix;
       const resourcePath = isModule
-        ? this.project.paths.moduleResourcePath(
+        ? this.checkout.paths.moduleResourcePath(
             resName.prefix,
             resName.type as ResourceFolderType,
           )
-        : this.project.paths.resourcePath(resName.type as ResourceFolderType);
+        : this.checkout.paths.resourcePath(resName.type as ResourceFolderType);
 
       this.resourceRegistry.set(key, {
         name: key,
@@ -446,11 +446,11 @@ export class ResourceCache {
   /**
    * Creates and initializes a ResourceCache.
    * This performs filesystem I/O to collect all resources.
-   * @param project Project to use
+   * @param checkout Project to use
    * @returns Initialized ResourceCache
    */
-  public static create(project: Project): ResourceCache {
-    const cache = new ResourceCache(project);
+  public static create(checkout: Checkout): ResourceCache {
+    const cache = new ResourceCache(checkout);
     cache.initialize();
     return cache;
   }
@@ -462,7 +462,7 @@ export class ResourceCache {
    */
   public handleFileSystemChange(fileName: string) {
     try {
-      const resource = pathToResourceName(this.project, fileName);
+      const resource = pathToResourceName(this.checkout, fileName);
       if (!resource) {
         return;
       }
@@ -470,7 +470,7 @@ export class ResourceCache {
       const name = resourceNameToString(resource);
 
       // Update registry with new path
-      const isModule = resource.prefix !== this.project.projectPrefix;
+      const isModule = resource.prefix !== this.checkout.projectPrefix;
       this.resourceRegistry.set(name, {
         name: name,
         type: resource.type as ResourceFolderType,

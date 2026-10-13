@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { join } from 'node:path';
 
-import type { Project } from '../../src/containers/project.js';
+import type { Checkout } from '../../src/containers/project.js';
 import { ResourceMutations } from '../../src/mutations/resource-mutations.js';
 import { ConfigurationLogger } from '../../src/utils/configuration-logger.js';
 import { deleteDir } from '../../src/utils/file-utils.js';
@@ -11,25 +11,25 @@ import { createLinkSeededProject } from './helpers.js';
 const tmpDir = join(import.meta.dirname, 'tmp-integration-link-type-delete');
 
 describe('LinkType delete end-to-end', () => {
-  let project: Project;
+  let checkout: Checkout;
 
   beforeAll(async () => {
-    project = await createLinkSeededProject(tmpDir);
+    checkout = await createLinkSeededProject(tmpDir);
   });
   afterAll(async () => {
     await deleteDir(tmpDir);
   });
 
   it('apply → log entry; links stripped from cards', async () => {
-    const linkTypeName = `${project.projectPrefix}/linkTypes/test`;
-    const mutations = new ResourceMutations(project);
+    const linkTypeName = `${checkout.projectPrefix}/linkTypes/test`;
+    const mutations = new ResourceMutations(checkout);
     const input = {
       kind: 'delete' as const,
       target: resourceName(linkTypeName),
     };
     // Guard: the cascade must have something to strip for this test to mean
     // anything.
-    const linksBefore = project.cardTree
+    const linksBefore = checkout.cardTree
       .cards()
       .reduce(
         (n, c) =>
@@ -43,14 +43,14 @@ describe('LinkType delete end-to-end', () => {
     await mutations.apply(input);
 
     // Cards no longer reference the deleted link type.
-    for (const c of project.cardTree.cards()) {
+    for (const c of checkout.cardTree.cards()) {
       expect(
         c.metadata?.links?.some((l) => l.linkType === linkTypeName),
       ).not.toBe(true);
     }
-    expect(project.resources.exists(linkTypeName)).toBe(false);
+    expect(checkout.resources.exists(linkTypeName)).toBe(false);
 
-    const entries = await ConfigurationLogger.entries(project.basePath);
+    const entries = await ConfigurationLogger.entries(checkout.basePath);
     const deleteEntries = entries.filter(
       (e) => e.operation === 'resource_delete' && e.target === linkTypeName,
     );

@@ -16,7 +16,7 @@ import { Validate } from './validate.js';
 import { write } from '../utils/rw-lock.js';
 
 import type { Create } from './create.js';
-import type { Project } from '../containers/project.js';
+import type { Checkout } from '../containers/project.js';
 
 /**
  * Handles importing cards from a CSV file.
@@ -24,11 +24,11 @@ import type { Project } from '../containers/project.js';
 export class Import {
   /**
    * Creates an instance of Import.
-   * @param project Project to use.
+   * @param checkout Project to use.
    * @param createCmd Instance of Create to use.
    */
   constructor(
-    private project: Project,
+    private checkout: Checkout,
     private createCmd: Create,
   ) {}
 
@@ -54,7 +54,7 @@ export class Import {
 
     for (const row of csv) {
       const { title, template, description, labels, ...customFields } = row;
-      const templateResource = this.project.resources.byType(
+      const templateResource = this.checkout.resources.byType(
         template,
         'templates',
       );
@@ -73,16 +73,16 @@ export class Import {
         throw new Error('Card not created');
       }
       const cardKey = cards[0].key;
-      const card = this.project.findCard(cardKey);
+      const card = this.checkout.findCard(cardKey);
       if (!card.metadata?.cardType) {
         throw new Error(`Card type not found for card ${cardKey}`);
       }
-      const cardType = this.project.resources
+      const cardType = this.checkout.resources
         .byType(card.metadata?.cardType, 'cardTypes')
         .show();
 
       if (description) {
-        await this.project.updateCardContent(cardKey, description);
+        await this.checkout.updateCardContent(cardKey, description);
       }
 
       if (labels) {
@@ -97,10 +97,10 @@ export class Import {
         }
       }
 
-      await this.project.updateCardMetadataKey(cardKey, 'title', title);
+      await this.checkout.updateCardMetadataKey(cardKey, 'title', title);
       for (const [key, value] of Object.entries(customFields)) {
         if (cardType.customFields.find((field) => field.name === key)) {
-          await this.project.updateCardMetadataKey(cardKey, key, value);
+          await this.checkout.updateCardMetadataKey(cardKey, key, value);
         }
       }
       importedCards.push(cardKey);

@@ -13,7 +13,7 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import type { CommandManager, ProjectProvider } from '@cyberismo/data-handler';
+import type { Workspace, ProjectProvider } from '@cyberismo/data-handler';
 
 export type { ProjectProvider } from '@cyberismo/data-handler';
 
@@ -24,9 +24,9 @@ export type { ProjectProvider } from '@cyberismo/data-handler';
 export function resolveCommands(
   provider: ProjectProvider,
   projectPrefix: string,
-): CommandManager {
-  const commands = provider.get(projectPrefix);
-  if (!commands) {
+): Workspace {
+  const ws = provider.get(projectPrefix);
+  if (!ws) {
     const available = provider.list().map((p) => p.prefix);
     throw new Error(
       available.length === 0
@@ -34,5 +34,5 @@ export function resolveCommands(
         : `Unknown project '${projectPrefix}'. Available projects: ${available.join(', ')}. Ask the user which project to use before retrying.`,
     );
   }
-  return commands;
+  return ws;
 }

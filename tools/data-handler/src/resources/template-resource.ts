@@ -23,7 +23,7 @@ import { pathExists } from '../utils/file-utils.js';
 
 import type { Card } from '../interfaces/project-interfaces.js';
 import type { CardTree } from '../containers/project/card-tree.js';
-import type { Project } from '../containers/project.js';
+import type { Checkout } from '../containers/project.js';
 import type { ResourceName } from '../utils/resource-utils.js';
 import type {
   TemplateConfiguration,
@@ -38,11 +38,11 @@ export class TemplateResource extends FolderResource<TemplateMetadata, never> {
 
   /**
    * Creates an instance of TemplateResource
-   * @param project Project to use
+   * @param checkout Project to use
    * @param name Resource name
    */
-  constructor(project: Project, name: ResourceName) {
-    super(project, name, 'templates');
+  constructor(checkout: Checkout, name: ResourceName) {
+    super(checkout, name, 'templates');
 
     this.contentSchemaId = 'templateSchema';
     this.contentSchema = super.contentSchemaContent(this.contentSchemaId);
@@ -59,7 +59,10 @@ export class TemplateResource extends FolderResource<TemplateMetadata, never> {
    * The tree holding the template's cards.
    */
   public get cardTree(): CardTree {
-    return this.project.templateTree(this.fullName, this.templateCardsFolder());
+    return this.checkout.templateTree(
+      this.fullName,
+      this.templateCardsFolder(),
+    );
   }
 
   /**
@@ -102,7 +105,7 @@ export class TemplateResource extends FolderResource<TemplateMetadata, never> {
    * Also drops the template's cards.
    */
   public async delete() {
-    this.project.removeTemplateTree(this.fullName);
+    this.checkout.removeTemplateTree(this.fullName);
     return super.delete();
   }
 
@@ -113,7 +116,7 @@ export class TemplateResource extends FolderResource<TemplateMetadata, never> {
   public async rename(newIdentifier: string) {
     const oldName = this.fullName;
     await super.rename(newIdentifier);
-    this.project.renameTemplateTree(
+    this.checkout.renameTemplateTree(
       oldName,
       this.fullName,
       this.templateCardsFolder(),

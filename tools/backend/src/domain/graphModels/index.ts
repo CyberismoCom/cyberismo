@@ -50,10 +50,10 @@ router.post(
   requireRole(UserRole.Admin),
   zValidator('json', createGraphModelSchema),
   async (c) => {
-    const commands = c.get('commands');
+    const ws = c.get('ws');
     const { identifier } = c.req.valid('json');
 
-    await graphModelService.createGraphModel(commands, identifier);
+    await graphModelService.createGraphModel(ws, identifier);
     return c.json({ message: 'Graph model created successfully' });
   },
 );

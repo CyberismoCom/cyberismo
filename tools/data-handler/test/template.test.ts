@@ -8,7 +8,7 @@ import { join, sep } from 'node:path';
 import type { Card } from '../src/interfaces/project-interfaces.js';
 import { copyDir } from '../src/utils/file-utils.js';
 import { getTestProject } from './helpers/test-utils.js';
-import type { Project } from '../src/containers/project.js';
+import type { Checkout } from '../src/containers/project.js';
 import { resourceName } from '../src/utils/resource-utils.js';
 import { TemplateResource } from '../src/resources/template-resource.js';
 import {
@@ -21,15 +21,15 @@ import { ROOT } from '../src/utils/constants.js';
 // Create test artifacts in a temp directory.
 const baseDir = import.meta.dirname;
 const testDir = join(baseDir, 'tmp-template-tests');
-let project: Project;
+let checkout: Checkout;
 let decisionRecordsPath: string;
 
 beforeAll(async () => {
   mkdirSync(testDir);
   await copyDir('test/test-data/', testDir);
   decisionRecordsPath = join(testDir, 'valid/decision-records');
-  project = getTestProject(decisionRecordsPath);
-  await project.populateCaches();
+  checkout = getTestProject(decisionRecordsPath);
+  await checkout.populateCaches();
 });
 
 afterAll(() => {
@@ -38,7 +38,7 @@ afterAll(() => {
 
 // Constructed directly: resources.byType only knows templates that are on disk.
 function templateOf(name: string): TemplateResource {
-  return new TemplateResource(project, resourceName(name));
+  return new TemplateResource(checkout, resourceName(name));
 }
 
 describe('template', () => {
@@ -61,20 +61,20 @@ describe('template', () => {
   it('throws an error when creating cards from an empty template', async () => {
     const template = templateOf('decision/templates/empty');
     await expect(
-      instantiateTemplate(project, template.cardTree),
+      instantiateTemplate(checkout, template.cardTree),
     ).rejects.toThrow(Error);
     expect(template.cardTree.cards().length).toBe(0);
   });
   it('create template card under a specific card from a project', async () => {
     // Choose specific card so that it does not have currently child cards.
-    const cardBefore = project.findCard('decision_6');
+    const cardBefore = checkout.findCard('decision_6');
     expect(cardBefore?.children?.length).toBe(0);
 
     const template = templateOf('decision/templates/simplepage');
 
     // Check that created cards are mapped from template cards.
     const createdCards = await instantiateTemplate(
-      project,
+      checkout,
       template.cardTree,
       cardBefore,
     );
@@ -85,7 +85,7 @@ describe('template', () => {
     ).to.have.same.members(templateCards.map((item) => item.key));
 
     // Two direct children should have been created
-    const cardAfter = project.findCard('decision_6');
+    const cardAfter = checkout.findCard('decision_6');
     expect(cardAfter?.children?.length).toBe(2);
   });
   it('throws an error when trying to create a specific card from an empty template', async () => {
@@ -100,7 +100,7 @@ describe('template', () => {
     };
 
     await expect(
-      instantiateTemplate(project, template.cardTree, nonExistingCard),
+      instantiateTemplate(checkout, template.cardTree, nonExistingCard),
     ).rejects.toThrow(Error);
     expect(template.cardTree.cards().length).toBe(0);
   });
@@ -116,13 +116,13 @@ describe('template', () => {
       attachments: [],
     };
 
-    const cardCountBefore = project.cardTree.cards().length;
+    const cardCountBefore = checkout.cardTree.cards().length;
 
     await expect(
-      instantiateTemplate(project, template.cardTree, nonExistingCard),
+      instantiateTemplate(checkout, template.cardTree, nonExistingCard),
     ).rejects.toThrow(Error);
 
-    const cardCountAfter = project.cardTree.cards().length;
+    const cardCountAfter = checkout.cardTree.cards().length;
     expect(cardCountAfter).toBe(cardCountBefore);
   });
 
@@ -130,7 +130,7 @@ describe('template', () => {
     const template = templateOf('decision/templates/decision');
     const cardsBefore = template.cardTree.cards();
     await addTemplateCards(
-      project,
+      checkout,
       template.cardTree,
       'decision/cardTypes/decision',
       1,
@@ -159,7 +159,7 @@ describe('template', () => {
 
     expect(template.isCreated()).toBe(false);
 
-    const templateResource = project.resources.byType(
+    const templateResource = checkout.resources.byType(
       'decision/templates/idontexistyet',
       'templates',
     );
@@ -171,7 +171,7 @@ describe('template', () => {
     const template = templateOf('decision/templates/decision');
     const templateMain = template.templateFolder();
     const templateCards = template.templateCardsFolder();
-    const specificCardPath = await project.cardFolder('decision_1');
+    const specificCardPath = await checkout.cardFolder('decision_1');
     expect(templateMain).toContain('.cards');
     expect(join(templateMain, 'c')).toBe(templateCards);
     expect(templateCards).toContain(`decision${sep}c`);
@@ -188,7 +188,7 @@ describe('template', () => {
     };
     await expect(
       addTemplateCards(
-        project,
+        checkout,
         template.cardTree,
         'decision/cardTypes/decision',
         1,
@@ -222,7 +222,7 @@ describe('template', () => {
     const template = templateOf('decision/templates/decision');
 
     await expect(
-      addTemplateCards(project, template.cardTree, 'i-dont-exist', 1),
+      addTemplateCards(checkout, template.cardTree, 'i-dont-exist', 1),
     ).rejects.toThrow();
   });
   it('try to add card to a template to a parent card that does not exist', async () => {
@@ -237,7 +237,7 @@ describe('template', () => {
 
     await expect(
       addTemplateCards(
-        project,
+        checkout,
         template.cardTree,
         'decision/cardTypes/decision',
         1,
@@ -249,14 +249,14 @@ describe('template', () => {
     const template = templateOf('decision/templates/decision');
 
     // Project can fetch the template's attachment's folder.
-    const attachmentFolder = project.cardAttachmentFolder('decision_1');
+    const attachmentFolder = checkout.cardAttachmentFolder('decision_1');
     expect(attachmentFolder).toContain('decision_1');
     expect(attachmentFolder).toContain(sep + 'a');
     expect(attachmentFolder).toBe(
       template.cardTree.attachmentFolderOf('decision_1'),
     );
 
-    expect(() => project.cardAttachmentFolder('decision_999')).toThrow(
+    expect(() => checkout.cardAttachmentFolder('decision_999')).toThrow(
       CardNotFoundError,
     );
 

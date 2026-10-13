@@ -34,7 +34,7 @@ import {
   type VersionRange,
 } from '../types.js';
 import { createSourceLayer, type SourceLayer } from '../source.js';
-import type { Project } from '../../containers/project.js';
+import type { Checkout } from '../../containers/project.js';
 import type {
   Credentials,
   ModuleSetting,
@@ -147,14 +147,14 @@ function toEdges(config: {
 
 /** Solve `req` without fetching any module tree. The caller owns `source`. */
 export async function solve(
-  project: Project,
+  checkout: Checkout,
   req: UpdateRequest,
   source: SourceLayer,
   credentials?: Credentials,
 ): Promise<SolveOutcome> {
-  const installed = await installedModulesWithSources(project);
+  const installed = await installedModulesWithSources(checkout);
   const declaredByName = new Map(
-    declaredModules(project).map((d) => [d.name, d]),
+    declaredModules(checkout).map((d) => [d.name, d]),
   );
 
   const nodes = new Map<string, Node>();
@@ -244,7 +244,7 @@ export async function solve(
       req.kind === 'updateAll' && v === null && n.installed === null;
     if (n.installed === v && n.path && !refreshUnversioned) {
       edges = toEdges(
-        await readJsonFile(project.paths.moduleConfigurationFile(n.name)),
+        await readJsonFile(checkout.paths.moduleConfigurationFile(n.name)),
       );
       seals = await listSealFiles(join(n.path, 'migrations'));
     } else {
@@ -554,7 +554,7 @@ export async function solve(
 }
 
 export async function resolve(
-  project: Project,
+  checkout: Checkout,
   req: UpdateRequest,
   opts?: {
     sourceLayer?: SourceLayer;
@@ -565,7 +565,7 @@ export async function resolve(
   const ownsSource = !opts?.sourceLayer;
   const source = opts?.sourceLayer ?? createSourceLayer();
   try {
-    return (await solve(project, req, source, opts?.credentials)).result;
+    return (await solve(checkout, req, source, opts?.credentials)).result;
   } finally {
     if (ownsSource) await source.dispose?.();
   }
@@ -579,7 +579,7 @@ export async function resolve(
  * a refused outcome. The caller owns `source`.
  */
 export async function stageResolution(
-  project: Project,
+  checkout: Checkout,
   { result, nodes, assign, rangeWrites }: SolveOutcome,
   opts: { source: SourceLayer; tempDir: string; credentials?: Credentials },
 ): Promise<{
@@ -618,14 +618,14 @@ export async function stageResolution(
         )?.[0];
     resolved.push({
       declaration: {
-        project: project.basePath,
+        project: checkout.basePath,
         name: change.module,
         source: node.source,
         versionRange: node.isRoot
           ? (rangeOf.get(change.module) ?? node.declaredRange ?? undefined)
           : undefined,
         parent: referrer
-          ? { project: project.basePath, name: referrer }
+          ? { project: checkout.basePath, name: referrer }
           : undefined,
       },
       ref,
@@ -653,7 +653,7 @@ export async function stageResolution(
 
 /** {@link solve}, then {@link stageResolution}. */
 export async function resolveForApply(
-  project: Project,
+  checkout: Checkout,
   req: UpdateRequest,
   opts?: {
     sourceLayer?: SourceLayer;
@@ -667,10 +667,10 @@ export async function resolveForApply(
 }> {
   const ownsSource = !opts?.sourceLayer;
   const source = opts?.sourceLayer ?? createSourceLayer();
-  const tempDir = opts?.tempDir ?? join(project.paths.tempFolder, 'resolve');
+  const tempDir = opts?.tempDir ?? join(checkout.paths.tempFolder, 'resolve');
   try {
-    const outcome = await solve(project, req, source, opts?.credentials);
-    const staged = await stageResolution(project, outcome, {
+    const outcome = await solve(checkout, req, source, opts?.credentials);
+    const staged = await stageResolution(checkout, outcome, {
       source,
       tempDir,
       credentials: opts?.credentials,

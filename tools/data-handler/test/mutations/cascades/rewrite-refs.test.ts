@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 
-import { Project } from '../../../src/containers/project.js';
+import { Checkout } from '../../../src/containers/project.js';
 import {
   rewriteCardContentRefs,
   rewriteContentFileRefs,
@@ -15,31 +15,31 @@ const fixturePath = join(testDir, 'valid', 'decision-records');
 describe('rewrite-refs guards', () => {
   it('rewriteContentFileRefs throws on empty "from"', async () => {
     await expect(
-      rewriteContentFileRefs({} as unknown as Project, '  ', 'newName'),
+      rewriteContentFileRefs({} as unknown as Checkout, '  ', 'newName'),
     ).rejects.toThrow(/"from" and "to" parameters must not be empty/);
   });
 
   it('rewriteContentFileRefs throws on empty "to"', async () => {
     await expect(
-      rewriteContentFileRefs({} as unknown as Project, 'oldName', ''),
+      rewriteContentFileRefs({} as unknown as Checkout, 'oldName', ''),
     ).rejects.toThrow(/"from" and "to" parameters must not be empty/);
   });
 
   it('rewriteCardContentRefs throws on empty "from"', async () => {
     await expect(
-      rewriteCardContentRefs({} as unknown as Project, '', 'newName'),
+      rewriteCardContentRefs({} as unknown as Checkout, '', 'newName'),
     ).rejects.toThrow(/"from" and "to" parameters must not be empty/);
   });
 
   it('rewriteCardContentRefs throws on empty "to"', async () => {
     await expect(
-      rewriteCardContentRefs({} as unknown as Project, 'oldName', ' '),
+      rewriteCardContentRefs({} as unknown as Checkout, 'oldName', ' '),
     ).rejects.toThrow(/"from" and "to" parameters must not be empty/);
   });
 });
 
 describe('rewriteContentFileRefs happy path', () => {
-  let project: Project;
+  let checkout: Checkout;
   // Content files of different local folder resources, seeded with a marker.
   let reportHbsFile: string;
   let calculationLpFile: string;
@@ -70,8 +70,8 @@ describe('rewriteContentFileRefs happy path', () => {
       const original = (await readFile(file)).toString();
       await writeFile(file, original + '\nmarker("MARKER_REWRITE_FROM").\n');
     }
-    project = new Project(fixturePath);
-    await project.populateCaches();
+    checkout = new Checkout(fixturePath);
+    await checkout.populateCaches();
   });
 
   afterAll(async () => {
@@ -80,7 +80,7 @@ describe('rewriteContentFileRefs happy path', () => {
 
   it('rewrites content files across local folder resources', async () => {
     await rewriteContentFileRefs(
-      project,
+      checkout,
       'MARKER_REWRITE_FROM',
       'MARKER_REWRITE_TO',
     );
@@ -95,7 +95,7 @@ describe('rewriteContentFileRefs happy path', () => {
 describe('rewriteContentFileRefs with invalid calculation on disk', () => {
   const invalidTestDir = join(import.meta.dirname, 'tmp-rewrite-invalid-calc');
   const invalidFixturePath = join(invalidTestDir, 'valid', 'decision-records');
-  let project: Project;
+  let checkout: Checkout;
 
   beforeAll(async () => {
     await mkdir(invalidTestDir, { recursive: true });
@@ -114,8 +114,8 @@ describe('rewriteContentFileRefs with invalid calculation on disk', () => {
       ),
       'marker("MARKER_INVALID_FROM") broken((\n',
     );
-    project = new Project(invalidFixturePath);
-    await project.populateCaches();
+    checkout = new Checkout(invalidFixturePath);
+    await checkout.populateCaches();
   });
 
   afterAll(async () => {
@@ -125,7 +125,7 @@ describe('rewriteContentFileRefs with invalid calculation on disk', () => {
   it('rename cascade fails with an error naming the invalid calculation', async () => {
     await expect(
       rewriteContentFileRefs(
-        project,
+        checkout,
         'MARKER_INVALID_FROM',
         'MARKER_INVALID_TO',
       ),
@@ -138,7 +138,7 @@ describe('rewriteContentFileRefs with invalid calculation on disk', () => {
 describe('rewriteCardContentRefs local-only scope', () => {
   const cardsTestDir = join(import.meta.dirname, 'tmp-rewrite-card-refs');
   const cardsFixturePath = join(cardsTestDir, 'valid', 'decision-records');
-  let project: Project;
+  let checkout: Checkout;
   let localTemplateCardFile: string;
   let projectCardFile: string;
   let moduleTemplateCardFile: string;
@@ -206,8 +206,8 @@ describe('rewriteCardContentRefs local-only scope', () => {
       await writeFile(file, original + '\nMARKER_CARD_FROM\n');
     }
 
-    project = new Project(cardsFixturePath);
-    await project.populateCaches();
+    checkout = new Checkout(cardsFixturePath);
+    await checkout.populateCaches();
   });
 
   afterAll(async () => {
@@ -215,7 +215,11 @@ describe('rewriteCardContentRefs local-only scope', () => {
   });
 
   it('rewrites local cards but never module template cards', async () => {
-    await rewriteCardContentRefs(project, 'MARKER_CARD_FROM', 'MARKER_CARD_TO');
+    await rewriteCardContentRefs(
+      checkout,
+      'MARKER_CARD_FROM',
+      'MARKER_CARD_TO',
+    );
 
     for (const file of [localTemplateCardFile, projectCardFile]) {
       const updated = (await readFile(file)).toString();
