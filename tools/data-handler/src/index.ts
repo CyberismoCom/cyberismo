@@ -103,6 +103,7 @@ export type { Checkout } from './containers/project.js';
 export { AsciidoctorPdfError } from './export/export.js';
 export type { WorkspaceOpener } from './command-handler.js';
 export { openCheckout, type WorkspaceOptions } from './workspace/workspace.js';
+export { removeResource } from './utils/remove-resource.js';
 export {
   SYSTEM_ACTOR,
   type CommitIdentity,

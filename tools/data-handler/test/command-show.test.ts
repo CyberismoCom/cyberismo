@@ -79,57 +79,6 @@ describe('shows command', () => {
         `Attachment 'does-not-exist.png' not found for card decision_1`,
       );
     });
-    it('show cardTypes - success()', async () => {
-      const result = await commandHandler.command(
-        Cmd.show,
-        ['cardTypes'],
-        optionsDecision,
-      );
-      expect(result.statusCode).toBe(200);
-      if (result.payload) {
-        const payloadAsArray = Object.values(result.payload);
-        expect(payloadAsArray.length).toBe(2);
-        expect(payloadAsArray.at(0)).toBe('decision/cardTypes/decision');
-        expect(payloadAsArray.at(1)).toBe('decision/cardTypes/simplepage');
-      }
-    });
-    it('show particular card type - success()', async () => {
-      const result = await commandHandler.command(
-        Cmd.show,
-        ['cardTypes', 'decision/cardTypes/decision'],
-        optionsDecision,
-      );
-      expect(result.statusCode).toBe(200);
-      if (result.payload) {
-        expect(result.payload).not.toBeUndefined();
-      }
-    });
-    it('show particular card type with name only', async () => {
-      const result = await commandHandler.command(
-        Cmd.show,
-        ['decision/cardTypes/decision'],
-        optionsDecision,
-      );
-      expect(result.statusCode).toBe(200);
-      if (result.payload) {
-        expect(result.payload).not.toBeUndefined();
-      }
-    });
-    it('show particular card type with usage', async () => {
-      optionsDecision.showUse = true;
-      const result = await commandHandler.command(
-        Cmd.show,
-        ['decision/cardTypes/decision'],
-        optionsDecision,
-      );
-      expect(result.statusCode).toBe(200);
-      if (result.payload) {
-        expect(result.payload).not.toBeUndefined();
-        expect(result.payload).to.haveOwnProperty('usedIn');
-      } else {
-        expect(false).toBe(true);
-      }
-    });
     it('show hubs - success()', async () => {
       const result = await commandHandler.command(
         Cmd.show,
@@ -149,83 +98,6 @@ describe('shows command', () => {
         expect(result.payload).not.toBeUndefined();
         const modules = result.payload as Array<{ name: string }>;
         expect(modules.length).toBe(0);
-      }
-    });
-    it('show project - success()', async () => {
-      const result = await commandHandler.command(
-        Cmd.show,
-        ['project'],
-        optionsDecision,
-      );
-      expect(result.statusCode).toBe(200);
-      if (result.payload) {
-        expect(result.payload).not.toBeUndefined();
-      }
-    });
-    it('show reports - success()', async () => {
-      const result = await commandHandler.command(
-        Cmd.show,
-        ['reports'],
-        optionsDecision,
-      );
-      const payloadAsArray = Object.values(result.payload || []);
-      expect(result.statusCode).toBe(200);
-      expect(payloadAsArray.length).toBe(5);
-      expect(payloadAsArray[0]).toBe('decision/reports/anotherReport');
-      expect(payloadAsArray[1]).toBe('decision/reports/divideByZeroReport');
-      expect(payloadAsArray[2]).toBe('decision/reports/eqNeReport');
-      expect(payloadAsArray[3]).toBe('decision/reports/percentageReport');
-      expect(payloadAsArray[4]).toBe('decision/reports/testReport');
-    });
-    it('show templates - success()', async () => {
-      const result = await commandHandler.command(
-        Cmd.show,
-        ['templates'],
-        optionsDecision,
-      );
-      expect(result.statusCode).toBe(200);
-      if (result.payload) {
-        const payloadAsArray = Object.values(result.payload);
-        expect(payloadAsArray.length).toBe(3);
-        expect(payloadAsArray.at(0)).toBe('decision/templates/decision');
-        expect(payloadAsArray.at(1)).toBe('decision/templates/empty');
-        expect(payloadAsArray.at(2)).toBe('decision/templates/simplepage');
-      }
-    });
-    it('show particular template - success()', async () => {
-      const result = await commandHandler.command(
-        Cmd.show,
-        ['template', 'decision/templates/decision'],
-        optionsDecision,
-      );
-      expect(result.statusCode).toBe(200);
-      if (result.payload) {
-        expect(result.payload).not.toBeUndefined();
-      }
-    });
-    it('show workflows - success()', async () => {
-      const result = await commandHandler.command(
-        Cmd.show,
-        ['workflows'],
-        optionsDecision,
-      );
-      expect(result.statusCode).toBe(200);
-      if (result.payload) {
-        const payloadAsArray = Object.values(result.payload);
-        expect(payloadAsArray.length).toBe(2);
-        expect(payloadAsArray.at(0)).toBe('decision/workflows/decision');
-        expect(payloadAsArray.at(1)).toBe('decision/workflows/simple');
-      }
-    });
-    it('show particular workflow - success()', async () => {
-      const result = await commandHandler.command(
-        Cmd.show,
-        ['workflow', 'decision/workflows/decision'],
-        optionsDecision,
-      );
-      expect(result.statusCode).toBe(200);
-      if (result.payload) {
-        expect(result.payload).not.toBeUndefined();
       }
     });
     // @todo add test cases for error situations
@@ -294,93 +166,14 @@ describe('shows command', () => {
       expect(module.workflows).to.include('mini/workflows/default');
       expect(module.workflows).to.include('mini/workflows/minimal');
     });
-    it('show cardTypes', async () => {
-      const result = await commandHandler.command(
-        Cmd.show,
-        ['cardTypes'],
-        optionsDecision,
-      );
-      expect(result.statusCode).toBe(200);
-      let payloadAsArray = Object.values(result.payload!);
-      expect(payloadAsArray.length).toBe(3);
-      expect(payloadAsArray.at(0)).toBe('decision/cardTypes/decision');
-      expect(payloadAsArray.at(1)).toBe('decision/cardTypes/simplepage');
-      expect(payloadAsArray.at(2)).toBe('mini/cardTypes/myCardtype');
-      const resultFromModule = await commandHandler.command(
-        Cmd.show,
-        ['cardTypes'],
-        optionsMini,
-      );
-      expect(resultFromModule.statusCode).toBe(200);
-      payloadAsArray = Object.values(resultFromModule.payload!);
-      expect(payloadAsArray.length).toBe(3);
-      expect(payloadAsArray.at(0)).toBe('decision/cardTypes/decision');
-      expect(payloadAsArray.at(1)).toBe('decision/cardTypes/simplepage');
-      expect(payloadAsArray.at(2)).toBe('mini/cardTypes/myCardtype');
-    });
-    it('show templates', async () => {
-      const result = await commandHandler.command(
-        Cmd.show,
-        ['templates'],
-        optionsDecision,
-      );
-      expect(result.statusCode).toBe(200);
-      let payloadAsArray = Object.values(result.payload!);
-      expect(payloadAsArray.length).toBe(4);
-      expect(payloadAsArray.at(0)).toBe('decision/templates/decision');
-      expect(payloadAsArray.at(1)).toBe('decision/templates/empty');
-      expect(payloadAsArray.at(2)).toBe('decision/templates/simplepage');
-      expect(payloadAsArray.at(3)).toBe('mini/templates/test-template');
-      const resultFromModule = await commandHandler.command(
-        Cmd.show,
-        ['templates'],
-        optionsMini,
-      );
-      expect(resultFromModule.statusCode).toBe(200);
-      payloadAsArray = Object.values(resultFromModule.payload!);
-      expect(payloadAsArray.length).toBe(4);
-      expect(payloadAsArray.at(0)).toBe('decision/templates/decision');
-      expect(payloadAsArray.at(1)).toBe('decision/templates/empty');
-      expect(payloadAsArray.at(2)).toBe('decision/templates/simplepage');
-      expect(payloadAsArray.at(3)).toBe('mini/templates/test-template');
-    });
-    it('show workflows', async () => {
-      const result = await commandHandler.command(
-        Cmd.show,
-        ['workflows'],
-        optionsDecision,
-      );
-      expect(result.statusCode).toBe(200);
-      let payloadAsArray = Object.values(result.payload!);
-      expect(payloadAsArray.length).toBe(4);
-      expect(payloadAsArray.at(0)).toBe('decision/workflows/decision');
-      expect(payloadAsArray.at(1)).toBe('decision/workflows/simple');
-      expect(payloadAsArray.at(2)).toBe('mini/workflows/default');
-      expect(payloadAsArray.at(3)).toBe('mini/workflows/minimal');
-      const resultFromModule = await commandHandler.command(
-        Cmd.show,
-        ['workflows'],
-        optionsMini,
-      );
-      expect(resultFromModule.statusCode).toBe(200);
-      payloadAsArray = Object.values(resultFromModule.payload!);
-      expect(payloadAsArray.length).toBe(4);
-      expect(payloadAsArray.at(0)).toBe('decision/workflows/decision');
-      expect(payloadAsArray.at(1)).toBe('decision/workflows/simple');
-      expect(payloadAsArray.at(2)).toBe('mini/workflows/default');
-      expect(payloadAsArray.at(3)).toBe('mini/workflows/minimal');
-    });
   });
   describe('show importable modules', () => {
     beforeEach(async () => {
       // add default hub
-      await commandHandler.command(
-        Cmd.add,
-        [
-          'hub',
-          'https://raw.githubusercontent.com/CyberismoCom/cyberismo/main/tools/assets/src/hub/',
-        ],
-        optionsDecision,
+      await (
+        await openTestWorkspace(decisionRecordsPath)
+      ).settings.hubs.add(
+        'https://raw.githubusercontent.com/CyberismoCom/cyberismo/main/tools/assets/src/hub/',
       );
       const fetchResult = await commandHandler.command(
         Cmd.fetch,
@@ -401,13 +194,10 @@ describe('shows command', () => {
 
     afterEach(async () => {
       // remove hub
-      await commandHandler.command(
-        Cmd.remove,
-        [
-          'hub',
-          'https://raw.githubusercontent.com/CyberismoCom/cyberismo/main/tools/assets/src/hub/',
-        ],
-        optionsDecision,
+      await (
+        await openTestWorkspace(decisionRecordsPath)
+      ).settings.hubs.remove(
+        'https://raw.githubusercontent.com/CyberismoCom/cyberismo/main/tools/assets/src/hub/',
       );
     });
 

@@ -18,7 +18,10 @@ import { join } from 'node:path';
 import { simpleGit } from 'simple-git';
 import { getStaticDirectoryPath } from '@cyberismo/assets';
 
-import { Cmd, Commands } from '../src/command-handler.js';
+import type { CreateParamsByType } from '@cyberismo/model';
+
+import type { Workspace } from '../src/workspace/workspace.js';
+import { openTestWorkspace } from './helpers/open-test-workspace.js';
 
 const fixture = join(import.meta.dirname, 'test-data/valid/decision-records');
 
@@ -54,46 +57,53 @@ const workflowContent = {
 describe('resource create (golden)', () => {
   let dir: string;
   let staticDir: string;
-  const commands = new Commands();
+  let ws: Workspace;
 
   beforeAll(async () => {
     // Outside the monorepo, so the project gets its own repository.
     dir = await mkdtemp(join(tmpdir(), 'create-golden-'));
     await cp(fixture, dir, { recursive: true });
     staticDir = await getStaticDirectoryPath();
+    ws = await openTestWorkspace(dir, { autocommit: true });
   });
 
   afterAll(async () => {
     await rm(dir, { recursive: true, force: true });
   });
 
-  const creates: [string, string[]][] = [
-    ['cardType', ['cardType', 'goldenCardType', 'decision/workflows/decision']],
-    ['fieldType', ['fieldType', 'goldenEnum', 'enum']],
-    ['template', ['template', 'goldenTemplate']],
+  // name, identifier, type, params
+  const creates: [string, string, keyof CreateParamsByType, object][] = [
+    [
+      'cardType',
+      'goldenCardType',
+      'cardTypes',
+      { workflow: 'decision/workflows/decision' },
+    ],
+    ['fieldType', 'goldenEnum', 'fieldTypes', { dataType: 'enum' }],
+    ['template', 'goldenTemplate', 'templates', { content: undefined }],
     [
       'template with content',
-      ['template', 'goldenTemplateContent', JSON.stringify(templateContent)],
+      'goldenTemplateContent',
+      'templates',
+      { content: templateContent },
     ],
-    ['workflow', ['workflow', 'goldenWorkflow']],
+    ['workflow', 'goldenWorkflow', 'workflows', { content: undefined }],
     [
       'workflow with content',
-      ['workflow', 'goldenWorkflowContent', JSON.stringify(workflowContent)],
+      'goldenWorkflowContent',
+      'workflows',
+      { content: workflowContent },
     ],
-    ['linkType', ['linkType', 'goldenLinkType']],
-    ['calculation', ['calculation', 'goldenCalculation']],
-    ['graphModel', ['graphModel', 'goldenGraphModel']],
-    ['graphView', ['graphView', 'goldenGraphView']],
-    ['report', ['report', 'goldenReport']],
-    ['skill', ['skill', 'goldenSkill']],
+    ['linkType', 'goldenLinkType', 'linkTypes', {}],
+    ['calculation', 'goldenCalculation', 'calculations', {}],
+    ['graphModel', 'goldenGraphModel', 'graphModels', {}],
+    ['graphView', 'goldenGraphView', 'graphViews', {}],
+    ['report', 'goldenReport', 'reports', {}],
+    ['skill', 'goldenSkill', 'skills', {}],
   ];
 
-  it.each(creates)('%s', async (_, args) => {
-    const result = await commands.command(Cmd.create, args, {
-      projectPath: dir,
-      autocommit: true,
-    });
-    expect(result.statusCode).toBe(200);
+  it.each(creates)('%s', async (_, name, type, params) => {
+    await ws.resources.create(name, type, params as never);
 
     const git = simpleGit(dir);
     expect((await git.status()).isClean()).toBe(true);
@@ -108,7 +118,7 @@ describe('resource create (golden)', () => {
       const content = await readFile(join(dir, path), 'utf-8');
       const [, , type, identifier, ...rest] = path.split('/');
       const source = staticSources[type];
-      if (source && identifier === args[1] && rest.length > 0) {
+      if (source && identifier === name && rest.length > 0) {
         const sourcePath = join(staticDir, source, ...rest);
         expect(content).toBe(await readFile(sourcePath, 'utf-8'));
         files[path] = `<copy of ${source}/${rest.join('/')}>`;

@@ -16,13 +16,13 @@ import type {
   Card,
   CardWithChildrenCards,
   ResourceFolderType,
-  RemovableResourceTypes,
 } from '@cyberismo/model';
 import {
   type Workspace,
   CardNotFoundError,
   isResourceFolderType,
   moduleNameFromCardKey,
+  removeResource,
   resourceName,
   resourceNameToString,
   ResourceNotFoundError,
@@ -430,11 +430,9 @@ async function groupResourcesByPrefix(
  * @param resource Resource to delete.
  */
 export async function deleteResource(ws: Workspace, resource: ResourceParams) {
-  return ws.removeCmd.remove(
-    resource.type.substring(
-      0,
-      resource.type.length - 1,
-    ) as RemovableResourceTypes,
+  return removeResource(
+    ws,
+    resource.type.substring(0, resource.type.length - 1),
     resourceNameToString(resource),
   );
 }
