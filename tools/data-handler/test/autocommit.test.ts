@@ -34,7 +34,11 @@ describe('autocommit', () => {
     // Outside the monorepo, so the project gets its own repository.
     dir = await mkdtemp(join(tmpdir(), 'autocommit-test-'));
     await cp(fixture, dir, { recursive: true });
-    cm = await openTestWorkspace(dir, { autocommit: true });
+    cm = await openTestWorkspace(dir, {
+      autocommit: true,
+      actor,
+      identity: author,
+    });
   });
 
   afterEach(async () => {
@@ -98,7 +102,7 @@ describe('autocommit', () => {
     const setupResult = setup ? await setup() : '';
     const before = (await git.log()).total;
 
-    await cm.runAsAuthor(author, () => write(setupResult), actor);
+    await write(setupResult);
 
     const log = await git.log();
     expect(log.total).toBe(before + 1);

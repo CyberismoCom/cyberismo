@@ -13,13 +13,13 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import type { Workspace } from '../workspace/workspace.js';
+import type { Checkout } from '../containers/project.js';
 
 /**
  * Minimal interface for project lookup by prefix.
  * Implemented by ProjectRegistry in the backend and used by the MCP server.
  */
 export interface ProjectProvider {
-  get(prefix: string): Workspace | undefined;
+  get(prefix: string): Checkout | undefined;
   list(): { prefix: string; name: string }[];
 }

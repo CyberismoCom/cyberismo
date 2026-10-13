@@ -12,29 +12,10 @@ describe('commit-context', () => {
       expect(result).toEqual({});
     });
 
-    it('should return the author inside context', async () => {
-      const author = { name: 'Alice', email: 'alice@example.com' };
-      await runWithCommitContext({ author }, async () => {
-        const result = getCommitContext();
-        expect(result.author).toEqual(author);
-      });
-    });
-
     it('should return the message inside context', async () => {
       await runWithCommitContext({ message: 'Test commit' }, async () => {
         const result = getCommitContext();
         expect(result.message).toBe('Test commit');
-      });
-    });
-
-    it('should merge author and message from nested calls', async () => {
-      const author = { name: 'Alice', email: 'alice@example.com' };
-      await runWithCommitContext({ author }, async () => {
-        await runWithCommitContext({ message: 'Inner message' }, async () => {
-          const result = getCommitContext();
-          expect(result.author).toEqual(author);
-          expect(result.message).toBe('Inner message');
-        });
       });
     });
 
@@ -47,16 +28,13 @@ describe('commit-context', () => {
     });
 
     it('should isolate concurrent calls', async () => {
-      const alice = { name: 'Alice', email: 'alice@example.com' };
-      const bob = { name: 'Bob', email: 'bob@example.com' };
-
       const aliceGate = deferred();
       const bobGate = deferred();
       let aliceCtx: ReturnType<typeof getCommitContext>;
       let bobCtx: ReturnType<typeof getCommitContext>;
 
       const aliceRun = runWithCommitContext(
-        { author: alice, message: 'Alice msg' },
+        { message: 'Alice msg' },
         async () => {
           await bobGate.promise; // wait until bob's context is active
           aliceCtx = getCommitContext();
@@ -64,20 +42,15 @@ describe('commit-context', () => {
         },
       );
 
-      const bobRun = runWithCommitContext(
-        { author: bob, message: 'Bob msg' },
-        async () => {
-          bobCtx = getCommitContext();
-          bobGate.resolve(); // unblock alice
-          await aliceGate.promise; // keep bob's context alive while alice reads
-        },
-      );
+      const bobRun = runWithCommitContext({ message: 'Bob msg' }, async () => {
+        bobCtx = getCommitContext();
+        bobGate.resolve(); // unblock alice
+        await aliceGate.promise; // keep bob's context alive while alice reads
+      });
 
       await Promise.all([aliceRun, bobRun]);
 
-      expect(aliceCtx!.author).toEqual(alice);
       expect(aliceCtx!.message).toBe('Alice msg');
-      expect(bobCtx!.author).toEqual(bob);
       expect(bobCtx!.message).toBe('Bob msg');
     });
   });

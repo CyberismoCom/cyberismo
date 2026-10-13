@@ -1,10 +1,10 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { Hono } from 'hono';
 import {
   attachCommandManager,
   attachProjectRegistry,
 } from '../../src/middleware/commandManager.js';
-import type { Workspace } from '@cyberismo/data-handler';
+import type { Checkout } from '@cyberismo/data-handler';
 import { UserRole } from '../../src/types.js';
 import type { UserInfo } from '../../src/types.js';
 import { ProjectRegistry } from '../../src/project-registry.js';
@@ -16,89 +16,77 @@ const testUser: UserInfo = {
   role: UserRole.Editor,
 };
 
-function mockCommands(overrides?: Partial<Workspace>) {
-  return {
-    checkout: { basePath: '/tmp/test-project' },
-    runAsAuthor: vi.fn((_author, fn) => fn()),
-    ...overrides,
-  } as unknown as Workspace;
+function mockCheckout(basePath = '/tmp/test-project') {
+  return { basePath } as unknown as Checkout;
+}
+
+interface ContextBody {
+  sameCheckout: boolean;
+  projectPath: string;
+  actor: unknown;
+  identity: unknown;
+}
+
+// An app that exposes what the middleware put on the context.
+function contextApp(checkout: Checkout, user?: UserInfo) {
+  const app = new Hono();
+  app.use('*', async (c, next) => {
+    if (user) c.set('user', user);
+    await next();
+  });
+  app.use('*', attachCommandManager(checkout));
+  app.get('/test', (c) => {
+    const ws = c.get('ws');
+    return c.json({
+      sameCheckout: ws.checkout === checkout,
+      projectPath: c.get('projectPath'),
+      actor: ws.actor,
+      identity: ws.identity,
+    });
+  });
+  return app;
 }
 
 describe('attachCommandManager', () => {
-  it('sets commands and projectPath on context', async () => {
-    const ws = mockCommands();
-    const app = new Hono();
-    app.use('*', async (c, next) => {
-      c.set('user', testUser);
-      await next();
-    });
-    app.use('*', attachCommandManager(ws));
-    app.get('/test', (c) =>
-      c.json({
-        hasCommands: c.get('ws') === ws,
-        projectPath: c.get('projectPath'),
-      }),
-    );
-
-    const res = await app.request('/test');
+  it('sets a handle over the checkout and projectPath on context', async () => {
+    const res = await contextApp(mockCheckout(), testUser).request('/test');
     expect(res.status).toBe(200);
-    const body = (await res.json()) as {
-      hasCommands: boolean;
-      projectPath: string;
-    };
-    expect(body.hasCommands).toBe(true);
+    const body = (await res.json()) as ContextBody;
+    expect(body.sameCheckout).toBe(true);
     expect(body.projectPath).toBe('/tmp/test-project');
   });
 
-  it('wraps next() with runAsAuthor when user is present', async () => {
-    const ws = mockCommands();
-    const app = new Hono();
-
-    // Simulate auth middleware setting user
-    app.use('*', async (c, next) => {
-      c.set('user', testUser);
-      await next();
-    });
-    app.use('*', attachCommandManager(ws));
-    app.get('/test', (c) => c.json({ ok: true }));
-
-    const res = await app.request('/test');
+  it('acts as the authenticated user', async () => {
+    const res = await contextApp(mockCheckout(), testUser).request('/test');
     expect(res.status).toBe(200);
-    expect(ws.runAsAuthor).toHaveBeenCalledOnce();
-    expect(ws.runAsAuthor).toHaveBeenCalledWith(
-      { name: testUser.name, email: testUser.email },
-      expect.any(Function),
-      { kind: 'user', id: testUser.id, name: testUser.name },
-    );
+    const body = (await res.json()) as ContextBody;
+    expect(body.actor).toEqual({
+      kind: 'user',
+      id: testUser.id,
+      name: testUser.name,
+    });
+    expect(body.identity).toEqual({
+      name: testUser.name,
+      email: testUser.email,
+    });
   });
 
   it('records a connector account as a connector actor', async () => {
-    const ws = mockCommands();
-    const app = new Hono();
-    app.use('*', async (c, next) => {
-      c.set('user', { ...testUser, role: UserRole.Connector });
-      await next();
+    const res = await contextApp(mockCheckout(), {
+      ...testUser,
+      role: UserRole.Connector,
+    }).request('/test');
+    expect(res.status).toBe(200);
+    expect(((await res.json()) as ContextBody).actor).toEqual({
+      kind: 'connector',
+      id: testUser.id,
+      name: testUser.name,
     });
-    app.use('*', attachCommandManager(ws));
-    app.get('/test', (c) => c.json({ ok: true }));
-
-    expect((await app.request('/test')).status).toBe(200);
-    expect(ws.runAsAuthor).toHaveBeenCalledWith(
-      { name: testUser.name, email: testUser.email },
-      expect.any(Function),
-      { kind: 'connector', id: testUser.id, name: testUser.name },
-    );
   });
 
   it('throws when no user is present', async () => {
-    const ws = mockCommands();
-    const app = new Hono();
-    app.use('*', attachCommandManager(ws));
-    app.get('/test', (c) => c.json({ ok: true }));
-
-    const res = await app.request('/test');
+    const res = await contextApp(mockCheckout()).request('/test');
     expect(res.status).toBe(500);
-    expect(ws.runAsAuthor).not.toHaveBeenCalled();
   });
 });
 
@@ -107,9 +95,7 @@ describe('attachProjectRegistry', () => {
     return new ProjectRegistry(
       entries.map(({ prefix }) => ({
         prefix,
-        checkout: mockCommands({
-          checkout: { basePath: `/tmp/${prefix}` },
-        } as Partial<Workspace>).checkout,
+        checkout: mockCheckout(`/tmp/${prefix}`),
       })),
     );
   }

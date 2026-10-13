@@ -16,8 +16,9 @@ import {
   getCommitContext,
   runWithDefaultCommitMessage,
 } from './commit-context.js';
+import { MissingActorError } from '../exceptions/index.js';
 import { getChildLogger } from './log-utils.js';
-import { createTxRecord, type TxRecord } from './tx-record.js';
+import { createTxRecord, type TxRecord, type WriteFrame } from './tx-record.js';
 
 interface LockContext {
   mode: 'read' | 'write';
@@ -35,7 +36,8 @@ interface LockContext {
  * - Reentrancy via AsyncLocalStorage: nested lock calls within the same
  *   async context are no-ops.
  * - After-write hooks fire after the outermost write completes successfully.
- * - The outermost write creates a TxRecord; the hooks receive it.
+ * - The outermost write needs a WriteFrame and creates a TxRecord from it;
+ *   nested writes join that record. The hooks receive it.
  */
 export class RWLock {
   private readers = 0;
@@ -96,19 +98,35 @@ export class RWLock {
 
   /**
    * Execute `fn` under an exclusive write lock.
-   * If already inside a write context, just runs fn directly (no hooks).
+   * If already inside a write context, joins it: runs fn directly (no hooks),
+   * and gives the record the commit message if it has none yet.
+   * @param frame Actor of the write; required unless the write is nested.
+   * @throws MissingActorError when an outermost write has no frame.
    */
-  async write<T>(fn: () => Promise<T>): Promise<T> {
+  async write<T>(fn: () => Promise<T>): Promise<T>;
+  async write<T>(frame: WriteFrame, fn: () => Promise<T>): Promise<T>;
+  async write<T>(
+    frameOrFn: WriteFrame | (() => Promise<T>),
+    maybeFn?: () => Promise<T>,
+  ): Promise<T> {
+    const [frame, fn] =
+      typeof frameOrFn === 'function'
+        ? [undefined, frameOrFn]
+        : [frameOrFn, maybeFn!];
     const current = this.context.getStore();
     if (current?.active && current.mode === 'write') {
+      current.tx!.message ??= getCommitContext().message;
       return fn();
     }
     if (current?.active && current.mode === 'read') {
       throw new Error('Cannot acquire write lock while holding read lock');
     }
+    if (!frame) {
+      throw new MissingActorError();
+    }
 
     await this.acquireWrite();
-    const tx = createTxRecord(getCommitContext());
+    const tx = createTxRecord(frame, getCommitContext().message);
     const ctx: LockContext = { mode: 'write', active: true, tx };
     try {
       const result = await this.context.run(ctx, fn);
@@ -260,6 +278,14 @@ export function read<This extends object, Args extends unknown[], Return>(
   };
 }
 
+// Marks the methods @write wraps, so a handle can open their write.
+const WRITE_METHOD = Symbol('writeMethod');
+
+/** Whether `fn` is a method wrapped by @write. */
+export function isWriteMethod(fn: unknown): boolean {
+  return typeof fn === 'function' && WRITE_METHOD in fn;
+}
+
 /**
  * A Helper decorator built for commands that automatically handles using a write lock.
  *
@@ -281,7 +307,7 @@ export function write<This extends object, Args extends unknown[], Return>(
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function write(message?: (...args: any[]) => string): unknown {
   return function (target: (...args: unknown[]) => Promise<unknown>) {
-    return function (this: object, ...args: unknown[]) {
+    const method = function (this: object, ...args: unknown[]) {
       if (!message) {
         return getLock(this).write(() => target.call(this, ...args));
       }
@@ -290,5 +316,6 @@ export function write(message?: (...args: any[]) => string): unknown {
         getLock(this).write(() => target.call(this, ...args)),
       );
     };
+    return Object.assign(method, { [WRITE_METHOD]: true });
   };
 }

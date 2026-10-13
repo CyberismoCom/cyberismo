@@ -15,3 +15,4 @@
 
 export { createMcpServer, singleProjectProvider } from './server.js';
 export type { McpServerOptions, ProjectProvider } from './server.js';
+export type { McpUser } from './lib/resolve-project.js';

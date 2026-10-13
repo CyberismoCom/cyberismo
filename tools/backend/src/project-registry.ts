@@ -11,13 +11,18 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Workspace, type ProjectProvider } from '@cyberismo/data-handler';
+import {
+  openCheckout,
+  type Checkout,
+  type ProjectProvider,
+  type WorkspaceOptions,
+} from '@cyberismo/data-handler';
 import { ProjectEvents } from './domain/events/project-events.js';
 import type { ProjectErrors } from '@cyberismo/model';
 
 export type ProjectRegistryEntry = {
   prefix: string;
-  ws: Workspace;
+  checkout: Checkout;
 };
 
 export type ProjectListItem = {
@@ -35,21 +40,21 @@ export interface ScannedProject {
 }
 
 export class ProjectRegistry implements ProjectProvider {
-  private projects: Map<string, Workspace> = new Map();
-  private events = new Map<Workspace, ProjectEvents>();
-  readonly options: ConstructorParameters<typeof Workspace>[1];
+  private projects: Map<string, Checkout> = new Map();
+  private events = new Map<Checkout, ProjectEvents>();
+  readonly options: WorkspaceOptions | undefined;
 
   constructor(
     entries: ProjectRegistryEntry[] = [],
-    options?: ConstructorParameters<typeof Workspace>[1],
+    options?: WorkspaceOptions,
   ) {
     this.options = options;
     for (const entry of entries) {
-      this.add(entry.prefix, entry.ws);
+      this.add(entry.prefix, entry.checkout);
     }
   }
 
-  get(prefix: string): Workspace | undefined {
+  get(prefix: string): Checkout | undefined {
     return this.projects.get(prefix);
   }
 
@@ -57,40 +62,40 @@ export class ProjectRegistry implements ProjectProvider {
     return this.projects.has(prefix);
   }
 
-  add(prefix: string, ws: Workspace): void {
+  add(prefix: string, checkout: Checkout): void {
     if (this.projects.has(prefix)) {
       throw new Error(`Project '${prefix}' is already registered`);
     }
-    this.projects.set(prefix, ws);
+    this.projects.set(prefix, checkout);
   }
 
-  eventsFor(ws: Workspace): ProjectEvents {
-    let events = this.events.get(ws);
+  eventsFor(checkout: Checkout): ProjectEvents {
+    let events = this.events.get(checkout);
     if (!events) {
-      if (![...this.projects.values()].includes(ws)) {
+      if (![...this.projects.values()].includes(checkout)) {
         throw new Error('Project is not registered');
       }
       events = new ProjectEvents();
-      this.events.set(ws, events);
+      this.events.set(checkout, events);
     }
     return events;
   }
 
   list(): ProjectListItem[] {
-    return Array.from(this.projects.entries()).map(([prefix, ws]) => ({
+    return Array.from(this.projects.entries()).map(([prefix, checkout]) => ({
       prefix,
-      name: ws.checkout.configuration.name,
-      category: ws.checkout.configuration.category || undefined,
-      description: ws.checkout.configuration.description || undefined,
+      name: checkout.configuration.name,
+      category: checkout.configuration.category || undefined,
+      description: checkout.configuration.description || undefined,
     }));
   }
 
-  /** Iterate over all registered CommandManagers. */
-  values(): IterableIterator<Workspace> {
+  /** Iterate over all registered checkouts. */
+  values(): IterableIterator<Checkout> {
     return this.projects.values();
   }
 
-  first(): Workspace | undefined {
+  first(): Checkout | undefined {
     const [first] = this.projects.values();
     return first;
   }
@@ -100,52 +105,49 @@ export class ProjectRegistry implements ProjectProvider {
       events.dispose();
     }
     this.events.clear();
-    for (const ws of this.projects.values()) {
-      ws.checkout.dispose();
+    for (const checkout of this.projects.values()) {
+      checkout.dispose();
     }
     this.projects.clear();
   }
 
   /**
    * Replace all registered projects atomically. Disposes existing
-   * CommandManagers, then installs the new entries. Used by the test-mode
+   * checkouts, then installs the new entries. Used by the test-mode
    * reset endpoint to swap project state without restarting the Hono app.
    */
   async replace(entries: ProjectRegistryEntry[]): Promise<void> {
     this.dispose();
     for (const entry of entries) {
-      this.add(entry.prefix, entry.ws);
+      this.add(entry.prefix, entry.checkout);
     }
   }
 
   /**
-   * Create a single-project registry from a CommandManager.
+   * Create a single-project registry from a checkout.
    * Used by export mode and tests where only one project is needed.
    */
-  static fromCommandManager(ws: Workspace): ProjectRegistry {
+  static fromCheckout(checkout: Checkout): ProjectRegistry {
     return new ProjectRegistry([
-      { prefix: ws.checkout.configuration.cardKeyPrefix, ws },
+      { prefix: checkout.configuration.cardKeyPrefix, checkout },
     ]);
   }
 
   /**
-   * Build a registry from scanned project entries, initializing each CommandManager.
+   * Build a registry from scanned project entries, opening each checkout.
    * A project that fails to load is left out and reported in `failed`.
    */
   static async fromScannedProjects(
     projects: ScannedProject[],
-    options?: ConstructorParameters<typeof Workspace>[1],
+    options?: WorkspaceOptions,
   ): Promise<{ registry: ProjectRegistry; failed: ProjectErrors[] }> {
     const entries: ProjectRegistryEntry[] = [];
     const failed: ProjectErrors[] = [];
     for (const project of projects) {
-      let ws: Workspace | undefined;
       try {
-        ws = new Workspace(project.path, options);
-        await ws.initialize();
-        entries.push({ prefix: project.prefix, ws });
+        const checkout = await openCheckout(project.path, options);
+        entries.push({ prefix: project.prefix, checkout });
       } catch (error) {
-        ws?.checkout.dispose();
         failed.push({
           prefix: project.prefix,
           errors: [

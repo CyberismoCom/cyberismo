@@ -1,13 +1,22 @@
 // testing
 import { expect, it, describe, beforeAll, afterAll, vi } from 'vitest';
 import { join } from 'node:path';
-import { mkdirSync, rmSync, readFileSync, writeFileSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
+import {
+  appendFileSync,
+  mkdirSync,
+  rmSync,
+  readFileSync,
+  writeFileSync,
+} from 'node:fs';
 
 import { copyDir } from '../src/utils/file-utils.js';
 import { type Workspace } from '../src/workspace/workspace.js';
 import { Cmd, Commands } from '../src/command-handler.js';
 import { Clean } from '../src/commands/clean.js';
+import { Checkout } from '../src/containers/project.js';
 import { openTestWorkspace } from './helpers/open-test-workspace.js';
+import { buildProject } from './helpers/project-builder.js';
 
 const GHOST = 'decision/fieldTypes/ghost';
 const OBSOLETED_BY = 'decision/fieldTypes/obsoletedBy';
@@ -186,6 +195,34 @@ describe('clean command', () => {
       expect(afterWrite).toHaveBeenCalled();
     } finally {
       rmSync(freshTestDir, { recursive: true, force: true });
+    }
+  });
+
+  it('a dry run under autocommit leaves HEAD and a dirty cardRoot alone', async () => {
+    const project = await buildProject({
+      git: true,
+      cards: [{ title: 'Alpha' }],
+    });
+    const handle = await openTestWorkspace(project.path, { autocommit: true });
+    const git = (...args: string[]) =>
+      execFileSync('git', args, { cwd: project.path, encoding: 'utf8' });
+    try {
+      const card = handle.checkout.findCard(project.keys[0]);
+      appendFileSync(
+        join(card.path, Checkout.cardContentFile),
+        '\nAn uncommitted edit.\n',
+      );
+      const head = git('rev-parse', 'HEAD');
+      const status = git('status', '--porcelain');
+      expect(status).not.toBe('');
+
+      await handle.cleanCmd.clean(true);
+
+      expect(git('rev-parse', 'HEAD')).toBe(head);
+      expect(git('status', '--porcelain')).toBe(status);
+    } finally {
+      handle.checkout.dispose();
+      await project.cleanup();
     }
   });
 

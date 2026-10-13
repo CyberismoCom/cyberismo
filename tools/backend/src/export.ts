@@ -13,7 +13,7 @@
 
 import fs from 'node:fs/promises';
 
-import type { Workspace } from '@cyberismo/data-handler';
+import { SYSTEM_ACTOR, Workspace } from '@cyberismo/data-handler';
 import { createApp } from './app.js';
 import { MockAuthProvider } from './auth/mock.js';
 import type { ProjectRegistry } from './project-registry.js';
@@ -121,7 +121,8 @@ export async function exportSite(
 
   // estimate total based on the number of cards to export across all projects
   let total = OVERHEAD_CALLS;
-  for (const ws of registry.values()) {
+  for (const checkout of registry.values()) {
+    const ws = Workspace.over(checkout, SYSTEM_ACTOR);
     const cards = await findAllCards(ws, opts);
     const attachments = await findRelevantAttachments(ws, opts);
     total += cards.length + attachments.length;

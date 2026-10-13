@@ -18,7 +18,7 @@ import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
 import { type Workspace } from '@cyberismo/data-handler';
 import { createMcpServer, singleProjectProvider } from '../src/server.js';
-import { testDataPath } from './test-utils.js';
+import { authenticated, testDataPath } from './test-utils.js';
 import { openTestWorkspace } from './helpers/open-test-workspace.js';
 
 let ws: Workspace;
@@ -33,7 +33,7 @@ beforeAll(async () => {
   const [clientTransport, serverTransport] =
     InMemoryTransport.createLinkedPair();
 
-  await server.connect(serverTransport);
+  await server.connect(authenticated(serverTransport));
 
   client = new Client({ name: 'test-client', version: '1.0.0' });
   await client.connect(clientTransport);

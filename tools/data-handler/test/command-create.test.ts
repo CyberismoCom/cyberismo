@@ -22,6 +22,7 @@ import type { Card, CardListContainer } from '@cyberismo/model';
 import { Checkout } from '../src/containers/project.js';
 import { Validate } from '../src/commands/index.js';
 import { openTestWorkspace } from './helpers/open-test-workspace.js';
+import { SYSTEM_ACTOR } from '../src/utils/tx-record.js';
 
 // Create test artifacts in a temp folder.
 const baseDir = import.meta.dirname;
@@ -1278,12 +1279,17 @@ describe('CommandManager.createProjectWithDefaults', () => {
   });
 
   it('creates a project with correct configuration', async () => {
-    const ws = await Workspace.createProjectWithDefaults(projectPath, {
-      name: 'Test Defaults',
-      prefix: 'testdef',
-      category: 'Test',
-      description: 'A test',
-    });
+    const ws = await Workspace.createProjectWithDefaults(
+      projectPath,
+      {
+        name: 'Test Defaults',
+        prefix: 'testdef',
+        category: 'Test',
+        description: 'A test',
+      },
+      SYSTEM_ACTOR,
+      undefined,
+    );
 
     expect(ws).toBeInstanceOf(Workspace);
     expect(ws.checkout.configuration.name).toBe('Test Defaults');
@@ -1307,7 +1313,8 @@ describe('CommandManager.createProjectWithDefaults', () => {
       const ws = await Workspace.createProjectWithDefaults(
         userProjectPath,
         { name: 'User Project', prefix: 'userproj' },
-        { gitUser: { name: 'Test User', email: 'test@example.com' } },
+        { kind: 'user', id: 'test-user', name: 'Test User' },
+        { name: 'Test User', email: 'test@example.com' },
       );
 
       expect(ws).toBeInstanceOf(Workspace);

@@ -12,7 +12,12 @@
 */
 
 import type { ActorRef } from '@cyberismo/model';
-import type { CommitContext, CommitIdentity } from './commit-context.js';
+
+/** Git author of a commit. Internal: never serialised into events. */
+export interface CommitIdentity {
+  name: string;
+  email: string;
+}
 
 /** Actor of writes that no user started. */
 export const SYSTEM_ACTOR: ActorRef = {
@@ -20,6 +25,16 @@ export const SYSTEM_ACTOR: ActorRef = {
   id: 'cyberismo',
   name: 'Cyberismo Bot',
 };
+
+/** Who an outermost write is done for. */
+export interface WriteFrame {
+  actor: ActorRef;
+  /** Git author; unset lets git resolve it (env, config, then the Bot). */
+  identity?: CommitIdentity;
+}
+
+/** Frame of writes that no user started. */
+export const SYSTEM_FRAME: WriteFrame = { actor: SYSTEM_ACTOR };
 
 /** Git trailer keys that record who acted. */
 export const COMMIT_TRAILERS = {
@@ -43,13 +58,14 @@ export interface TxRecord {
 
 /**
  * Creates the record of a new outermost write.
- * @param ctx Commit context; without an actor the write is the system's.
+ * @param frame Who the write is done for.
+ * @param message Commit message, if one is known yet.
  */
-export function createTxRecord(ctx: CommitContext): TxRecord {
+export function createTxRecord(frame: WriteFrame, message?: string): TxRecord {
   return {
-    actor: ctx.actor ?? SYSTEM_ACTOR,
-    identity: ctx.author,
-    message: ctx.message,
+    actor: frame.actor,
+    identity: frame.identity,
+    message,
     touched: {
       cards: { updated: new Set(), removed: new Set() },
       resources: new Set(),

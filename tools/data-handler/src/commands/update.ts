@@ -11,6 +11,7 @@
 */
 
 import type { Checkout } from '../containers/project.js';
+import { write } from '../utils/rw-lock.js';
 import { ResourceMutations } from '../mutations/resource-mutations.js';
 import type { MutationInput } from '../mutations/types.js';
 
@@ -34,6 +35,7 @@ export class Update {
    * is classified 'none' — records a migration log entry.
    * @param input The mutation to apply.
    */
+  @write()
   public async apply(input: MutationInput): Promise<void> {
     await this.mutations.apply(input);
   }
