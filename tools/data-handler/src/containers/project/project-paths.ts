@@ -13,7 +13,7 @@
 
 import { join } from 'node:path';
 
-import type { ResourceFolderType } from '../../interfaces/project-interfaces.js';
+import type { ResourceFolderType } from '@cyberismo/model';
 
 /**
  * Handles paths for a project.

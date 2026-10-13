@@ -15,10 +15,10 @@ import BaseMacro from '../base-macro.js';
 import { createImage, validateMacroContent } from '../index.js';
 import { registerComparisonHelpers } from '../../utils/handlebars-helpers.js';
 import Handlebars from 'handlebars';
-import macroMetadata from './metadata.js';
+import macroMetadata from '@cyberismo/model/macros/graph/metadata';
 import { ClingoError } from '@cyberismo/node-clingo';
 
-import type { GraphOptions } from './types.js';
+import type { GraphOptions } from '@cyberismo/model';
 import type { MacroGenerationContext } from '../../interfaces/macros.js';
 import type TaskQueue from '../task-queue.js';
 

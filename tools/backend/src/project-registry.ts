@@ -13,7 +13,7 @@
 
 import { Workspace, type ProjectProvider } from '@cyberismo/data-handler';
 import { ProjectEvents } from './domain/events/project-events.js';
-import type { ProjectErrors } from './project-errors.js';
+import type { ProjectErrors } from '@cyberismo/model';
 
 export type ProjectRegistryEntry = {
   prefix: string;

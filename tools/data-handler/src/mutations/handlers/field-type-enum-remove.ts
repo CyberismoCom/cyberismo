@@ -16,9 +16,7 @@ import type { Handler, MutationContext } from '../handler.js';
 import type { EditInput } from '../types.js';
 import { resourceNameToString } from '../../utils/resource-utils.js';
 import { ResourcesFrom } from '../../containers/project/resources-from.js';
-import type { Card } from '../../interfaces/project-interfaces.js';
-import type { RemoveOperation } from '../../resources/resource-object.js';
-import type { EnumDefinition } from '../../interfaces/resource-interfaces.js';
+import type { Card, RemoveOperation, EnumDefinition } from '@cyberismo/model';
 
 // An enum value from either recorded shape: a full EnumDefinition object or
 // a bare string.

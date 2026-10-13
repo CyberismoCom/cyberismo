@@ -15,7 +15,7 @@
 import type { Handler, MutationContext } from '../handler.js';
 import type { DeleteInput } from '../types.js';
 import { resourceNameToString } from '../../utils/resource-utils.js';
-import type { Card } from '../../interfaces/project-interfaces.js';
+import type { Card } from '@cyberismo/model';
 
 export class LinkTypeDeleteHandler implements Handler<DeleteInput> {
   async apply(ctx: MutationContext<DeleteInput>): Promise<void> {

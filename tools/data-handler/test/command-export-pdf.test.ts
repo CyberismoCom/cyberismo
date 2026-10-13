@@ -12,7 +12,7 @@ import { tmpdir } from 'node:os';
 import { copyDir } from '../src/utils/file-utils.js';
 import { Workspace } from '../src/workspace/workspace.js';
 import type { Export } from '../src/commands/index.js';
-import type { ExportPdfOptions } from '../src/interfaces/project-interfaces.js';
+import type { ExportPdfOptions } from '@cyberismo/model';
 
 describe('PDF export — AsciiDoc source assembly', () => {
   const baseDir = import.meta.dirname;

@@ -22,10 +22,8 @@ import { resourceNameToString } from '../utils/resource-utils.js';
 import { sortCards } from '../utils/card-utils.js';
 import { Validate } from '../commands/validate.js';
 
-import type { Card } from '../interfaces/project-interfaces.js';
+import type { Card, ReportContent, ReportMetadata } from '@cyberismo/model';
 import type { Checkout } from '../containers/project.js';
-import type { ReportContent } from '../interfaces/folder-content-interfaces.js';
-import type { ReportMetadata } from '../interfaces/resource-interfaces.js';
 import type { ResourceName } from '../utils/resource-utils.js';
 
 const PARAMETER_SCHEMA_ID = 'jsonSchema';

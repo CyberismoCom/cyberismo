@@ -13,7 +13,7 @@
 */
 
 import { ResourcesFrom } from '../../containers/project/resources-from.js';
-import { filename } from '../../interfaces/folder-content-interfaces.js';
+import { filename } from '@cyberismo/model';
 
 import type { Checkout } from '../../containers/project.js';
 

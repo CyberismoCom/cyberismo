@@ -21,9 +21,11 @@ import { getStaticDirectoryPath } from '@cyberismo/assets';
 import { resourceNameToString } from '../utils/resource-utils.js';
 import { sortCards } from '../utils/card-utils.js';
 
-import type { Card } from '../interfaces/project-interfaces.js';
-import type { GraphViewContent } from '../interfaces/folder-content-interfaces.js';
-import type { GraphViewMetadata } from '../interfaces/resource-interfaces.js';
+import type {
+  Card,
+  GraphViewContent,
+  GraphViewMetadata,
+} from '@cyberismo/model';
 import type { Checkout } from '../containers/project.js';
 import type { ResourceName } from '../utils/resource-utils.js';
 

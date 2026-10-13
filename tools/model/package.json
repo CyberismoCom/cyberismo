@@ -1,0 +1,47 @@
+{
+  "name": "@cyberismo/model",
+  "version": "1.1.2",
+  "description": "Browser-safe shared types for Cyberismo",
+  "author": "sami.merila@cyberismo.com",
+  "license": "AGPL-3.0",
+  "homepage": "https://github.com/CyberismoCom/cyberismo",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/CyberismoCom/cyberismo.git"
+  },
+  "bugs": "https://github.com/CyberismoCom/cyberismo/issues",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "clean": "rm -rf node_modules",
+    "lint": "eslint .",
+    "dev": "tsc --watch --preserveWatchOutput -p tsconfig.build.json"
+  },
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./macros/*": {
+      "types": "./dist/macros/*.d.ts",
+      "default": "./dist/macros/*.js"
+    },
+    "./types/*": {
+      "types": "./dist/types/*.d.ts",
+      "default": "./dist/types/*.js"
+    }
+  },
+  "dependencies": {
+    "ajv": "^8.20.0",
+    "vega": "^6.4.0",
+    "vega-lite": "^6.4.2"
+  },
+  "files": [
+    "dist",
+    "src"
+  ]
+}

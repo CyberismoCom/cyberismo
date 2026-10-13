@@ -14,9 +14,8 @@
 import Handlebars from 'handlebars';
 import { workflowGraph } from '@cyberismo/assets';
 
-import type { Context } from '../interfaces/project-interfaces.js';
+import type { Context, QueryName, QueryResult } from '@cyberismo/model';
 import type { Checkout } from '../containers/project.js';
-import type { QueryName, QueryResult } from '../types/queries.js';
 import { registerClingoHelpers } from '../utils/handlebars-helpers.js';
 import { read } from '../utils/rw-lock.js';
 

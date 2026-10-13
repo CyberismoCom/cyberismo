@@ -2,10 +2,7 @@ import { expect, describe, it, beforeEach, afterEach } from 'vitest';
 
 import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import type {
-  HubSetting,
-  ModuleSetting,
-} from '../src/interfaces/project-interfaces.js';
+import type { HubSetting, ModuleSetting } from '@cyberismo/model';
 
 import { ProjectConfiguration } from '../src/project-settings.js';
 import { SCHEMA_VERSION } from '@cyberismo/migrations';

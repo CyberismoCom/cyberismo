@@ -9,7 +9,7 @@ import {
   installedModulesWithSources,
 } from '../../src/modules/inventory.js';
 import { makeProjectStub } from '../helpers/module-fixtures.js';
-import type { ModuleSetting } from '../../src/interfaces/project-interfaces.js';
+import type { ModuleSetting } from '@cyberismo/model';
 
 function makeStub(basePath: string, modules: ModuleSetting[]) {
   return makeProjectStub({ basePath, modules }).checkout;

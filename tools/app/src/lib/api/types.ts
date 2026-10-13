@@ -22,13 +22,11 @@ import type {
   Skill,
   TemplateConfiguration,
   Workflow,
-} from '@cyberismo/data-handler/interfaces/resource-interfaces';
-import type {
   Card,
   CardAttachment,
   ResourceFolderType,
-} from '@cyberismo/data-handler/interfaces/project-interfaces';
-import type { QueryResult } from '@cyberismo/data-handler/types/queries';
+  QueryResult,
+} from '@cyberismo/model';
 import type { SWRResponse } from 'swr';
 import { RESOURCES } from '@/lib/constants';
 

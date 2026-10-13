@@ -14,10 +14,10 @@
 import { validateMacroContent } from '../index.js';
 
 import type { MacroGenerationContext } from '../../interfaces/macros.js';
-import macroMetadata from './metadata.js';
+import macroMetadata from '@cyberismo/model/macros/xref/metadata';
 import BaseMacro from '../base-macro.js';
 import type TaskQueue from '../task-queue.js';
-import type { XrefMacroOptions } from './types.js';
+import type { XrefMacroOptions } from '@cyberismo/model';
 
 export default class XrefMacro extends BaseMacro {
   constructor(tasksQueue: TaskQueue) {

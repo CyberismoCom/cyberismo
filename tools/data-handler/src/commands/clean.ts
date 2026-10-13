@@ -22,30 +22,14 @@ import type {
   Card,
   CardMetadata,
   MetadataContent,
-} from '../interfaces/project-interfaces.js';
-import type { CustomField } from '../interfaces/resource-interfaces.js';
+  CustomField,
+  CleanFinding,
+  CleanResult,
+} from '@cyberismo/model';
 
 // The logger is initialized while the project loads, so the child logger is
 // taken at call time; binding it at module scope would keep the silent default.
 const logger = () => getChildLogger({ module: 'clean' });
-
-export type CleanReason = 'null-value' | 'undeclared' | 'calculated-locked';
-
-export interface CleanFinding {
-  cardKey: string;
-  field: string;
-  reason: CleanReason;
-}
-
-export interface CleanResult {
-  findings: CleanFinding[];
-  cardCount: number;
-  // Cards whose card type could not be resolved; they were not inspected.
-  skippedCards: string[];
-  // Cards that were reported in 'findings' but could not be written.
-  failedCards: string[];
-  dryRun: boolean;
-}
 
 /**
  * Removes stored field values that the card's card type does not require:

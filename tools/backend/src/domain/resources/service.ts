@@ -11,13 +11,13 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import type { AnyResourceContent } from '@cyberismo/data-handler/interfaces/resource-interfaces';
 import type {
+  AnyResourceContent,
   Card,
   CardWithChildrenCards,
   ResourceFolderType,
   RemovableResourceTypes,
-} from '@cyberismo/data-handler/interfaces/project-interfaces';
+} from '@cyberismo/model';
 import {
   type Workspace,
   isResourceFolderType,

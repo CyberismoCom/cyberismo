@@ -19,11 +19,7 @@ import { getChildLogger } from '../../utils/log-utils.js';
 import { EMPTY_RANK, sortItems } from '../../utils/lexorank.js';
 import { isPredefinedField, ROOT } from '../../utils/constants.js';
 
-import type {
-  Card,
-  CardAttachment,
-  CardMetadata,
-} from '../../interfaces/project-interfaces.js';
+import type { Card, CardAttachment, CardMetadata } from '@cyberismo/model';
 import type { CardTree, NewCard } from './card-tree.js';
 import type { Checkout } from '../project.js';
 

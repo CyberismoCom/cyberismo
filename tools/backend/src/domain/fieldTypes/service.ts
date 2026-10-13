@@ -12,7 +12,7 @@
 */
 
 import type { Workspace } from '@cyberismo/data-handler';
-import type { DataType } from '@cyberismo/data-handler/interfaces/resource-interfaces';
+import type { DataType } from '@cyberismo/model';
 
 export async function getFieldTypes(ws: Workspace) {
   const response = await ws.showCmd.showResources('fieldTypes');

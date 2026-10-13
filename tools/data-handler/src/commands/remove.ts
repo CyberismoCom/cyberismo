@@ -18,8 +18,7 @@ import { resourceName as parseResourceName } from '../utils/resource-utils.js';
 import type { Fetch } from './fetch.js';
 import type { Modules } from './modules.js';
 import type { Checkout } from '../containers/project.js';
-import type { RemovableResourceTypes } from '../interfaces/project-interfaces.js';
-import type { ExternalLink } from '../interfaces/resource-interfaces.js';
+import type { RemovableResourceTypes, ExternalLink } from '@cyberismo/model';
 import { write } from '../utils/rw-lock.js';
 
 /**

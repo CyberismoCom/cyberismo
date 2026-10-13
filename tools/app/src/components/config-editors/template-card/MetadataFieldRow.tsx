@@ -24,7 +24,7 @@ import {
   OverriddenMarker,
 } from '@/components/card/metadata-section/OverrideEditorFrame';
 import type { DataType, MetadataValue } from '@/lib/definitions';
-import type { EnumDefinition } from '@cyberismo/data-handler/types/queries';
+import type { EnumDefinition } from '@cyberismo/model/types/queries';
 import { metadataValuesEqual } from '@/lib/utils';
 import { formKeyHandler } from '@/lib/hooks';
 

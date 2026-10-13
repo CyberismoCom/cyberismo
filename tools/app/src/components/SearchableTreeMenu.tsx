@@ -13,7 +13,7 @@
 
 import { useState, useMemo } from 'react';
 import type { NodeApi } from 'react-arborist';
-import type { QueryResult } from '@cyberismo/data-handler/types/queries';
+import type { QueryResult } from '@cyberismo/model';
 import {
   Divider,
   Input,

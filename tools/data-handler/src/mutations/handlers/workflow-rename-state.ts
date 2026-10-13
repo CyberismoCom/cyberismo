@@ -16,9 +16,7 @@ import type { Handler, MutationContext } from '../handler.js';
 import { resolveCardTypeRename } from '../handler.js';
 import type { EditInput } from '../types.js';
 import { resourceNameToString } from '../../utils/resource-utils.js';
-import type { ChangeOperation } from '../../resources/resource-object.js';
-import type { Card } from '../../interfaces/project-interfaces.js';
-import type { WorkflowState } from '../../interfaces/resource-interfaces.js';
+import type { ChangeOperation, Card, WorkflowState } from '@cyberismo/model';
 
 /**
  * Renaming a workflow state (a 'change' on 'states' whose target name differs

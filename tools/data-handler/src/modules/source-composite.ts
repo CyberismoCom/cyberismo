@@ -15,7 +15,7 @@
 import type { FetchTarget, SourceLayer } from './source.js';
 import type { Source, Version } from './types.js';
 import type { SealFile } from '../mutations/replay/seal-files.js';
-import type { ProjectSettings } from '../interfaces/project-interfaces.js';
+import type { ProjectSettings } from '@cyberismo/model';
 
 /** One dispatch route: a predicate plus the layer to delegate to. */
 export interface SourceRoute {

@@ -26,7 +26,7 @@ import {
 import { versionToTag } from './version.js';
 import type { FetchTarget, SourceLayer } from './source.js';
 import type { Source, Version } from './types.js';
-import type { ProjectSettings } from '../interfaces/project-interfaces.js';
+import type { ProjectSettings } from '@cyberismo/model';
 
 function cloneOptions(ref?: string): string[] {
   const options = ['--depth', '1'];

@@ -11,10 +11,7 @@ import type { Checkout } from '../src/containers/project.js';
 import { errorFunction } from '../src/utils/error-utils.js';
 import { resourceName } from '../src/utils/resource-utils.js';
 import { getTestBaseDir, getTestProject } from './helpers/test-utils.js';
-import type {
-  Card,
-  ResourceTypes,
-} from '../src/interfaces/project-interfaces.js';
+import type { Card, ResourceTypes } from '@cyberismo/model';
 
 describe('validate cmd tests', () => {
   const baseDir = getTestBaseDir(import.meta.dirname, import.meta.url);

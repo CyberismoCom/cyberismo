@@ -11,7 +11,7 @@
 */
 
 import type { CalculationEngine } from '../containers/project/calculation-engine.js';
-import type { DeniedOperationCollection } from '../types/queries.js';
+import type { DeniedOperationCollection } from '@cyberismo/model';
 
 export type Action = keyof DeniedOperationCollection;
 

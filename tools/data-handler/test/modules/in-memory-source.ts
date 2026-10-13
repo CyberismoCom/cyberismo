@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import { isGitLocation } from '../../src/modules/location.js';
 import type { SourceLayer, FetchTarget } from '../../src/modules/source.js';
 import type { Source, Version } from '../../src/modules/types.js';
-import type { ProjectSettings } from '../../src/interfaces/project-interfaces.js';
+import type { ProjectSettings } from '@cyberismo/model';
 import type { SealFile } from '../../src/mutations/replay/seal-files.js';
 import { versionToTag } from '../../src/modules/version.js';
 

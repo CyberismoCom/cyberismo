@@ -29,7 +29,7 @@ import {
   DEFAULT_GRAPH_FORM_VALUES,
   type MacroModalProps,
 } from '../shared/types';
-import type { GraphOptions } from '@cyberismo/data-handler';
+import type { GraphOptions } from '@cyberismo/model';
 
 export function GraphMacroModal({
   open,
