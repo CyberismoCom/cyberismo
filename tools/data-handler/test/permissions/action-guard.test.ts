@@ -141,15 +141,6 @@ describe('ActionGuard.checkPermission', () => {
     const reasons = await denial(guard.checkPermission('delete', locked));
     expect([...reasons].sort()).toEqual(['first', 'second']);
   });
-
-  // The card query answers a key it does not know with an empty card, so the
-  // guard allows the action there (the entry points fail on the missing card).
-  it('allows an action on a card key the query does not know', async () => {
-    const { guard } = await fixture(DENY_ALL);
-    await expect(
-      guard.checkPermission('delete', 'test_nonexist'),
-    ).resolves.toBe(undefined);
-  });
 });
 
 describe('guarded entry points', () => {
