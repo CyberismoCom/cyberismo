@@ -18,7 +18,7 @@ import macroMetadata from '@cyberismo/model/macros/report/metadata';
 import BaseMacro from '../base-macro.js';
 import { validateJson } from '../../utils/validate.js';
 import type TaskQueue from '../task-queue.js';
-import { generateReportContent } from '../../utils/report.js';
+import { generateReportContent } from '../../queries/report.js';
 import { ClingoError } from '@cyberismo/node-clingo';
 import type { ReportOptions } from '@cyberismo/model';
 

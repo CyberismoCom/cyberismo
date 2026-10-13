@@ -30,7 +30,7 @@ import type {
   QueryResult,
 } from '@cyberismo/model';
 import { evaluateMacros } from '../macros/index.js';
-import { generateReportContent } from '../utils/report.js';
+import { generateReportContent } from '../queries/report.js';
 import { preprocessMermaidBlocksForPdf } from '../utils/mermaid-renderer.js';
 import { rewriteAsciidocCardXrefs } from '../utils/asciidoc-xref.js';
 import { getStaticDirectoryPath, pdfReport } from '@cyberismo/assets';

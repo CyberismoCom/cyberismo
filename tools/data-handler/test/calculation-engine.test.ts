@@ -7,7 +7,7 @@ import type { Checkout } from '../src/containers/project.js';
 import type { QueryResult } from '@cyberismo/model';
 import Handlebars from 'handlebars';
 import { lpFiles, pdfReport } from '@cyberismo/assets';
-import { Calculate } from '../src/commands/calculate.js';
+import { Calculate } from '../src/queries/queries.js';
 import { getTestProject } from './helpers/test-utils.js';
 
 const expectedTree: QueryResult<'tree'>[] = [
