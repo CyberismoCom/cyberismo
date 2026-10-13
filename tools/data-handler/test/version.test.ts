@@ -14,7 +14,7 @@ import sinon from 'sinon';
 import { GitManager } from '../src/utils/git-manager.js';
 import { pathExists } from '../src/utils/file-utils.js';
 import { RWLock } from '../src/utils/rw-lock.js';
-import type { Versions } from '../src/versions/version.js';
+import type { BumpType, Versions } from '../src/versions/version.js';
 import { ConfigurationLogger } from '../src/utils/configuration-logger.js';
 import type { ConfigurationOperation } from '../src/utils/configuration-logger.js';
 import { getCommitContext } from '../src/utils/commit-context.js';
@@ -43,6 +43,8 @@ describe('Version', () => {
   let configPath: string;
   let configuration: ReturnType<typeof makeConfiguration>;
   let hasPendingChangesStub: sinon.SinonStub;
+  let validateStub: sinon.SinonStub;
+  let lock: RWLock;
 
   beforeEach(async () => {
     dir = await mkdtemp(join(tmpdir(), 'version-test-'));
@@ -68,11 +70,11 @@ describe('Version', () => {
 
     // The fake checkout is not a whole project; the validation gate has
     // tests of its own.
-    sinon.stub(Validate.getInstance(), 'validate').resolves('');
+    validateStub = sinon.stub(Validate.getInstance(), 'validate').resolves('');
 
     configuration = makeConfiguration(configPath);
 
-    const lock = new RWLock();
+    lock = new RWLock();
     lock.onAfterWrite(async () => {
       const context = getCommitContext();
       await git.commit(context.message ?? 'Autocommit');
@@ -112,6 +114,27 @@ describe('Version', () => {
     const onDisk = JSON.parse(await readFile(configPath, 'utf-8'));
     expect(onDisk.version).toBe(version);
   }
+
+  describe('gate', () => {
+    it('refuses an unknown bump type', async () => {
+      await expect(versionCmd.bump('huge' as BumpType)).rejects.toThrow(
+        "Invalid bump type 'huge'. Must be one of: patch, minor, major",
+      );
+      await expectNoPartialState(undefined);
+    });
+
+    it('refuses a project with validation errors before writing', async () => {
+      const writes: unknown[] = [];
+      lock.onReleased((tx) => writes.push(tx));
+      validateStub.resolves('Card x is broken');
+
+      await expect(versionCmd.bump('major')).rejects.toThrow(
+        'Cannot version: project has validation errors.\nCard x is broken',
+      );
+      expect(writes).toEqual([]);
+      await expectNoPartialState(undefined);
+    });
+  });
 
   describe('version bumping', () => {
     it('should produce 1.0.0 for first version regardless of bump type', async () => {

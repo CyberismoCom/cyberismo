@@ -157,6 +157,18 @@ describe('skill discovery', () => {
       expect(global).not.toHaveProperty('instructions');
     });
 
+    it('returns copies: changing one leaves the next listing alone', async () => {
+      const globalSkill = async () =>
+        (await ws.resources.skills()).find(
+          (s) => s.name === 'decision/skills/globalSkill',
+        )!;
+      (await globalSkill()).relatedTools.push('mine');
+      expect((await globalSkill()).relatedTools).toEqual([
+        'query_cards',
+        'update_card',
+      ]);
+    });
+
     it('marks each skill global or card scope', async () => {
       const byName = new Map(
         (await ws.resources.skills()).map((s) => [s.name, s.scope]),
@@ -167,6 +179,16 @@ describe('skill discovery', () => {
   });
 
   describe('getSkill', () => {
+    it('returns a copy: changing it leaves the next lookup alone', async () => {
+      const lookup = () => ws.resources.skill('decision/skills/globalSkill');
+      const first = await lookup();
+      if (first.status !== 'ok') throw new Error(first.status);
+      first.skill.relatedTools.push('mine');
+      expect(await lookup()).toMatchObject({
+        skill: { relatedTools: ['query_cards', 'update_card'] },
+      });
+    });
+
     it('renders a globally-enabled skill', async () => {
       const result = await ws.resources.skill('decision/skills/globalSkill');
       expect(result.status).toBe('ok');
