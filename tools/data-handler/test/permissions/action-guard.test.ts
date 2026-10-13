@@ -163,15 +163,13 @@ describe('guarded entry points', () => {
 
   it('move is denied and leaves the card in place', async () => {
     const { ws, locked, other } = await fixture(LOCKED('Locked'));
-    expect(await denial(ws.moveCmd.moveCard(locked, other))).toEqual([
-      'no moving',
-    ]);
+    expect(await denial(ws.cards.move(locked, other))).toEqual(['no moving']);
     expect(ws.checkout.findCard(locked).parent).toBe('root');
   });
 
   it('move runs for a card without denials', async () => {
     const { ws, free, other } = await fixture(LOCKED('Locked'));
-    await ws.moveCmd.moveCard(free, other);
+    await ws.cards.move(free, other);
     expect(ws.checkout.findCard(free).parent).toBe(other);
   });
 
@@ -221,12 +219,10 @@ describe('guarded entry points', () => {
 describe('guard skip paths', () => {
   it('moving a card to its current parent returns before the guard', async () => {
     const { ws, locked, child } = await fixture(DENY_ALL);
-    await ws.moveCmd.moveCard(child, locked);
+    await ws.cards.move(child, locked);
     expect(ws.checkout.findCard(child).parent).toBe(locked);
     // The same call to a different parent is guarded.
-    expect(await denial(ws.moveCmd.moveCard(child, 'root'))).toEqual([
-      'no moving',
-    ]);
+    expect(await denial(ws.cards.move(child, 'root'))).toEqual(['no moving']);
   });
 
   it('template cards skip the editContent guard', async () => {
