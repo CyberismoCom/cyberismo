@@ -23,8 +23,6 @@ import { Checkout } from '../containers/project.js';
 import { Validate } from './validate.js';
 
 import type { ProjectFile } from '@cyberismo/model';
-import { recordSettingsChange } from '../utils/change-feed.js';
-import { write } from '../utils/rw-lock.js';
 import { writeJsonFile } from '../utils/json.js';
 import { getChildLogger } from '../utils/log-utils.js';
 
@@ -37,8 +35,6 @@ const logger = getChildLogger({ module: 'create' });
  * Handles all create commands.
  */
 export class Create {
-  constructor(private checkout: Checkout) {}
-
   static JSONFileContent: ProjectFile[] = [
     {
       path: '.cards/local',
@@ -73,16 +69,6 @@ export class Create {
     '.logs',
     '.cache',
   ];
-
-  /**
-   * Adds a new hub location.
-   * @param hubUrl URL of the hub
-   */
-  @write((hubUrl) => `Add hub ${hubUrl}`)
-  public async addHubLocation(hubUrl: string) {
-    await this.checkout.configuration.addHub(hubUrl);
-    recordSettingsChange(this.checkout.lock);
-  }
 
   /**
    * Creates a new project.

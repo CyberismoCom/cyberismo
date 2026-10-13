@@ -13,12 +13,21 @@
 
 import { type Command } from 'commander';
 
-import { Cmd, type CommandOptions } from '@cyberismo/data-handler';
-import { type UpdateOperations } from '@cyberismo/model';
+import {
+  resourceName,
+  resourceNameToString,
+  type CommandOptions,
+  type UpdateCommandOptions,
+  type Workspace,
+} from '@cyberismo/data-handler';
+import { errorFunction } from '@cyberismo/data-handler/utils/error-utils';
+import { resolveTilde } from '@cyberismo/data-handler/utils/file-utils';
+import { readJsonFile } from '@cyberismo/data-handler/utils/json';
+import type { Operation, UpdateKey, UpdateOperations } from '@cyberismo/model';
 
 import { CommandWithPath } from '../lib/args.js';
-import { commandHandler } from '../lib/dispatch.js';
-import { handleResponse } from '../lib/output.js';
+import { onProject } from '../lib/errors.js';
+import { cleanNote, printResultWithNote } from '../lib/output.js';
 
 const additionalHelpForUpdate = `Sub-command help:
   update <resourceName> <operation> <key> <value> [newValue], where
@@ -77,12 +86,138 @@ export function registerUpdate(program: Command) {
         newValue: string,
         options: CommandOptions<'update'>,
       ) => {
-        const result = await commandHandler.command(
-          Cmd.update,
-          [resourceName, operation, key, value, newValue],
+        const note = await onProject(
           Object.assign({}, options, program.opts()),
+          (ws) =>
+            update(
+              ws,
+              [resourceName, operation, key, value, newValue],
+              options,
+            ),
         );
-        handleResponse(result);
+        printResultWithNote(note);
       },
     );
+}
+
+// Applies the edit; returns the clean note when it may have left values.
+async function update(
+  ws: Workspace,
+  args: string[],
+  options: UpdateCommandOptions,
+): Promise<string | undefined> {
+  const [resource, operation, key, value, newValue] = args;
+  let parsedValue: unknown;
+  try {
+    parsedValue = JSON.parse(value);
+  } catch {
+    parsedValue = value;
+  }
+
+  // Handle mapping file for workflow changes
+  let mappingTable: { stateMapping: Record<string, string> } | undefined;
+  if (
+    (options as UpdateCommandOptions).mappingFile &&
+    operation === 'change' &&
+    key === 'workflow'
+  ) {
+    try {
+      const mappingData = await readJsonFile(
+        resolveTilde((options as UpdateCommandOptions).mappingFile!),
+      );
+      if (
+        mappingData &&
+        typeof mappingData === 'object' &&
+        'stateMapping' in mappingData
+      ) {
+        mappingTable = mappingData as {
+          stateMapping: Record<string, string>;
+        };
+      } else {
+        throw new Error('Mapping file must contain a "stateMapping" object');
+      }
+    } catch (error) {
+      throw new Error(`Failed to read mapping file: ${errorFunction(error)}`, {
+        cause: error,
+      });
+    }
+  }
+
+  let parsedNewValue = newValue;
+  if (newValue) {
+    try {
+      parsedNewValue = JSON.parse(newValue);
+    } catch {
+      parsedNewValue = newValue;
+    }
+  }
+
+  const target = resourceName(resource);
+  await ws.changes.apply({
+    kind: 'edit',
+    target,
+    updateKey: parseUpdateKey(key),
+    operation: buildOperation(
+      operation as UpdateOperations,
+      parsedValue,
+      parsedNewValue,
+      mappingTable,
+    ),
+  });
+
+  // Dropping or replacing a custom field leaves the cards' values in
+  // place; only those two operations can create something to clean.
+  if (
+    target.type === 'cardTypes' &&
+    key === 'customFields' &&
+    (operation === 'remove' || operation === 'change')
+  ) {
+    return cleanNote(ws, resourceNameToString(target));
+  }
+}
+
+// Builds the discriminated update operation from the CLI's flat
+// (operation, value, newValue) arguments. A 'change' without newValue sets a
+// scalar: 'to' carries the value and 'target' is unused.
+function buildOperation(
+  operation: UpdateOperations,
+  value: unknown,
+  newValue: unknown,
+  mappingTable?: { stateMapping: Record<string, string> },
+): Operation<unknown> {
+  switch (operation) {
+    case 'add':
+      return { name: 'add', target: value };
+    case 'change':
+      return {
+        name: 'change',
+        target: newValue ? value : undefined,
+        to: newValue ? newValue : value,
+        ...(mappingTable && { mappingTable }),
+      };
+    case 'rank':
+      return { name: 'rank', target: value, newIndex: newValue as number };
+    case 'remove':
+      return {
+        name: 'remove',
+        target: value,
+        replacementValue: newValue ? newValue : undefined,
+      };
+  }
+}
+
+function parseUpdateKey(key: string): UpdateKey {
+  const splitKey = key.split('/');
+  if (splitKey.length !== 1 && splitKey.length !== 2) {
+    throw new Error(
+      `Invalid key format: ${key}. Use 'property' or 'content/<property>'.`,
+    );
+  }
+  if (splitKey.length === 2 && splitKey[0] !== 'content') {
+    throw new Error(
+      `Invalid key format: ${key}. When using 'content', always use as 'content/<property>'.`,
+    );
+  }
+  const [parsedKey, subKey] = splitKey;
+  return subKey === undefined ? { key: parsedKey } : { key: 'content', subKey };
 }

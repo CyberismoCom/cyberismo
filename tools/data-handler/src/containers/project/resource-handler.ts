@@ -33,6 +33,18 @@ export const singularToPluralResourceType: Record<string, keyof ResourceMap> = {
 };
 
 /**
+ * Plural resource type of a singular one.
+ * @throws if `singular` is no resource type.
+ */
+export function pluralResourceType(singular: string): keyof ResourceMap {
+  const plural = singularToPluralResourceType[singular];
+  if (!plural) {
+    throw new Error(`Unknown singular resource type: ${singular}`);
+  }
+  return plural;
+}
+
+/**
  * ResourceHandler manages resource access for a project.
  * It owns the ResourceCache and provides APIs for accessing resources.
  */
@@ -257,10 +269,6 @@ export class ResourceHandler {
    * @returns Resource type as plural name
    */
   public resourceTypeFromSingularType(singular: string): keyof ResourceMap {
-    const plural = singularToPluralResourceType[singular];
-    if (!plural) {
-      throw new Error(`Unknown singular resource type: ${singular}`);
-    }
-    return plural;
+    return pluralResourceType(singular);
   }
 }

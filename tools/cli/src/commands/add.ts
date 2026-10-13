@@ -14,12 +14,11 @@
 import { type Command } from 'commander';
 
 import { DEFAULT_HUB } from '@cyberismo/assets';
-import { Cmd, type CommandOptions } from '@cyberismo/data-handler';
+import { type CommandOptions } from '@cyberismo/data-handler';
 
 import { CommandGroup } from '../lib/args.js';
-import { commandHandler } from '../lib/dispatch.js';
 import { fail, onProject } from '../lib/errors.js';
-import { handleResponse, printResult } from '../lib/output.js';
+import { printResult } from '../lib/output.js';
 
 export function registerAdd(program: Command) {
   const addCmd = new CommandGroup('add').description(
@@ -75,11 +74,9 @@ export function registerAdd(program: Command) {
       if (location === 'default') {
         location = DEFAULT_HUB;
       }
-      const result = await commandHandler.command(
-        Cmd.add,
-        ['hub', location],
-        Object.assign({}, options, program.opts()),
+      await onProject(Object.assign({}, options, program.opts()), (ws) =>
+        ws.settings.hubs.add(location),
       );
-      handleResponse(result);
+      printResult(`Hub '${location}' was added to the project`);
     });
 }

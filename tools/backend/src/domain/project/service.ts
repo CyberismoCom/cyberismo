@@ -200,14 +200,14 @@ export async function addHub(
   ws: Workspace,
   location: string,
 ): Promise<HubFetchFailure[]> {
-  await ws.createCmd.addHubLocation(location);
+  await ws.settings.hubs.add(location);
   // The hub is configured even when it cannot be reached right now; its
   // modules appear once a later refresh succeeds.
   return ws.fetchCmd.fetchHubs(true);
 }
 
 export async function removeHub(ws: Workspace, location: string) {
-  await ws.removeCmd.remove('hub', location);
+  await ws.settings.hubs.remove(location);
 }
 
 export async function fetchHubs(ws: Workspace): Promise<HubFetchFailure[]> {
