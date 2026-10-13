@@ -25,11 +25,10 @@ import {
   toVersionRange,
   type ModuleDeclaration,
   type ModuleInstallation,
-  type Source,
   type Version,
   type VersionRange,
 } from './types.js';
-import { type VersionSource } from '@cyberismo/model';
+import { type Source, type VersionSource } from '@cyberismo/model';
 
 import type { Checkout } from '../containers/project.js';
 import type {

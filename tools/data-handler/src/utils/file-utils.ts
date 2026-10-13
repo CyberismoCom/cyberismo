@@ -21,7 +21,7 @@ import {
   writeFile,
 } from 'node:fs/promises';
 import { existsSync, readdirSync } from 'node:fs';
-import { dirname, join, sep } from 'node:path';
+import { basename, dirname, join, sep } from 'node:path';
 import { homedir } from 'node:os';
 
 /**
@@ -164,6 +164,23 @@ export function resolveTilde(filePath: string): string {
  * Path separator RE.
  */
 export const sepRegex = /[/\\]/;
+
+export const invalidNames = new RegExp(
+  '[<>:"/\\|?*\x00-\x1F]|^(?:aux|con|clock$|nul|prn|com[1-9]|lpt[1-9])$', // eslint-disable-line no-control-regex
+);
+
+/**
+ * Validates folder name.
+ * @todo: This should check that the path is resolvable and can be used as a folder name in various operating systems.
+ * @param path path to a folder
+ * @returns true, if the path is valid and can be used; false otherwise.
+ */
+export function isValidFolderName(path: string): boolean {
+  if (path === '' || path === '.' || path === '..') {
+    return false;
+  }
+  return !invalidNames.test(basename(path));
+}
 
 /**
  * Works like the writeFile method, but ensures that the directory exists

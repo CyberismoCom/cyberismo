@@ -12,3 +12,9 @@
 
 /** Where a module's versions come from, as reported to callers. */
 export type VersionSource = 'git' | 'file' | 'private';
+
+/** A location a module can be fetched from; `private` defaults to false. */
+export interface Source {
+  location: string;
+  private?: boolean;
+}

@@ -18,7 +18,7 @@ import { mkdir, mkdtemp, rename, rm, writeFile } from 'node:fs/promises';
 import { SCHEMA_VERSION } from '@cyberismo/migrations';
 import { scanForProjects } from '../project-scanner.js';
 import { createGit, gitTimeout } from '../utils/git-config.js';
-import { pathExists } from '../utils/file-utils.js';
+import { isValidFolderName, pathExists } from '../utils/file-utils.js';
 import { Checkout } from '../containers/project.js';
 import { Validate } from './validate.js';
 
@@ -94,7 +94,7 @@ export class Create {
 
     const projectFolders: string[] = ['.cards/local', 'cardRoot'];
 
-    if (!Validate.validateFolder(projectPath)) {
+    if (!isValidFolderName(projectPath)) {
       throw new Error(
         `Input validation error: folder name '${projectPath}' is invalid`,
       );
