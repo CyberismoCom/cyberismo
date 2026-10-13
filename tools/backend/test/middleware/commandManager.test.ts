@@ -68,6 +68,25 @@ describe('attachCommandManager', () => {
     expect(ws.runAsAuthor).toHaveBeenCalledWith(
       { name: testUser.name, email: testUser.email },
       expect.any(Function),
+      { kind: 'user', id: testUser.id, name: testUser.name },
+    );
+  });
+
+  it('records a connector account as a connector actor', async () => {
+    const ws = mockCommands();
+    const app = new Hono();
+    app.use('*', async (c, next) => {
+      c.set('user', { ...testUser, role: UserRole.Connector });
+      await next();
+    });
+    app.use('*', attachCommandManager(ws));
+    app.get('/test', (c) => c.json({ ok: true }));
+
+    expect((await app.request('/test')).status).toBe(200);
+    expect(ws.runAsAuthor).toHaveBeenCalledWith(
+      { name: testUser.name, email: testUser.email },
+      expect.any(Function),
+      { kind: 'connector', id: testUser.id, name: testUser.name },
     );
   });
 

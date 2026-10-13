@@ -13,10 +13,18 @@
 */
 
 import { AsyncLocalStorage } from 'node:async_hooks';
+import type { ActorRef } from '@cyberismo/model';
+
+/** Git author of a commit. Internal: never serialised into events. */
+export interface CommitIdentity {
+  name: string;
+  email: string;
+}
 
 export interface CommitContext {
   message?: string;
-  author?: { name: string; email: string };
+  author?: CommitIdentity;
+  actor?: ActorRef;
 }
 
 const context = new AsyncLocalStorage<CommitContext>();
