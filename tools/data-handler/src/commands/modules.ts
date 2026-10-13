@@ -158,7 +158,14 @@ export class Modules {
       tempDir: this.tempModulesDir,
       backfill,
     });
-    await cleanOrphans(this.checkout);
+    const modules = this.checkout.lock.currentTx()?.touched.modules;
+    // Backfilled modules keep their files; their declarations changed.
+    for (const name of [...appliedModules, ...backfill.map((m) => m.name)]) {
+      modules?.add(name);
+    }
+    await cleanOrphans(this.checkout, {
+      onRemove: (installation) => modules?.add(installation.name),
+    });
 
     if (steps.length === 0) return;
 
@@ -395,10 +402,14 @@ export class Modules {
 
     // Delete the top-level declaration from cardsConfig.json.
     await this.checkout.configuration.removeModule(moduleName);
+    const modules = this.checkout.lock.currentTx()?.touched.modules;
+    modules?.add(moduleName);
 
     // Removes this module's installation (now orphaned) plus any
     // transitives it owned that nothing else references.
-    await cleanOrphans(this.checkout);
+    await cleanOrphans(this.checkout, {
+      onRemove: (installation) => modules?.add(installation.name),
+    });
 
     this.logger.info(`Removed module '${moduleName}'`);
   }

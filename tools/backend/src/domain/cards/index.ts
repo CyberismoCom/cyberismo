@@ -30,10 +30,6 @@ import {
 
 const router = new Hono();
 
-function notifyCardsUpdated(c: Context, keys: string[]) {
-  c.get('events').cardsUpdated(keys, c.get('user'));
-}
-
 /**
  * @swagger
  * /api/cards:
@@ -242,9 +238,7 @@ router.patch('/:key', requireRole(UserRole.Editor), async (c) => {
   const body = await c.req.json();
 
   try {
-    if (await cardService.updateCard(ws, key, body)) {
-      notifyCardsUpdated(c, [key]);
-    }
+    await cardService.updateCard(ws, key, body);
     const result = await getCardDetails(
       c.get('ws'),
       key,
@@ -404,7 +398,6 @@ router.post('/:key/attachments', requireRole(UserRole.Editor), async (c) => {
       key,
       files as File[],
     );
-    notifyCardsUpdated(c, [key]);
     return c.json(result);
   } catch (error) {
     return c.json(
@@ -452,7 +445,6 @@ router.delete(
 
     try {
       const result = await cardService.removeAttachment(ws, key, filename);
-      notifyCardsUpdated(c, [key]);
       return c.json(result);
     } catch (error) {
       return c.json(
@@ -567,7 +559,6 @@ router.post(
         direction,
         description,
       );
-      notifyCardsUpdated(c, [key, toCard]);
       return c.json(result);
     } catch (error) {
       return c.json(
@@ -630,7 +621,6 @@ router.delete(
         direction,
         description,
       );
-      notifyCardsUpdated(c, [key, toCard]);
       return c.json(result);
     } catch (error) {
       return c.json(
@@ -717,7 +707,6 @@ router.put(
         description,
         previousDescription,
       );
-      notifyCardsUpdated(c, [key, toCard, previousToCard]);
       return c.json(result);
     } catch (error) {
       return c.json(

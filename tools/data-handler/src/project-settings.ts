@@ -52,6 +52,11 @@ export class ProjectConfiguration implements ProjectSettings {
     this.readSettings();
   }
 
+  /** Re-reads the settings from the file, in place. */
+  public reload() {
+    this.readSettings();
+  }
+
   // Sets configuration values from file.
   private readSettings() {
     const settings = readCardsConfigSync(this.settingPath);

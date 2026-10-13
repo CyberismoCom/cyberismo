@@ -30,6 +30,7 @@ import type {
   CardAttachment,
   CardMetadata,
   CardNode,
+  Link,
 } from '@cyberismo/model';
 import {
   CardNotFoundError,
@@ -73,6 +74,15 @@ import type { CardKeyRegistry } from './card-keys.js';
 export type CardTreeKind = 'project' | 'template';
 
 /**
+ * Card keys a mutation changed. An updated card was created, written, moved
+ * or re-ranked, or had its inbound links changed by another card's write.
+ */
+export interface CardTreeChange {
+  updated?: string[];
+  removed?: string[];
+}
+
+/**
  * How one card tree differs from another. 'name' is the tree's identity:
  * 'project', or a template's full resource name. 'keys' is the project-level
  * card key registry the tree shares with its siblings.
@@ -83,6 +93,8 @@ export interface CardTreeOptions {
   kind: CardTreeKind;
   writable: boolean;
   keys: CardKeyRegistry;
+  /** Called after each mutation with the card keys it changed. */
+  onChange?: (change: CardTreeChange) => void;
 }
 
 /**
@@ -649,6 +661,7 @@ export class CardTree {
       metadata,
     );
     stored.metadata = normalizedMetadata(metadata);
+    this.options.onChange?.({ updated: [cardKey] });
   }
 
   /**
@@ -721,6 +734,7 @@ export class CardTree {
         })),
       });
     }
+    this.options.onChange?.({ updated: keys });
   }
 
   private static parentsFirst(
@@ -788,6 +802,7 @@ export class CardTree {
     const from = this.pathOfStored(card);
     await CardTree.moveFolder(from, this.pathFor(parent, cardKey));
     this.store(cardKey, { ...card, parent });
+    this.options.onChange?.({ updated: [cardKey] });
     if (card.parent !== ROOT) {
       await CardTree.pruneEmptyFolder(dirname(from));
     }
@@ -812,6 +827,7 @@ export class CardTree {
     // The registry refuses a claim on a key the source still owns: uproot
     // releases them, and graft claims them.
     this.graft(source.uproot(cardKey), parent);
+    this.options.onChange?.({ updated: [cardKey] });
     if (card.parent !== ROOT) {
       await CardTree.pruneEmptyFolder(dirname(from));
     }
@@ -909,6 +925,7 @@ export class CardTree {
       card.content,
     );
     stored.content = card.content;
+    this.options.onChange?.({ updated: [card.key] });
   }
 
   /**
@@ -920,6 +937,7 @@ export class CardTree {
   public async writeMetadata(card: Card): Promise<void> {
     this.assertWritable();
     const stored = this.stored(card.key);
+    const previousLinks = stored.metadata?.links ?? [];
     const sanitizedMetadata = await this.persistMetadata(
       card,
       this.pathOfStored(stored),
@@ -928,6 +946,26 @@ export class CardTree {
       return;
     }
     stored.metadata = normalizedMetadata(sanitizedMetadata);
+    this.options.onChange?.({
+      updated: [
+        card.key,
+        ...CardTree.relinkedCards(previousLinks, stored.metadata?.links ?? []),
+      ],
+    });
+  }
+
+  // Cards whose inbound links changed: targets of links that were added,
+  // removed or edited.
+  private static relinkedCards(before: Link[], after: Link[]): string[] {
+    const serialize = (link: Link) =>
+      JSON.stringify([link.linkType, link.cardKey, link.linkDescription ?? '']);
+    const beforeSet = new Set(before.map(serialize));
+    const afterSet = new Set(after.map(serialize));
+    const changed = [
+      ...before.filter((link) => !afterSet.has(serialize(link))),
+      ...after.filter((link) => !beforeSet.has(serialize(link))),
+    ];
+    return [...new Set(changed.map((link) => link.cardKey))];
   }
 
   // Writes the card's metadata file and stamps 'lastUpdated'. The store is
@@ -964,6 +1002,7 @@ export class CardTree {
     await deleteDir(path);
     this.options.keys.release([cardKey]);
     this.unstore(cardKey);
+    this.options.onChange?.({ removed: [cardKey] });
   }
 
   /**
@@ -989,6 +1028,7 @@ export class CardTree {
     await writeFile(attachmentPath, attachmentData, { flag: 'wx' });
 
     this.recordAttachment(cardKey, fileName);
+    this.options.onChange?.({ updated: [cardKey] });
   }
 
   // Records an attachment file in the store.
@@ -1038,6 +1078,7 @@ export class CardTree {
     card.attachments = card.attachments.filter(
       (attachment) => attachment.fileName !== fileName,
     );
+    this.options.onChange?.({ updated: [cardKey] });
   }
 
   /**
@@ -1089,6 +1130,7 @@ export class CardTree {
     await rename(join(folder, fileName), target);
 
     attachment.fileName = newFileName;
+    this.options.onChange?.({ updated: [cardKey] });
   }
 
   /**

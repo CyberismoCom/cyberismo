@@ -515,6 +515,13 @@ export class Validate {
     return contentValidated && lengthValidated;
   }
 
+  /** Forgets the resources validated so far. */
+  public clearCaches() {
+    this.validatedFieldTypes.clear();
+    this.validatedWorkflows.clear();
+    this.validatedCardTypes.clear();
+  }
+
   /**
    * Validates that a given directory path (and its children) conform to a JSON schema.
    * @note Validates also content in the directory tree, if .schema file is found.
@@ -527,9 +534,7 @@ export class Validate {
     projectFn: () => Checkout,
   ): Promise<string> {
     let validationErrors = '';
-    this.validatedFieldTypes.clear();
-    this.validatedWorkflows.clear();
-    this.validatedCardTypes.clear();
+    this.clearCaches();
 
     try {
       // First, validate that the directory content conforms to the schema.
