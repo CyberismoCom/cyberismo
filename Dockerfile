@@ -91,6 +91,11 @@ RUN mkdir -p ./tools/data-handler
 COPY --from=builder /app/tools/data-handler/package.json ./tools/data-handler/package.json
 COPY --from=builder /app/tools/data-handler/dist ./tools/data-handler/dist
 
+# model
+RUN mkdir -p ./tools/model
+COPY --from=builder /app/tools/model/package.json ./tools/model/package.json
+COPY --from=builder /app/tools/model/dist ./tools/model/dist
+
 # assets
 RUN mkdir -p ./tools/assets
 COPY --from=builder /app/tools/assets/package.json ./tools/assets/package.json

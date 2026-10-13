@@ -74,7 +74,9 @@ if [ -n "$HAVE_A2" ]; then
 else
   echo "port-branch: no a2-model.cjs here or in refs/archive/api/a2; A2 skipped"
 fi
-(cd "$WT" && pnpm exec prettier --write tools/ --log-level warn)
+# Not `pnpm exec`: with A2's new tools/model package missing from the
+# lockfile, it would install and rewrite pnpm-lock.yaml.
+(cd "$WT" && ./node_modules/.bin/prettier --write tools/ --log-level warn)
 
 git -C "$WT" add -A tools/
 if git -C "$WT" diff --cached --quiet; then
