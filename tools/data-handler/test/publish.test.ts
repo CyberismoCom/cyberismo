@@ -7,7 +7,7 @@ import { simpleGit } from 'simple-git';
 
 import { GitManager } from '../src/utils/git-manager.js';
 import { RWLock } from '../src/utils/rw-lock.js';
-import type { Publish } from '../src/commands/publish.js';
+import type { Publish } from '../src/versions/publish.js';
 import type { Checkout } from '../src/containers/project.js';
 import { Workspace } from '../src/workspace/workspace.js';
 import { SYSTEM_ACTOR } from '../src/utils/tx-record.js';

@@ -26,7 +26,7 @@ import { requestStatus } from './interfaces/request-status-interfaces.js';
 export type { attachmentPayload } from './interfaces/request-status-interfaces.js';
 export type { HubFetchFailure } from './commands/fetch.js';
 import { evaluateMacros } from './macros/index.js';
-import { validBumps } from './commands/version.js';
+import { validBumps } from './versions/version.js';
 import {
   isResourceFolderType,
   resourceName,
