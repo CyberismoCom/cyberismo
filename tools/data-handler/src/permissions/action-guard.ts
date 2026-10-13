@@ -12,12 +12,13 @@
 
 import type { CalculationEngine } from '../containers/project/calculation-engine.js';
 import type { DeniedOperationCollection } from '@cyberismo/model';
+import { PermissionDeniedError } from '../exceptions/index.js';
 
 export type Action = keyof DeniedOperationCollection;
 
 function checkOperation<T extends { errorMessage: string }>(data: Array<T>) {
   if (data.length > 0) {
-    throw new Error(data.map((value) => value.errorMessage).join('; '));
+    throw new PermissionDeniedError(data.map((value) => value.errorMessage));
   }
 }
 

@@ -47,12 +47,6 @@ export async function addTemplateCards(
       .byType(cardTypeName, 'cardTypes')
       .show();
 
-    if (parentCard && !template.has(parentCard.key)) {
-      throw new Error(
-        `Card '${parentCard.key}' does not exist in template '${template.name}'`,
-      );
-    }
-
     const parentKey = parentCard ? parentCard.key : ROOT;
     const cardKeys = checkout.allocateCardKeys(count);
     const ranks = template.rankBlock(parentKey, count);

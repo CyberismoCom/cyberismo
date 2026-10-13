@@ -81,3 +81,19 @@ export type {
   ValidateCommandOptions,
   VersionCommandOptions,
 } from './interfaces/command-options.js';
+
+export {
+  CardNotFoundError,
+  ContainerMismatchError,
+  CycleError,
+  DHValidationError,
+  DomainError,
+  DuplicateCardKeyError,
+  MacroError,
+  ModuleRequestError,
+  PermissionDeniedError,
+  ReadOnlyContainerError,
+  ResourceNotFoundError,
+  SchemaNotFound,
+  WorkspaceDisposedError,
+} from './exceptions/index.js';

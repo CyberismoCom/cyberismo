@@ -63,19 +63,7 @@ export class Move {
       ? undefined
       : this.checkout.treeOf(destination);
 
-    // Prevent moving card to inside its descendants
-    if (destinationTree?.ancestorsOf(destination).includes(source)) {
-      throw new Error(`Card cannot be moved to inside itself`);
-    }
-
-    // Imported templates cannot be modified.
-    if (!sourceTree.writable || destinationTree?.writable === false) {
-      throw new Error(`Cannot modify imported module templates`);
-    }
-
-    // Resolve the target template (when moving to a template root). Reject if
-    // the resolved template belongs to an imported module — those are
-    // read-only.
+    // Resolve the target template (when moving to a template root).
     let targetTemplateTree: CardTree | undefined;
     if (targetTemplateName) {
       const template = this.checkout.templateResource(targetTemplateName);
@@ -85,9 +73,6 @@ export class Move {
         );
       }
       targetTemplateTree = template.cardTree;
-      if (!targetTemplateTree.writable) {
-        throw new Error(`Cannot modify imported module templates`);
-      }
     }
 
     const destIsProject =

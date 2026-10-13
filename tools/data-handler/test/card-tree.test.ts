@@ -36,7 +36,9 @@ import { Workspace } from '../src/workspace/workspace.js';
 import { ROOT } from '../src/utils/constants.js';
 import {
   CardNotFoundError,
+  CycleError,
   DuplicateCardKeyError,
+  ReadOnlyContainerError,
 } from '../src/exceptions/index.js';
 import { getTestProject } from './helpers/test-utils.js';
 
@@ -994,7 +996,7 @@ describe('Card tree', () => {
         await tree.load();
 
         await expect(tree.relocate(cardKey, parent)).rejects.toThrow(
-          `Card '${cardKey}' cannot be placed under '${parent}'`,
+          CycleError,
         );
         // And the tree is unchanged, so paths still resolve.
         expect(tree.pathOf('test_3')).toBe(
@@ -1002,6 +1004,25 @@ describe('Card tree', () => {
         );
       },
     );
+
+    it('refuses to rank a card after a card under another parent', async () => {
+      const tree = projectTree(testCardsPath);
+      await tree.load();
+      const ranks = () =>
+        ['test_1', 'test_2', 'test_3'].map(
+          (key) => tree.node(key).metadata?.rank,
+        );
+      const before = ranks();
+
+      await expect(tree.reorderAfter('test_3', 'test_1')).rejects.toThrow(
+        'Cards must be from the same parent',
+      );
+
+      expect(ranks()).toEqual(before);
+      const reloaded = projectTree(testCardsPath);
+      await reloaded.load();
+      expect(reloaded.node('test_3').metadata?.rank).toBe(before[2]);
+    });
   });
 
   describe('ranks', () => {
@@ -1123,17 +1144,17 @@ describe('Card tree', () => {
       await module.load();
 
       await expect(module.relocate('test_4', 'root')).rejects.toThrow(
-        'Cannot modify imported module',
+        ReadOnlyContainerError,
       );
       await expect(module.deleteSubtree('test_4')).rejects.toThrow(
-        'Cannot modify imported module',
+        ReadOnlyContainerError,
       );
       await expect(module.writeMetadata(module.card('test_4'))).rejects.toThrow(
-        'Cannot modify imported module',
+        ReadOnlyContainerError,
       );
       await expect(
         module.addAttachment('test_4', 'file.txt', Buffer.from('x')),
-      ).rejects.toThrow('Cannot modify imported module');
+      ).rejects.toThrow(ReadOnlyContainerError);
       expect(module.has('test_4')).toBe(true);
     });
 
@@ -1147,7 +1168,7 @@ describe('Card tree', () => {
       );
 
       await expect(module.adopt(template, 'test_4', 'root')).rejects.toThrow(
-        'Cannot modify imported module',
+        ReadOnlyContainerError,
       );
 
       expect(existsSync(join(templateCardsPath('page'), 'test_4'))).toBe(true);
@@ -1172,7 +1193,7 @@ describe('Card tree', () => {
       );
 
       await expect(destination.adopt(module, 'test_4', 'root')).rejects.toThrow(
-        'Cannot modify imported module',
+        ReadOnlyContainerError,
       );
 
       expect(existsSync(join(templateCardsPath('page'), 'test_4'))).toBe(true);
