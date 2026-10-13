@@ -42,3 +42,13 @@ export function handleResponse(response: requestStatus) {
     fail(response.message);
   }
 }
+
+// Prints a command's message, or 'Done' when it has none.
+export function printResult(message?: string) {
+  console.log(message || 'Done');
+}
+
+// Prints a command's result as indented JSON.
+export function printJson(result: unknown) {
+  console.log(JSON.stringify(result, null, 2));
+}
