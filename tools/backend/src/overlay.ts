@@ -184,6 +184,12 @@ export function writableProjects(
     create: (params, actor, identity) =>
       directory.create(params, actor, identity),
     clone: (url) => directory.clone(url),
+    rename: async (prefix, newPrefix, actor, identity, options) => {
+      if (isProjectReadOnly(prefix)) {
+        throw new ProjectNotFoundError(prefix);
+      }
+      return directory.rename(prefix, newPrefix, actor, identity, options);
+    },
     replace: (prefix) => directory.replace(prefix),
   };
 }

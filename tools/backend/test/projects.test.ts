@@ -100,8 +100,9 @@ describe('POST /api/projects', () => {
     });
 
     expect(response.status).toBe(403);
-    const result = (await response.json()) as { error: string };
+    const result = (await response.json()) as { error: string; code: string };
     expect(result.error).toContain('single-project mode');
+    expect(result.code).toBe('permission-denied');
   });
 
   test('returns 409 for duplicate prefix', async () => {
@@ -121,8 +122,9 @@ describe('POST /api/projects', () => {
     });
 
     expect(response.status).toBe(409);
-    const result = (await response.json()) as { error: string };
+    const result = (await response.json()) as { error: string; code: string };
     expect(result.error).toContain('already exists');
+    expect(result.code).toBe('conflict');
   });
 
   test('creates a new project successfully', async () => {
@@ -205,8 +207,9 @@ describe('POST /api/projects/clone', () => {
     });
 
     expect(response.status).toBe(403);
-    const result = (await response.json()) as { error: string };
+    const result = (await response.json()) as { error: string; code: string };
     expect(result.error).toContain('single-project mode');
+    expect(result.code).toBe('permission-denied');
   });
 
   test('validates url is required', async () => {

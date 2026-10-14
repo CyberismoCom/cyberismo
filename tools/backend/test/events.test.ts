@@ -11,6 +11,7 @@ import {
 import type { MockInstance } from 'vitest';
 import {
   ProjectNotFoundError,
+  SYSTEM_ACTOR,
   type ProjectDirectory,
   type Workspace,
 } from '@cyberismo/data-handler';
@@ -267,6 +268,48 @@ describe('project event stream over HTTP', () => {
     expect(response.headers.get(X_HONO_DISABLE_SSG_HEADER_KEY)).toBe('true');
   });
 
+  test('a renamed project keeps its subscriptions under the new prefix', async () => {
+    // Needs a project it can rename without touching the shared one.
+    const ownPath = await createTempTestData('decision-records');
+    try {
+      const own = await openTestWorkspace(ownPath);
+      const ownApp = createApp(
+        new MockAuthProvider({ roster: true }),
+        directoryOf(own),
+      );
+      const { ready } = await connect('alice', ownApp);
+      const renamed = await ownApp.request(`${base}/project`, {
+        method: 'PATCH',
+        headers: {
+          'content-type': 'application/json',
+          cookie: 'mock-user=alice',
+        },
+        body: JSON.stringify({ cardKeyPrefix: 'renamed' }),
+      });
+      expect(renamed.status).toBe(200);
+
+      const response = await ownApp.request(
+        '/api/projects/renamed/events/presence',
+        {
+          method: 'PUT',
+          headers: {
+            'content-type': 'application/json',
+            cookie: 'mock-user=alice',
+          },
+          body: JSON.stringify({
+            connectionId: ready.connectionId,
+            cardKey: null,
+            sequence: 1,
+            mode: 'viewing',
+          }),
+        },
+      );
+      expect(response.status).toBe(204);
+    } finally {
+      await cleanupTempTestData(ownPath);
+    }
+  });
+
   test('replacing the project closes its subscriptions', async () => {
     // Needs an app it can reset without touching the shared one.
     const ownPath = await createTempTestData('decision-records');
@@ -457,6 +500,26 @@ describe('presence bookkeeping', () => {
     expect(await projects.for('one')).not.toBe(first);
     projects.drop('one');
     projects.drop('two');
+  });
+
+  test("a project's events follow its rename from its changes", async () => {
+    // Needs a project it can rename without touching the shared one.
+    const ownPath = await createTempTestData('decision-records');
+    try {
+      const directory = directoryOf(await openTestWorkspace(ownPath));
+      const projects = new EventsByProject(directory);
+      const first = await projects.for('decision');
+
+      await directory.rename('decision', 'renamed', SYSTEM_ACTOR);
+
+      expect(await projects.for('renamed')).toBe(first);
+      await expect(projects.for('decision')).rejects.toThrow(
+        ProjectNotFoundError,
+      );
+      projects.drop('renamed');
+    } finally {
+      await cleanupTempTestData(ownPath);
+    }
   });
 
   test('presence expires unless renewed', () => {
