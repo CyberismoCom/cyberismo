@@ -12,6 +12,7 @@
 */
 
 import type { Checkout } from '../infra/checkout.js';
+import type { Workspace } from '../workspace/workspace.js';
 import type { RemovableResourceTypes } from '@cyberismo/model';
 import { write } from '../infra/rw-lock.js';
 import type { CommitIdentity } from '../utils/tx-record.js';
@@ -21,15 +22,16 @@ import type { ActorRef } from '@cyberismo/model';
  * Remove command.
  */
 export class Remove {
-  /**
-   * Creates a new instance of Remove command.
-   * @param project Project instance to use
-   */
-  constructor(
-    private checkout: Checkout,
-    public readonly actor: ActorRef,
-    public readonly identity?: CommitIdentity,
-  ) {}
+  private readonly checkout: Checkout;
+  public readonly actor: ActorRef;
+  public readonly identity?: CommitIdentity;
+
+  /** Acts on the handle's project as its actor. */
+  constructor(ws: Workspace) {
+    this.checkout = ws.checkout;
+    this.actor = ws.actor;
+    this.identity = ws.identity;
+  }
 
   /**
    * Refuses a type no remove handles; modules go through the modules façade.

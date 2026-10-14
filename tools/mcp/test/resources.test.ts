@@ -44,7 +44,6 @@ beforeAll(async () => {
 
 afterAll(async () => {
   await client.close();
-  ws.checkout.dispose();
 });
 
 describe('MCP Resources via Client', () => {

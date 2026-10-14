@@ -305,7 +305,6 @@ describe('createCardFacts only emits fields the card type declares', () => {
   });
 
   afterAll(() => {
-    checkout?.dispose();
     rmSync(testDir, { recursive: true, force: true });
   });
 

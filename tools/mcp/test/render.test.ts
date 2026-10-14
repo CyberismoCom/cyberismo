@@ -13,7 +13,7 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { beforeAll, afterAll, describe, expect, test } from 'vitest';
+import { beforeAll, describe, expect, test } from 'vitest';
 import { type Workspace } from '@cyberismo/data-handler';
 import type { QueryResult } from '@cyberismo/model';
 import {
@@ -33,10 +33,6 @@ beforeAll(async () => {
   process.argv = [];
   ws = await openTestWorkspace(testDataPath);
   renderedCard = await renderCard(ws, 'decision_5');
-});
-
-afterAll(async () => {
-  ws.checkout.dispose();
 });
 
 describe('renderCard', () => {

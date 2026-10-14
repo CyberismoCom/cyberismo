@@ -68,7 +68,6 @@ describe('resource create classification', () => {
     });
 
     afterAll(async () => {
-      ws.checkout.dispose();
       await rm(dir, { recursive: true, force: true });
     });
 

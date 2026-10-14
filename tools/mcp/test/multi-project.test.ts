@@ -59,7 +59,6 @@ beforeAll(async () => {
 
 afterAll(async () => {
   await client.close();
-  ws.checkout.dispose();
 });
 
 type TextContent = { type: string; text: string };
