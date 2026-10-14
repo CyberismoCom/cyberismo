@@ -23,7 +23,6 @@ import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { localFolder } from '@cyberismo/data-handler';
-import { resetEgressDispatcherForTest } from '@cyberismo/data-handler/utils/egress';
 
 import { createApp } from '../../backend/src/app.js';
 import { MockAuthProvider } from '../../backend/src/auth/mock.js';
@@ -54,7 +53,6 @@ beforeEach(async () => {
 
 afterEach(async () => {
   vi.unstubAllEnvs();
-  await resetEgressDispatcherForTest();
   await rm(folder, { recursive: true, force: true });
 });
 
@@ -173,7 +171,6 @@ describe('the CLI and the backend', () => {
     for (const [name, value] of Object.entries(env)) {
       vi.stubEnv(name, value);
     }
-    await resetEgressDispatcherForTest();
     const root = join(folder, 'server');
     await mkdir(root);
     const { directory } = await localFolder(root, { autocommit });

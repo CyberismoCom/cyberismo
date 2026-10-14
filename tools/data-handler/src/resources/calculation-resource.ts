@@ -42,6 +42,7 @@ export class CalculationResource extends FolderResource<
    * Creates instance of CalculationResource
    * @param checkout Project to use
    * @param name Resource name
+   * @internal
    */
   constructor(checkout: Checkout, name: ResourceName) {
     super(checkout, name, 'calculations');

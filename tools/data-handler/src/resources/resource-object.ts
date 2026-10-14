@@ -104,6 +104,7 @@ export abstract class ResourceObject<
    * @param checkout Project where this resource is
    * @param resourceName Name for the resource
    * @param type Type of resource
+   * @internal
    */
   constructor(
     protected checkout: Checkout,

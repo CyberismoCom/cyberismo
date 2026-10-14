@@ -44,6 +44,7 @@ export async function projectInfo(
  * own.
  */
 export class Hubs {
+  /** @internal */
   constructor(
     private readonly checkout: Checkout,
     public readonly actor: ActorRef,
@@ -82,6 +83,7 @@ export class Settings {
   /** Hub locations, as this handle's actor. */
   public readonly hubs: Hubs;
 
+  /** @internal */
   constructor(
     private readonly checkout: Checkout,
     public readonly actor: ActorRef,

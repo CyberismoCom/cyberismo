@@ -43,6 +43,7 @@ export class ReportResource extends FolderResource<
    * Creates instance of ReportResource
    * @param checkout Project to use
    * @param name Resource name
+   * @internal
    */
   constructor(checkout: Checkout, name: ResourceName) {
     super(checkout, name, 'reports');

@@ -22,8 +22,10 @@ import { join } from 'node:path';
 import { CommanderError } from 'commander';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { ModuleRequestError } from '@cyberismo/data-handler';
-import { ModuleValidationFailedError } from '@cyberismo/data-handler/mutations/replay/replay';
+import {
+  ModuleRequestError,
+  ModuleValidationFailedError,
+} from '@cyberismo/data-handler';
 import type { UpdatePlan } from '@cyberismo/model';
 
 import program from '../src/index.js';

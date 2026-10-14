@@ -39,6 +39,7 @@ export class SkillResource extends FolderResource<SkillMetadata, SkillContent> {
    * Creates instance of SkillResource
    * @param checkout Project to use
    * @param name Resource name
+   * @internal
    */
   constructor(checkout: Checkout, name: ResourceName) {
     super(checkout, name, 'skills');

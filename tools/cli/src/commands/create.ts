@@ -19,8 +19,8 @@ import {
   createProject,
   validBumps,
   type Workspace,
+  errorFunction,
 } from '@cyberismo/data-handler';
-import { errorFunction } from '@cyberismo/data-handler/utils/error-utils';
 import { resolveTilde } from '@cyberismo/data-handler/utils/file-utils';
 import type { DataType } from '@cyberismo/model';
 
