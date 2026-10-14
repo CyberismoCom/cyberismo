@@ -7,6 +7,7 @@ import { join, resolve as pathResolve } from 'node:path';
 
 // cyberismo
 import { Cmd, Commands, Workspace } from '../src/command-handler.js';
+import { createProject } from '../src/directory/create-project.js';
 import { copyDir } from '../src/utils/file-utils.js';
 import {
   MODULE_LIST_FULL_PATH,
@@ -236,13 +237,10 @@ describe('remove module — spec behaviours', () => {
     });
 
     const projectDir = join(testDir, 'proj-trans-only');
-    const commandHandler = new Commands();
-    const create = await commandHandler.command(
-      Cmd.create,
-      ['project', 'trans-only-proj', 'trsp'],
-      { projectPath: projectDir },
-    );
-    expect(create.statusCode).toBe(200);
+    await createProject(projectDir, {
+      name: 'trans-only-proj',
+      prefix: 'trsp',
+    });
 
     const ws = await openTestWorkspace(projectDir, {});
     await ws.modules.install(hostRoot);
@@ -274,13 +272,10 @@ describe('remove module — spec behaviours', () => {
     // The "not part of the project" message must still apply when the
     // name truly does not exist anywhere — declared or installed.
     const projectDir = join(testDir, 'proj-truly-absent');
-    const commandHandler = new Commands();
-    const create = await commandHandler.command(
-      Cmd.create,
-      ['project', 'truly-absent-proj', 'tasp'],
-      { projectPath: projectDir },
-    );
-    expect(create.statusCode).toBe(200);
+    await createProject(projectDir, {
+      name: 'truly-absent-proj',
+      prefix: 'tasp',
+    });
 
     const ws = await openTestWorkspace(projectDir, {});
     await expect(ws.modules.remove('never-imported')).rejects.toThrow(
@@ -305,13 +300,7 @@ describe('remove module — spec behaviours', () => {
     });
 
     const projectDir = join(testDir, 'proj-chain');
-    const commandHandler = new Commands();
-    const create = await commandHandler.command(
-      Cmd.create,
-      ['project', 'chain-proj', 'chpr'],
-      { projectPath: projectDir },
-    );
-    expect(create.statusCode).toBe(200);
+    await createProject(projectDir, { name: 'chain-proj', prefix: 'chpr' });
 
     const ws = await openTestWorkspace(projectDir, {});
     await ws.modules.install(aRoot);
@@ -357,13 +346,10 @@ describe('remove module — spec behaviours', () => {
     });
 
     const projectDir = join(testDir, 'proj-drop-prefix');
-    const commandHandler = new Commands();
-    const create = await commandHandler.command(
-      Cmd.create,
-      ['project', 'drop-prefix-proj', 'dppr'],
-      { projectPath: projectDir },
-    );
-    expect(create.statusCode).toBe(200);
+    await createProject(projectDir, {
+      name: 'drop-prefix-proj',
+      prefix: 'dppr',
+    });
 
     const ws = await openTestWorkspace(projectDir, {});
     await ws.modules.install(aRoot);

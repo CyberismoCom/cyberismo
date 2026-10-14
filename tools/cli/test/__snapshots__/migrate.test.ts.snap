@@ -1,0 +1,39 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`migrate > leaves a current project as it is 1`] = `
+{
+  "code": 0,
+  "stderr": "",
+  "stdout": "Project is already at version 5. No migration needed.
+",
+}
+`;
+
+exports[`migrate > migrates an older project 1`] = `
+{
+  "code": 0,
+  "stderr": "",
+  "stdout": "Migrating from schema version 4 to 5
+No pre-replay migration log snapshots found.
+Successfully migrated from version 4 to 5. Run 'cyberismo validate' to check the project.
+",
+}
+`;
+
+exports[`migrate > refuses a path that is not a project 1`] = `
+{
+  "code": 1,
+  "stderr": "Input validation error: folder name 'cardRoot' is invalid
+",
+  "stdout": "",
+}
+`;
+
+exports[`migrate > refuses a project without a schema version 1`] = `
+{
+  "code": 1,
+  "stderr": "Project has no schema version set
+",
+  "stdout": "",
+}
+`;

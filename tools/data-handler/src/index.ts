@@ -21,7 +21,9 @@ import {
 import { Validate } from './commands/validate.js';
 export { SCHEMA_VERSION } from '@cyberismo/migrations';
 export * from './interfaces/macros.js';
+export { createProject } from './directory/create-project.js';
 export { localFolder, openProjectAt } from './directory/local-folder.js';
+export { migrateProject } from './directory/migrate-project.js';
 export type { ProjectDirectory } from './directory/project-directory.js';
 import { requestStatus } from './interfaces/request-status-interfaces.js';
 export type { attachmentPayload } from './interfaces/request-status-interfaces.js';

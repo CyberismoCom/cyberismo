@@ -14,10 +14,12 @@
 
 import { execFile } from 'node:child_process';
 import { readFileSync } from 'node:fs';
-import { readFile, writeFile } from 'node:fs/promises';
-import { join } from 'node:path';
+import { readdir, readFile, writeFile } from 'node:fs/promises';
+import { basename, join } from 'node:path';
 import { promisify } from 'node:util';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+import { DEFAULT_HUB } from '@cyberismo/assets';
 
 import { Rename } from '../../src/commands/rename.js';
 import { localFolder } from '../../src/directory/local-folder.js';
@@ -25,7 +27,12 @@ import {
   ProjectExistsError,
   ProjectNotFoundError,
 } from '../../src/exceptions/index.js';
+import { resetEgressDispatcherForTest } from '../../src/utils/egress.js';
 import { SYSTEM_ACTOR } from '../../src/utils/tx-record.js';
+import {
+  isolatedGitEnv,
+  OFFLINE_EGRESS_PROXY,
+} from '../helpers/project-snapshot.js';
 import { folders } from './folder.js';
 
 const folder = folders();
@@ -311,6 +318,66 @@ describe('directory.rename', () => {
   });
 });
 
+describe('directory.create', () => {
+  beforeEach(async () => {
+    vi.stubEnv('CYBERISMO_EGRESS_PROXY', OFFLINE_EGRESS_PROXY);
+    await resetEgressDispatcherForTest();
+  });
+
+  afterEach(async () => {
+    vi.unstubAllEnvs();
+    await resetEgressDispatcherForTest();
+  });
+
+  it('creates the project under its prefix, with the default hub, and lists it', async () => {
+    const { root } = await folder();
+    const { directory } = await localFolder(root);
+
+    const created = await directory.create(
+      { name: 'New', prefix: 'newp', category: 'Test', description: 'A test' },
+      ann.actor,
+    );
+
+    const ws = await directory.open('newp', SYSTEM_ACTOR);
+    expect(ws.path).toBe(join(root, 'newp'));
+    expect(ws.checkout.configuration.hubs.map((hub) => hub.location)).toEqual([
+      DEFAULT_HUB,
+    ]);
+    expect(await directory.list()).toEqual([created]);
+    expect(created).toEqual({
+      prefix: 'newp',
+      name: 'New',
+      category: 'Test',
+      description: 'A test',
+    });
+  });
+
+  it.each([
+    ['the identity without autocommit', false, 'Ann <ann@example.com>'],
+    ['the Bot with autocommit', true, 'Cyberismo Bot <bot@cyberismo.com>'],
+  ])('makes the initial commit as %s', async (_, autocommit, author) => {
+    const { root } = await folder();
+    for (const [name, value] of Object.entries(await isolatedGitEnv(root))) {
+      vi.stubEnv(name, value);
+    }
+    const { directory } = await localFolder(root, { autocommit });
+
+    await directory.create({ name: 'New', prefix: 'newp' }, ann.actor, {
+      name: 'Ann',
+      email: 'ann@example.com',
+    });
+
+    expect(
+      await git(
+        join(root, 'newp'),
+        'log',
+        '--reverse',
+        '--format=%an <%ae> %s',
+      ),
+    ).toMatch(new RegExp(`^${author} Initial commit`));
+  });
+});
+
 describe('directory.clone', () => {
   it('adds the projects of a cloned repository, skipping a prefix it has', async () => {
     const { root } = await folder({ prefix: 'one' });
@@ -341,5 +408,9 @@ describe('directory.clone', () => {
       'one',
       'two',
     ]);
+    // Cloned under the repository's name; the temporary clone is gone.
+    expect((await readdir(root)).sort()).toEqual(
+      ['one', basename(source.root)].sort(),
+    );
   });
 });
