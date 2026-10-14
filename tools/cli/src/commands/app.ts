@@ -24,13 +24,13 @@ import {
 import { formatProjectErrors, type ProjectErrors } from '@cyberismo/model';
 import {
   localFolder,
-  scanForProjects,
-  errorFunction,
+  SYSTEM_ACTOR,
+  Validate,
+  type ProjectDirectory,
 } from '@cyberismo/data-handler';
 
 import { CommandWithPath } from '../lib/args.js';
-import { program } from '../lib/program.js';
-import { openWorkspace } from '../lib/open.js';
+import { isProjectFolder } from '../lib/open.js';
 import { confirm } from '../lib/prompts.js';
 import { validation } from './validate.js';
 import type { StartCommandOptions } from '../options.js';
@@ -42,26 +42,26 @@ async function getGitUserConfig(): Promise<MockUserConfig> {
   return { name, email };
 }
 
-// Validates each project and returns the ones with errors.
-async function validateProjects(
-  projects: Awaited<ReturnType<typeof scanForProjects>>,
-  options: StartCommandOptions,
+// The projects that fail to load or to validate, those first; a load
+// failure is reported as the project's own error, and a folder whose name is
+// invalid by that alone.
+async function invalidProjects(
+  directory: ProjectDirectory,
+  failed: ProjectErrors[],
 ): Promise<ProjectErrors[]> {
-  const invalid: ProjectErrors[] = [];
-  for (const project of projects) {
-    // A project that cannot be opened reports why as its errors.
-    const result = await openWorkspace(
-      Object.assign({}, options, program.opts(), {
-        projectPath: project.path,
-      }),
-    ).then(validation, errorFunction);
-    const message =
-      result ||
-      program.error(
-        `Expected validation result for project '${project.name}', but got none`,
-      );
+  const invalid = failed.map(({ prefix, errors }) => ({
+    prefix,
+    errors: errors.map((error) =>
+      error.replace(/^Failed to load project \(.*?\): /, ''),
+    ),
+  }));
+  for (const { prefix } of await directory.list()) {
+    const ws = await directory.open(prefix, SYSTEM_ACTOR);
+    const message = Validate.validateFolder(ws.path)
+      ? await validation(ws)
+      : `Input validation error: folder name '${ws.path}' is invalid`;
     if (message !== 'Project structure validated') {
-      invalid.push({ prefix: project.prefix, errors: message.split('\n') });
+      invalid.push({ prefix, errors: message.split('\n') });
     }
   }
   return invalid;
@@ -86,9 +86,14 @@ export function registerApp(program: Command) {
   program.addCommand(appCmd);
   appCmd.action(async (options: StartCommandOptions) => {
     const basePath = options.projectPath || process.cwd();
-    let projects: Awaited<ReturnType<typeof scanForProjects>>;
+    const mergedOptions = Object.assign({}, options, program.opts());
+    let opened: Awaited<ReturnType<typeof localFolder>>;
     try {
-      projects = await scanForProjects(basePath);
+      opened = await localFolder(basePath, {
+        autocommit: mergedOptions.autocommit,
+        autopush: mergedOptions.autopush,
+        watchResourceChanges: mergedOptions.watchResourceChanges,
+      });
     } catch (error) {
       program.error(
         error instanceof Error
@@ -97,28 +102,30 @@ export function registerApp(program: Command) {
       );
       return;
     }
+    const { directory, failed } = opened;
 
     // Single-project mode: basePath is itself a project (not a collection)
-    const isSingleProject =
-      projects.length === 1 && projects[0].path === resolve(basePath);
+    const isSingleProject = isProjectFolder(resolve(basePath));
 
-    if (projects.length === 0) {
+    const projectCount = (await directory.list()).length + failed.length;
+    if (projectCount === 0) {
       console.log('No projects found. Starting with empty project collection.');
     }
 
-    const invalid = await validateProjects(projects, options);
+    const invalid = await invalidProjects(directory, failed);
     if (invalid.length > 0) {
       console.error(formatProjectErrors(invalid));
       const userConfirmation = await confirm(
         {
-          message: `${invalid.length} of ${projects.length} projects have validation errors. Start anyway?`,
+          message: `${invalid.length} of ${projectCount} projects have validation errors. Start anyway?`,
         },
         { signal: AbortSignal.timeout(10000), clearPromptOnDone: true },
       ).catch((error) => {
         return error.name === 'AbortPromptError';
       });
       if (!userConfirmation) {
-        return;
+        // The open projects' watchers would keep the process alive.
+        process.exit();
       }
     }
 
@@ -128,15 +135,6 @@ export function registerApp(program: Command) {
         'Warning: git user.name or user.email is not configured. Using defaults.',
       );
     }
-
-    // Open each discovered project
-    const mergedOptions = Object.assign({}, options, program.opts());
-    // Load failures were already reported by validateProjects above.
-    const { directory } = await localFolder(basePath, {
-      autocommit: mergedOptions.autocommit,
-      autopush: mergedOptions.autopush,
-      watchResourceChanges: mergedOptions.watchResourceChanges,
-    });
 
     // Pass multiProjectRoot only in multi-project mode (enables project creation)
     await startServer(

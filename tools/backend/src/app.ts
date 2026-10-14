@@ -46,10 +46,7 @@ import { createAuthRouter } from './domain/auth/index.js';
 import { createAuthMiddleware } from './middleware/auth.js';
 import type { AuthProvider } from './auth/types.js';
 import { MockAuthProvider } from './auth/mock.js';
-import {
-  scanForProjects,
-  type ProjectDirectory,
-} from '@cyberismo/data-handler';
+import type { ProjectDirectory } from '@cyberismo/data-handler';
 import { EventsByProject } from './domain/events/events-by-project.js';
 import { createProjectsRouter } from './domain/projects/index.js';
 import { simpleMcpAuthRouter } from '@hono/mcp';
@@ -183,7 +180,7 @@ export function createApp(
         retryDelay: 100,
       });
       await fs.cp(goldenPath, resolvedProject, { recursive: true });
-      const projects = await scanForProjects(resolvedProject);
+      const projects = await directory.list();
 
       if (projects.length === 0) {
         return c.json(

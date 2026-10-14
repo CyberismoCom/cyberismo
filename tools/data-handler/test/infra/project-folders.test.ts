@@ -1,11 +1,11 @@
 import { expect, describe, it, beforeEach, afterEach } from 'vitest';
 import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
-import { join, resolve } from 'node:path';
-import { scanForProjects } from '../src/project-scanner.js';
+import { basename, join, resolve } from 'node:path';
+import { projectFolders } from '../../src/infra/project-folders.js';
 
-describe('scanForProjects', () => {
+describe('projectFolders', () => {
   const baseDir = import.meta.dirname;
-  const testDir = join(baseDir, 'tmp-project-scanner-tests');
+  const testDir = join(baseDir, 'tmp-project-folders-tests');
 
   function createProject(
     parentDir: string,
@@ -24,6 +24,9 @@ describe('scanForProjects', () => {
     return projectDir;
   }
 
+  // The folders' names, sorted.
+  const names = (paths: string[]) => paths.map((p) => basename(p)).sort();
+
   beforeEach(() => {
     mkdirSync(testDir, { recursive: true });
   });
@@ -34,46 +37,39 @@ describe('scanForProjects', () => {
 
   it('detects a direct project directory', async () => {
     createProject(testDir, 'proj', 'TST', 'Test Project');
-    const results = await scanForProjects(join(testDir, 'proj'));
-    expect(results).to.have.length(1);
-    expect(results[0].prefix).to.equal('TST');
-    expect(results[0].name).to.equal('Test Project');
-    expect(results[0].path).to.equal(resolve(testDir, 'proj'));
+    expect(await projectFolders(join(testDir, 'proj'))).to.deep.equal([
+      resolve(testDir, 'proj'),
+    ]);
   });
 
   it('scans collection directory for projects', async () => {
     createProject(testDir, 'alpha', 'AAA', 'Alpha');
     createProject(testDir, 'beta', 'BBB', 'Beta');
-    const results = await scanForProjects(testDir);
-    expect(results).to.have.length(2);
-    const prefixes = results.map((r) => r.prefix).sort();
-    expect(prefixes).to.deep.equal(['AAA', 'BBB']);
+    expect(names(await projectFolders(testDir))).to.deep.equal([
+      'alpha',
+      'beta',
+    ]);
   });
 
   it('returns empty array for empty collection directory', async () => {
-    const results = await scanForProjects(testDir);
-    expect(results).to.deep.equal([]);
+    expect(await projectFolders(testDir)).to.deep.equal([]);
   });
 
   it('skips non-directory entries', async () => {
     createProject(testDir, 'proj', 'TST', 'Test');
     writeFileSync(join(testDir, 'readme.txt'), 'not a project');
-    const results = await scanForProjects(testDir);
-    expect(results).to.have.length(1);
-    expect(results[0].prefix).to.equal('TST');
+    expect(names(await projectFolders(testDir))).to.deep.equal(['proj']);
   });
 
   it('skips directories without project structure', async () => {
     mkdirSync(join(testDir, 'not-a-project'), { recursive: true });
     createProject(testDir, 'real', 'REAL', 'Real Project');
-    const results = await scanForProjects(testDir);
-    expect(results).to.have.length(1);
-    expect(results[0].prefix).to.equal('REAL');
+    expect(names(await projectFolders(testDir))).to.deep.equal(['real']);
   });
 
-  it('skips projects with malformed cardsConfig.json', async () => {
+  // The configuration is the directory's to read: it skips a malformed one.
+  it('finds projects with malformed cardsConfig.json', async () => {
     createProject(testDir, 'good', 'GOOD', 'Good');
-    // Create a project directory structure with invalid config
     const badDir = join(testDir, 'bad');
     mkdirSync(join(badDir, '.cards', 'local'), { recursive: true });
     mkdirSync(join(badDir, 'cardRoot'), { recursive: true });
@@ -81,22 +77,22 @@ describe('scanForProjects', () => {
       join(badDir, '.cards', 'local', 'cardsConfig.json'),
       JSON.stringify({ invalid: true }),
     );
-    const results = await scanForProjects(testDir);
-    expect(results).to.have.length(1);
-    expect(results[0].prefix).to.equal('GOOD');
+    expect(names(await projectFolders(testDir))).to.deep.equal(['bad', 'good']);
   });
 
-  it('skips duplicate prefixes and keeps the first', async () => {
+  // The directory keeps the first of a prefix.
+  it('finds every project of a duplicate prefix', async () => {
     createProject(testDir, 'aaa-first', 'DUP', 'First');
     createProject(testDir, 'zzz-second', 'DUP', 'Second');
-    const results = await scanForProjects(testDir);
-    expect(results).to.have.length(1);
-    expect(results[0].prefix).to.equal('DUP');
+    expect(names(await projectFolders(testDir))).to.deep.equal([
+      'aaa-first',
+      'zzz-second',
+    ]);
   });
 
   it('throws for non-existent path', async () => {
     await expect(
-      scanForProjects(join(testDir, 'does-not-exist')),
+      projectFolders(join(testDir, 'does-not-exist')),
     ).rejects.toThrow('does not exist or is not a directory');
   });
 
@@ -104,10 +100,9 @@ describe('scanForProjects', () => {
     const group = join(testDir, 'group');
     mkdirSync(group, { recursive: true });
     createProject(group, 'nested', 'NST', 'Nested Project');
-    const results = await scanForProjects(testDir);
-    expect(results).to.have.length(1);
-    expect(results[0].prefix).to.equal('NST');
-    expect(results[0].path).to.equal(resolve(group, 'nested'));
+    expect(await projectFolders(testDir)).to.deep.equal([
+      resolve(group, 'nested'),
+    ]);
   });
 
   it('finds projects at both level 1 and level 2', async () => {
@@ -115,37 +110,33 @@ describe('scanForProjects', () => {
     const group = join(testDir, 'group');
     mkdirSync(group, { recursive: true });
     createProject(group, 'deep-proj', 'DEEP', 'Deep');
-    const results = await scanForProjects(testDir);
-    expect(results).to.have.length(2);
-    const prefixes = results.map((r) => r.prefix).sort();
-    expect(prefixes).to.deep.equal(['DEEP', 'TOP']);
+    expect(names(await projectFolders(testDir))).to.deep.equal([
+      'deep-proj',
+      'top-proj',
+    ]);
   });
 
   it('does not scan deeper than 2 levels', async () => {
-    const level1 = join(testDir, 'a');
-    const level2 = join(level1, 'b');
+    const level2 = join(testDir, 'a', 'b');
     mkdirSync(level2, { recursive: true });
     createProject(level2, 'too-deep', 'NOPE', 'Too Deep');
-    const results = await scanForProjects(testDir);
-    expect(results).to.deep.equal([]);
+    expect(await projectFolders(testDir)).to.deep.equal([]);
   });
 
   it('does not recurse into project directories', async () => {
-    // A project with a nested project inside should only find the outer one
     const outer = createProject(testDir, 'outer', 'OUT', 'Outer');
     createProject(outer, 'inner', 'INN', 'Inner');
-    const results = await scanForProjects(testDir);
-    expect(results).to.have.length(1);
-    expect(results[0].prefix).to.equal('OUT');
+    expect(names(await projectFolders(testDir))).to.deep.equal(['outer']);
   });
 
-  it('deduplicates across depths', async () => {
+  it('finds a project of the same prefix at another depth', async () => {
     createProject(testDir, 'first', 'DUP', 'First');
     const group = join(testDir, 'group');
     mkdirSync(group, { recursive: true });
     createProject(group, 'second', 'DUP', 'Second');
-    const results = await scanForProjects(testDir);
-    expect(results).to.have.length(1);
-    expect(results[0].prefix).to.equal('DUP');
+    expect(names(await projectFolders(testDir))).to.deep.equal([
+      'first',
+      'second',
+    ]);
   });
 });

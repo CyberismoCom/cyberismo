@@ -56,10 +56,15 @@ export function projectRoot(options: { projectPath?: string }): string {
     }
   }
   path = resolveTilde(path);
-  const isProject =
+  return isProjectFolder(path) ? path : '';
+}
+
+// Whether the folder at 'path' is a project: it has '.cards' and 'cardRoot'.
+export function isProjectFolder(path: string): boolean {
+  return (
     pathExists(resolve(join(path, '.cards'))) &&
-    pathExists(resolve(join(path, 'cardRoot')));
-  return isProject ? path : '';
+    pathExists(resolve(join(path, 'cardRoot')))
+  );
 }
 
 // The caller's git author, resolved as git does: GIT_AUTHOR_*, then author.*,
