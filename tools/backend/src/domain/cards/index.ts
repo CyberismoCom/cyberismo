@@ -474,54 +474,6 @@ router.delete(
 
 /**
  * @swagger
- * /api/cards/{key}/attachments/{filename}/open:
- *   post:
- *     summary: Open an attachment using the system's default application
- *     parameters:
- *       - name: key
- *         in: path
- *         required: true
- *         schema:
- *           type: string
- *       - name: filename
- *         in: path
- *         required: true
- *         schema:
- *           type: string
- *     responses:
- *       200:
- *         description: Attachment opened successfully
- *       400:
- *         description: Invalid request
- *       500:
- *         description: Server error
- */
-router.post(
-  '/:key/attachments/:filename/open',
-  requireRole(UserRole.Reader),
-  async (c) => {
-    const commands = c.get('commands');
-    const { key, filename } = c.req.param();
-
-    try {
-      const result = await cardService.openAttachment(commands, key, filename);
-      return c.json(result);
-    } catch (error) {
-      return c.json(
-        {
-          error:
-            error instanceof Error
-              ? error.message
-              : 'Failed to open attachment',
-        },
-        500,
-      );
-    }
-  },
-);
-
-/**
- * @swagger
  * /api/cards/{key}/parse:
  *   post:
  *     summary: Parse card content

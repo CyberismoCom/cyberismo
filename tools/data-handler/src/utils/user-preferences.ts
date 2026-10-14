@@ -23,12 +23,6 @@ export interface UserPreferencesObject {
       args: string[];
     };
   };
-  attachmentEditors: {
-    [platform: string]: {
-      mimeType: string;
-      command: string;
-    }[];
-  };
 }
 /**
  * The class checks if the preferences file exists when instantiated, and if not, creates it with a default JSON object.
@@ -51,48 +45,6 @@ export class UserPreferences {
         command: 'notepad.exe',
         args: ['{{cardContentPath}}', '{{cardJsonPath}}'],
       },
-    },
-    attachmentEditors: {
-      darwin: [
-        {
-          mimeType: 'image/png',
-          command: "open -a draw.io '{{attachmentPath}}'",
-        },
-        {
-          mimeType: 'image/svg+xml',
-          command: "open -a draw.io '{{attachmentPath}}'",
-        },
-        {
-          mimeType: 'application/pdf',
-          command: 'open -a Preview "{{attachmentPath}}"',
-        },
-      ],
-      linux: [
-        {
-          mimeType: 'image/png',
-          command: 'drawio {{attachmentPath}}',
-        },
-        {
-          mimeType: 'image/svg+xml',
-          command: 'drawio {{attachmentPath}}',
-        },
-      ],
-      win32: [
-        {
-          mimeType: 'text/plain',
-          command: 'notepad.exe {{attachmentPath}}',
-        },
-        {
-          mimeType: 'image/png',
-          command:
-            '"C:\\Program Files\\draw.io\\draw.io.exe" "{{attachmentPath}}"',
-        },
-        {
-          mimeType: 'image/svg+xml',
-          command:
-            '"C:\\Program Files\\draw.io\\draw.io.exe" "{{attachmentPath}}"',
-        },
-      ],
     },
   };
 
