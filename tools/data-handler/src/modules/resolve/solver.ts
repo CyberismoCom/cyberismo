@@ -29,13 +29,12 @@ import {
   DEFAULT_VERSION_RANGE,
   toVersion,
   toVersionRange,
-  type Source,
   type Version,
   type VersionRange,
 } from '../types.js';
 import { createSourceLayer, type SourceLayer } from '../source.js';
 import type { Checkout } from '../../containers/project.js';
-import type { Credentials, ModuleSetting } from '@cyberismo/model';
+import type { Credentials, ModuleSetting, Source } from '@cyberismo/model';
 import type {
   Change,
   ConflictDemand,

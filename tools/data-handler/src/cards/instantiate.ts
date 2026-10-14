@@ -15,6 +15,7 @@ import { join } from 'node:path';
 
 import { Validate } from '../commands/validate.js';
 import { DefaultContent } from '../resources/create-defaults.js';
+import { isValidFolderName } from '../utils/file-utils.js';
 import {
   isInitialTransition,
   resourceName,
@@ -42,7 +43,7 @@ export async function addCards(
 ): Promise<string[]> {
   if (
     !templateName ||
-    !Validate.validateFolder(join(checkout.basePath, templateName))
+    !isValidFolderName(join(checkout.basePath, templateName))
   ) {
     throw new Error(
       `Input validation error: template name is invalid '${templateName}'`,

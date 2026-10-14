@@ -45,7 +45,11 @@ import {
 import { Checkout } from './containers/project.js';
 import { SYSTEM_ACTOR } from './utils/tx-record.js';
 
-import { pathExists, resolveTilde } from './utils/file-utils.js';
+import {
+  isValidFolderName,
+  pathExists,
+  resolveTilde,
+} from './utils/file-utils.js';
 import { ModuleRequestError } from './exceptions/index.js';
 import { errorFunction } from './utils/error-utils.js';
 import { resourceName } from './utils/resource-utils.js';
@@ -185,7 +189,7 @@ export class Commands {
   private async resolveProjectPath(options: AllCommandOptions) {
     const path = options.projectPath || '';
     this.projectPath = resolveTilde(await this.setProjectPath(path));
-    if (!Validate.validateFolder(this.projectPath)) {
+    if (!isValidFolderName(this.projectPath)) {
       const errorMessage =
         path === '' || path === undefined
           ? `No 'cardRoot' in the current folder`
@@ -263,7 +267,7 @@ export class Commands {
         }
         // An explicit fetch always contacts the hubs; the version-checked path
         // is for callers that only need the cache to be current.
-        const failures = (await this.ws?.fetchCmd.fetchHubs(true)) ?? [];
+        const failures = (await this.ws?.modules.fetchHubs(true)) ?? [];
         if (failures.length > 0) {
           return {
             statusCode: 500,
@@ -339,10 +343,10 @@ export class Commands {
         if ((options as UpdateModulesCommandOptions).dryRun) {
           return {
             statusCode: 200,
-            payload: await this.ws?.modulesCmd.planUpdate(target, credentials),
+            payload: await this.ws?.modules.planUpdate(target, credentials),
           };
         }
-        await this.ws?.modulesCmd.update(target, credentials);
+        await this.ws?.modules.update(target, credentials);
         return {
           statusCode: 200,
           note: await this.cleanRecommendation(),
@@ -498,7 +502,7 @@ export class Commands {
     credentials?: Credentials,
     version?: string,
   ) {
-    return this.ws?.modulesCmd.install(source, {
+    return this.ws?.modules.install(source, {
       private: useCredentials,
       credentials,
       version,
@@ -523,6 +527,9 @@ export class Commands {
     type: RemovableResourceTypes,
     targetName: string,
   ): Promise<void> {
+    if (type === 'module') {
+      return await this.ws?.modules.remove(targetName);
+    }
     return await this.ws?.removeCmd.remove(type, targetName);
   }
 
@@ -564,23 +571,20 @@ export class Commands {
       case 'importableModules':
         // The show commands read cached hub data; on the command line a stale
         // listing is never what the user asked for, so refresh it first.
-        promise = this.ws!.fetchCmd.ensureModuleListUpToDate().then(() =>
-          this.ws!.showCmd.showImportableModules(
-            options?.showAll,
-            options?.details,
-          ),
+        promise = this.ws!.modules.ensureModuleListUpToDate().then(() =>
+          this.ws!.modules.importable(options?.showAll, options?.details),
         );
         break;
       case 'module':
-        promise = this.ws!.modulesCmd.show(detail);
+        promise = this.ws!.modules.show(detail);
         break;
       case 'hubs':
-        promise = this.ws!.fetchCmd.ensureModuleListUpToDate().then(() =>
-          this.ws!.showCmd.showHubs(),
+        promise = this.ws!.modules.ensureModuleListUpToDate().then(() =>
+          this.ws!.modules.hubs(),
         );
         break;
       case 'modules':
-        promise = this.ws!.modulesCmd.list();
+        promise = this.ws!.modules.list();
         break;
       case 'attachment': // fallthrough - not implemented yet
       case 'link': // fallthrough - not implemented yet
