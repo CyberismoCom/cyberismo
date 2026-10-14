@@ -15,7 +15,7 @@ import type {
   ModuleSetting,
   UpdateTarget,
 } from '@cyberismo/model';
-import type { Checkout } from '../../../src/infra/checkout.js';
+import type { Checkout } from '../../../src/infra/checkout/checkout.js';
 
 let dir: string;
 beforeEach(async () => {

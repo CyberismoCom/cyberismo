@@ -40,8 +40,8 @@ import type {
   ResourceName,
 } from '@cyberismo/model';
 import type { Logger } from 'pino';
-import type { Checkout } from '../../infra/checkout.js';
-import type { Validate } from '../commands/validate.js';
+import type { Checkout } from '../../infra/checkout/checkout.js';
+import type { Validate } from '../validation/validate.js';
 import { allTemplateCards } from '../cards/read.js';
 import { ResourceNotFoundError } from '../../shared/exceptions/index.js';
 
@@ -130,7 +130,7 @@ export abstract class ResourceObject<
   private static async getValidate(): Promise<ValidateInstance> {
     // a bit hacky solution to avoid circular dependencies
     if (!this.validateInstancePromise) {
-      this.validateInstancePromise = import('../commands/validate.js').then(
+      this.validateInstancePromise = import('../validation/validate.js').then(
         ({ Validate }) => Validate.getInstance(),
       );
     }

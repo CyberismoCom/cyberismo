@@ -13,8 +13,8 @@
 
 import { assertAllowed } from './guard.js';
 import { ContainerMismatchError } from '../../shared/exceptions/index.js';
-import type { Checkout } from '../../infra/checkout.js';
-import type { CardTree } from '../../infra/card-tree.js';
+import type { Checkout } from '../../infra/checkout/checkout.js';
+import type { CardTree } from '../../infra/cards/card-tree.js';
 
 import { ROOT } from '../../shared/utils/constants.js';
 import { cardNode } from './read.js';

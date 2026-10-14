@@ -25,7 +25,7 @@ import type {
   Operation,
   ResourceName,
 } from '@cyberismo/model';
-import type { Checkout } from '../../infra/checkout.js';
+import type { Checkout } from '../../infra/checkout/checkout.js';
 
 /**
  * Link Type resource class.

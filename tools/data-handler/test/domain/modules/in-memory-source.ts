@@ -5,7 +5,7 @@ import { isGitLocation } from '../../../src/shared/utils/location.js';
 import type {
   SourceLayer,
   FetchTarget,
-} from '../../../src/infra/module-source/source.js';
+} from '../../../src/infra/modules/source.js';
 import type { Source } from '@cyberismo/model';
 import type { ProjectSettings } from '@cyberismo/model';
 import type { SealFile } from '../../../src/infra/replay-log/seal-files.js';

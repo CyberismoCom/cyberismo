@@ -12,10 +12,10 @@
 */
 
 import type { RenderedContent, RenderOptions } from '@cyberismo/model';
-import type { Checkout } from '../../infra/checkout.js';
-import { rewriteAsciidocCardXrefs } from '../../shared/utils/asciidoc-xref.js';
-import { read } from '../../infra/rw-lock.js';
-import { evaluateMacros } from './index.js';
+import type { Checkout } from '../../infra/checkout/checkout.js';
+import { rewriteAsciidocCardXrefs } from './asciidoc-xref.js';
+import { read } from '../../infra/tx/rw-lock.js';
+import { evaluateMacros } from './registry.js';
 
 /** The text that stands for content whose macros failed. */
 export function macroErrorText(error: unknown, fallback: string): string {

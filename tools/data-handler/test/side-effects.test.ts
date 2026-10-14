@@ -7,7 +7,7 @@ import {
   type SideEffects,
 } from '../src/domain/cards/side-effects.js';
 import { CardMetadataUpdater } from '../src/domain/cards/card-metadata-updater.js';
-import type { Checkout } from '../src/infra/checkout.js';
+import type { Checkout } from '../src/infra/checkout/checkout.js';
 
 const checkout = {} as Checkout;
 

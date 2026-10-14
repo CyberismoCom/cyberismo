@@ -18,8 +18,8 @@ import type {
   ExternalLink,
   MetadataContent,
 } from '@cyberismo/model';
-import { Validate } from '../commands/validate.js';
-import type { Checkout } from '../../infra/checkout.js';
+import { Validate } from '../validation/validate.js';
+import type { Checkout } from '../../infra/checkout/checkout.js';
 import { assertAllowed } from './guard.js';
 import { isExternalItemKey } from '../../shared/utils/card-utils.js';
 import { isPredefinedField } from '../../shared/utils/constants.js';

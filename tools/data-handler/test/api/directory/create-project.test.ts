@@ -20,10 +20,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { SCHEMA_VERSION } from '@cyberismo/migrations';
 import type { CreateProjectParams } from '@cyberismo/model';
-import { Validate } from '../../../src/domain/commands/validate.js';
-import { Checkout } from '../../../src/infra/checkout.js';
+import { Validate } from '../../../src/domain/validation/validate.js';
+import { Checkout } from '../../../src/infra/checkout/checkout.js';
 import { createProject } from '../../../src/api/directory/create-project.js';
-import { SYSTEM_ACTOR } from '../../../src/shared/utils/tx-record.js';
+import { SYSTEM_ACTOR } from '../../../src/infra/tx/tx-record.js';
 import {
   isolatedGitEnv,
   projectSnapshot,

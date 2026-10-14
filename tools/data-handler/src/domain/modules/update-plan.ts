@@ -28,8 +28,8 @@ import { findOrphans } from './orphans.js';
 import { buildRemoteUrl } from './remote-url.js';
 import { conflictReason } from './resolve/format.js';
 import { solve, type SolveOutcome } from './resolve/solver.js';
-import type { SourceLayer } from '../../infra/module-source/source.js';
-import type { ModuleDeclaration } from '../mutations/replay/module-types.js';
+import type { SourceLayer } from '../../infra/modules/source.js';
+import type { ModuleDeclaration } from '../resources/changes/replay/module-types.js';
 import {
   isBreakingMove,
   pickVersion,
@@ -38,7 +38,7 @@ import {
   validateVersionAgainstConstraints,
 } from '../../shared/utils/version.js';
 
-import type { Checkout } from '../../infra/checkout.js';
+import type { Checkout } from '../../infra/checkout/checkout.js';
 import type { Credentials, UpdatePlan, UpdateTarget } from '@cyberismo/model';
 import type { UpdateRequest } from './resolve/types.js';
 

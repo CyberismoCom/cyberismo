@@ -24,7 +24,7 @@ import type { BumpType } from '../../../src/domain/versions/version.js';
 import { expectRefused, projects } from '../cards/fixture.js';
 import { commitAll, gitLog, publishedVersion } from './fixture.js';
 import { remove, rename } from '../resources/fixture.js';
-import { checkoutOf } from '../../../src/infra/internal.js';
+import { checkoutOf } from '../../../src/infra/checkout/internal.js';
 
 const open = projects();
 const autocommit = { autocommit: true };
