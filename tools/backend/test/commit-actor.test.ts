@@ -44,7 +44,6 @@ beforeEach(async () => {
 });
 
 afterEach(async () => {
-  ws.checkout.dispose();
   await project.cleanup();
 });
 

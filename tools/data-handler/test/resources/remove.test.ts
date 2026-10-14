@@ -93,11 +93,7 @@ describe('removing a resource', () => {
 
     await expectRefused(
       path,
-      () =>
-        new Remove(ws.checkout, ws.actor, ws.identity).remove(
-          'colour' as never,
-          'x',
-        ),
+      () => new Remove(ws).remove('colour' as never, 'x'),
       /Unknown resource type 'colour'/,
     );
   });

@@ -53,7 +53,6 @@ afterEach(async () => {
   vi.useRealTimers();
 });
 afterAll(async () => {
-  ws.checkout.dispose();
   await cleanupTempTestData(tempTestDataPath);
 });
 

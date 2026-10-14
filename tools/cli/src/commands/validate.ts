@@ -22,10 +22,7 @@ import type { ValidateCommandOptions } from '../options.js';
 
 // The project's validation errors, or 'Project structure validated'.
 export async function validation(ws: Workspace): Promise<string> {
-  const result = await Validate.getInstance().validate(
-    ws.path,
-    () => ws.checkout,
-  );
+  const result = await Validate.getInstance().validateWorkspace(ws);
   return result.length ? result : 'Project structure validated';
 }
 
