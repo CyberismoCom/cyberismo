@@ -12,12 +12,10 @@
 */
 
 import { type Command } from 'commander';
-
-import { type CommandOptions } from '@cyberismo/data-handler';
-
 import { CommandWithPath } from '../lib/args.js';
 import { onProject } from '../lib/errors.js';
 import { printResult } from '../lib/output.js';
+import type { MoveCommandOptions } from '../options.js';
 
 export function registerMove(program: Command) {
   // Move command
@@ -35,7 +33,7 @@ export function registerMove(program: Command) {
     async (
       source: string,
       destination: string,
-      options: CommandOptions<'move'>,
+      options: MoveCommandOptions,
     ) => {
       await onProject(Object.assign({}, options, program.opts()), (ws) =>
         ws.cards.move(source, destination),

@@ -16,8 +16,6 @@ import { type Command } from 'commander';
 import {
   resourceName,
   resourceNameToString,
-  type CommandOptions,
-  type UpdateCommandOptions,
   type Workspace,
 } from '@cyberismo/data-handler';
 import { errorFunction } from '@cyberismo/data-handler/utils/error-utils';
@@ -28,6 +26,7 @@ import type { Operation, UpdateKey, UpdateOperations } from '@cyberismo/model';
 import { CommandWithPath } from '../lib/args.js';
 import { onProject } from '../lib/errors.js';
 import { cleanNote, printResultWithNote } from '../lib/output.js';
+import type { UpdateCommandOptions } from '../options.js';
 
 const additionalHelpForUpdate = `Sub-command help:
   update <resourceName> <operation> <key> <value> [newValue], where
@@ -84,7 +83,7 @@ export function registerUpdate(program: Command) {
         key: string,
         value: string,
         newValue: string,
-        options: CommandOptions<'update'>,
+        options: UpdateCommandOptions,
       ) => {
         const note = await onProject(
           Object.assign({}, options, program.opts()),

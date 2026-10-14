@@ -13,15 +13,19 @@
 
 import { type Command } from 'commander';
 
-import { type CommandOptions, type Workspace } from '@cyberismo/data-handler';
+import { type Workspace, Validate } from '@cyberismo/data-handler';
 
 import { CommandWithPath } from '../lib/args.js';
 import { onProject } from '../lib/errors.js';
 import { printResult } from '../lib/output.js';
+import type { ValidateCommandOptions } from '../options.js';
 
 // The project's validation errors, or 'Project structure validated'.
 export async function validation(ws: Workspace): Promise<string> {
-  const result = await ws.validateCmd.validate(ws.path, () => ws.checkout);
+  const result = await Validate.getInstance().validate(
+    ws.path,
+    () => ws.checkout,
+  );
   return result.length ? result : 'Project structure validated';
 }
 
@@ -31,7 +35,7 @@ export function registerValidate(program: Command) {
     'Validate project structure',
   );
   program.addCommand(validateCmd);
-  validateCmd.action(async (options: CommandOptions<'validate'>) => {
+  validateCmd.action(async (options: ValidateCommandOptions) => {
     printResult(
       await onProject(Object.assign({}, options, program.opts()), validation),
     );
