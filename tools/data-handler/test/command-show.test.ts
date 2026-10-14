@@ -9,7 +9,6 @@ import { sleep } from '../src/utils/common-utils.js';
 import { Cmd, Commands, type Workspace } from '../src/command-handler.js';
 import { copyDir } from '../src/utils/file-utils.js';
 import { resourceName } from '../src/utils/resource-utils.js';
-import type { Show } from '../src/commands/index.js';
 import { getTestBaseDir, getTestProject } from './helpers/test-utils.js';
 import type { ModuleContent } from '@cyberismo/model';
 import type { ShowCommandOptions } from '../src/interfaces/command-options.js';
@@ -294,13 +293,10 @@ describe('show', () => {
   const testDir = join(baseDir, 'tmp-show-tests');
   const decisionRecordsPath = join(testDir, 'valid/decision-records');
   let ws: Workspace;
-  let showCmd: Show;
-
   beforeEach(async () => {
     mkdirSync(testDir, { recursive: true });
     await copyDir('test/test-data/', testDir);
     ws = await openTestWorkspace(decisionRecordsPath, {});
-    showCmd = ws.showCmd;
   });
 
   afterEach(() => {
@@ -373,48 +369,48 @@ describe('show', () => {
   });
   it('showResource - card type (success)', async () => {
     const cardType = 'decision/cardTypes/decision';
-    const results = await showCmd.showResource(cardType);
+    const results = await ws.resources.show(cardType);
     expect(results).not.toBeUndefined();
   });
   it('showResource - empty cardType', async () => {
     const cardType = '';
 
-    await expect(showCmd.showResource(cardType)).rejects.toThrow(
+    await expect(ws.resources.show(cardType)).rejects.toThrow(
       `Must define resource name to query its details`,
     );
   });
   it('showResource - card type does not exist in project', async () => {
     const cardType = 'decision/cardTypes/my-card-type';
 
-    await expect(showCmd.showResource(cardType)).rejects.toThrow(
+    await expect(ws.resources.show(cardType)).rejects.toThrow(
       `CardType '${cardType}' does not exist in the project`,
     );
   });
   it('showCardTypesWithDetails (success)', async () => {
-    const results = await showCmd.showCardTypesWithDetails();
+    const results = await ws.resources.contents('cardTypes');
     expect(results).not.toBeUndefined();
   });
   it('showResource - field type (success)', async () => {
     const fieldTypeName = 'decision/fieldTypes/obsoletedBy';
-    const results = await showCmd.showResource(fieldTypeName);
+    const results = await ws.resources.show(fieldTypeName);
     expect(results).not.toBeUndefined();
   });
   it('showResource - field type does not exist', async () => {
     const fieldTypeName = 'decision/fieldTypes/i-do-not-exist';
 
-    await expect(showCmd.showResource(fieldTypeName)).rejects.toThrow(
+    await expect(ws.resources.show(fieldTypeName)).rejects.toThrow(
       `FieldType '${fieldTypeName}' does not exist in the project`,
     );
   });
   it('showResource - link type (success)', async () => {
     const fieldTypeName = 'decision/linkTypes/test';
-    const results = await showCmd.showResource(fieldTypeName);
+    const results = await ws.resources.show(fieldTypeName);
     expect(results).not.toBeUndefined();
   });
   it('try showResource - link type does not exist', async () => {
     const linkTypeName = 'decision/linkTypes/i-do-not-exist';
 
-    await expect(showCmd.showResource(linkTypeName)).rejects.toThrow(
+    await expect(ws.resources.show(linkTypeName)).rejects.toThrow(
       `LinkType '${linkTypeName}' does not exist in the project`,
     );
   });
@@ -430,7 +426,7 @@ describe('show', () => {
     expect(results).not.toBeUndefined();
   });
   it('showProject (success)', async () => {
-    const results = await showCmd.showProject();
+    const results = await ws.settings.info();
     expect(results).not.toBeUndefined();
     expect(results).to.have.property('name');
     expect(results).to.have.property('path');
@@ -447,19 +443,19 @@ describe('show', () => {
   });
   it('showResource - template (success)', async () => {
     const templateName = 'decision/templates/decision';
-    const results = await showCmd.showResource(templateName);
+    const results = await ws.resources.show(templateName);
     expect(results).not.toBeUndefined();
   });
   it('showResource - template with no name', async () => {
     const templateName = '';
 
-    await expect(showCmd.showResource(templateName)).rejects.toThrow(
+    await expect(ws.resources.show(templateName)).rejects.toThrow(
       `Must define resource name to query its details`,
     );
   });
   it('showResource - template does not exist in project', async () => {
     const templateName = 'decision/templates/i-do-not-exist';
-    await expect(showCmd.showResource(templateName)).rejects.toThrow(
+    await expect(ws.resources.show(templateName)).rejects.toThrow(
       `Template '${templateName}' does not exist in the project`,
     );
   });
@@ -475,81 +471,79 @@ describe('show', () => {
       'workflows',
     ];
     for (const type of validResourceTypes) {
-      const results = await showCmd.showResources(type);
+      const results = await ws.resources.list(type);
       expect(results).not.toBeUndefined();
     }
   });
   it('showResources - invalid type', async () => {
     const validResourceTypes = ['unknown'];
     for (const type of validResourceTypes) {
-      const results = await showCmd.showResources(type);
+      const results = await ws.resources.list(type);
       expect(results.length).toBe(0);
     }
   });
   it('showTemplatesWithDetails (success)', async () => {
-    const results = await showCmd.showTemplatesWithDetails();
+    const results = await ws.resources.contents('templates');
     expect(results).not.toBeUndefined();
   });
   it('showResource - workflow (success)', async () => {
     const workflowName = 'decision/workflows/decision';
-    const results = await showCmd.showResource(workflowName);
+    const results = await ws.resources.show(workflowName);
     expect(results).not.toBeUndefined();
   });
   it('showResource - workflow expect type(success)', async () => {
     const workflowName = 'decision/workflows/decision';
-    const results = await showCmd.showResource(workflowName, 'workflows');
+    const results = await ws.resources.show(workflowName, 'workflows');
     expect(results).not.toBeUndefined();
   });
   it('showResource - reject non-expected resource types', async () => {
     const workflowName = 'decision/workflows/decision';
-    await expect(
-      showCmd.showResource(workflowName, 'cardTypes'),
-    ).rejects.toThrow(
+    await expect(ws.resources.show(workflowName, 'cardTypes')).rejects.toThrow(
       `While fetching 'decision/workflows/decision': Expected type 'cardTypes', but got 'workflows' instead`,
     );
   });
   it('showResource - empty workflow name', async () => {
     const workflowName = '';
-    await expect(showCmd.showResource(workflowName)).rejects.toThrow(
+    await expect(ws.resources.show(workflowName)).rejects.toThrow(
       `Must define resource name to query its details`,
     );
   });
   it('showResource - workflow does not exist in project', async () => {
     const workflowName = 'decision/workflows/i-do-not-exist';
-    await expect(showCmd.showResource(workflowName)).rejects.toThrow(
+    await expect(ws.resources.show(workflowName)).rejects.toThrow(
       `Workflow '${workflowName}' does not exist in the project`,
     );
   });
   it('should show existing resources without category', async () => {
     const cardType = 'decision/cardTypes/decision';
-    const ctResults = await showCmd.showResource(cardType);
+    const ctResults = await ws.resources.show(cardType);
     expect(ctResults).not.toBeUndefined();
     expect(ctResults.category).toBe(undefined);
 
     const fieldTypeName = 'decision/fieldTypes/obsoletedBy';
-    const ftResults = await showCmd.showResource(fieldTypeName);
+    const ftResults = await ws.resources.show(fieldTypeName);
     expect(ftResults).not.toBeUndefined();
     expect(ftResults.category).toBe(undefined);
 
     const linkTypeName = 'decision/linkTypes/test';
-    const ltResults = await showCmd.showResource(linkTypeName);
+    const ltResults = await ws.resources.show(linkTypeName);
     expect(ltResults).not.toBeUndefined();
     expect(ltResults.category).toBe(undefined);
 
     // Test data for template has category... skipped!
 
     const workflowName = 'decision/workflows/decision';
-    const wfResults = await showCmd.showResource(workflowName);
+    const wfResults = await ws.resources.show(workflowName);
     expect(wfResults).not.toBeUndefined();
     expect(wfResults.category).toBe(undefined);
 
     const reportName = 'decision/reports/testReport';
-    const reportResults = await showCmd.showResource(reportName);
+    const reportResults = await ws.resources.show(reportName);
     expect(reportResults).not.toBeUndefined();
     expect(reportResults.category).toBe(undefined);
   });
   it('showWorkflowsWithDetails (success)', async () => {
-    const results = await showCmd.showWorkflowsWithDetails();
+    const results = await ws.resources.contents('workflows');
     expect(results).not.toBeUndefined();
   });
   it('show report results', async () => {
