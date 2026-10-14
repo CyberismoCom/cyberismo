@@ -19,6 +19,7 @@
 import type { ChangeEvent } from '@cyberismo/model';
 import type { Cards } from '../../src/cards/cards.js';
 import type { Clean } from '../../src/clean/clean.js';
+import type { createProject } from '../../src/directory/create-project.js';
 import type { ProjectDirectory } from '../../src/directory/project-directory.js';
 import type { Export } from '../../src/export/export.js';
 import type { Render } from '../../src/macros/render.js';
@@ -223,4 +224,11 @@ export const directory: FacadeSerializable<
   create: true,
   clone: true,
   rename: true,
+};
+
+// The directory's create at a path of the caller's.
+export const creation: FacadeSerializable<{
+  createProject: typeof createProject;
+}> = {
+  createProject: true,
 };

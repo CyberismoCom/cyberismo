@@ -343,19 +343,21 @@ describe('directory.create', () => {
     expect(ws.checkout.configuration.hubs.map((hub) => hub.location)).toEqual([
       DEFAULT_HUB,
     ]);
-    expect(await directory.list()).toEqual([created]);
+    expect(await directory.list()).toEqual([
+      { prefix: 'newp', name: 'New', category: 'Test', description: 'A test' },
+    ]);
     expect(created).toEqual({
+      path: join(root, 'newp'),
       prefix: 'newp',
-      name: 'New',
-      category: 'Test',
-      description: 'A test',
+      failures: [],
+      warnings: [`Could not fetch hub data - ${DEFAULT_HUB}: fetch failed`],
     });
   });
 
   it.each([
-    ['the identity without autocommit', false, 'Ann <ann@example.com>'],
-    ['the Bot with autocommit', true, 'Cyberismo Bot <bot@cyberismo.com>'],
-  ])('makes the initial commit as %s', async (_, autocommit, author) => {
+    ['without autocommit', false],
+    ['with autocommit', true],
+  ])('makes the initial commit as the actor %s', async (_, autocommit) => {
     const { root } = await folder();
     for (const [name, value] of Object.entries(await isolatedGitEnv(root))) {
       vi.stubEnv(name, value);
@@ -363,8 +365,8 @@ describe('directory.create', () => {
     const { directory } = await localFolder(root, { autocommit });
 
     await directory.create({ name: 'New', prefix: 'newp' }, ann.actor, {
-      name: 'Ann',
-      email: 'ann@example.com',
+      name: 'Bea',
+      email: 'bea@example.com',
     });
 
     expect(
@@ -374,7 +376,7 @@ describe('directory.create', () => {
         '--reverse',
         '--format=%an <%ae> %s',
       ),
-    ).toMatch(new RegExp(`^${author} Initial commit`));
+    ).toMatch(/^Bea <bea@example.com> Initial commit/);
   });
 });
 
