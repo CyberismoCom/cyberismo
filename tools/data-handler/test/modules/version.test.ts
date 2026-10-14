@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  isBreakingMove,
   pickVersion,
   stripTagPrefix,
   validateVersionAgainstConstraints,
@@ -37,6 +38,16 @@ describe('modules/version', () => {
       expect(pickVersion(['not-a-version', '1.5.0'])).toBe('1.5.0');
       expect(pickVersion(['not-a-version'])).toBeUndefined();
     });
+  });
+
+  it.each([
+    ['1.0.0', '2.0.0', true],
+    ['1.2.0', '1.9.0', false],
+    ['0.3.0', '0.4.0', true],
+    ['0.3.0', '0.3.5', false],
+    ['0.0.3', '0.0.4', true],
+  ])('isBreakingMove %s -> %s is %s', (from, to, breaking) => {
+    expect(isBreakingMove(from, to)).toBe(breaking);
   });
 
   describe('validateVersionAgainstConstraints', () => {
