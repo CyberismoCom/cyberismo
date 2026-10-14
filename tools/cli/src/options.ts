@@ -11,14 +11,13 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import type { Level } from 'pino';
+import type { WorkspaceOptions } from '@cyberismo/data-handler';
 import type { Context } from '@cyberismo/model';
-import type { CmdKey } from '../command-handler.js';
 
 // Base options shared across multiple commands
 export interface BaseCommandOptions {
   projectPath?: string;
-  logLevel?: Level;
+  logLevel?: WorkspaceOptions['logLevel'];
   autocommit?: boolean;
   autopush?: boolean;
 }
@@ -147,28 +146,3 @@ export type AllCommandOptions =
   | UpdateModulesCommandOptions
   | ValidateCommandOptions
   | VersionCommandOptions;
-
-// Map command keys to their option types
-export type CommandOptions<T extends CmdKey> = {
-  add: AddCommandOptions;
-  calc: CalcCommandOptions;
-  clean: CleanCommandOptions;
-  create: CreateCommandOptions;
-  edit: EditCommandOptions;
-  export: ExportCommandOptions;
-  fetch: FetchCommandOptions;
-  import: ImportCommandOptions;
-  migrate: MigrateCommandOptions;
-  move: MoveCommandOptions;
-  publish: PublishCommandOptions;
-  rank: RankCommandOptions;
-  remove: RemoveCommandOptions;
-  rename: RenameCommandOptions;
-  report: ReportCommandOptions;
-  show: ShowCommandOptions;
-  transition: TransitionCommandOptions;
-  update: UpdateCommandOptions;
-  updateModules: UpdateModulesCommandOptions;
-  validate: ValidateCommandOptions;
-  version: VersionCommandOptions;
-}[T];

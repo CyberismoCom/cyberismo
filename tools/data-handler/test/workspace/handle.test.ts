@@ -17,7 +17,6 @@ import { afterEach, beforeEach, expect, it } from 'vitest';
 
 import { Checkout } from '../../src/containers/project.js';
 import { Workspace } from '../../src/workspace/workspace.js';
-import { sharedCommands } from '../../src/workspace/shared-commands.js';
 import { buildProject, type BuiltProject } from '../helpers/project-builder.js';
 
 const ann = {
@@ -42,21 +41,13 @@ afterEach(async () => {
   await project.cleanup();
 });
 
-it('shares the checkout, lock and commands between handles; only the actor differs', () => {
+it('shares the checkout and lock between handles; only the actor differs', () => {
   const a = Workspace.over(checkout, ann.actor, ann.identity);
   const b = Workspace.over(checkout, bob.actor, bob.identity);
 
   expect(a.checkout).toBe(b.checkout);
   expect(a.checkout.lock).toBe(b.checkout.lock);
-  expect(sharedCommands(a.checkout)).toBe(sharedCommands(b.checkout));
   expect([a.actor, b.actor]).toEqual([ann.actor, bob.actor]);
-
-  // Each handle has its own view of a command ...
-  expect(a.importCmd).not.toBe(b.importCmd);
-  // ... over one shared object: what one handle sets, the other sees.
-  const probe = {};
-  (a.importCmd as unknown as { probe: object }).probe = probe;
-  expect((b.importCmd as unknown as { probe: object }).probe).toBe(probe);
 
   // Façades are the handle's own: one per handle, with its actor.
   expect(a.cards).toBe(a.cards);

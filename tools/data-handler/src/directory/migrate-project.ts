@@ -19,7 +19,7 @@ import { readJsonFile } from '../utils/json.js';
 /**
  * Migrate a project's schema to the tool's current version.
  *
- * Deliberately independent of Project and CommandManager: migrate must
+ * Deliberately independent of Checkout and Workspace: migrate must
  * work on trees written by older schemas, which current project loading
  * may not accept. Reads schemaVersion via raw file I/O and delegates to
  * the in-process chain runner. Migrations modify the project in place;

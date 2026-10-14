@@ -20,9 +20,9 @@ interface testObjectNode {
   children: testObjectNode[];
 }
 
-// Create mock CommandManager
+// Create mock workspace
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const createMockCommandManager = (overrides: any = {}) => {
+const createMockWorkspace = (overrides: any = {}) => {
   return {
     consistent: vi.fn().mockImplementation((fn: () => unknown) => fn()),
     modules: {
@@ -106,7 +106,7 @@ describe('Resources Service', () => {
 
   describe('buildResourceTree', () => {
     test('should build resource tree with root resources only', async () => {
-      const mockCommands = createMockCommandManager({
+      const mockCommands = createMockWorkspace({
         settings: {
           info: vi.fn().mockResolvedValue({ prefix: 'test' }),
         },
@@ -154,7 +154,7 @@ describe('Resources Service', () => {
     });
 
     test('should build resource tree with modules section', async () => {
-      const mockCommands = createMockCommandManager({
+      const mockCommands = createMockWorkspace({
         modules: {
           list: vi.fn().mockResolvedValue([{ name: 'module1' }]),
           show: vi.fn().mockResolvedValue({
@@ -223,7 +223,7 @@ describe('Resources Service', () => {
     });
 
     test('should handle template processing with hierarchical cards', async () => {
-      const mockCommands = createMockCommandManager({
+      const mockCommands = createMockWorkspace({
         modules: {
           list: vi.fn().mockResolvedValue([{ name: 'module1' }]),
           show: vi.fn().mockResolvedValue({
@@ -351,7 +351,7 @@ describe('Resources Service', () => {
         childrenCards: [],
       };
 
-      const mockCommands = createMockCommandManager({
+      const mockCommands = createMockWorkspace({
         settings: {
           info: vi.fn().mockResolvedValue({ prefix: 'test' }),
         },
@@ -408,7 +408,7 @@ describe('Resources Service', () => {
           skillQuery: '',
         },
       };
-      const mockCommands = createMockCommandManager({
+      const mockCommands = createMockWorkspace({
         settings: {
           info: vi.fn().mockResolvedValue({ prefix: 'test' }),
         },
@@ -447,7 +447,7 @@ describe('Resources Service', () => {
     });
 
     test('should handle mixed root and module templates', async () => {
-      const mockCommands = createMockCommandManager({
+      const mockCommands = createMockWorkspace({
         settings: {
           info: vi.fn().mockResolvedValue({ prefix: 'test' }),
         },
@@ -494,7 +494,7 @@ describe('Resources Service', () => {
     });
 
     test('empty templates have children: [] so react-arborist treats them as drop targets', async () => {
-      const mockCommands = createMockCommandManager({
+      const mockCommands = createMockWorkspace({
         settings: {
           info: vi.fn().mockResolvedValue({ prefix: 'test' }),
         },
@@ -522,7 +522,7 @@ describe('Resources Service', () => {
     });
 
     test('should handle empty resource types gracefully', async () => {
-      const mockCommands = createMockCommandManager({
+      const mockCommands = createMockWorkspace({
         settings: {
           info: vi.fn().mockResolvedValue({ prefix: 'test' }),
         },
@@ -553,7 +553,7 @@ describe('Resources Service', () => {
         'workflows',
       ];
 
-      const mockCommands = createMockCommandManager({
+      const mockCommands = createMockWorkspace({
         settings: {
           info: vi.fn().mockResolvedValue({ prefix: 'test' }),
         },
@@ -592,7 +592,7 @@ describe('Resources Service', () => {
     });
 
     test('should generate correct node IDs and types', async () => {
-      const mockCommands = createMockCommandManager({
+      const mockCommands = createMockWorkspace({
         settings: {
           info: vi.fn().mockResolvedValue({ prefix: 'test' }),
         },
@@ -649,7 +649,7 @@ describe('Resources Service', () => {
     });
 
     test('should handle error when showProject fails', async () => {
-      const mockCommands = createMockCommandManager({
+      const mockCommands = createMockWorkspace({
         settings: {
           info: vi.fn().mockRejectedValue(new Error('Project not found')),
         },
@@ -661,7 +661,7 @@ describe('Resources Service', () => {
     });
 
     test('should handle error when showResources fails', async () => {
-      const mockCommands = createMockCommandManager({
+      const mockCommands = createMockWorkspace({
         settings: {
           info: vi.fn().mockResolvedValue({ prefix: 'test' }),
         },
@@ -677,7 +677,7 @@ describe('Resources Service', () => {
     });
 
     test('should handle error when showResource fails', async () => {
-      const mockCommands = createMockCommandManager({
+      const mockCommands = createMockWorkspace({
         settings: {
           info: vi.fn().mockResolvedValue({ prefix: 'test' }),
         },
