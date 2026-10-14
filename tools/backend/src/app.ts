@@ -138,7 +138,7 @@ export function createApp(
   app.use('/mcp', createAuthMiddleware(authProvider));
   app.use('/mcp/*', createAuthMiddleware(authProvider));
 
-  // Global routes (no project-specific CommandManager needed)
+  // Global routes (no project handle needed)
   app.route('/api/auth', createAuthRouter());
   app.route('/api/projects', createProjectsRouter(directory, multiProjectRoot));
 

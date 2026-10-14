@@ -13,7 +13,12 @@
 
 import { type Command } from 'commander';
 
-import { Cmd, removeResource, type Workspace } from '@cyberismo/data-handler';
+import {
+  Remove,
+  removeResource,
+  type Workspace,
+} from '@cyberismo/data-handler';
+import type { RemovableResourceTypes } from '@cyberismo/model';
 
 import {
   CommandWithPath,
@@ -23,12 +28,11 @@ import {
   ResourceTypeParser as Parser,
   Resources,
 } from '../lib/args.js';
-import { commandHandler, program } from '../lib/program.js';
+import { program } from '../lib/program.js';
 import { onProject } from '../lib/errors.js';
 import {
   cleanNote,
   deprecationNote,
-  handleResponse,
   printResult,
   printResultWithNote,
 } from '../lib/output.js';
@@ -179,12 +183,13 @@ export async function removeAction(
     }
 
     // Unknown types.
-    const result = await commandHandler.command(
-      Cmd.remove,
-      [type, parameter1!, parameter2!, parameter3!],
-      Object.assign({}, options, program.opts()),
+    await onProject(commandOptions, (ws) =>
+      new Remove(ws.checkout, ws.actor, ws.identity).remove(
+        removed as RemovableResourceTypes,
+        commandTarget(type, parameter1!),
+      ),
     );
-    handleResponse(result);
+    printResult();
   }
 }
 

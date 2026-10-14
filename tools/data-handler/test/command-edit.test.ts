@@ -32,7 +32,7 @@ describe('edit card', () => {
   });
 
   it('edit card metadata - template card', async () => {
-    // Create a fresh CommandManager instance to avoid test isolation issues
+    // Use a fresh project copy to avoid test isolation issues
     const freshTestDir = join(baseDir, 'tmp-edit-template-test');
     mkdirSync(freshTestDir, { recursive: true });
     await copyDir('test/test-data/', freshTestDir);

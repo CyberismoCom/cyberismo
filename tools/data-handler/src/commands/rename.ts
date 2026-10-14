@@ -14,6 +14,8 @@
 import { type Checkout } from '../containers/project.js';
 import { renameProjectPrefix } from '../utils/prefix-rename.js';
 import { write } from '../utils/rw-lock.js';
+import type { CommitIdentity } from '../utils/tx-record.js';
+import type { ActorRef } from '@cyberismo/model';
 
 /**
  * Handles the 'rename' command: an authoring helper that changes a project's
@@ -29,7 +31,11 @@ export class Rename {
    * Creates an instance of Rename command.
    * @param checkout Project instance to use.
    */
-  constructor(private checkout: Checkout) {}
+  constructor(
+    private checkout: Checkout,
+    public readonly actor: ActorRef,
+    public readonly identity?: CommitIdentity,
+  ) {}
 
   /**
    * Renames project prefix.
