@@ -36,9 +36,9 @@ const ws = vi.hoisted(() => ({
   settings: { prefix: 'test', hubs: {} } as Record<string, unknown> & {
     hubs: Record<string, Mock>;
   },
-  showCmd: {} as Record<string, Mock>,
   clean: {} as Record<string, Mock>,
   atomic: (fn: () => Promise<unknown>) => fn(),
+  consistent: (fn: () => Promise<unknown>) => fn(),
 }));
 vi.mock('../src/lib/open.js', async (importOriginal) => ({
   ...(await importOriginal<object>()),
@@ -244,15 +244,8 @@ const TABLE: [string, string, unknown[], unknown, string][] = [
     json(resource),
   ],
   [
-    'show cardType test/cardTypes/c -u',
-    'showCmd.showResource',
-    ['test/cardTypes/c', true],
-    { ...resource, usedIn: [] },
-    json({ name: resource.name, usedIn: [] }),
-  ],
-  [
     'show cardTypes',
-    'showCmd.showResources',
+    'resources.list',
     ['cardTypes'],
     ['test/cardTypes/c'],
     json(['test/cardTypes/c']),
@@ -304,6 +297,23 @@ describe('resource and settings commands', () => {
     expect(await cli(argv)).toBe(0);
     expect(call).toHaveBeenCalledExactlyOnceWith(...args);
     expect({ stdout, stderr }).toEqual({ stdout: `${out}\n`, stderr: '' });
+  });
+
+  it('show <resource> -u adds where it is used', async () => {
+    stub(
+      'resources.show',
+      vi.fn(async () => structuredClone(resource)),
+    );
+    const usage = stub(
+      'resources.usage',
+      vi.fn(async () => ['test_a']),
+    );
+
+    expect(await cli('show cardType test/cardTypes/c -u')).toBe(0);
+    expect(usage).toHaveBeenCalledExactlyOnceWith('test/cardTypes/c');
+    expect(stdout).toBe(
+      `${json({ name: resource.name, usedIn: ['test_a'] })}\n`,
+    );
   });
 
   // The mapping from error to exit code is one path (onProject); one row per verb.
