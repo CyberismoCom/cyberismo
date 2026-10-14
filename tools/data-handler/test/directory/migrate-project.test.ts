@@ -36,10 +36,6 @@ describe('migrateProject', () => {
     expect(await migrateProject(path)).toContain('Successfully migrated');
 
     const ws = await openProjectAt(path, SYSTEM_ACTOR);
-    try {
-      expect(ws.checkout.configuration.schemaVersion).toBe(SCHEMA_VERSION);
-    } finally {
-      ws.checkout.dispose();
-    }
+    expect(ws.checkout.configuration.schemaVersion).toBe(SCHEMA_VERSION);
   });
 });

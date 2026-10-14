@@ -33,7 +33,6 @@ beforeEach(async () => {
 });
 
 afterEach(async () => {
-  ws.checkout.dispose();
   await cleanupTempTestData(path);
 });
 

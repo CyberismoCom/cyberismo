@@ -57,7 +57,6 @@ describe('change feed', () => {
   });
 
   afterEach(async () => {
-    ws.checkout.dispose();
     vi.restoreAllMocks();
     await rm(dir, { recursive: true, force: true });
   });
@@ -142,8 +141,7 @@ describe('change feed', () => {
     },
     {
       write: 'a prefix rename',
-      run: () =>
-        new Rename(ws.checkout, ws.actor, ws.identity).rename('renamed'),
+      run: () => new Rename(ws).rename('renamed'),
       changes: [{ kind: 'project.reloaded' }],
     },
   ];

@@ -49,8 +49,10 @@ describe('POST /api/test/reset', () => {
     await expect(readFile(marker, 'utf8')).rejects.toThrow();
   });
 
-  it('reopens the project: the old checkout is disposed, the prefix still resolves', async () => {
-    expect(ws.checkout.disposed).toBe(true);
+  it('reopens the project: the old handle is refused, the prefix still resolves', async () => {
+    await expect(
+      ws.modules.install(`file:${goldenPath}`),
+    ).rejects.toMatchObject({ code: 'workspace-disposed' });
     const res = await app.request('/api/projects/decision/cards');
     expect(res.status).toBe(200);
   });

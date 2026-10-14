@@ -18,6 +18,7 @@ import type { CommitIdentity } from '../utils/tx-record.js';
 import type { ActorRef } from '@cyberismo/model';
 
 import type { Checkout } from '../infra/checkout.js';
+import type { Workspace } from '../workspace/workspace.js';
 import {
   addLabel,
   updateCardContent,
@@ -30,15 +31,16 @@ import { findCard } from '../cards/read.js';
  * Handles importing cards from a CSV file.
  */
 export class Import {
-  /**
-   * Creates an instance of Import.
-   * @param checkout Project to use.
-   */
-  constructor(
-    private checkout: Checkout,
-    public readonly actor: ActorRef,
-    public readonly identity?: CommitIdentity,
-  ) {}
+  private readonly checkout: Checkout;
+  public readonly actor: ActorRef;
+  public readonly identity?: CommitIdentity;
+
+  /** Acts on the handle's project as its actor. */
+  constructor(ws: Workspace) {
+    this.checkout = ws.checkout;
+    this.actor = ws.actor;
+    this.identity = ws.identity;
+  }
 
   /**
    * Imports cards based on a csv file

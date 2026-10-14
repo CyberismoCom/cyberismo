@@ -37,7 +37,6 @@ beforeEach(async () => {
 });
 
 afterEach(async () => {
-  checkout.dispose();
   await project.cleanup();
 });
 
@@ -76,7 +75,6 @@ it('commits a façade write as the actor of its handle', async () => {
       `Move card ${child} to ${parent}|Bob <bob@example.com>`,
     );
   } finally {
-    other.dispose();
     await built.cleanup();
   }
 });
