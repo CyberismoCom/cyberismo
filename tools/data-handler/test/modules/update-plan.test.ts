@@ -3,7 +3,11 @@ import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import { resolveUpdate, toUpdatePlan } from '../../src/modules/update-plan.js';
+import {
+  checkUpdate,
+  resolveUpdate,
+  toUpdatePlan,
+} from '../../src/modules/update-plan.js';
 import { makeProjectStub } from '../helpers/module-fixtures.js';
 import { InMemorySource, type FakeModuleConfig } from './in-memory-source.js';
 import type {
@@ -25,7 +29,11 @@ const planFor = async (
   checkout: Checkout,
   target: UpdateTarget,
   opts: { source: InMemorySource; credentials?: Credentials },
-) => toUpdatePlan(checkout, await resolveUpdate(checkout, target, opts));
+) =>
+  toUpdatePlan(
+    checkout,
+    await resolveUpdate(checkout, await checkUpdate(checkout, target), opts),
+  );
 
 const loc = (name: string) => `https://x/${name}.git`;
 
