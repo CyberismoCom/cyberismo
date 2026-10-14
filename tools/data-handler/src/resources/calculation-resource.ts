@@ -29,7 +29,7 @@ import type {
   CalculationMetadata,
   Card,
 } from '@cyberismo/model';
-import type { Checkout } from '../containers/project.js';
+import type { Checkout } from '../infra/checkout.js';
 
 /**
  * Calculation resource class.

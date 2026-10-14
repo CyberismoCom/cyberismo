@@ -26,10 +26,10 @@ import { egressFetch } from '../utils/egress.js';
 import { getChildLogger } from '../utils/log-utils.js';
 import { readJsonFile, writeJsonFile } from '../utils/json.js';
 import { validateJson } from '../utils/validate.js';
-import { write } from '../utils/rw-lock.js';
+import { write } from './rw-lock.js';
 
 import type { HubFetchFailure, ModuleSetting } from '@cyberismo/model';
-import type { Checkout } from '../containers/project.js';
+import type { Checkout } from './checkout.js';
 
 // Cached data of a single hub.
 export interface CachedHub {

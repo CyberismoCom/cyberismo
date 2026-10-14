@@ -14,7 +14,7 @@
 
 import { runMigrationChain, SCHEMA_VERSION } from '@cyberismo/migrations';
 
-import { readModuleConfig } from '../containers/project/cards-config.js';
+import { readModuleConfig } from '../infra/cards-config.js';
 
 import type { ResolvedModule } from './resolve/types.js';
 

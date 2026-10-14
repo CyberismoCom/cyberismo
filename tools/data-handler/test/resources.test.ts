@@ -5,7 +5,7 @@ import { mkdirSync, readFileSync, rmSync } from 'node:fs';
 
 import { copyDir } from '../src/utils/file-utils.js';
 import { getTestProject } from './helpers/test-utils.js';
-import type { Checkout } from '../src/containers/project.js';
+import type { Checkout } from '../src/infra/checkout.js';
 import { resourceName } from '../src/utils/resource-utils.js';
 
 import type {

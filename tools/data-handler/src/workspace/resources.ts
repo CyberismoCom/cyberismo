@@ -24,18 +24,18 @@ import type {
 } from '@cyberismo/model';
 import { findCard } from '../cards/read.js';
 import { Validate } from '../commands/validate.js';
-import type { Checkout } from '../containers/project.js';
-import type { ResourceMap } from '../containers/project/resource-cache.js';
-import type { ResourcesFrom } from '../containers/project/resources-from.js';
+import type { Checkout } from '../infra/checkout.js';
+import type { ResourceMap } from '../infra/resource-cache.js';
+import type { ResourcesFrom } from '../infra/resources-from.js';
 import { createSubject } from '../mutations/resource-mutations.js';
 import {
   getSkill,
   listSkills,
   renderSkillTemplates,
 } from '../queries/skills.js';
-import { runWithDefaultCommitMessage } from '../utils/commit-context.js';
+import { runWithDefaultCommitMessage } from '../infra/commit-context.js';
 import { resourceName } from '../utils/resource-utils.js';
-import { read } from '../utils/rw-lock.js';
+import { read } from '../infra/rw-lock.js';
 import type { Changes } from './changes.js';
 
 /**

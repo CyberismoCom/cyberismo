@@ -24,10 +24,10 @@ import type {
   ProjectFile,
 } from '@cyberismo/model';
 import { Validate } from '../commands/validate.js';
-import { Checkout, type OpenOptions } from '../containers/project.js';
+import { Checkout, type OpenOptions } from '../infra/checkout.js';
 import { errorFunction } from '../utils/error-utils.js';
 import { isValidFolderName } from '../utils/file-utils.js';
-import { GitManager } from '../utils/git-manager.js';
+import { GitManager } from '../infra/git-manager.js';
 import { writeJsonFile } from '../utils/json.js';
 import type { CommitIdentity } from '../utils/tx-record.js';
 import { Workspace } from '../workspace/workspace.js';

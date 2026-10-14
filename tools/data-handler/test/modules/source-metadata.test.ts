@@ -3,8 +3,8 @@ import { mkdtemp, rm, mkdir, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { simpleGit } from 'simple-git';
-import { GitSourceLayer } from '../../src/modules/source-git.js';
-import { FileSourceLayer } from '../../src/modules/source-file.js';
+import { GitSourceLayer } from '../../src/infra/module-source/source-git.js';
+import { FileSourceLayer } from '../../src/infra/module-source/source-file.js';
 
 /** Create a simpleGit instance with a test identity so tests work without global git config. */
 function testGit(dir: string) {

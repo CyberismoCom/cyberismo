@@ -12,9 +12,9 @@
 */
 
 import type { RenderedContent, RenderOptions } from '@cyberismo/model';
-import type { Checkout } from '../containers/project.js';
+import type { Checkout } from '../infra/checkout.js';
 import { rewriteAsciidocCardXrefs } from '../utils/asciidoc-xref.js';
-import { read } from '../utils/rw-lock.js';
+import { read } from '../infra/rw-lock.js';
 import { evaluateMacros } from './index.js';
 
 /** The text that stands for content whose macros failed. */

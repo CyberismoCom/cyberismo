@@ -12,7 +12,7 @@ import { copyDir } from '../src/utils/file-utils.js';
 import {
   MODULE_LIST_FULL_PATH,
   type ModuleListFile,
-} from '../src/commands/fetch.js';
+} from '../src/infra/hub-store.js';
 import { getTestBaseDir, getTestProject } from './helpers/test-utils.js';
 import { makeFakeModuleFixture } from './helpers/module-fixtures.js';
 

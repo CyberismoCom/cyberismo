@@ -13,7 +13,7 @@
 
 import { runMigrationChain, SCHEMA_VERSION } from '@cyberismo/migrations';
 
-import { ProjectPaths } from '../containers/project/project-paths.js';
+import { ProjectPaths } from '../infra/project-paths.js';
 import { readJsonFile } from '../utils/json.js';
 
 /**

@@ -26,7 +26,7 @@ import type {
   GraphModelMetadata,
   GraphModelContent,
 } from '@cyberismo/model';
-import type { Checkout } from '../containers/project.js';
+import type { Checkout } from '../infra/checkout.js';
 
 /**
  * Graph model resource class.

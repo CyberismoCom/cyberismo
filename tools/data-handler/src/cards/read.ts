@@ -22,7 +22,7 @@ import {
   type CardNode,
   type TemplateCardTree,
 } from '@cyberismo/model';
-import type { Checkout } from '../containers/project.js';
+import type { Checkout } from '../infra/checkout.js';
 import {
   buildCardHierarchy,
   compareAttachments,

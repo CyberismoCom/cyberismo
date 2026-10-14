@@ -28,7 +28,7 @@ import {
   ProjectNotFoundError,
 } from '../../src/exceptions/index.js';
 import { resetEgressDispatcherForTest } from '../../src/utils/egress.js';
-import { GitManager } from '../../src/utils/git-manager.js';
+import { GitManager } from '../../src/infra/git-manager.js';
 import { SYSTEM_ACTOR } from '../../src/utils/tx-record.js';
 import {
   isolatedGitEnv,

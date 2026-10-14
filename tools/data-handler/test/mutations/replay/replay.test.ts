@@ -21,7 +21,7 @@ import {
 import type { SealSpec } from '../../helpers/replay-fixtures.js';
 import type { ConfigurationLogEntry } from '../../../src/utils/configuration-logger.js';
 import type { ModuleInstallation } from '../../../src/modules/types.js';
-import type { Checkout } from '../../../src/containers/project.js';
+import type { Checkout } from '../../../src/infra/checkout.js';
 import type { ReplayStep } from '../../../src/mutations/replay/replay.js';
 import type { ResolvedModule } from '../../../src/modules/resolve/types.js';
 
