@@ -413,7 +413,7 @@ export function registerTools(
     async ({ projectPrefix }, extra) => {
       try {
         const ws = resolveCommands(provider, projectPrefix, extra, server);
-        const templates = await ws.showCmd.showTemplatesWithDetails();
+        const templates = await ws.resources.contents('templates');
         return toolResult({ templates });
       } catch (error) {
         return toolError('listing templates', error);

@@ -65,7 +65,7 @@ export async function getCardDetails(
       if (!cardDetailsResponse.metadata) {
         throw new Error('Card has no metadata');
       }
-      const cardType = await ws.showCmd.showResource(
+      const cardType = await ws.resources.show(
         cardDetailsResponse.metadata.cardType,
         'cardTypes',
       );
@@ -73,7 +73,7 @@ export async function getCardDetails(
       const fields = [];
       let i = 0;
       for (const customField of cardType.customFields) {
-        const fieldType = await ws.showCmd.showResource(
+        const fieldType = await ws.resources.show(
           customField.name,
           'fieldTypes',
         );
