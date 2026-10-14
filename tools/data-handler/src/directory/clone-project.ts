@@ -12,11 +12,11 @@
 */
 
 // node
-import { basename, join } from 'node:path';
+import { basename, join, relative } from 'node:path';
 import { mkdir, mkdtemp, rename, rm } from 'node:fs/promises';
 
-import { scanForProjects } from '../project-scanner.js';
 import { createGit, gitTimeout } from '../infra/git-config.js';
+import { configuredFolders } from '../infra/project-folders.js';
 import { pathExists } from '../utils/file-utils.js';
 import { getChildLogger } from '../utils/log-utils.js';
 
@@ -28,12 +28,12 @@ const logger = getChildLogger({ module: 'create' });
  * contains at least one Cyberismo project, then moves it to the final path.
  * @param url Git URL to clone (https:// or git@)
  * @param destPath Parent directory where the repo will be cloned into
- * @returns The path to the cloned repository
+ * @returns The cloned repository's projects, with their configured prefixes
  */
 export async function cloneProject(
   url: string,
   destPath: string,
-): Promise<string> {
+): Promise<{ path: string; prefix: string }[]> {
   const repoName = basename(url, '.git').replace(/[^\w.-]/g, '_');
   const finalPath = join(destPath, repoName);
 
@@ -45,6 +45,7 @@ export async function cloneProject(
   await mkdir(destPath, { recursive: true });
   let tempDir: string | undefined;
   let tempClonePath!: string;
+  let folders: { path: string; prefix: string }[];
 
   try {
     tempDir = await mkdtemp(join(destPath, '.cyberismo-clone-'));
@@ -53,8 +54,8 @@ export async function cloneProject(
     await git.clone(url, tempClonePath);
 
     // Validate that the cloned repo contains Cyberismo projects
-    const projects = await scanForProjects(tempClonePath);
-    if (projects.length === 0) {
+    folders = await configuredFolders(tempClonePath);
+    if (folders.length === 0) {
       throw new Error(
         'Cloned repository does not contain any Cyberismo projects',
       );
@@ -80,5 +81,8 @@ export async function cloneProject(
     }
   }
 
-  return finalPath;
+  return folders.map(({ path, prefix }) => ({
+    path: join(finalPath, relative(tempClonePath, path)),
+    prefix,
+  }));
 }

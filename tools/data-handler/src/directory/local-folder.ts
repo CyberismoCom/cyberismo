@@ -27,7 +27,10 @@ import {
   ProjectExistsError,
   ProjectNotFoundError,
 } from '../exceptions/index.js';
-import { isProjectDirectory, scanForProjects } from '../project-scanner.js';
+import {
+  configuredFolders,
+  isProjectFolder,
+} from '../infra/project-folders.js';
 import { SYSTEM_ACTOR, type CommitIdentity } from '../utils/tx-record.js';
 import { Workspace, type WorkspaceOptions } from '../workspace/workspace.js';
 import { createAndOpen } from './create-project.js';
@@ -47,7 +50,7 @@ export async function openProjectAt(
   identity?: CommitIdentity,
   options?: WorkspaceOptions,
 ): Promise<Workspace> {
-  if (!isProjectDirectory(path)) {
+  if (!isProjectFolder(path)) {
     throw new Error(
       `'${path}' is not a project: it has no '.cards' and 'cardRoot'`,
     );
@@ -67,21 +70,66 @@ export async function localFolder(
 ): Promise<{ directory: ProjectDirectory; failed: ProjectErrors[] }> {
   const directory = new LocalFolder(root, options);
   const failed: ProjectErrors[] = [];
-  for (const project of await scanForProjects(root)) {
-    try {
-      directory.add(project.prefix, await Checkout.open(project.path, options));
-    } catch (error) {
+  const seen = new Map<string, string>();
+  for (const { path, prefix } of await configuredFolders(root)) {
+    const project = await openFolder(path, prefix, options);
+    if (isDuplicate(seen, path, project)) {
+      continue;
+    }
+    if (project.checkout) {
+      directory.add(project.prefix, project.checkout);
+    } else {
       failed.push({
         prefix: project.prefix,
         errors: [
-          `Failed to load project (${project.path}): ${
-            error instanceof Error ? error.message : String(error)
+          `Failed to load project (${path}): ${
+            project.error instanceof Error
+              ? project.error.message
+              : String(project.error)
           }`,
         ],
       });
     }
   }
   return { directory, failed };
+}
+
+type Opened =
+  | { prefix: string; checkout: Checkout; error?: undefined }
+  | { prefix: string; checkout?: undefined; error: unknown };
+
+// The project at `path` opened, or why it did not open; `prefix` is the
+// one its configuration names.
+async function openFolder(
+  path: string,
+  prefix: string,
+  options: WorkspaceOptions | undefined,
+): Promise<Opened> {
+  try {
+    const checkout = await Checkout.open(path, options);
+    return { prefix: checkout.projectPrefix, checkout };
+  } catch (error) {
+    return { prefix, error };
+  }
+}
+
+// Whether an earlier folder had the project's prefix; the later one is
+// dropped with a warning.
+function isDuplicate(
+  seen: Map<string, string>,
+  path: string,
+  project: Opened,
+): boolean {
+  const existing = seen.get(project.prefix);
+  if (existing === undefined) {
+    seen.set(project.prefix, path);
+    return false;
+  }
+  console.warn(
+    `Skipping project '${path}': duplicate prefix '${project.prefix}' (already registered from '${existing}')`,
+  );
+  project.checkout?.dispose();
+  return true;
 }
 
 // The directory reads settings as the system; it owns the checkout, not the handle.
@@ -201,25 +249,30 @@ class LocalFolder implements ProjectDirectory {
   }
 
   async clone(url: string): Promise<CloneProjectResult> {
-    const clonedPath = await cloneProject(url, this.root);
-    const scanned = await scanForProjects(clonedPath);
+    const folders = await cloneProject(url, this.root);
 
     return this.serially(async () => {
       const registered: { prefix: string; name: string }[] = [];
       const skippedDuplicates: string[] = [];
+      const seen = new Map<string, string>();
 
-      for (const project of scanned) {
+      for (const { path, prefix } of folders) {
+        const project = await openFolder(path, prefix, this.options);
+        if (isDuplicate(seen, path, project)) {
+          continue;
+        }
         if (this.holds(project.prefix)) {
+          project.checkout?.dispose();
           skippedDuplicates.push(project.prefix);
           continue;
         }
-        this.add(
-          project.prefix,
-          await Checkout.open(project.path, this.options),
-        );
+        if (!project.checkout) {
+          throw project.error;
+        }
+        this.add(project.prefix, project.checkout);
         registered.push({
           prefix: project.prefix,
-          name: project.name,
+          name: project.checkout.configuration.name,
         });
       }
 
