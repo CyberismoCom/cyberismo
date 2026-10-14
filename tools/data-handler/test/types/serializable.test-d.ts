@@ -101,6 +101,7 @@ export const cards: FacadeSerializable<Cards> = {
   removeAttachment: true,
   renameAttachment: true,
   create: true,
+  importCsv: true,
   addToTemplate: true,
   list: true,
   details: true,

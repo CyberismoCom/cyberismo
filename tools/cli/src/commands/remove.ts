@@ -13,12 +13,7 @@
 
 import { type Command } from 'commander';
 
-import {
-  Remove,
-  removeResource,
-  type Workspace,
-} from '@cyberismo/data-handler';
-import type { RemovableResourceTypes } from '@cyberismo/model';
+import { removeResource, type Workspace } from '@cyberismo/data-handler';
 
 import {
   CommandWithPath,
@@ -183,13 +178,9 @@ export async function removeAction(
     }
 
     // Unknown types.
-    await onProject(commandOptions, (ws) =>
-      new Remove(ws).remove(
-        removed as RemovableResourceTypes,
-        commandTarget(type, parameter1!),
-      ),
-    );
-    printResult();
+    await onProject(commandOptions, async () => {
+      throw new Error(`Unknown resource type '${removed}'`);
+    });
   }
 }
 
