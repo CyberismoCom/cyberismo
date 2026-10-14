@@ -30,12 +30,14 @@ const createMockCommandManager = (overrides: any = {}) => {
       show: vi.fn(),
       ...overrides.modules,
     },
-    showCmd: {
-      showProject: vi.fn().mockResolvedValue({ prefix: 'test' }),
-      showResources: vi.fn(),
-      showResource: vi.fn(),
-      showFileNames: vi.fn().mockResolvedValue([]),
-      ...overrides.showCmd,
+    settings: {
+      info: vi.fn().mockResolvedValue({ prefix: 'test' }),
+      ...overrides.settings,
+    },
+    resources: {
+      list: vi.fn(),
+      show: vi.fn(),
+      ...overrides.resources,
     },
     cards: { templateCards: vi.fn(), ...overrides.cards },
     ...overrides,
@@ -105,16 +107,18 @@ describe('Resources Service', () => {
   describe('buildResourceTree', () => {
     test('should build resource tree with root resources only', async () => {
       const mockCommands = createMockCommandManager({
-        showCmd: {
-          showProject: vi.fn().mockResolvedValue({ prefix: 'test' }),
-          showResources: vi.fn().mockImplementation((type) => {
+        settings: {
+          info: vi.fn().mockResolvedValue({ prefix: 'test' }),
+        },
+        resources: {
+          list: vi.fn().mockImplementation((type) => {
             if (type === 'fieldTypes')
               return Promise.resolve(['test/fieldTypes/status']);
             if (type === 'templates')
               return Promise.resolve(['test/templates/basic']);
             return Promise.resolve([]);
           }),
-          showResource: vi.fn().mockResolvedValue(mockResourceData),
+          show: vi.fn().mockResolvedValue(mockResourceData),
         },
         cards: {
           templateCards: vi
@@ -170,9 +174,11 @@ describe('Resources Service', () => {
             workflows: [],
           }),
         },
-        showCmd: {
-          showProject: vi.fn().mockResolvedValue({ prefix: 'test' }),
-          showResources: vi.fn().mockImplementation((type) => {
+        settings: {
+          info: vi.fn().mockResolvedValue({ prefix: 'test' }),
+        },
+        resources: {
+          list: vi.fn().mockImplementation((type) => {
             if (type === 'fieldTypes') {
               return Promise.resolve([
                 'test/fieldTypes/status',
@@ -182,7 +188,7 @@ describe('Resources Service', () => {
             if (type === 'templates') return Promise.resolve([]);
             return Promise.resolve([]);
           }),
-          showResource: vi.fn().mockImplementation((name) => {
+          show: vi.fn().mockImplementation((name) => {
             return Promise.resolve({
               ...mockResourceData,
               name,
@@ -237,13 +243,15 @@ describe('Resources Service', () => {
             workflows: [],
           }),
         },
-        showCmd: {
-          showProject: vi.fn().mockResolvedValue({ prefix: 'test' }),
-          showResources: vi.fn().mockImplementation((type) => {
+        settings: {
+          info: vi.fn().mockResolvedValue({ prefix: 'test' }),
+        },
+        resources: {
+          list: vi.fn().mockImplementation((type) => {
             if (type === 'templates') return Promise.resolve([]);
             return Promise.resolve([]);
           }),
-          showResource: vi.fn().mockResolvedValue(mockResourceData),
+          show: vi.fn().mockResolvedValue(mockResourceData),
         },
         cards: {
           templateCards: vi.fn().mockResolvedValue([
@@ -344,14 +352,16 @@ describe('Resources Service', () => {
       };
 
       const mockCommands = createMockCommandManager({
-        showCmd: {
-          showProject: vi.fn().mockResolvedValue({ prefix: 'test' }),
-          showResources: vi.fn().mockImplementation((type) => {
+        settings: {
+          info: vi.fn().mockResolvedValue({ prefix: 'test' }),
+        },
+        resources: {
+          list: vi.fn().mockImplementation((type) => {
             if (type === 'templates')
               return Promise.resolve(['test/templates/sorted']);
             return Promise.resolve([]);
           }),
-          showResource: vi.fn().mockImplementation((name) => ({
+          show: vi.fn().mockImplementation((name) => ({
             ...mockResourceData,
             name,
           })),
@@ -399,16 +409,18 @@ describe('Resources Service', () => {
         },
       };
       const mockCommands = createMockCommandManager({
-        showCmd: {
-          showProject: vi.fn().mockResolvedValue({ prefix: 'test' }),
-          showResources: vi
+        settings: {
+          info: vi.fn().mockResolvedValue({ prefix: 'test' }),
+        },
+        resources: {
+          list: vi
             .fn()
             .mockImplementation((type) =>
               Promise.resolve(
                 type === 'skills' ? ['test/skills/manageRiskRegister'] : [],
               ),
             ),
-          showResource: vi.fn().mockResolvedValue(mockSkillData),
+          show: vi.fn().mockResolvedValue(mockSkillData),
         },
         cards: { templateCards: vi.fn().mockResolvedValue([]) },
       });
@@ -436,13 +448,15 @@ describe('Resources Service', () => {
 
     test('should handle mixed root and module templates', async () => {
       const mockCommands = createMockCommandManager({
-        showCmd: {
-          showProject: vi.fn().mockResolvedValue({ prefix: 'test' }),
-          showResources: vi.fn().mockImplementation((type) => {
+        settings: {
+          info: vi.fn().mockResolvedValue({ prefix: 'test' }),
+        },
+        resources: {
+          list: vi.fn().mockImplementation((type) => {
             if (type === 'templates') return Promise.resolve([]);
             return Promise.resolve([]);
           }),
-          showResource: vi.fn().mockResolvedValue(mockResourceData),
+          show: vi.fn().mockResolvedValue(mockResourceData),
         },
         cards: {
           templateCards: vi.fn().mockResolvedValue([
@@ -481,14 +495,16 @@ describe('Resources Service', () => {
 
     test('empty templates have children: [] so react-arborist treats them as drop targets', async () => {
       const mockCommands = createMockCommandManager({
-        showCmd: {
-          showProject: vi.fn().mockResolvedValue({ prefix: 'test' }),
-          showResources: vi.fn().mockImplementation((type) => {
+        settings: {
+          info: vi.fn().mockResolvedValue({ prefix: 'test' }),
+        },
+        resources: {
+          list: vi.fn().mockImplementation((type) => {
             if (type === 'templates')
               return Promise.resolve(['test/templates/empty']);
             return Promise.resolve([]);
           }),
-          showResource: vi.fn().mockResolvedValue(mockResourceData),
+          show: vi.fn().mockResolvedValue(mockResourceData),
         },
         cards: { templateCards: vi.fn().mockResolvedValue([]) },
       });
@@ -507,10 +523,12 @@ describe('Resources Service', () => {
 
     test('should handle empty resource types gracefully', async () => {
       const mockCommands = createMockCommandManager({
-        showCmd: {
-          showProject: vi.fn().mockResolvedValue({ prefix: 'test' }),
-          showResources: vi.fn().mockResolvedValue([]), // All empty
-          showResource: vi.fn().mockResolvedValue(mockResourceData), // Empty templates
+        settings: {
+          info: vi.fn().mockResolvedValue({ prefix: 'test' }),
+        },
+        resources: {
+          list: vi.fn().mockResolvedValue([]),
+          show: vi.fn().mockResolvedValue(mockResourceData),
         },
         cards: { templateCards: vi.fn().mockResolvedValue([]) },
       });
@@ -536,19 +554,20 @@ describe('Resources Service', () => {
       ];
 
       const mockCommands = createMockCommandManager({
-        showCmd: {
-          showProject: vi.fn().mockResolvedValue({ prefix: 'test' }),
-          showResources: vi.fn().mockImplementation((type) => {
+        settings: {
+          info: vi.fn().mockResolvedValue({ prefix: 'test' }),
+        },
+        resources: {
+          list: vi.fn().mockImplementation((type) => {
             if (resourceTypes.includes(type)) {
               return Promise.resolve([`test/${type}/example`]);
             }
             return Promise.resolve([]);
           }),
-          showResource: vi.fn().mockImplementation((name) => ({
+          show: vi.fn().mockImplementation((name) => ({
             ...mockResourceData,
             name,
           })),
-          showFileNames: vi.fn().mockResolvedValue([]),
         },
         cards: { templateCards: vi.fn().mockResolvedValue([]) },
       });
@@ -574,14 +593,16 @@ describe('Resources Service', () => {
 
     test('should generate correct node IDs and types', async () => {
       const mockCommands = createMockCommandManager({
-        showCmd: {
-          showProject: vi.fn().mockResolvedValue({ prefix: 'test' }),
-          showResources: vi.fn().mockImplementation((type) => {
+        settings: {
+          info: vi.fn().mockResolvedValue({ prefix: 'test' }),
+        },
+        resources: {
+          list: vi.fn().mockImplementation((type) => {
             if (type === 'fieldTypes')
               return Promise.resolve(['test/fieldTypes/status']);
             return Promise.resolve([]);
           }),
-          showResource: vi.fn().mockResolvedValue(mockResourceData),
+          show: vi.fn().mockResolvedValue(mockResourceData),
         },
         cards: {
           templateCards: vi
@@ -629,10 +650,8 @@ describe('Resources Service', () => {
 
     test('should handle error when showProject fails', async () => {
       const mockCommands = createMockCommandManager({
-        showCmd: {
-          showProject: vi
-            .fn()
-            .mockRejectedValue(new Error('Project not found')),
+        settings: {
+          info: vi.fn().mockRejectedValue(new Error('Project not found')),
         },
       });
 
@@ -643,11 +662,11 @@ describe('Resources Service', () => {
 
     test('should handle error when showResources fails', async () => {
       const mockCommands = createMockCommandManager({
-        showCmd: {
-          showProject: vi.fn().mockResolvedValue({ prefix: 'test' }),
-          showResources: vi
-            .fn()
-            .mockRejectedValue(new Error('Resources not found')),
+        settings: {
+          info: vi.fn().mockResolvedValue({ prefix: 'test' }),
+        },
+        resources: {
+          list: vi.fn().mockRejectedValue(new Error('Resources not found')),
         },
         cards: { templateCards: vi.fn().mockResolvedValue([]) },
       });
@@ -659,14 +678,16 @@ describe('Resources Service', () => {
 
     test('should handle error when showResource fails', async () => {
       const mockCommands = createMockCommandManager({
-        showCmd: {
-          showProject: vi.fn().mockResolvedValue({ prefix: 'test' }),
-          showResources: vi.fn().mockImplementation((type) => {
+        settings: {
+          info: vi.fn().mockResolvedValue({ prefix: 'test' }),
+        },
+        resources: {
+          list: vi.fn().mockImplementation((type) => {
             if (type === 'fieldTypes')
               return Promise.resolve(['test/fieldTypes/status']);
             return Promise.resolve([]);
           }),
-          showResource: vi
+          show: vi
             .fn()
             .mockRejectedValue(new Error('Resource details not found')),
         },
