@@ -16,6 +16,7 @@ import type {
   ActorRef,
   CloneProjectResult,
   CreateProjectParams,
+  CreateProjectResult,
   ProjectSummary,
 } from '@cyberismo/model';
 import type { CommitIdentity } from '../utils/tx-record.js';
@@ -42,7 +43,7 @@ export interface ProjectDirectory {
   ): Promise<Workspace>;
 
   /**
-   * Creates a project in the directory, with the default hub, as the actor.
+   * Creates a project in the directory as the actor, as `createProject` does.
    * @throws ProjectExistsError if the directory has a project `params.prefix`,
    *   or a renamed project has its folder.
    */
@@ -50,7 +51,7 @@ export interface ProjectDirectory {
     params: CreateProjectParams,
     actor: ActorRef,
     identity?: CommitIdentity,
-  ): Promise<ProjectSummary>;
+  ): Promise<CreateProjectResult>;
 
   /**
    * Clones the repository at `url` into the directory and adds the projects

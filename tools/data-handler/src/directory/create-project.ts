@@ -15,12 +15,22 @@
 import { join, resolve } from 'node:path';
 import { mkdir, writeFile } from 'node:fs/promises';
 
+import { DEFAULT_HUB } from '@cyberismo/assets';
 import { SCHEMA_VERSION } from '@cyberismo/migrations';
-import type { CreateProjectParams, ProjectFile } from '@cyberismo/model';
+import type {
+  ActorRef,
+  CreateProjectParams,
+  CreateProjectResult,
+  ProjectFile,
+} from '@cyberismo/model';
 import { Validate } from '../commands/validate.js';
-import { Checkout } from '../containers/project.js';
+import { Checkout, type OpenOptions } from '../containers/project.js';
+import { errorFunction } from '../utils/error-utils.js';
 import { isValidFolderName } from '../utils/file-utils.js';
+import { GitManager } from '../utils/git-manager.js';
 import { writeJsonFile } from '../utils/json.js';
+import type { CommitIdentity } from '../utils/tx-record.js';
+import { Workspace } from '../workspace/workspace.js';
 
 // todo: Is there a easy to way to make JSON schema into a TypeScript interface/type?
 //       Check this out: https://www.npmjs.com/package/json-schema-to-ts
@@ -61,10 +71,96 @@ const gitIgnoreContent: string[] = [
 ];
 
 /**
- * Writes a new project's files at `projectPath`; makes no repository.
- * @throws if `params` or the path is invalid, or a project is there already.
+ * Creates a project at `projectPath` as the actor: its files, a repository
+ * with an initial commit, and unless `params.skipDefaultHub` the default hub
+ * and its module list.
+ * @param identity Git author of the actor's commits; unset makes the initial
+ *   commit the Cyberismo Bot's.
+ * @throws if `params` or the path is invalid, a project is there already, or
+ *   git is not installed (the project's files are then left in place).
  */
 export async function createProject(
+  projectPath: string,
+  params: CreateProjectParams,
+  actor: ActorRef,
+  identity?: CommitIdentity,
+  options?: OpenOptions,
+): Promise<CreateProjectResult> {
+  const { checkout, result } = await createAndOpen(
+    projectPath,
+    params,
+    actor,
+    identity,
+    options,
+  );
+  checkout.dispose();
+  return result;
+}
+
+/** As `createProject`, leaving the new project's checkout to the caller. */
+export async function createAndOpen(
+  projectPath: string,
+  params: CreateProjectParams,
+  actor: ActorRef,
+  identity?: CommitIdentity,
+  options?: OpenOptions,
+): Promise<{ checkout: Checkout; result: CreateProjectResult }> {
+  const path = resolve(projectPath);
+  await writeProjectFiles(path, params);
+  // Before the checkout opens: with autocommit it would make the initial
+  // commit itself, without the actor's identity.
+  try {
+    await new GitManager(path).initialize(identity);
+  } catch (error) {
+    if (errorFunction(error).includes('ENOENT')) {
+      throw new Error(
+        'git is required to create a project, but it was not found. Install git and make sure it is on PATH.',
+        { cause: error },
+      );
+    }
+    throw error;
+  }
+  const checkout = await Checkout.open(path, options);
+
+  const outcome = params.skipDefaultHub
+    ? { failures: [], warnings: [] }
+    : await addDefaultHub(Workspace.over(checkout, actor, identity));
+  return {
+    checkout,
+    result: { path, prefix: params.prefix, ...outcome },
+  };
+}
+
+// Adds the default hub and fetches its module list.
+async function addDefaultHub(
+  ws: Workspace,
+): Promise<Pick<CreateProjectResult, 'failures' | 'warnings'>> {
+  try {
+    await ws.settings.hubs.add(DEFAULT_HUB);
+  } catch (error) {
+    return {
+      failures: [`Could not add default hub - ${errorFunction(error)}`],
+      warnings: [],
+    };
+  }
+  try {
+    const unread = await ws.modules.fetchHubs();
+    return {
+      failures: [],
+      warnings: unread.map(
+        (hub) => `Could not fetch hub data - ${hub.location}: ${hub.message}`,
+      ),
+    };
+  } catch (error) {
+    return {
+      failures: [],
+      warnings: [`Could not fetch hub data - ${errorFunction(error)}`],
+    };
+  }
+}
+
+// Writes a new project's files at `projectPath`.
+async function writeProjectFiles(
   projectPath: string,
   params: CreateProjectParams,
 ) {
