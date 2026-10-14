@@ -1,11 +1,15 @@
+import { readFileSync } from 'node:fs';
+
 import { expect, describe, it } from 'vitest';
 
-import { escapeCsvField, readCsvFile } from '../../src/utils/csv.js';
+import { escapeCsvField, parseCsv } from '../../src/utils/csv.js';
+
+const parseFile = (file: string) => parseCsv(readFileSync(file, 'utf-8'));
 
 describe('should read csv file', () => {
   it('read a csv file', async () => {
     const file = 'test/test-data/valid.csv';
-    await expect(readCsvFile(file)).resolves.toEqual([
+    expect(parseFile(file)).toEqual([
       { test: '1', test2: '1' },
       { test: '2', test2: '3' },
     ]);
@@ -13,17 +17,11 @@ describe('should read csv file', () => {
   it('should reject when trying to read csv if headers and data do not match', async () => {
     const file = 'test/test-data/invalid-mismatch.csv';
 
-    await expect(readCsvFile(file)).rejects.toThrow('Invalid Record Length');
+    expect(() => parseFile(file)).toThrow('Invalid Record Length');
   });
   it('should reject when trying to read csv if headers are not unique', async () => {
     const file = 'test/test-data/invalid-unique.csv';
-    await expect(readCsvFile(file)).rejects.toThrow('Error parsing header');
-  });
-  it('should reject when trying to read csv that does not exist', async () => {
-    const file = 'test/test-data/invalid-path.csv';
-    await expect(readCsvFile(file)).rejects.toThrow(
-      'ENOENT: no such file or directory',
-    );
+    expect(() => parseFile(file)).toThrow('Error parsing header');
   });
   it('should escape double quotes by doubling them', () => {
     const input = 'Text with "quotes"';

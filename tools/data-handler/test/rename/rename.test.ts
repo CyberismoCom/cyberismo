@@ -18,7 +18,7 @@ import { describe, expect, it } from 'vitest';
 import { ConfigurationLogger } from '../../src/utils/configuration-logger.js';
 import { expectRefused, projects } from '../cards/fixture.js';
 import { openTestWorkspace } from '../helpers/open-test-workspace.js';
-import { Rename } from '../../src/commands/rename.js';
+import { renameProject } from '../../src/directory/rename-project.js';
 import { Validate } from '../../src/commands/validate.js';
 
 const open = projects();
@@ -36,12 +36,12 @@ const config = (path: string) =>
   );
 const cardDir = (path: string, key: string) => join(path, 'cardRoot', key);
 
-describe('renameCmd.rename', () => {
+describe('renameProject', () => {
   it('moves the prefix everywhere and leaves a project that validates', async () => {
     const { ws, path, keys } = await open(spec);
     const [parent, child] = keys;
 
-    await new Rename(ws).rename('new');
+    await renameProject(ws, 'new');
 
     const renamed = (key: string) => key.replace(/^old_/, 'new_');
     expect(existsSync(cardDir(path, parent))).toBe(false);
@@ -60,7 +60,7 @@ describe('renameCmd.rename', () => {
   it('renames a project that has no cards', async () => {
     const { ws, path } = await open({ prefix: 'old' });
 
-    await new Rename(ws).rename('new');
+    await renameProject(ws, 'new');
 
     expect(config(path).cardKeyPrefix).toBe('new');
   });
@@ -69,7 +69,7 @@ describe('renameCmd.rename', () => {
     const { ws, path, keys } = await open(spec);
     await ws.cards.addAttachment(keys[0], 'old.png', Buffer.from('img'));
 
-    await new Rename(ws).rename('new');
+    await renameProject(ws, 'new');
 
     const attachments = join(
       cardDir(path, keys[0].replace(/^old_/, 'new_')),
@@ -84,7 +84,7 @@ describe('renameCmd.rename', () => {
     const { ws, path } = await open(spec);
     const before = await ConfigurationLogger.entries(path);
 
-    await new Rename(ws).rename('new');
+    await renameProject(ws, 'new');
 
     expect(await ConfigurationLogger.entries(path)).toEqual(before);
   });
@@ -95,7 +95,7 @@ describe('renameCmd.rename', () => {
   ])('refuses %s and changes nothing', async (_name, to, error) => {
     const { ws, path } = await open(spec);
 
-    await expectRefused(path, () => new Rename(ws).rename(to), error);
+    await expectRefused(path, () => renameProject(ws, to), error);
   });
 
   it('refuses once a version is published and moves nothing', async () => {
@@ -103,7 +103,7 @@ describe('renameCmd.rename', () => {
 
     await expectRefused(
       path,
-      () => new Rename(ws).rename('new'),
+      () => renameProject(ws, 'new'),
       /version 1\.2\.0\b.*'cyberismo rename new --force'/s,
     );
   });
@@ -112,7 +112,7 @@ describe('renameCmd.rename', () => {
     const { ws, path, keys } = await open(published);
     const before = await ConfigurationLogger.entries(path);
 
-    await new Rename(ws).rename('new', true);
+    await renameProject(ws, 'new', { force: true });
 
     expect(existsSync(cardDir(path, keys[0].replace(/^old_/, 'new_')))).toBe(
       true,

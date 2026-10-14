@@ -27,7 +27,7 @@ import type { ActorRef } from '@cyberismo/model';
  * unless forced. A forced rename makes the next published version a new
  * module, and consumers cannot update to it from the old one.
  */
-export class Rename {
+export class PrefixRename {
   private readonly checkout: Checkout;
   public readonly actor: ActorRef;
   public readonly identity?: CommitIdentity;
@@ -66,4 +66,13 @@ export class Rename {
     }
     await renameProjectPrefix(this.checkout, to);
   }
+}
+
+/** Renames the project's prefix as the handle's actor; see PrefixRename. */
+export function renameProject(
+  ws: Workspace,
+  newPrefix: string,
+  { force = false }: { force?: boolean } = {},
+): Promise<void> {
+  return new PrefixRename(ws).rename(newPrefix, force);
 }

@@ -30,12 +30,7 @@ import {
   vi,
 } from 'vitest';
 
-import {
-  Import,
-  Rename,
-  ResourceNotFoundError,
-  Validate,
-} from '@cyberismo/data-handler';
+import { ResourceNotFoundError, Validate } from '@cyberismo/data-handler';
 
 import program from '../src/index.js';
 import { exitCodeFor } from '../src/lib/errors.js';
@@ -48,23 +43,33 @@ const ws = vi.hoisted(() => ({
   versions: {} as Record<string, Mock>,
   settings: {} as Record<string, Mock>,
   modules: {} as Record<string, Mock>,
+  cards: {} as Record<string, Mock>,
+  atomic: vi.fn((fn: () => Promise<unknown>) => fn()),
 }));
 vi.mock('../src/lib/open.js', async (importOriginal) => ({
   ...(await importOriginal<object>()),
   openWorkspace: async () => ws,
 }));
+// The functions the CLI calls with the handle.
+const functions = vi.hoisted(() => ({}) as Record<string, Mock>);
+vi.mock('@cyberismo/data-handler', async (importOriginal) => ({
+  ...(await importOriginal<object>()),
+  renameProject: (...args: unknown[]) => functions.renameProject(...args),
+}));
 
 // The commands the CLI creates rather than takes from the handle.
 const commands: Record<string, object> = {
-  Import: Import.prototype,
-  Rename: Rename.prototype,
   Validate: Validate.getInstance(),
 };
 
-// Sets the workspace or command method at a dotted path, e.g.
-// 'queries.runReport' or 'Rename.rename'.
+// Sets the function, or the workspace or command method at a dotted path,
+// e.g. 'renameProject', 'queries.runReport' or 'Validate.validate'.
 function stub(path: string, fn: Mock) {
-  const [owner, method] = path.split('.') as [string, string];
+  const [owner, method] = path.split('.') as [string, string?];
+  if (method === undefined) {
+    functions[owner] = fn;
+    return fn;
+  }
   if (owner in commands) {
     return vi
       .spyOn(commands[owner] as Record<string, Mock>, method)
@@ -77,6 +82,9 @@ function stub(path: string, fn: Mock) {
 const dir = mkdtempSync(join(tmpdir(), 'cyberismo-cli-'));
 const programFile = join(dir, 'p.lp');
 writeFileSync(programFile, 'a.');
+const csvFile = join(dir, 'cards.csv');
+const CSV = 'title,template\nA,t\n';
+writeFileSync(csvFile, CSV);
 afterAll(() => rmSync(dir, { recursive: true, force: true }));
 
 const json = (value: unknown) => JSON.stringify(value, null, 2);
@@ -175,18 +183,24 @@ const TABLE: [string, string, unknown[], unknown, string][] = [
     'errors',
     'errors',
   ],
-  ['rename p', 'Rename.rename', ['p', undefined], undefined, 'Done'],
   [
-    'import csv f.csv',
-    'Import.importCsv',
-    ['f.csv', undefined],
+    'rename p',
+    'renameProject',
+    [ws, 'p', { force: undefined }],
+    undefined,
+    'Done',
+  ],
+  [
+    `import csv ${csvFile}`,
+    'cards.importCsv',
+    [CSV, undefined],
     ['a_1'],
     `Imported cards:\n${json(['a_1'])}`,
   ],
   [
-    'import csv f.csv a_2',
-    'Import.importCsv',
-    ['f.csv', 'a_2'],
+    `import csv ${csvFile} a_2`,
+    'cards.importCsv',
+    [CSV, 'a_2'],
     [],
     `Imported cards:\n${json([])}`,
   ],
@@ -243,8 +257,8 @@ describe('verb commands', () => {
     ['publish', 'versions.publish'],
     ['create version minor', 'versions.bump'],
     ['validate', 'Validate.validate'],
-    ['rename p', 'Rename.rename'],
-    ['import csv f.csv', 'Import.importCsv'],
+    ['rename p', 'renameProject'],
+    [`import csv ${csvFile}`, 'cards.importCsv'],
     ['fetch hubs', 'modules.fetchHubs'],
   ])('%s fails with the error of %s', async (argv, method) => {
     const error = new ResourceNotFoundError('missing');
@@ -270,13 +284,45 @@ describe('rename', () => {
       vi.fn(async () => ({ version: '1.2.0' })),
     );
     const rename = stub(
-      'Rename.rename',
+      'renameProject',
       vi.fn(async () => undefined),
     );
 
     expect(await cli('rename p --force')).toBe(0);
-    expect(rename).toHaveBeenCalledExactlyOnceWith('p', true);
+    expect(rename).toHaveBeenCalledExactlyOnceWith(ws, 'p', { force: true });
     expect(stdout).toBe(`Done\n\n${PUBLISHED_NOTE}\n`);
+  });
+});
+
+describe('import csv', () => {
+  it('reads the file inside a write named after it', async () => {
+    const importCsv = stub(
+      'cards.importCsv',
+      vi.fn(async () => []),
+    );
+    ws.atomic.mockClear();
+
+    expect(await cli(`import csv ${csvFile}`)).toBe(0);
+    expect(ws.atomic).toHaveBeenCalledExactlyOnceWith(
+      expect.any(Function),
+      `Import cards from CSV ${csvFile}`,
+    );
+    expect(importCsv).toHaveBeenCalledOnce();
+  });
+
+  it('fails, inside the write, naming a file it cannot read', async () => {
+    const importCsv = stub('cards.importCsv', vi.fn());
+    ws.atomic.mockClear();
+    const missing = join(dir, 'missing.csv');
+
+    expect(await cli(`import csv ${missing}`)).toBe(1);
+    // Inside the write, so a refusal rolls it back as any other would.
+    expect(ws.atomic).toHaveBeenCalledOnce();
+    expect(importCsv).not.toHaveBeenCalled();
+    expect({ stdout, stderr }).toEqual({
+      stdout: '',
+      stderr: `ENOENT: no such file or directory, open '${missing}'\n`,
+    });
   });
 });
 
