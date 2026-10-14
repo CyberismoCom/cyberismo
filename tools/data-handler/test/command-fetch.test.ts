@@ -18,7 +18,6 @@ import { Cmd, Commands } from '../src/command-handler.js';
 import { Workspace } from '../src/workspace/workspace.js';
 import { copyDir } from '../src/utils/file-utils.js';
 import { Fetch, MODULE_LIST_FULL_PATH } from '../src/commands/fetch.js';
-import { Show } from '../src/commands/show.js';
 import { Checkout } from '../src/containers/project.js';
 
 import type { HubSetting } from '@cyberismo/model';
@@ -155,13 +154,13 @@ describe('fetch command', () => {
   describe('hub versions', () => {
     const fetchStub = undiciFetch;
     let checkout: Checkout;
-    let fetchCmd: Fetch;
+    let fetchCmd: Workspace['modules'];
     let fetchModuleListStub: ReturnType<typeof vi.spyOn>;
 
     beforeEach(async () => {
       checkout = new Checkout(decisionRecordsPath);
       await checkout.populateCaches();
-      fetchCmd = Workspace.over(checkout, SYSTEM_ACTOR).fetchCmd;
+      fetchCmd = Workspace.over(checkout, SYSTEM_ACTOR).modules;
       fetchStub.mockReset();
     });
 
@@ -176,7 +175,7 @@ describe('fetch command', () => {
       // return true; indicating fetch is needed
       fetchModuleListStub = vi
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        .spyOn(fetchCmd as any, 'fetchModuleList')
+        .spyOn(Fetch.prototype as any, 'fetchModuleList')
         .mockResolvedValue(true);
 
       // Remote hub returns module list with version 2 (schema-compliant)
@@ -210,7 +209,7 @@ describe('fetch command', () => {
       // no fetch needed
       fetchModuleListStub = vi
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        .spyOn(fetchCmd as any, 'fetchModuleList')
+        .spyOn(Fetch.prototype as any, 'fetchModuleList')
         .mockResolvedValue(false);
 
       await fetchCmd.fetchHubs();
@@ -225,7 +224,7 @@ describe('fetch command', () => {
       // file doesn't exist locally
       fetchModuleListStub = vi
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        .spyOn(fetchCmd as any, 'fetchModuleList')
+        .spyOn(Fetch.prototype as any, 'fetchModuleList')
         .mockResolvedValue(true);
 
       // Remote hub response
@@ -259,7 +258,7 @@ describe('fetch command', () => {
       // would return false; indicating fetch is not needed
       fetchModuleListStub = vi
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        .spyOn(fetchCmd as any, 'fetchModuleList')
+        .spyOn(Fetch.prototype as any, 'fetchModuleList')
         .mockResolvedValue(false);
 
       fetchStub.mockResolvedValue({
@@ -393,8 +392,8 @@ describe('fetch command', () => {
       });
       await fetchCmd.fetchHubs(true);
 
-      const showCmd = new Show(checkout);
-      const hubs = await showCmd.showHubDetails();
+      const showCmd = Workspace.over(checkout, SYSTEM_ACTOR).modules;
+      const hubs = await showCmd.hubDetails();
 
       expect(hubs).toHaveLength(1);
       expect(hubs[0].location).toBe('https://test.com/hub-details');
@@ -418,8 +417,8 @@ describe('fetch command', () => {
       });
       fetchStub.mockRejectedValue(new Error('network down'));
 
-      const showCmd = new Show(checkout);
-      const hubs = await showCmd.showHubDetails();
+      const showCmd = Workspace.over(checkout, SYSTEM_ACTOR).modules;
+      const hubs = await showCmd.hubDetails();
 
       expect(hubs).toHaveLength(1);
       expect(hubs[0].location).toBe('https://unreachable.test.com/hub');
@@ -578,7 +577,7 @@ describe('fetch command', () => {
       // one hub has newer version
       fetchModuleListStub = vi
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        .spyOn(fetchCmd as any, 'fetchModuleList')
+        .spyOn(Fetch.prototype as any, 'fetchModuleList')
         .mockResolvedValue(true);
 
       // Actual fetches for both hubs

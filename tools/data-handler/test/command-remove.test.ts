@@ -84,11 +84,9 @@ describe('remove command', () => {
     it('try to remove non-existing module', async () => {
       const checkout = getTestProject(decisionRecordsPath);
       await checkout.populateCaches();
-      const removeCmd = Workspace.over(checkout, SYSTEM_ACTOR).removeCmd;
+      const removeCmd = Workspace.over(checkout, SYSTEM_ACTOR).modules;
 
-      await expect(
-        removeCmd.remove('module', 'i-dont-exist'),
-      ).rejects.toThrow();
+      await expect(removeCmd.remove('i-dont-exist')).rejects.toThrow();
     });
   });
 });
@@ -247,7 +245,7 @@ describe('remove module — spec behaviours', () => {
     expect(create.statusCode).toBe(200);
 
     const ws = await openTestWorkspace(projectDir, {});
-    await ws.modulesCmd.install(hostRoot);
+    await ws.modules.install(hostRoot);
     // Both are installed; only `trhost` is a top-level declaration.
     expect(existsSync(join(projectDir, '.cards', 'modules', 'trhost'))).toBe(
       true,
@@ -258,7 +256,7 @@ describe('remove module — spec behaviours', () => {
     const topLevelNames = ws.checkout.configuration.modules.map((m) => m.name);
     expect(topLevelNames).toEqual(['trhost']);
 
-    await expect(ws.removeCmd.remove('module', 'trdep')).rejects.toThrow(
+    await expect(ws.modules.remove('trdep')).rejects.toThrow(
       "Cannot remove module 'trdep' because it is required by 'trhost'. Remove the parent module(s) first.",
     );
 
@@ -285,9 +283,9 @@ describe('remove module — spec behaviours', () => {
     expect(create.statusCode).toBe(200);
 
     const ws = await openTestWorkspace(projectDir, {});
-    await expect(
-      ws.removeCmd.remove('module', 'never-imported'),
-    ).rejects.toThrow("Module 'never-imported' is not part of the project");
+    await expect(ws.modules.remove('never-imported')).rejects.toThrow(
+      "Module 'never-imported' is not part of the project",
+    );
   });
 
   it('removing a deep transitive chain cascades the orphan cleanup to a fixed point', async () => {
@@ -316,14 +314,14 @@ describe('remove module — spec behaviours', () => {
     expect(create.statusCode).toBe(200);
 
     const ws = await openTestWorkspace(projectDir, {});
-    await ws.modulesCmd.install(aRoot);
+    await ws.modules.install(aRoot);
 
     // A, B, C all installed.
     expect(existsSync(join(projectDir, '.cards', 'modules', 'cha'))).toBe(true);
     expect(existsSync(join(projectDir, '.cards', 'modules', 'chb'))).toBe(true);
     expect(existsSync(join(projectDir, '.cards', 'modules', 'chc'))).toBe(true);
 
-    await ws.removeCmd.remove('module', 'cha');
+    await ws.modules.remove('cha');
 
     // Fixed-point cascade removes all three.
     expect(existsSync(join(projectDir, '.cards', 'modules', 'cha'))).toBe(
@@ -368,13 +366,13 @@ describe('remove module — spec behaviours', () => {
     expect(create.statusCode).toBe(200);
 
     const ws = await openTestWorkspace(projectDir, {});
-    await ws.modulesCmd.install(aRoot);
+    await ws.modules.install(aRoot);
     // All three transitives live in the cached prefix list.
     expect(ws.checkout.allModulePrefixes()).toContain('drpa');
     expect(ws.checkout.allModulePrefixes()).toContain('drpb');
     expect(ws.checkout.allModulePrefixes()).toContain('drpc');
 
-    await ws.removeCmd.remove('module', 'drpa');
+    await ws.modules.remove('drpa');
 
     // Orphan cascade removed the transitives from disk *and* from the
     // cached prefix list.
@@ -415,7 +413,7 @@ describe('remove hub', () => {
     const checkout = getTestProject(projectPath);
     await checkout.populateCaches();
     checkout.configuration.hubs = locations.map((location) => ({ location }));
-    const fetchCmd = Workspace.over(checkout, SYSTEM_ACTOR).fetchCmd;
+    const fetchCmd = Workspace.over(checkout, SYSTEM_ACTOR).modules;
     return {
       checkout,
       fetchCmd,

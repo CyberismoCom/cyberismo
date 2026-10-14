@@ -31,8 +31,8 @@ describe('import command — live git', () => {
 
   it('import git module', async () => {
     const gitModule = 'https://github.com/CyberismoCom/module-base.git';
-    await ws.modulesCmd.install(gitModule);
-    const modules = await ws.modulesCmd.list();
+    await ws.modules.install(gitModule);
+    const modules = await ws.modules.list();
     expect(modules.length).toBe(1);
     expect(modules[0].name).toBe('base');
   }, 120000);
@@ -41,13 +41,13 @@ describe('import command — live git', () => {
     // remote tag with a caret. The persisted range must be a valid caret
     // expansion covering the installed version.
     const gitModule = 'https://github.com/CyberismoCom/module-base.git';
-    await ws.modulesCmd.install(gitModule);
+    await ws.modules.install(gitModule);
     const persisted = ws.checkout.configuration.modules.find(
       (m) => m.name === 'base',
     );
     expect(persisted).toBeDefined();
     expect(persisted!.version).toMatch(/^\^\d+\.\d+\.\d+$/);
-    const modules = await ws.modulesCmd.list();
+    const modules = await ws.modules.list();
     expect(modules[0].version).toBeDefined();
     expect(
       satisfies(modules[0].version as string, persisted!.version as string),
@@ -55,8 +55,8 @@ describe('import command — live git', () => {
   }, 120000);
   it('import git module at a pinned version installs that version', async () => {
     const gitModule = 'https://github.com/CyberismoCom/module-base.git';
-    await ws.modulesCmd.install(gitModule, { version: '1.0.0' });
-    const modules = await ws.modulesCmd.list();
+    await ws.modules.install(gitModule, { version: '1.0.0' });
+    const modules = await ws.modules.list();
     expect(modules.length).toBe(1);
     expect(modules[0].name).toBe('base');
     expect(modules[0].version).toBe('1.0.0');
@@ -78,23 +78,23 @@ describe('import command — live git', () => {
     'import git module using credentials',
     async () => {
       const gitModule = 'https://github.com/CyberismoCom/module-base.git';
-      await ws.modulesCmd.install(gitModule, {
+      await ws.modules.install(gitModule, {
         private: true,
         credentials: {
           username: process.env.CYBERISMO_GIT_USER,
           token: process.env.CYBERISMO_GIT_TOKEN,
         },
       });
-      const modules = await ws.modulesCmd.list();
+      const modules = await ws.modules.list();
       expect(modules.length).toBe(1);
     },
     120000,
   );
   it('re-importing a git module is upsert', async () => {
     const gitModule = 'https://github.com/CyberismoCom/module-base.git';
-    await ws.modulesCmd.install(gitModule);
-    await ws.modulesCmd.install(gitModule);
-    const modules = await ws.modulesCmd.list();
+    await ws.modules.install(gitModule);
+    await ws.modules.install(gitModule);
+    const modules = await ws.modules.list();
     expect(modules.length).toBe(1);
   }, 120000);
   it.skipIf(skipTest)(
@@ -102,7 +102,7 @@ describe('import command — live git', () => {
     async () => {
       const gitModule = 'https://github.com/CyberismoCom/i-do-not-exist.git';
 
-      await expect(ws.modulesCmd.install(gitModule)).rejects.toThrow(
+      await expect(ws.modules.install(gitModule)).rejects.toThrow(
         "Couldn't fetch module: 'https://github.com/CyberismoCom/i-do-not-exist.git' is unreachable",
       );
     },
@@ -117,29 +117,29 @@ describe('import command — live git', () => {
         token: process.env.CYBERISMO_GIT_TOKEN,
       },
     };
-    await expect(ws.modulesCmd.install(gitModule, options)).rejects.toThrow(
+    await expect(ws.modules.install(gitModule, options)).rejects.toThrow(
       "Couldn't fetch module: 'https://github.com/CyberismoCom/i-do-not-exist.git' is unreachable",
     );
   }, 120000);
   it('update all modules', async () => {
-    let modules = await ws.modulesCmd.list();
+    let modules = await ws.modules.list();
     expect(modules.length).toBe(0);
     const localModule = join(testDir, 'valid/minimal');
-    await ws.modulesCmd.install(localModule);
+    await ws.modules.install(localModule);
 
     const gitModule = 'https://github.com/CyberismoCom/module-base.git';
-    await ws.modulesCmd.install(gitModule, {
+    await ws.modules.install(gitModule, {
       credentials: {
         username: process.env.CYBERISMO_GIT_USER,
         token: process.env.CYBERISMO_GIT_TOKEN,
       },
     });
 
-    modules = await ws.modulesCmd.list();
+    modules = await ws.modules.list();
     expect(modules.length).toBe(2);
 
-    await ws.modulesCmd.update({});
-    modules = await ws.modulesCmd.list();
+    await ws.modules.update({});
+    modules = await ws.modules.list();
     expect(modules.length).toBe(2);
   }, 120000);
 });
