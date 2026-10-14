@@ -30,6 +30,7 @@ import {
   renameCardAttachment,
 } from './attachments.js';
 import { removeCard } from './delete.js';
+import { importCsv } from './import-csv.js';
 import { addCards, createCard } from './instantiate.js';
 import {
   moveCard,
@@ -302,6 +303,19 @@ export class Cards {
     parentCardKey?: string,
   ): Promise<Card[]> {
     return createCard(this.checkout, templateName, parentCardKey);
+  }
+
+  /**
+   * Creates a card per row of a CSV text (title, template, description,
+   * labels and custom field columns), optionally under a parent card.
+   * Returns the keys of the cards created.
+   */
+  @write(() => 'Import cards from CSV')
+  public async importCsv(
+    csv: string,
+    parentCardKey?: string,
+  ): Promise<string[]> {
+    return importCsv(this.checkout, csv, parentCardKey);
   }
 
   /** Adds cards of a card type to a template, optionally under a card. */

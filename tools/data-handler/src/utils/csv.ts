@@ -10,7 +10,6 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { readFile } from 'node:fs/promises';
 import { parse } from 'csv-parse/sync';
 import type { CSVRowRaw } from '@cyberismo/model';
 
@@ -27,14 +26,9 @@ export function escapeCsvField(str: string): string {
 }
 
 /**
- * Reads a CSV file and returns its content as an array of objects.
- * @param file Path to the CSV file.
- * @returns Array of objects. Each object represents a row in the CSV file.
+ * Parses CSV text into an array of objects, one per row, keyed by header.
  */
-export async function readCsvFile(file: string): Promise<CSVRowRaw[]> {
-  const content = await readFile(file, {
-    encoding: 'utf-8',
-  });
+export function parseCsv(content: string): CSVRowRaw[] {
   const records = parse(content, {
     bom: true,
   });

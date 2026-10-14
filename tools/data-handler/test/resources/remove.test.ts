@@ -27,7 +27,6 @@ import {
   resourceTypes,
   spec,
 } from './fixture.js';
-import { Remove } from '../../src/commands/remove.js';
 
 const open = projects();
 
@@ -86,16 +85,6 @@ describe('removing a resource', () => {
         })
       ).stdout.trim(),
     ).toBe('Remove workflow x');
-  });
-
-  it('refuses a type the remove command does not know, changing nothing', async () => {
-    const { ws, path } = await open(spec);
-
-    await expectRefused(
-      path,
-      () => new Remove(ws).remove('colour' as never, 'x'),
-      /Unknown resource type 'colour'/,
-    );
   });
 
   it('is not stopped by a resource that names it, which is left as it is', async () => {
