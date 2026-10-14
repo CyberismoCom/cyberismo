@@ -7,13 +7,17 @@ import {
   ConfigurationLogger,
   type ConfigurationLogEntry,
   type ConfigurationOperation,
-} from '../../src/utils/configuration-logger.js';
-import { copyDir, deleteDir, pathExists } from '../../src/utils/file-utils.js';
-import { ProjectPaths } from '../../src/infra/project-paths.js';
-import { Checkout } from '../../src/infra/checkout.js';
-import { resourceName } from '../../src/utils/resource-utils.js';
-import { Workspace } from '../../src/workspace/workspace.js';
-import { SYSTEM_ACTOR } from '../../src/utils/tx-record.js';
+} from '../../../src/infra/replay-log/configuration-logger.js';
+import {
+  copyDir,
+  deleteDir,
+  pathExists,
+} from '../../../src/utils/file-utils.js';
+import { ProjectPaths } from '../../../src/infra/project-paths.js';
+import { Checkout } from '../../../src/infra/checkout.js';
+import { resourceName } from '../../../src/utils/resource-utils.js';
+import { Workspace } from '../../../src/workspace/workspace.js';
+import { SYSTEM_ACTOR } from '../../../src/utils/tx-record.js';
 
 // Create test artifacts in a temp folder.
 const baseDir = import.meta.dirname;

@@ -15,7 +15,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
-import { ConfigurationLogger } from '../../src/utils/configuration-logger.js';
+import { ConfigurationLogger } from '../../src/infra/replay-log/configuration-logger.js';
 import { expectRefused, projects } from '../cards/fixture.js';
 import { openTestWorkspace } from '../helpers/open-test-workspace.js';
 import { renameProject } from '../../src/directory/rename-project.js';

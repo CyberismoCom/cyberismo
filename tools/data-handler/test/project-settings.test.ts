@@ -4,7 +4,7 @@ import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { HubSetting, ModuleSetting } from '@cyberismo/model';
 
-import { ProjectConfiguration } from '../src/project-settings.js';
+import { ProjectConfiguration } from '../src/infra/project-settings.js';
 import { SCHEMA_VERSION } from '@cyberismo/migrations';
 import { readJsonFileSync } from '../src/utils/json.js';
 

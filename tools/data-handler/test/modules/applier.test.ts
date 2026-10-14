@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 
 import { applyModules } from '../../src/modules/applier.js';
-import type { ResolvedModule } from '../../src/modules/resolve/types.js';
+import type { ResolvedModule } from '../../src/mutations/replay/module-types.js';
 import { ProjectPaths } from '../../src/infra/project-paths.js';
 import { toVersion, toVersionRange } from '../../src/utils/version.js';
 import { makeProjectStub } from '../helpers/module-fixtures.js';

@@ -18,7 +18,7 @@ import { describe, expect, it } from 'vitest';
 import {
   ConfigurationLogger,
   type ConfigurationOperation,
-} from '../../src/utils/configuration-logger.js';
+} from '../../src/infra/replay-log/configuration-logger.js';
 import type { Workspace } from '../../src/workspace/workspace.js';
 import type { BumpType } from '../../src/versions/version.js';
 import { expectRefused, projects } from '../cards/fixture.js';

@@ -26,7 +26,7 @@ import {
 import { type CardNode, type ModuleContent } from '@cyberismo/model';
 import { pathExists } from '../utils/file-utils.js';
 import { isModulePath } from '../utils/card-utils.js';
-import { ProjectConfiguration } from '../project-settings.js';
+import { ProjectConfiguration } from './project-settings.js';
 import { resourceName } from '../utils/resource-utils.js';
 import { ProjectPaths } from './project-paths.js';
 import { readCardsConfig } from './cards-config.js';
