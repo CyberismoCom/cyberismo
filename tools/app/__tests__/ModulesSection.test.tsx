@@ -35,7 +35,7 @@ vi.mock('@/lib/api', () => ({
 vi.mock('@/lib/hooks', () => ({ useAppDispatch: () => vi.fn() }));
 vi.mock('@/components/modals', () => ({
   ModuleDeleteModal: () => null,
-  AddModuleModal: () => null,
+  InstallModuleModal: () => null,
 }));
 vi.mock('@/components/config-editors/useCleanPrompt', () => ({
   useCleanPrompt: () => ({ maybePromptClean: vi.fn() }),
@@ -112,6 +112,8 @@ describe('ModulesSection', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Check for updates' }));
 
     expect(screen.getByRole('button', { name: 'Update Base' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: 'Add module' })).toBeDisabled();
+    expect(
+      screen.getByRole('button', { name: 'Install module' }),
+    ).toBeDisabled();
   });
 });

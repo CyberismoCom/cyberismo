@@ -11,12 +11,13 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
+import semver from 'semver';
 import type { UpdatePlan } from '@cyberismo/data-handler';
 import type { ProjectModule } from './api/types';
 
 export interface ModuleRow {
   // Only root modules are managed directly; a transitive one follows its parents.
-  actions: { update: boolean; remove: boolean };
+  actions: { update: boolean; remove: boolean; changeVersion: boolean };
   // Names of the modules that pull this one in; set only for a transitive module.
   managedBy?: string[];
   // Newest version the declared range admits; null until an update check covers this module.
@@ -51,7 +52,12 @@ export function moduleRow(
   all: ProjectModule[],
 ): ModuleRow {
   const row: ModuleRow = {
-    actions: { update: module.isRoot, remove: module.isRoot },
+    actions: {
+      update: module.isRoot,
+      remove: module.isRoot,
+      // Only a public git source can be listed and re-declared from here.
+      changeVersion: module.isRoot && module.versionSource === 'git',
+    },
     latestCompatible: null,
     latestAvailable: null,
     assumedRange: null,
@@ -72,4 +78,97 @@ export function moduleRow(
   row.heldBack = root.heldBack;
   row.upToDate = change === undefined;
   return row;
+}
+
+export type Binding = 'exact' | 'minor' | 'major';
+// State of the version listing in the install dialog:
+// idle: nothing to list yet; stale: the source changed since it was listed;
+// loading / error: the request is in flight / failed; empty: the repository
+// has no usable tags; versions: there is something to choose from.
+export type Listing =
+  'idle' | 'stale' | 'loading' | 'error' | 'empty' | 'versions';
+
+// The binding a declared range expresses; an absent or other range counts as ^.
+export function bindingOf(range?: string): Binding {
+  if (range?.startsWith('~')) return 'minor';
+  if (range && /^\d/.test(range)) return 'exact';
+  return 'major';
+}
+
+const RANGE_PREFIX: Record<Binding, string> = {
+  exact: '',
+  minor: '~',
+  major: '^',
+};
+
+export const rangeFor = (version: string, binding: Binding) =>
+  RANGE_PREFIX[binding] + version;
+
+// The default pick: the newest version that is not a prerelease. Versions
+// arrive newest first.
+export const newestStable = (versions: string[]) =>
+  versions.find((v) => !semver.prerelease(v)) ?? versions[0];
+
+// The version a newly declared range installs: the solver takes the newest
+// listed version that satisfies it.
+export const newestMatching = (versions: string[], range: string) =>
+  semver.maxSatisfying(versions, range) ?? undefined;
+
+// What the range from rangeFor admits, in words ('^0.3.1' is 0.3.x, not 0.x).
+export function bindingScope(version: string, binding: Binding) {
+  const parsed = semver.coerce(version);
+  if (!parsed || binding === 'exact') return `${version} only`;
+  const { major, minor } = parsed;
+  if (binding === 'minor') return `${major}.${minor}.x`;
+  if (major > 0) return `${major}.x`;
+  return minor > 0 ? `0.${minor}.x` : `${version} only`;
+}
+
+// The engine never downgrades, so with an installed version nothing below it
+// is listed; versions that do not parse are kept.
+export function selectableVersions(versions: string[], installed?: string) {
+  const floor = installed && semver.coerce(installed);
+  if (!floor) return versions;
+  return versions.filter((v) => {
+    const parsed = semver.coerce(v);
+    return !parsed || semver.gte(parsed, floor);
+  });
+}
+
+// Credentials in a source would end up in cardsConfig.json and request logs.
+export function sourceHasCredentials(source: string) {
+  try {
+    const url = new URL(source);
+    return Boolean(url.username || url.password);
+  } catch {
+    return false;
+  }
+}
+
+export interface SubmitInput {
+  mode: 'install' | 'change';
+  // What the user typed; unused when changing an installed module.
+  source: string;
+  listing: Listing;
+  version?: string;
+  binding: Binding;
+}
+
+// Submitting needs a settled listing; only a repository without tags installs
+// without a range (as the CLI does).
+export function submitDecision(input: SubmitInput): {
+  canSubmit: boolean;
+  range?: string;
+} {
+  const { mode, source, listing, version, binding } = input;
+  const sourceOk =
+    mode === 'change' ||
+    (source.trim() !== '' && !sourceHasCredentials(source));
+  // Nothing to install from.
+  if (!sourceOk) return { canSubmit: false };
+  // No tags: a fresh install has no range to declare; a change has nothing to pick.
+  if (listing === 'empty') return { canSubmit: mode === 'install' };
+  // The listing is not settled, so there is no version to declare.
+  if (listing !== 'versions' || !version) return { canSubmit: false };
+  return { canSubmit: true, range: rangeFor(version, binding) };
 }
