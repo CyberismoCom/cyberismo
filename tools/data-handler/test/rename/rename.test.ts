@@ -20,6 +20,7 @@ import { expectRefused, projects } from '../cards/fixture.js';
 import { openTestWorkspace } from '../helpers/open-test-workspace.js';
 import { renameProject } from '../../src/directory/rename-project.js';
 import { Validate } from '../../src/commands/validate.js';
+import { checkoutOf } from '../../src/infra/internal.js';
 
 const open = projects();
 
@@ -53,7 +54,7 @@ describe('renameProject', () => {
     expect(config(path).cardKeyPrefix).toBe('new');
     const reopened = await openTestWorkspace(path);
     expect(
-      await Validate.getInstance().validate(path, () => reopened.checkout),
+      await Validate.getInstance().validate(path, () => checkoutOf(reopened)),
     ).toBe('');
   });
 
