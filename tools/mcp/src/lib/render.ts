@@ -276,16 +276,13 @@ async function computeAvailableTransitions(
 
   try {
     // Get the card type to find the workflow
-    const cardType = await ws.showCmd.showResource(cardTypeName, 'cardTypes');
+    const cardType = await ws.resources.show(cardTypeName, 'cardTypes');
     if (!cardType?.workflow) {
       return [];
     }
 
     // Get the workflow
-    const workflow = await ws.showCmd.showResource(
-      cardType.workflow,
-      'workflows',
-    );
+    const workflow = await ws.resources.show(cardType.workflow, 'workflows');
     if (!workflow?.transitions) {
       return [];
     }

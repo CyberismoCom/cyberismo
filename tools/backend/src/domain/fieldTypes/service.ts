@@ -15,7 +15,7 @@ import type { Workspace } from '@cyberismo/data-handler';
 import type { DataType } from '@cyberismo/model';
 
 export async function getFieldTypes(ws: Workspace) {
-  const response = await ws.showCmd.showResources('fieldTypes');
+  const response = await ws.resources.list('fieldTypes');
   if (!response) {
     throw new Error('No field types found');
   }

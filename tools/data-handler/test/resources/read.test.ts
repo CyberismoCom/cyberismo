@@ -17,6 +17,7 @@ import { describe, expect, it } from 'vitest';
 
 import type { ResourceName } from '@cyberismo/model';
 import { ResourceNotFoundError } from '../../src/exceptions/index.js';
+import { openTestWorkspace } from '../helpers/open-test-workspace.js';
 import {
   edit,
   local,
@@ -178,13 +179,13 @@ describe('listing resources', () => {
     const { ws } = await open(spec);
 
     expect(
-      (await ws.resources.contents('cardTypes')).map((item) => item?.name),
+      (await ws.resources.contents('cardTypes')).map((item) => item.name),
     ).toEqual(
       expect.arrayContaining(['test/cardTypes/page', 'test/cardTypes/bare']),
     );
     expect(
       (await ws.resources.contents('workflows')).map(
-        (item) => item?.states.length,
+        (item) => item.states.length,
       ),
     ).toEqual([3, 3, 3]);
     expect(await ws.resources.contents('templates')).toEqual([
@@ -192,11 +193,28 @@ describe('listing resources', () => {
     ]);
   });
 
-  it('gives the project the same as the settings do', async () => {
-    const { ws } = await open(spec);
+  // A template's name does not come from its file.
+  it.each([
+    {
+      type: 'cardTypes',
+      names: ['test/cardTypes/bare', 'test/cardTypes/page'],
+    },
+    { type: 'templates', names: ['test/templates/tpl', 'test/templates/zzz'] },
+  ] as const)(
+    'gives the $type it can name when a file cannot be read',
+    async ({ type, names }) => {
+      const { path } = await open(spec);
+      writeFileSync(local(path, type, 'zzz.json'), '{ broken');
+      const ws = await openTestWorkspace(path);
+      try {
+        const contents = await ws.resources.contents(type);
 
-    expect(await ws.settings.info()).toEqual(await ws.settings.info());
-  });
+        expect(contents.map((item) => item.name).sort()).toEqual(names);
+      } finally {
+        ws.checkout.dispose();
+      }
+    },
+  );
 });
 
 describe('the modules the hubs offer', () => {
@@ -236,7 +254,7 @@ describe('rendering a skill that is not enabled', () => {
     await ws.resources.create('k', 'skills', {});
 
     expect(
-      await ws.showCmd.renderSkill('test/skills/k', {
+      await ws.resources.skillPreview('test/skills/k', {
         cardKey: keys[0],
         skillContent: 'Card {{cardKey}}.',
       }),
@@ -248,7 +266,7 @@ describe('rendering a skill that is not enabled', () => {
     await ws.resources.create('k', 'skills', {});
 
     await expect(
-      ws.showCmd.renderSkill('test/skills/k', { cardKey: 'test_nope1234' }),
+      ws.resources.skillPreview('test/skills/k', { cardKey: 'test_nope1234' }),
     ).rejects.toThrow(/test_nope1234/);
   });
 });

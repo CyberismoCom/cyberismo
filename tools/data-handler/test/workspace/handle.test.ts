@@ -55,8 +55,8 @@ it('shares the checkout, lock and commands between handles; only the actor diffe
   expect(a.importCmd).not.toBe(b.importCmd);
   // ... over one shared object: what one handle sets, the other sees.
   const probe = {};
-  (a.showCmd as unknown as { probe: object }).probe = probe;
-  expect((b.showCmd as unknown as { probe: object }).probe).toBe(probe);
+  (a.importCmd as unknown as { probe: object }).probe = probe;
+  expect((b.importCmd as unknown as { probe: object }).probe).toBe(probe);
 
   // Façades are the handle's own: one per handle, with its actor.
   expect(a.cards).toBe(a.cards);
