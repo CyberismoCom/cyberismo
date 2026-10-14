@@ -94,6 +94,7 @@ export {
   MissingActorError,
   ModuleRequestError,
   PermissionDeniedError,
+  ProjectExistsError,
   ProjectNotFoundError,
   ReadOnlyContainerError,
   ResourceNotFoundError,

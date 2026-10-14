@@ -224,6 +224,18 @@ export class ProjectNotFoundError extends DomainError {
 }
 
 /**
+ * Thrown when a project's prefix is already taken in the directory.
+ */
+export class ProjectExistsError extends DomainError {
+  readonly code = 'conflict';
+  constructor(public readonly prefix: string) {
+    super(`Project with prefix '${prefix}' already exists`);
+    this.name = 'ProjectExistsError';
+    this.details = { prefix };
+  }
+}
+
+/**
  * Thrown when a disposed workspace is used.
  */
 export class WorkspaceDisposedError extends DomainError {
