@@ -27,6 +27,7 @@ import {
   resourceTypes,
   spec,
 } from './fixture.js';
+import { Remove } from '../../src/commands/remove.js';
 
 const open = projects();
 
@@ -92,7 +93,11 @@ describe('removing a resource', () => {
 
     await expectRefused(
       path,
-      () => ws.removeCmd.remove('colour' as never, 'x'),
+      () =>
+        new Remove(ws.checkout, ws.actor, ws.identity).remove(
+          'colour' as never,
+          'x',
+        ),
       /Unknown resource type 'colour'/,
     );
   });

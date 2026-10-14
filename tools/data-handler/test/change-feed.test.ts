@@ -22,6 +22,7 @@ import { Workspace } from '../src/workspace/workspace.js';
 import { resourceName } from '../src/utils/resource-utils.js';
 import { openTestWorkspace } from './helpers/open-test-workspace.js';
 import { mockEnsureModuleListUpToDate } from './helpers/test-utils.js';
+import { Rename } from '../src/commands/rename.js';
 
 const testData = join(import.meta.dirname, 'test-data/valid');
 const writer: ActorRef = { kind: 'user', id: 'writer', name: 'Writer' };
@@ -141,7 +142,8 @@ describe('change feed', () => {
     },
     {
       write: 'a prefix rename',
-      run: () => ws.renameCmd.rename('renamed'),
+      run: () =>
+        new Rename(ws.checkout, ws.actor, ws.identity).rename('renamed'),
       changes: [{ kind: 'project.reloaded' }],
     },
   ];

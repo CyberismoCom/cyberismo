@@ -18,8 +18,6 @@ import { Argument, type Command } from 'commander';
 import {
   Cmd,
   createProject,
-  type AllCommandOptions,
-  type CommandOptions,
   validBumps,
   type Workspace,
 } from '@cyberismo/data-handler';
@@ -28,12 +26,17 @@ import { resolveTilde } from '@cyberismo/data-handler/utils/file-utils';
 import type { DataType } from '@cyberismo/model';
 
 import { CommandGroup, commandType, nameGuideline } from '../lib/args.js';
-import { commandHandler, program } from '../lib/dispatch.js';
+import { commandHandler, program } from '../lib/program.js';
 import { errorMessage, fail, onProject } from '../lib/errors.js';
 import { existingAncestor, gitAuthor, openWorkspace } from '../lib/open.js';
 import { handleResponse, printResult } from '../lib/output.js';
 import { checkbox } from '../lib/prompts.js';
 import { importableModules, installModule } from './module.js';
+import type {
+  AllCommandOptions,
+  CreateCommandOptions,
+  VersionCommandOptions,
+} from '../options.js';
 
 // Each resource type's create, from the arguments after the type.
 const resourceCreates: Record<
@@ -110,7 +113,7 @@ async function createProjectAt(
 }
 
 async function createResource(
-  options: CommandOptions<'create'>,
+  options: CreateCommandOptions,
   type: string,
   args: string[],
 ) {
@@ -136,7 +139,7 @@ export function registerCreate(program: Command) {
       async (
         cardKey: string,
         filename: string,
-        options: CommandOptions<'create'>,
+        options: CreateCommandOptions,
       ) => {
         await onProject(
           Object.assign({}, options, program.opts()),
@@ -169,7 +172,7 @@ export function registerCreate(program: Command) {
       async (
         template: string,
         parentCardKey: string | undefined,
-        options: CommandOptions<'create'>,
+        options: CreateCommandOptions,
       ) => {
         // Empty arguments are dropped, shifting the rest left, as ever.
         const [templateName, parent] = [template, parentCardKey].filter(
@@ -195,11 +198,7 @@ export function registerCreate(program: Command) {
       'Workflow for the card type. You can list workflows with "show workflows" command',
     )
     .action(
-      async (
-        name: string,
-        workflow: string,
-        options: CommandOptions<'create'>,
-      ) => {
+      async (name: string, workflow: string, options: CreateCommandOptions) => {
         await createResource(options, 'cardType', [name, workflow]);
       },
     );
@@ -214,11 +213,7 @@ export function registerCreate(program: Command) {
       'Type of field. You can list field types with "show fieldTypes" command',
     )
     .action(
-      async (
-        name: string,
-        dataType: string,
-        options: CommandOptions<'create'>,
-      ) => {
+      async (name: string, dataType: string, options: CreateCommandOptions) => {
         await createResource(options, 'fieldType', [name, dataType]);
       },
     );
@@ -228,7 +223,7 @@ export function registerCreate(program: Command) {
     .command('graphModel')
     .description('Create a new graph model')
     .argument('<name>', `Name for graph model. ${nameGuideline}`)
-    .action(async (name: string, options: CommandOptions<'create'>) => {
+    .action(async (name: string, options: CreateCommandOptions) => {
       await createResource(options, 'graphModel', [name]);
     });
 
@@ -237,7 +232,7 @@ export function registerCreate(program: Command) {
     .command('graphView')
     .description('Create a new graph view')
     .argument('<name>', `Name for graph view. ${nameGuideline}`)
-    .action(async (name: string, options: CommandOptions<'create'>) => {
+    .action(async (name: string, options: CreateCommandOptions) => {
       await createResource(options, 'graphView', [name]);
     });
 
@@ -246,7 +241,7 @@ export function registerCreate(program: Command) {
     .command('calculation')
     .description('Create a new calculation')
     .argument('<name>', `Name for calculation. ${nameGuideline}`)
-    .action(async (name: string, options: CommandOptions<'create'>) => {
+    .action(async (name: string, options: CreateCommandOptions) => {
       await createResource(options, 'calculation', [name]);
     });
 
@@ -260,7 +255,7 @@ export function registerCreate(program: Command) {
       async (
         cardKey: string,
         labelName: string,
-        options: CommandOptions<'create'>,
+        options: CreateCommandOptions,
       ) => {
         await onProject(Object.assign({}, options, program.opts()), (ws) =>
           ws.cards.addLabel(cardKey, labelName),
@@ -293,7 +288,7 @@ export function registerCreate(program: Command) {
         destination: string,
         linkType: string,
         description: string | undefined,
-        options: CommandOptions<'create'>,
+        options: CreateCommandOptions,
       ) => {
         // Empty arguments are dropped, shifting the rest left, as ever.
         const [from, to, type, linkDescription] = [
@@ -314,7 +309,7 @@ export function registerCreate(program: Command) {
     .command('linkType')
     .description('Create a new link type')
     .argument('<name>', `Name for link type. ${nameGuideline}`)
-    .action(async (name: string, options: CommandOptions<'create'>) => {
+    .action(async (name: string, options: CreateCommandOptions) => {
       await createResource(options, 'linkType', [name]);
     });
 
@@ -338,7 +333,7 @@ export function registerCreate(program: Command) {
         path: string,
         category: string | undefined,
         description: string | undefined,
-        options: CommandOptions<'create'>,
+        options: CreateCommandOptions,
       ) => {
         // Project path must be set to 'options' when creating a project
         options.projectPath = path;
@@ -404,7 +399,7 @@ export function registerCreate(program: Command) {
     .command('report')
     .description('Create a new report')
     .argument('<name>', `Name for report. ${nameGuideline}`)
-    .action(async (name: string, options: CommandOptions<'create'>) => {
+    .action(async (name: string, options: CreateCommandOptions) => {
       await createResource(options, 'report', [name]);
     });
 
@@ -413,7 +408,7 @@ export function registerCreate(program: Command) {
     .command('skill')
     .description('Create a new skill')
     .argument('<name>', `Name for skill. ${nameGuideline}`)
-    .action(async (name: string, options: CommandOptions<'create'>) => {
+    .action(async (name: string, options: CreateCommandOptions) => {
       await createResource(options, 'skill', [name]);
     });
 
@@ -430,7 +425,7 @@ export function registerCreate(program: Command) {
       async (
         name: string,
         content: string | undefined,
-        options: CommandOptions<'create'>,
+        options: CreateCommandOptions,
       ) => {
         // Empty arguments are dropped, shifting the rest left, as ever.
         await createResource(
@@ -454,7 +449,7 @@ export function registerCreate(program: Command) {
       async (
         name: string,
         content: string | undefined,
-        options: CommandOptions<'create'>,
+        options: CreateCommandOptions,
       ) => {
         // Empty arguments are dropped, shifting the rest left, as ever.
         await createResource(
@@ -481,7 +476,7 @@ export function registerCreate(program: Command) {
       async (
         resourceName: string,
         content: string | undefined,
-        options: CommandOptions<'create'>,
+        options: CreateCommandOptions,
       ) => {
         // Empty arguments are dropped, shifting the rest left, as ever.
         const args = [resourceName, content].filter(Boolean) as string[];
@@ -523,7 +518,7 @@ export function registerCreate(program: Command) {
     .addArgument(
       new Argument('<bump>', 'Version bump type').choices([...validBumps]),
     )
-    .action(async (bump: string, options: CommandOptions<'version'>) => {
+    .action(async (bump: string, options: VersionCommandOptions) => {
       const result = await onProject(
         Object.assign({}, options, program.opts()),
         (ws) => ws.versions.bump(bump as (typeof validBumps)[number]),

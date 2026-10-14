@@ -12,12 +12,10 @@
 */
 
 import { type Command } from 'commander';
-
-import { type CommandOptions } from '@cyberismo/data-handler';
-
 import { CommandGroup, hubLocation } from '../lib/args.js';
 import { fail, onProject } from '../lib/errors.js';
 import { printResult } from '../lib/output.js';
+import type { AddCommandOptions } from '../options.js';
 
 export function registerAdd(program: Command) {
   const addCmd = new CommandGroup('add').description(
@@ -44,7 +42,7 @@ export function registerAdd(program: Command) {
         template: string,
         cardType: string,
         cardKey: string,
-        options: CommandOptions<'add'>,
+        options: AddCommandOptions,
       ) => {
         const addedCards = await onProject(
           Object.assign({}, options, program.opts()),
@@ -69,7 +67,7 @@ export function registerAdd(program: Command) {
       '<location>',
       'Hub URL. Default hub can be added by using "default"',
     )
-    .action(async (location: string, options: CommandOptions<'add'>) => {
+    .action(async (location: string, options: AddCommandOptions) => {
       location = hubLocation(location);
       await onProject(Object.assign({}, options, program.opts()), (ws) =>
         ws.settings.hubs.add(location),
