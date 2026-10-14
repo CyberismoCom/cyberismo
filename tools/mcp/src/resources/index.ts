@@ -83,9 +83,9 @@ const registerResourceType = (
         extra,
         server,
       );
-      const names = await ws.showCmd.showResources(config.resourceType);
+      const names = await ws.resources.list(config.resourceType);
       const details = await Promise.all(
-        names.map((name) => ws.showCmd.showResource(name, config.resourceType)),
+        names.map((name) => ws.resources.show(name, config.resourceType)),
       );
       return {
         contents: [
@@ -147,7 +147,7 @@ export function registerResources(
         extra,
         server,
       );
-      const project = await ws.showCmd.showProject();
+      const project = await ws.settings.info();
       return {
         contents: [
           {
@@ -207,7 +207,7 @@ export function registerResources(
         extra,
         server,
       );
-      const cardTypes = await ws.showCmd.showCardTypesWithDetails();
+      const cardTypes = await ws.resources.contents('cardTypes');
       return {
         contents: [
           {
@@ -267,7 +267,7 @@ export function registerResources(
         extra,
         server,
       );
-      const templates = await ws.showCmd.showTemplatesWithDetails();
+      const templates = await ws.resources.contents('templates');
       return {
         contents: [
           {
