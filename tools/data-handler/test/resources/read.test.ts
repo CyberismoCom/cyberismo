@@ -206,13 +206,9 @@ describe('listing resources', () => {
       const { path } = await open(spec);
       writeFileSync(local(path, type, 'zzz.json'), '{ broken');
       const ws = await openTestWorkspace(path);
-      try {
-        const contents = await ws.resources.contents(type);
+      const contents = await ws.resources.contents(type);
 
-        expect(contents.map((item) => item.name).sort()).toEqual(names);
-      } finally {
-        ws.checkout.dispose();
-      }
+      expect(contents.map((item) => item.name).sort()).toEqual(names);
     },
   );
 });

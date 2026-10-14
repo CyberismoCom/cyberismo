@@ -5,7 +5,6 @@ import { join } from 'node:path';
 import { getCardQueryResult, reset, exportSite } from '../src/export.js';
 import {
   localFolder,
-  SYSTEM_ACTOR,
   type ProjectDirectory,
   type Workspace,
 } from '@cyberismo/data-handler';
@@ -202,10 +201,9 @@ describe('export module', () => {
 
     test('reports a failing card under its own project only', async () => {
       const { directory: registry } = await localFolder(folder);
-      const decision = await registry.open('decision', SYSTEM_ACTOR);
-      vi.spyOn(decision.checkout, 'treeOf').mockImplementation(() => {
-        throw new Error('boom');
-      });
+      // Loaded, then lost on disk: its route fails at export.
+      const card = join(folder, 'decision-records', 'cardRoot', 'decision_5');
+      await rm(join(card, 'a', 'games.jpg'));
 
       const { errors } = await exportSite(registry, tempDir);
 

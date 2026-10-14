@@ -49,7 +49,6 @@ beforeAll(async () => {
 });
 
 afterAll(() => {
-  ws.checkout.dispose();
   rmSync(testDir, { recursive: true, force: true });
 });
 

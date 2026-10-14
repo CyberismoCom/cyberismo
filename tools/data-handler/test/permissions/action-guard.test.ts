@@ -54,10 +54,8 @@ interface Fixture {
 }
 
 const built: BuiltProject[] = [];
-const open: Workspace[] = [];
 
 afterEach(async () => {
-  for (const ws of open.splice(0)) ws.checkout.dispose();
   await Promise.all(built.splice(0).map((project) => project.cleanup()));
 });
 
@@ -75,7 +73,6 @@ async function fixture(calculation: string): Promise<Fixture> {
   });
   built.push(project);
   const ws = await openTestWorkspace(project.path);
-  open.push(ws);
   const [locked, child, free, other] = project.keys;
   return {
     ws,

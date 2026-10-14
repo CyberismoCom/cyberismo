@@ -42,7 +42,6 @@ describe('autocommit', () => {
   });
 
   afterEach(async () => {
-    cm.checkout.dispose();
     await rm(dir, { recursive: true, force: true });
   });
 
