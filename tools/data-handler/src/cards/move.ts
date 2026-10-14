@@ -13,8 +13,8 @@
 
 import { ActionGuard } from '../permissions/action-guard.js';
 import { ContainerMismatchError } from '../exceptions/index.js';
-import type { Checkout } from '../containers/project.js';
-import type { CardTree } from '../containers/project/card-tree.js';
+import type { Checkout } from '../infra/checkout.js';
+import type { CardTree } from '../infra/card-tree.js';
 
 import { ROOT } from '../utils/constants.js';
 import { cardNode } from './read.js';

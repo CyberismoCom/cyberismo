@@ -15,20 +15,17 @@
 import { mkdir } from 'node:fs/promises';
 import { join, resolve as pathResolve } from 'node:path';
 
-import { ProjectPaths } from '../containers/project/project-paths.js';
+import { ProjectPaths } from '../project-paths.js';
 import {
   copyDir,
   deleteDir,
   isValidFolderName,
   pathExists,
-} from '../utils/file-utils.js';
-import {
-  listSealFiles,
-  type SealFile,
-} from '../infra/replay-log/seal-files.js';
-import { readModuleConfig } from '../containers/project/cards-config.js';
+} from '../../utils/file-utils.js';
+import { listSealFiles, type SealFile } from '../replay-log/seal-files.js';
+import { readModuleConfig } from '../cards-config.js';
 
-import { isFileLocation, stripFileProtocol } from './location.js';
+import { isFileLocation, stripFileProtocol } from '../../utils/location.js';
 import type { FetchTarget, SourceLayer } from './source.js';
 import type { ProjectSettings, Source } from '@cyberismo/model';
 

@@ -27,8 +27,8 @@ import type {
   TemplateMetadata,
   ResourceName,
 } from '@cyberismo/model';
-import type { CardTree } from '../containers/project/card-tree.js';
-import type { Checkout } from '../containers/project.js';
+import type { CardTree } from '../infra/card-tree.js';
+import type { Checkout } from '../infra/checkout.js';
 
 /**
  * Template resource class.

@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 
-import { Checkout } from '../../../src/containers/project.js';
+import { Checkout } from '../../../src/infra/checkout.js';
 import {
   rewriteCardContentRefs,
   rewriteContentFileRefs,

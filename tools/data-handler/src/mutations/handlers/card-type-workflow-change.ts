@@ -15,7 +15,7 @@
 import type { Handler, MutationContext } from '../handler.js';
 import type { EditInput } from '../types.js';
 import { resourceNameToString } from '../../utils/resource-utils.js';
-import { ResourcesFrom } from '../../containers/project/resources-from.js';
+import { ResourcesFrom } from '../../infra/resources-from.js';
 import { getChildLogger } from '../../utils/log-utils.js';
 import type { Card, ChangeOperation, Operation } from '@cyberismo/model';
 import { updateCardMetadata } from '../../cards/update.js';

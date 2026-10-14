@@ -14,8 +14,8 @@
 
 import type { FetchTarget, SourceLayer } from './source.js';
 import type { Source } from '@cyberismo/model';
-import type { Version } from './types.js';
-import type { SealFile } from '../infra/replay-log/seal-files.js';
+import type { Version } from '../../modules/types.js';
+import type { SealFile } from '../replay-log/seal-files.js';
 import type { ProjectSettings } from '@cyberismo/model';
 
 /** One dispatch route: a predicate plus the layer to delegate to. */

@@ -16,9 +16,9 @@
 import { join, resolve } from 'node:path';
 import { readdirSync } from 'node:fs';
 
-import { CalculationEngine } from './project/calculation-engine.js';
-import { CardKeyRegistry } from './project/card-keys.js';
-import { CardTree, type CardTreeChange } from './project/card-tree.js';
+import { CalculationEngine } from './calculation-engine.js';
+import { CardKeyRegistry } from './card-keys.js';
+import { CardTree, type CardTreeChange } from './card-tree.js';
 import {
   CardNotFoundError,
   DuplicateCardKeyError,
@@ -28,16 +28,16 @@ import { pathExists } from '../utils/file-utils.js';
 import { isModulePath } from '../utils/card-utils.js';
 import { ProjectConfiguration } from '../project-settings.js';
 import { resourceName } from '../utils/resource-utils.js';
-import { ProjectPaths } from './project/project-paths.js';
-import { readCardsConfig } from './project/cards-config.js';
-import { ResourceHandler } from './project/resource-handler.js';
-import { ContentWatcher } from './project/project-content-watcher.js';
+import { ProjectPaths } from './project-paths.js';
+import { readCardsConfig } from './cards-config.js';
+import { ResourceHandler } from './resource-handler.js';
+import { ContentWatcher } from './project-content-watcher.js';
 import { getChildLogger, initLogger } from '../utils/log-utils.js';
-import { RWLock } from '../utils/rw-lock.js';
-import { GitSync } from '../utils/git-sync.js';
-import { GitManager } from '../utils/git-manager.js';
+import { RWLock } from './rw-lock.js';
+import { GitSync } from './git-sync.js';
+import { GitManager } from './git-manager.js';
 import { commitTrailers } from '../utils/tx-record.js';
-import { ChangeFeed, changedAnything } from '../utils/change-feed.js';
+import { ChangeFeed, changedAnything } from './change-feed.js';
 import { Validate } from '../commands/validate.js';
 
 import type { TemplateResource } from '../resources/template-resource.js';

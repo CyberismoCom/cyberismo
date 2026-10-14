@@ -14,7 +14,7 @@
 import semver from 'semver';
 import type { ActorRef, PublishResult, VersionBump } from '@cyberismo/model';
 import { Validate } from '../commands/validate.js';
-import type { Checkout } from '../containers/project.js';
+import type { Checkout } from '../infra/checkout.js';
 import type { ConfigurationLogEntry } from '../utils/configuration-logger.js';
 import {
   ConfigurationLogger,
@@ -23,8 +23,8 @@ import {
 import type { ChangeClassification } from '../mutations/registry.js';
 import { classify } from '../mutations/dispatcher.js';
 import { entryToMutationInput } from '../mutations/replay/convert.js';
-import { recordSettingsChange } from '../utils/change-feed.js';
-import { write } from '../utils/rw-lock.js';
+import { recordSettingsChange } from '../infra/change-feed.js';
+import { write } from '../infra/rw-lock.js';
 import type { CommitIdentity } from '../utils/tx-record.js';
 import { tagVersion } from './publish.js';
 import { errorFunction } from '../utils/error-utils.js';

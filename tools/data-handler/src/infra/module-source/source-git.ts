@@ -16,17 +16,14 @@ import { mkdtemp, mkdir, rm } from 'node:fs/promises';
 import { basename, join } from 'node:path';
 import { tmpdir } from 'node:os';
 
-import { ModuleRequestError, redactUserinfo } from '../exceptions/index.js';
-import { createGit, gitTimeout } from '../utils/git-config.js';
-import { GitManager } from '../utils/git-manager.js';
-import {
-  parseSealFileName,
-  type SealFile,
-} from '../infra/replay-log/seal-files.js';
-import { versionToTag } from './version.js';
+import { ModuleRequestError, redactUserinfo } from '../../exceptions/index.js';
+import { createGit, gitTimeout } from '../git-config.js';
+import { GitManager } from '../git-manager.js';
+import { parseSealFileName, type SealFile } from '../replay-log/seal-files.js';
+import { versionToTag } from '../../utils/version.js';
 import type { FetchTarget, SourceLayer } from './source.js';
 import type { Source } from '@cyberismo/model';
-import type { Version } from './types.js';
+import type { Version } from '../../modules/types.js';
 import type { ProjectSettings } from '@cyberismo/model';
 
 function cloneOptions(ref?: string): string[] {

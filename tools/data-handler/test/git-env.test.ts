@@ -11,7 +11,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { createGit } from '../src/utils/git-config.js';
+import { createGit } from '../src/infra/git-config.js';
 
 let dir: string;
 
@@ -48,7 +48,7 @@ describe('createGit', () => {
     vi.stubEnv('GCM_INTERACTIVE', undefined as unknown as string);
     // The flags are applied once per module instance.
     vi.resetModules();
-    const { createGit: fresh } = await import('../src/utils/git-config.js');
+    const { createGit: fresh } = await import('../src/infra/git-config.js');
 
     fresh({ baseDir: dir });
 

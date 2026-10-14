@@ -23,7 +23,7 @@ import {
   registerMacros,
   validateMacroContent,
 } from '../../src/macros/index.js';
-import type { Checkout } from '../../src/containers/project.js';
+import type { Checkout } from '../../src/infra/checkout.js';
 import TaskQueue from '../../src/macros/task-queue.js';
 
 import { MAX_LEVEL_OFFSET, ROOT } from '../../src/utils/constants.js';
