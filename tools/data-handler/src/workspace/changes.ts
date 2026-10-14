@@ -25,6 +25,7 @@ import type { CommitIdentity } from '../utils/tx-record.js';
 export class Changes {
   private readonly mutations: ResourceMutations;
 
+  /** @internal */
   constructor(
     private readonly checkout: Checkout,
     public readonly actor: ActorRef,

@@ -41,6 +41,7 @@ const workflowGraphView = workflowGraphHandlebars.compile<{
  * Queries and logic programs of one handle. Holds no state of its own.
  */
 export class Queries {
+  /** @internal */
   constructor(private checkout: Checkout) {}
 
   /**

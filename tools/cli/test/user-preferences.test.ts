@@ -1,6 +1,6 @@
 import { expect, describe, it, beforeEach, afterEach } from 'vitest';
 
-import { UserPreferences } from '../../src/utils/user-preferences.js';
+import { UserPreferences } from '../src/lib/user-preferences.js';
 import { platform, tmpdir } from 'os';
 import { join } from 'path';
 import { unlinkSync, writeFileSync } from 'node:fs';

@@ -22,7 +22,6 @@ import {
   CardNotFoundError,
   isResourceFolderType,
   moduleNameFromCardKey,
-  removeResource,
   resourceName,
   resourceNameToString,
   ResourceNotFoundError,
@@ -430,10 +429,9 @@ async function groupResourcesByPrefix(
  * @param resource Resource to delete.
  */
 export async function deleteResource(ws: Workspace, resource: ResourceParams) {
-  return removeResource(
-    ws,
-    resource.type.substring(0, resource.type.length - 1),
+  return ws.resources.remove(
     resourceNameToString(resource),
+    resource.type.substring(0, resource.type.length - 1),
   );
 }
 

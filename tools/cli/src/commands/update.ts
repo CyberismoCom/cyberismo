@@ -17,8 +17,8 @@ import {
   resourceName,
   resourceNameToString,
   type Workspace,
+  errorFunction,
 } from '@cyberismo/data-handler';
-import { errorFunction } from '@cyberismo/data-handler/utils/error-utils';
 import { resolveTilde } from '@cyberismo/data-handler/utils/file-utils';
 import { readJsonFile } from '@cyberismo/data-handler/utils/json';
 import type { Operation, UpdateKey, UpdateOperations } from '@cyberismo/model';

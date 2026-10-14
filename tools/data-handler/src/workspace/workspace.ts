@@ -34,6 +34,7 @@ export type WorkspaceOptions = OpenOptions;
  * actor's. It holds no state of its own and is never disposed.
  */
 export class Workspace {
+  readonly #checkout: Checkout;
   private readonly frame: WriteFrame;
   private cardsFacade?: Cards;
   private settingsFacade?: Settings;
@@ -47,16 +48,18 @@ export class Workspace {
   private modulesFacade?: Modules;
 
   private constructor(
-    public readonly checkout: Checkout,
+    checkout: Checkout,
     public readonly actor: ActorRef,
     public readonly identity: CommitIdentity | undefined,
   ) {
+    this.#checkout = checkout;
     this.frame = { actor, identity };
     setCheckout(this, checkout);
   }
 
   /**
    * A handle over `checkout` for `actor`.
+   * @internal
    * @param checkout Checkout the handle works on.
    * @param actor Who acts through the handle.
    * @param identity Git author of the actor's commits; unset lets git
@@ -72,14 +75,14 @@ export class Workspace {
 
   /** Card operations, as this handle's actor. */
   get cards(): Cards {
-    this.cardsFacade ??= new Cards(this.checkout, this.actor, this.identity);
+    this.cardsFacade ??= new Cards(this.#checkout, this.actor, this.identity);
     return this.cardsFacade;
   }
 
   /** Project settings, as this handle's actor. */
   get settings(): Settings {
     this.settingsFacade ??= new Settings(
-      this.checkout,
+      this.#checkout,
       this.actor,
       this.identity,
     );
@@ -89,7 +92,7 @@ export class Workspace {
   /** Resource changes, as this handle's actor. */
   get changes(): Changes {
     this.changesFacade ??= new Changes(
-      this.checkout,
+      this.#checkout,
       this.actor,
       this.identity,
     );
@@ -98,32 +101,37 @@ export class Workspace {
 
   /** Resources, as this handle's actor. */
   get resources(): Resources {
-    this.resourcesFacade ??= new Resources(this.checkout, this.changes);
+    this.resourcesFacade ??= new Resources(
+      this.#checkout,
+      this.changes,
+      this.actor,
+      this.identity,
+    );
     return this.resourcesFacade;
   }
 
   /** Queries and logic programs. */
   get queries(): Queries {
-    this.queriesFacade ??= new Queries(this.checkout);
+    this.queriesFacade ??= new Queries(this.#checkout);
     return this.queriesFacade;
   }
 
   /** Exports of cards and the project. */
   get export(): Export {
-    this.exportFacade ??= new Export(this.checkout);
+    this.exportFacade ??= new Export(this.#checkout);
     return this.exportFacade;
   }
 
   /** Dormant field values, as this handle's actor. */
   get clean(): Clean {
-    this.cleanFacade ??= new Clean(this.checkout, this.actor, this.identity);
+    this.cleanFacade ??= new Clean(this.#checkout, this.actor, this.identity);
     return this.cleanFacade;
   }
 
   /** Version bumps and publishing, as this handle's actor. */
   get versions(): Versions {
     this.versionsFacade ??= new Versions(
-      this.checkout,
+      this.#checkout,
       this.actor,
       this.identity,
     );
@@ -132,14 +140,14 @@ export class Workspace {
 
   /** Card content rendering. */
   get render(): Render {
-    this.renderFacade ??= new Render(this.checkout);
+    this.renderFacade ??= new Render(this.#checkout);
     return this.renderFacade;
   }
 
   /** Modules and hubs, as this handle's actor. */
   get modules(): Modules {
     this.modulesFacade ??= new Modules(
-      this.checkout,
+      this.#checkout,
       this.actor,
       this.identity,
     );
@@ -148,7 +156,7 @@ export class Workspace {
 
   /** Path of the project. */
   get path(): string {
-    return this.checkout.basePath;
+    return this.#checkout.basePath;
   }
 
   /**
@@ -158,7 +166,7 @@ export class Workspace {
    *    message - optional message related to compatibility.
    */
   public checkSchemaVersion(): { isCompatible: boolean; message?: string } {
-    return this.checkout.configuration.checkSchemaVersion();
+    return this.#checkout.configuration.checkSchemaVersion();
   }
 
   /**
@@ -167,7 +175,7 @@ export class Workspace {
    * Git commit fires once on success; rollback on any error.
    */
   public async atomic<T>(fn: () => Promise<T>, message: string): Promise<T> {
-    const run = () => this.checkout.lock.write(this.frame, fn);
+    const run = () => this.#checkout.lock.write(this.frame, fn);
     return runWithCommitContext({ message }, run);
   }
 
@@ -177,6 +185,6 @@ export class Workspace {
    * Writers are blocked for the duration.
    */
   public async consistent<T>(fn: () => Promise<T>): Promise<T> {
-    return this.checkout.lock.read(fn);
+    return this.#checkout.lock.read(fn);
   }
 }
