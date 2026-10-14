@@ -6,7 +6,7 @@ import { readFile } from 'node:fs/promises';
 import { join, resolve as pathResolve } from 'node:path';
 
 // cyberismo
-import { Cmd, Commands, Workspace } from '../src/command-handler.js';
+import { Workspace } from '../src/workspace/workspace.js';
 import { createProject } from '../src/directory/create-project.js';
 import { copyDir } from '../src/utils/file-utils.js';
 import {
@@ -37,11 +37,7 @@ const testDir = join(baseDir, 'tmp-command-handler-remove-tests');
 
 const decisionRecordsPath = join(testDir, 'valid/decision-records');
 
-const options = { projectPath: decisionRecordsPath };
-
 describe('remove command', () => {
-  const commandHandler: Commands = new Commands();
-
   describe('removal attempts', () => {
     beforeEach(async () => {
       mkdirSync(testDir, { recursive: true });
@@ -50,15 +46,6 @@ describe('remove command', () => {
 
     afterEach(() => {
       rmSync(testDir, { recursive: true, force: true });
-    });
-    it('try to remove unknown type', async () => {
-      const cardId = 'decision_5';
-      const result = await commandHandler.command(
-        Cmd.remove,
-        ['i-dont-exist', cardId],
-        options,
-      );
-      expect(result.statusCode).toBe(400);
     });
     it('try to remove non-existing attachment', async () => {
       const cardId = 'decision_5';

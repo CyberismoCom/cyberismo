@@ -128,7 +128,7 @@ export async function openProject(
   return Workspace.over(checkout, actor, identity);
 }
 
-// The command's project path; refuses one the way the dispatcher does.
+// The command's project path; refuses one that is not a project.
 export function projectPathOf(options: AllCommandOptions): string {
   const path = options.projectPath || '';
   const projectPath = resolveTilde(projectRoot(options));
