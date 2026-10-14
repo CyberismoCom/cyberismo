@@ -8,7 +8,7 @@ import { join } from 'node:path';
 import type { Workspace } from '../src/workspace/workspace.js';
 import { copyDir } from '../src/utils/file-utils.js';
 import { DefaultContent } from '../src/resources/create-defaults.js';
-
+import { checkoutOf } from '../src/infra/internal.js';
 import { findCard } from '../src/cards/read.js';
 import { openTestWorkspace } from './helpers/open-test-workspace.js';
 
@@ -52,7 +52,7 @@ describe('created cards and custom field values', () => {
 
   it('new cards do not contain null custom-field placeholders', async () => {
     const created = await ws.cards.create(templateName, undefined);
-    const card = findCard(ws.checkout, created[0].key);
+    const card = findCard(checkoutOf(ws), created[0].key);
     const nullCustomFieldKeys = (metadata: object) =>
       Object.entries(metadata)
         .filter(([key, value]) => value === null && key.includes('/'))
@@ -73,7 +73,7 @@ describe('created cards and custom field values', () => {
       'decision/cardTypes/decision',
       'decision/templates/empty',
     );
-    const card = findCard(ws.checkout, added[0]);
+    const card = findCard(checkoutOf(ws), added[0]);
     const customFieldKeys = Object.keys(card.metadata!).filter((key) =>
       key.includes('/'),
     );
@@ -92,7 +92,7 @@ describe('created cards and custom field values', () => {
 
   it('falsy template values survive instantiation', async () => {
     // Mutates the shared template card, so this test must stay last.
-    const templateCards = ws.checkout.templateTree(templateName).cards();
+    const templateCards = checkoutOf(ws).templateTree(templateName).cards();
     const templateCard = templateCards.at(0)!;
     await ws.cards.editField(
       templateCard.key,
@@ -101,7 +101,7 @@ describe('created cards and custom field values', () => {
     );
 
     const created = await ws.cards.create(templateName, undefined);
-    const card = findCard(ws.checkout, created[0].key);
+    const card = findCard(checkoutOf(ws), created[0].key);
     expect(card.metadata!['decision/fieldTypes/finished']).toBe(false);
   });
 });

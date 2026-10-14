@@ -6,6 +6,7 @@ import { join } from 'node:path';
 import { type Workspace } from '../src/workspace/workspace.js';
 import { copyDir } from '../src/utils/file-utils.js';
 import { openTestWorkspace } from './helpers/open-test-workspace.js';
+import { checkoutOf } from '../src/infra/internal.js';
 
 const baseDir = import.meta.dirname;
 const testDir = join(baseDir, 'tmp-skill-discovery-tests');
@@ -95,7 +96,7 @@ describe('skill discovery', () => {
   describe('enabledSkills query round-trip', () => {
     it('returns string skill-name keys (global + all per-card) without a cardKey', async () => {
       const keys = (
-        await ws.checkout.calculationEngine.runQuery('enabledSkills')
+        await checkoutOf(ws).calculationEngine.runQuery('enabledSkills')
       ).map((r) => r.key);
       expect(keys).toContain('decision/skills/globalSkill');
       expect(keys).toContain('decision/skills/cardSkill');
@@ -103,7 +104,7 @@ describe('skill discovery', () => {
 
     it('with a non-matching cardKey excludes per-card skills', async () => {
       const keys = (
-        await ws.checkout.calculationEngine.runQuery(
+        await checkoutOf(ws).calculationEngine.runQuery(
           'enabledSkills',
           'localApp',
           { cardKey: 'decision_1' },
