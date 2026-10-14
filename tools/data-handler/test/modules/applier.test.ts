@@ -7,7 +7,7 @@ import { tmpdir } from 'node:os';
 import { applyModules } from '../../src/modules/applier.js';
 import type { ResolvedModule } from '../../src/modules/resolve/types.js';
 import { ProjectPaths } from '../../src/infra/project-paths.js';
-import { toVersion, toVersionRange } from '../../src/modules/types.js';
+import { toVersion, toVersionRange } from '../../src/utils/version.js';
 import { makeProjectStub } from '../helpers/module-fixtures.js';
 
 /**

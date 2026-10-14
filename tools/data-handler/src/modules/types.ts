@@ -12,72 +12,9 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import semver from 'semver';
-
 import type { Source } from '@cyberismo/model';
 
-import { ModuleRequestError } from '../exceptions/index.js';
-
-// ---------------------------------------------------------------------------
-// Value types
-// ---------------------------------------------------------------------------
-
-/** Branded concrete semver version (e.g. `"1.2.3"`). Construct via {@link toVersion}. */
-export type Version = string & { readonly __brand: 'Version' };
-
-/** Branded semver range (e.g. `"^1.0.0"`). Construct via {@link toVersionRange}. */
-export type VersionRange = string & { readonly __brand: 'VersionRange' };
-
-/** @throws if `value` is not a valid semver version. */
-export function toVersion(value: string): Version {
-  const normalized = semver.valid(value);
-  if (normalized === null) {
-    throw new Error(`Invalid semver version: ${value}`);
-  }
-  return normalized as Version;
-}
-
-/**
- * Validate that `range` parses as a semver range and return it unchanged.
- * The round-trip preserves whatever form the user wrote (`^1.0.0`, `~1.2`,
- * `>=1 <2`, …) so `cardsConfig.json` and error messages stay readable.
- * @throws if `range` is not a valid semver range.
- */
-export function toVersionRange(range: string): VersionRange {
-  if (semver.validRange(range) === null) {
-    throw new Error(`Invalid semver range: ${range}`);
-  }
-  return range as VersionRange;
-}
-
-/**
- * A range to declare, trimmed. Blank input is refused: `semver.validRange`
- * reads it as `*`, which would unpin.
- */
-export function toDeclaredRange(input: string): VersionRange {
-  const trimmed = input.trim();
-  if (trimmed === '') {
-    throw new ModuleRequestError('Version range cannot be empty');
-  }
-  try {
-    return toVersionRange(trimmed);
-  } catch (error) {
-    throw new ModuleRequestError((error as Error).message);
-  }
-}
-
-/**
- * Range assumed for a dependency declared without a version: bound to 1.x,
- * never floated across majors. Compat guard for configs written before
- * version support existed.
- *
- * The assumption is meant to be temporary. Wherever it governs a project's
- * own declaration, the next module operation writes it into
- * `cardsConfig.json`, so a config only stays version-less until it is next
- * touched. Dependency edges inside an installed module's own config are not
- * rewritten — that file belongs to the module, not the project.
- */
-export const DEFAULT_VERSION_RANGE = '1.x' as VersionRange;
+import type { Version, VersionRange } from '../utils/version.js';
 
 // ---------------------------------------------------------------------------
 // Entities
