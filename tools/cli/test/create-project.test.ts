@@ -17,11 +17,16 @@
 
 import { execFile } from 'node:child_process';
 import { existsSync } from 'node:fs';
-import { mkdtemp, rm } from 'node:fs/promises';
+import { appendFile, mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { localFolder } from '@cyberismo/data-handler';
+import { resetEgressDispatcherForTest } from '@cyberismo/data-handler/utils/egress';
+
+import { createApp } from '../../backend/src/app.js';
+import { MockAuthProvider } from '../../backend/src/auth/mock.js';
 import { buildProject } from '../../data-handler/test/helpers/project-builder.js';
 import {
   isolatedGitEnv,
@@ -48,6 +53,8 @@ beforeEach(async () => {
 });
 
 afterEach(async () => {
+  vi.unstubAllEnvs();
+  await resetEgressDispatcherForTest();
   await rm(folder, { recursive: true, force: true });
 });
 
@@ -96,6 +103,19 @@ describe('create project', () => {
     60_000,
   );
 
+  it('says git is required when git is not installed', async () => {
+    const empty = await mkdtemp(join(tmpdir(), 'cyberismo-no-git-'));
+    env.PATH = empty;
+
+    const output = await run(['create', 'project', 'Gitless', 'gitl', 'gl']);
+    await rm(empty, { recursive: true, force: true });
+
+    expect(output.code).toBe(1);
+    expect(output.stderr.trim()).toBe(
+      'git is required to create a project, but it was not found. Install git and make sure it is on PATH.',
+    );
+  }, 60_000);
+
   it('creates a project at a path under the home folder', async () => {
     env.HOME = folder;
 
@@ -112,7 +132,7 @@ describe('create project', () => {
     expect(existsSync(join(folder, 'home', 'cardRoot'))).toBe(true);
   }, 60_000);
 
-  // As ever, at '-p' for 'project' and in the open project for a name.
+  // 'project' creates at '-p'; a projects resource name is no resource type.
   it.each([
     ['project', ['project', 'golden']],
     ['a projects resource name', ['gold/projects/golden', 'gold']],
@@ -136,5 +156,119 @@ describe('create project', () => {
 
     expect(output).toMatchSnapshot();
     expect(existsSync(join(folder, 'golden'))).toBe(false);
+  }, 60_000);
+});
+
+describe('the CLI and the backend', () => {
+  const params = {
+    name: 'Golden Project',
+    prefix: 'gold',
+    category: 'Testing',
+    description: 'A golden project',
+  };
+
+  // POST /api/projects in this process as Ann, the CLI's git user; with the
+  // CLI's git configuration, offline.
+  async function postProject(autocommit: boolean, skipDefaultHub = false) {
+    for (const [name, value] of Object.entries(env)) {
+      vi.stubEnv(name, value);
+    }
+    await resetEgressDispatcherForTest();
+    const root = join(folder, 'server');
+    await mkdir(root);
+    const { directory } = await localFolder(root, { autocommit });
+    const app = createApp(
+      new MockAuthProvider({ name: 'Ann', email: 'ann@example.com' }),
+      directory,
+      undefined,
+      undefined,
+      root,
+    );
+    const response = await app.request('/api/projects', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...params, skipDefaultHub }),
+    });
+    return {
+      status: response.status,
+      body: await response.json(),
+      created: await snapshot(join(root, 'gold')),
+    };
+  }
+
+  async function createWithCli(options: string[]) {
+    const output = await run([
+      ...options.filter((option) => option === '--autocommit'),
+      'create',
+      'project',
+      params.name,
+      params.prefix,
+      join('cli', 'gold'),
+      params.category,
+      params.description,
+      ...options.filter((option) => option !== '--autocommit'),
+    ]);
+    return { output, created: await snapshot(join(folder, 'cli', 'gold')) };
+  }
+
+  // Only the CLI logs to the project.
+  async function snapshot(path: string) {
+    const { files, ...rest } = await projectSnapshot(path);
+    return {
+      files: Object.fromEntries(
+        Object.entries(files).filter(([name]) => !name.startsWith('.logs/')),
+      ),
+      ...rest,
+    };
+  }
+
+  it.each([
+    ['by default', [], false],
+    ['with autocommit', ['--autocommit'], true],
+    ['skipping the default hub', ['-s'], false],
+  ])(
+    'create the same project %s',
+    async (_, options, autocommit) => {
+      const cli = await createWithCli(options);
+      const server = await postProject(autocommit, options.includes('-s'));
+
+      expect(server.status).toBe(201);
+      expect(cli.created).toEqual(server.created);
+      expect(cli.created.commits).toContain(
+        'Ann <ann@example.com> | Cyberismo Bot <bot@cyberismo.com> | Initial commit',
+      );
+    },
+    60_000,
+  );
+
+  it('both report a default hub that could not be added', async () => {
+    // Git refuses the hub's commit.
+    const hooks = join(folder, 'hooks');
+    await mkdir(hooks);
+    await writeFile(
+      join(hooks, 'commit-msg'),
+      // simple-git takes a failure without stderr for a success.
+      '#!/bin/sh\ngrep -q "^Add hub" "$1" || exit 0\necho refused >&2\nexit 1\n',
+      { mode: 0o755 },
+    );
+    await appendFile(
+      join(folder, 'gitconfig'),
+      `[core]\n\thooksPath = ${hooks.replaceAll('\\', '/')}\n`,
+    );
+
+    const cli = await createWithCli(['--autocommit']);
+    const server = await postProject(true);
+
+    expect(server.status).toBe(201);
+    expect(server.body.failures).toEqual([
+      expect.stringMatching(/^Could not add default hub - /),
+    ]);
+    expect(server.body.warnings).toEqual([]);
+    expect(cli.output).toEqual({
+      code: 1,
+      stdout: '',
+      stderr: `${server.body.failures[0]}\n`,
+    });
+    expect(cli.created).toEqual(server.created);
   }, 60_000);
 });

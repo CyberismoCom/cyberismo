@@ -13,11 +13,11 @@
 */
 
 import { join } from 'node:path';
-import { DEFAULT_HUB } from '@cyberismo/assets';
 import type {
   ActorRef,
   CloneProjectResult,
   CreateProjectParams,
+  CreateProjectResult,
   ProjectErrors,
   ProjectSummary,
 } from '@cyberismo/model';
@@ -30,7 +30,7 @@ import {
 import { isProjectDirectory, scanForProjects } from '../project-scanner.js';
 import { SYSTEM_ACTOR, type CommitIdentity } from '../utils/tx-record.js';
 import { Workspace, type WorkspaceOptions } from '../workspace/workspace.js';
-import { createProject } from './create-project.js';
+import { createAndOpen } from './create-project.js';
 import type { ProjectDirectory } from './project-directory.js';
 
 /**
@@ -180,36 +180,18 @@ class LocalFolder implements ProjectDirectory {
     params: CreateProjectParams,
     actor: ActorRef,
     identity?: CommitIdentity,
-  ): Promise<ProjectSummary> {
-    const { name, prefix, category, description } = params;
-    await this.serially(async () => {
-      const projectPath = join(this.root, prefix);
-      await createProject(projectPath, params);
-
-      const ws = Workspace.over(
-        await Checkout.open(projectPath, this.options),
+  ): Promise<CreateProjectResult> {
+    return this.serially(async () => {
+      const { checkout, result } = await createAndOpen(
+        join(this.root, params.prefix),
+        params,
         actor,
         identity,
+        this.options,
       );
-
-      await ws.checkout.git.initialize(identity);
-
-      // Add default hub and fetch module data
-      try {
-        await ws.settings.hubs.add(DEFAULT_HUB);
-        await ws.modules.fetchHubs();
-      } catch {
-        // Hub setup is non-critical; project is still usable
-      }
-
-      this.add(prefix, ws.checkout);
+      this.add(params.prefix, checkout);
+      return result;
     });
-    return {
-      prefix,
-      name,
-      category: category || undefined,
-      description: description || undefined,
-    };
   }
 
   async clone(url: string): Promise<CloneProjectResult> {

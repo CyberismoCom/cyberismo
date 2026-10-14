@@ -237,10 +237,15 @@ describe('remove module — spec behaviours', () => {
     });
 
     const projectDir = join(testDir, 'proj-trans-only');
-    await createProject(projectDir, {
-      name: 'trans-only-proj',
-      prefix: 'trsp',
-    });
+    await createProject(
+      projectDir,
+      {
+        name: 'trans-only-proj',
+        prefix: 'trsp',
+        skipDefaultHub: true,
+      },
+      SYSTEM_ACTOR,
+    );
 
     const ws = await openTestWorkspace(projectDir, {});
     await ws.modules.install(hostRoot);
@@ -272,10 +277,15 @@ describe('remove module — spec behaviours', () => {
     // The "not part of the project" message must still apply when the
     // name truly does not exist anywhere — declared or installed.
     const projectDir = join(testDir, 'proj-truly-absent');
-    await createProject(projectDir, {
-      name: 'truly-absent-proj',
-      prefix: 'tasp',
-    });
+    await createProject(
+      projectDir,
+      {
+        name: 'truly-absent-proj',
+        prefix: 'tasp',
+        skipDefaultHub: true,
+      },
+      SYSTEM_ACTOR,
+    );
 
     const ws = await openTestWorkspace(projectDir, {});
     await expect(ws.modules.remove('never-imported')).rejects.toThrow(
@@ -300,7 +310,11 @@ describe('remove module — spec behaviours', () => {
     });
 
     const projectDir = join(testDir, 'proj-chain');
-    await createProject(projectDir, { name: 'chain-proj', prefix: 'chpr' });
+    await createProject(
+      projectDir,
+      { name: 'chain-proj', prefix: 'chpr', skipDefaultHub: true },
+      SYSTEM_ACTOR,
+    );
 
     const ws = await openTestWorkspace(projectDir, {});
     await ws.modules.install(aRoot);
@@ -346,10 +360,15 @@ describe('remove module — spec behaviours', () => {
     });
 
     const projectDir = join(testDir, 'proj-drop-prefix');
-    await createProject(projectDir, {
-      name: 'drop-prefix-proj',
-      prefix: 'dppr',
-    });
+    await createProject(
+      projectDir,
+      {
+        name: 'drop-prefix-proj',
+        prefix: 'dppr',
+        skipDefaultHub: true,
+      },
+      SYSTEM_ACTOR,
+    );
 
     const ws = await openTestWorkspace(projectDir, {});
     await ws.modules.install(aRoot);
