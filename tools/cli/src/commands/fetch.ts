@@ -21,7 +21,7 @@ import { printResult } from '../lib/output.js';
 
 // Fetches every hub, even with a current cache; gives the failure text if
 // some hub could not be read.
-export async function fetchHubs(ws: Workspace): Promise<string | undefined> {
+async function fetchHubs(ws: Workspace): Promise<string | undefined> {
   const failures = await ws.modules.fetchHubs(true);
   if (failures.length === 0) {
     return undefined;
