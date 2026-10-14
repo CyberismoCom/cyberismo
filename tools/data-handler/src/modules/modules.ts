@@ -58,6 +58,7 @@ import { cleanOrphans } from './orphans.js';
 import {
   executeModuleReplays,
   filterStepsToApplied,
+  ModuleReplayFailedError,
   ModuleValidationFailedError,
   planModuleReplays,
   type ReplayStep,
@@ -71,10 +72,13 @@ import type {
   HubSetting,
   ModuleContent,
   ModuleInfo,
+  ModuleInstallResult,
   ModuleSetting,
   ModuleSettingFromHub,
   ModuleSettingOptions,
+  ModuleUpdateResult,
   ProjectModuleInfo,
+  ReplayedModule,
   Source,
   UpdatePlan,
   UpdateTarget,
@@ -155,7 +159,8 @@ export class Modules {
   private async applyResolvedWithReplay(
     resolved: ResolvedModule[],
     backfill: ModuleSetting[] = [],
-  ): Promise<void> {
+  ): Promise<ModuleUpdateResult> {
+    const result: ModuleUpdateResult = { replayed: [], skippedReplays: [] };
     // Staged trees older than the tool are migrated in place (still in
     // staging); a newer or unversioned tree aborts before any disk change.
     await ensureStagedSchemas(resolved);
@@ -176,36 +181,41 @@ export class Modules {
       onRemove: (installation) => modules?.add(installation.name),
     });
 
-    if (steps.length === 0) return;
+    if (steps.length === 0) return result;
 
     // A module whose apply failed still has its old files installed;
     // replaying its chain would cascade changes those files do not
     // reflect. Run replays only for modules that actually landed.
     const { executable, dropped } = filterStepsToApplied(steps, appliedModules);
-    for (const step of dropped) {
-      console.warn(
-        `Skipping migration replay for module '${step.modulePrefix}' ` +
-          `(${step.fromVersion} -> ${step.toVersion}): the module failed to apply.`,
-      );
-    }
-    if (executable.length === 0) return;
+    result.skippedReplays = dropped.map(
+      ({ modulePrefix, fromVersion, toVersion }) => ({
+        modulePrefix,
+        fromVersion,
+        toVersion,
+      }),
+    );
+    if (executable.length === 0) return result;
 
-    await executeModuleReplays(this.checkout, executable);
-    for (const step of executable) {
-      console.log(
-        `Replayed migrations for module '${step.modulePrefix}': ` +
-          `${step.fromVersion} -> ${step.toVersion} (${step.seals.length} seal(s))` +
-          describeSkipped(step),
-      );
+    try {
+      await executeModuleReplays(this.checkout, executable);
+    } catch (error) {
+      if (error instanceof ModuleReplayFailedError) error.result = result;
+      throw error;
     }
+    result.replayed = executable.map(replayedModule);
 
     const validationErrors = await Validate.getInstance().validate(
       this.checkout.basePath,
       () => this.checkout,
     );
     if (validationErrors.trim().length > 0) {
-      throw new ModuleValidationFailedError(validationErrors, executable);
+      throw new ModuleValidationFailedError(
+        validationErrors,
+        executable,
+        result,
+      );
     }
+    return result;
   }
 
   /**
@@ -221,7 +231,18 @@ export class Modules {
    *        version: Semver version or range (e.g. '1.0.0', '^1.0.0')
    */
   @write((source) => `Import module ${source}`)
-  public async install(source: string, options?: ModuleSettingOptions) {
+  public async install(
+    source: string,
+    options?: ModuleSettingOptions,
+  ): Promise<ModuleInstallResult> {
+    // A hub module's name wins over a path of the same name. It is looked up
+    // before the refresh, so a name the cached list lacks is taken as a path.
+    const hubModule = await this.hubModule(source);
+    const isPrivate = options?.private ?? hubModule?.private ?? false;
+    if (hubModule) {
+      source = hubModule.location;
+    }
+
     // Ensure module list is up to date before installing.
     await this.fetchCmd.ensureModuleListUpToDate();
 
@@ -256,7 +277,7 @@ export class Modules {
     // which silently mis-installs whenever the resolver's pick diverges
     // from the default branch — e.g. a pinned older version.
     const remoteUrl = buildRemoteUrl(
-      { location, private: options?.private ?? false },
+      { location, private: isPrivate },
       options?.credentials,
     );
     // For file: sources we can read `cardsConfig.json` directly from the
@@ -303,23 +324,40 @@ export class Modules {
       {
         kind: 'add',
         name: resolvedName,
-        source: { location, private: options?.private ?? false },
+        source: { location, private: isPrivate },
         range: versionRange,
       },
       { credentials: options?.credentials, tempDir: this.tempModulesDir },
     );
     if (!plan.ok) throw resolutionConflictError(plan.conflicts);
-    await this.applyResolvedWithReplay(resolved, backfill);
+    const result = await this.applyResolvedWithReplay(resolved, backfill);
 
     // Validate the project after module has been installed.
     const afterImportValidateErrors = await Validate.getInstance().validate(
       this.checkout.basePath,
       () => this.checkout,
     );
-    if (afterImportValidateErrors.length > beforeImportValidateErrors.length) {
-      console.error(
-        `There are new validations errors after importing the module. Check the project`,
-      );
+    return {
+      ...result,
+      newValidationErrors:
+        afterImportValidateErrors.length > beforeImportValidateErrors.length,
+    };
+  }
+
+  // The module the cached hub data offers under `name`, if any.
+  private async hubModule(name: string): Promise<ModuleSetting | undefined> {
+    try {
+      const moduleList = (await readJsonFile(
+        pathResolve(this.checkout.basePath, MODULE_LIST_FULL_PATH),
+      )) as ModuleListFile;
+      return moduleList.modules?.find((module) => module.name === name);
+    } catch (error) {
+      // No list yet (hubs never fetched) is normal; an unreadable one is not.
+      const cause = (error as Error).cause as NodeJS.ErrnoException | undefined;
+      if (cause?.code !== 'ENOENT') {
+        this.logger.warn(error, 'Unreadable module list; not a hub module');
+      }
+      return undefined;
     }
   }
 
@@ -356,7 +394,10 @@ export class Modules {
   @write((target: UpdateTarget) =>
     target.module ? `Update module ${target.module}` : 'Update all modules',
   )
-  public async update(target: UpdateTarget, credentials?: Credentials) {
+  public async update(
+    target: UpdateTarget,
+    credentials?: Credentials,
+  ): Promise<ModuleUpdateResult> {
     // Ensure module list is up to date before updating
     await this.fetchCmd.ensureModuleListUpToDate();
 
@@ -378,7 +419,7 @@ export class Modules {
           tempDir: this.tempModulesDir,
         },
       );
-      await this.applyResolvedWithReplay(resolved, backfill);
+      return await this.applyResolvedWithReplay(resolved, backfill);
     } finally {
       await source.dispose?.();
     }
@@ -609,24 +650,13 @@ export class Modules {
   }
 }
 
-// Retired entries are expected and no build will apply them; unknown ones
-// were most likely written by a newer build, so upgrading may apply them.
-function describeSkipped(step: ReplayStep): string {
-  const retired = step.seals.flatMap((s) => s.skipped.retired);
-  const unknown = step.seals.flatMap((s) => s.skipped.unknown);
-  const count = (n: number) => `${n} ${n === 1 ? 'entry' : 'entries'}`;
-  const ops = (list: string[]) => [...new Set(list)].join(', ');
-  let text = '';
-  if (retired.length > 0) {
-    text +=
-      `; ignored ${count(retired.length)} for retired operations ` +
-      `(${ops(retired)})`;
-  }
-  if (unknown.length > 0) {
-    text +=
-      `; skipped ${count(unknown.length)} this version does not recognise ` +
-      `(${ops(unknown)}) — upgrade cyberismo to apply ` +
-      `${unknown.length === 1 ? 'it' : 'them'}`;
-  }
-  return text;
+function replayedModule(step: ReplayStep): ReplayedModule {
+  return {
+    modulePrefix: step.modulePrefix,
+    fromVersion: step.fromVersion,
+    toVersion: step.toVersion,
+    seals: step.seals.length,
+    retired: step.seals.flatMap((s) => s.skipped.retired),
+    unknown: step.seals.flatMap((s) => s.skipped.unknown),
+  };
 }
