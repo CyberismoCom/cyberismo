@@ -256,11 +256,11 @@ describe('change feed', () => {
   it('re-reads settings and module prefixes after a rollback', async () => {
     mockEnsureModuleListUpToDate();
     await open(true);
-    await ws.modulesCmd.install(join(testData, 'minimal'));
+    await ws.modules.install(join(testData, 'minimal'));
     const modules = structuredClone(ws.checkout.configuration.modules);
 
     const failed = ws.atomic(async () => {
-      await ws.modulesCmd.remove('mini');
+      await ws.modules.remove('mini');
       throw new Error('boom');
     }, 'Remove module');
     await expect(failed).rejects.toThrow('boom');

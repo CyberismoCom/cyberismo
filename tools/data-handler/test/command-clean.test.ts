@@ -310,7 +310,7 @@ describe('clean command', () => {
     );
     try {
       // The imported project's template card carries null placeholders.
-      await importing.modulesCmd.install(
+      await importing.modules.install(
         join(moduleTestDir, 'valid/decision-records'),
       );
       const moduleCards = allTemplateCards(importing.checkout).filter((card) =>
