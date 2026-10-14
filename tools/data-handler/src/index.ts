@@ -10,14 +10,11 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import {
-  Cmd,
-  CmdKey,
-  CmdValue,
-  Commands,
-  Workspace,
-  ExportFormats,
-} from './command-handler.js';
+import { Workspace } from './workspace/workspace.js';
+import { ExportFormats } from './export/export.js';
+import { Import } from './commands/import.js';
+import { Remove } from './commands/remove.js';
+import { Rename } from './commands/rename.js';
 import { Validate } from './commands/validate.js';
 export { SCHEMA_VERSION } from '@cyberismo/migrations';
 export * from './interfaces/macros.js';
@@ -25,8 +22,6 @@ export { createProject } from './directory/create-project.js';
 export { localFolder, openProjectAt } from './directory/local-folder.js';
 export { migrateProject } from './directory/migrate-project.js';
 export type { ProjectDirectory } from './directory/project-directory.js';
-import { requestStatus } from './interfaces/request-status-interfaces.js';
-export type { attachmentPayload } from './interfaces/request-status-interfaces.js';
 import { evaluateMacros } from './macros/index.js';
 import { macroErrorText } from './macros/render.js';
 import { validBumps } from './versions/version.js';
@@ -40,16 +35,14 @@ import { scanForProjects } from './project-scanner.js';
 import { Create } from './commands/create.js';
 
 export {
-  Cmd,
-  CmdKey,
-  CmdValue,
   Workspace,
-  Commands,
   Create,
   ExportFormats,
+  Import,
   isResourceFolderType,
   moduleNameFromCardKey,
-  requestStatus,
+  Remove,
+  Rename,
   resourceName,
   resourceNameToString,
   scanForProjects,
@@ -58,32 +51,6 @@ export {
   macroErrorText,
   validBumps,
 };
-
-// Export command-specific option interfaces
-export type {
-  CommandOptions,
-  AllCommandOptions,
-  AddCommandOptions,
-  CalcCommandOptions,
-  CreateCommandOptions,
-  EditCommandOptions,
-  ExportCommandOptions,
-  FetchCommandOptions,
-  ImportCommandOptions,
-  MoveCommandOptions,
-  PublishCommandOptions,
-  RankCommandOptions,
-  RemoveCommandOptions,
-  RenameCommandOptions,
-  ReportCommandOptions,
-  ShowCommandOptions,
-  StartCommandOptions,
-  TransitionCommandOptions,
-  UpdateCommandOptions,
-  UpdateModulesCommandOptions,
-  ValidateCommandOptions,
-  VersionCommandOptions,
-} from './interfaces/command-options.js';
 
 export {
   CardNotFoundError,
@@ -105,7 +72,6 @@ export {
 } from './exceptions/index.js';
 export type { Checkout } from './containers/project.js';
 export { AsciidoctorPdfError } from './export/export.js';
-export type { WorkspaceOpener } from './command-handler.js';
 export type { WorkspaceOptions } from './workspace/workspace.js';
 export { removeResource } from './utils/remove-resource.js';
 export {

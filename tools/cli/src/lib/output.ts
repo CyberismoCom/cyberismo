@@ -11,7 +11,7 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import type { requestStatus, Workspace } from '@cyberismo/data-handler';
+import type { Workspace } from '@cyberismo/data-handler';
 
 import { fail } from './errors.js';
 
@@ -22,8 +22,16 @@ export function deprecationNote(oldName: string, newName: string) {
   );
 }
 
-// Handle the response object from data-handler
-export function handleResponse(response: requestStatus) {
+/** A command's outcome: status 200 succeeded, any other failed. */
+export interface CommandResult {
+  statusCode: number;
+  message?: string;
+  payload?: object;
+  note?: string;
+}
+
+// Prints a command's outcome; a failure exits.
+export function handleResponse(response: CommandResult) {
   if (response.statusCode === 200) {
     if (response.payload) {
       if (response.message) {

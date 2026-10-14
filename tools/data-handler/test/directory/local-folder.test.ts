@@ -202,6 +202,26 @@ describe('directory.rename', () => {
     expect(prefixOf(root, 'one')).toBe('uno');
   });
 
+  it("commits the rename as the caller, with the caller's actor trailer", async () => {
+    const { root } = await folder({ prefix: 'one', git: true });
+    const { directory } = await localFolder(root, { autocommit: true });
+
+    await directory.rename('one', 'uno', ann.actor, ann.identity);
+
+    const repo = join(root, 'one');
+    expect(await git(repo, 'log', '-1', '--format=%an <%ae>')).toBe(
+      'Ann <ann@example.com>',
+    );
+    expect(
+      await git(
+        repo,
+        'log',
+        '-1',
+        '--format=%(trailers:key=Cyberismo-Actor,valueonly)',
+      ),
+    ).toBe('user:ann');
+  });
+
   it('refuses a prefix another project has, renaming nothing', async () => {
     const { root } = await folder({ prefix: 'one' }, { prefix: 'two' });
     const { directory } = await localFolder(root);

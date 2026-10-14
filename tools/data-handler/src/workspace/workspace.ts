@@ -12,12 +12,8 @@
 
 import { Clean } from '../clean/clean.js';
 import { Export } from '../export/export.js';
-import type { Import } from '../commands/import.js';
 import { Modules } from '../modules/modules.js';
-import type { Remove } from '../commands/remove.js';
 import { Versions } from '../versions/version.js';
-import type { Rename } from '../commands/rename.js';
-import type { Validate } from '../commands/validate.js';
 import { Cards } from '../cards/cards.js';
 import { Render } from '../macros/render.js';
 import { Queries } from '../queries/queries.js';
@@ -27,34 +23,10 @@ import { Settings } from './settings.js';
 import type { Checkout, OpenOptions } from '../containers/project.js';
 import type { ActorRef } from '@cyberismo/model';
 import { runWithCommitContext } from '../utils/commit-context.js';
-import { isWriteMethod } from '../utils/rw-lock.js';
 import type { CommitIdentity, WriteFrame } from '../utils/tx-record.js';
-import { sharedCommands, type SharedCommands } from './shared-commands.js';
 
 /** How a workspace's checkout is opened. */
 export type WorkspaceOptions = OpenOptions;
-
-// A per-handle view of a shared legacy command object: its @write methods
-// open the write as the handle's actor.
-function legacyProxy<T extends object>(
-  target: T,
-  checkout: Checkout,
-  frame: WriteFrame,
-): T {
-  return new Proxy(target, {
-    get(object, key) {
-      const value = Reflect.get(object, key);
-      if (typeof value !== 'function') {
-        return value;
-      }
-      if (!isWriteMethod(value)) {
-        return value.bind(object);
-      }
-      return (...args: unknown[]) =>
-        checkout.lock.write(frame, () => value.apply(object, args));
-    },
-  });
-}
 
 /**
  * One actor's handle over a shared checkout. Writes through it are the
@@ -62,7 +34,6 @@ function legacyProxy<T extends object>(
  */
 export class Workspace {
   private readonly frame: WriteFrame;
-  private readonly proxies = new Map<keyof SharedCommands, object>();
   private cardsFacade?: Cards;
   private settingsFacade?: Settings;
   private changesFacade?: Changes;
@@ -95,16 +66,6 @@ export class Workspace {
     identity?: CommitIdentity,
   ): Workspace {
     return new Workspace(checkout, actor, identity);
-  }
-
-  private legacy<K extends keyof SharedCommands>(key: K): SharedCommands[K] {
-    let proxy = this.proxies.get(key);
-    if (!proxy) {
-      const target = sharedCommands(this.checkout)[key];
-      proxy = legacyProxy(target, this.checkout, this.frame);
-      this.proxies.set(key, proxy);
-    }
-    return proxy as SharedCommands[K];
   }
 
   /** Card operations, as this handle's actor. */
@@ -186,19 +147,6 @@ export class Workspace {
   /** Path of the project. */
   get path(): string {
     return this.checkout.basePath;
-  }
-
-  get importCmd(): Import {
-    return this.legacy('importCmd');
-  }
-  get removeCmd(): Remove {
-    return this.legacy('removeCmd');
-  }
-  get renameCmd(): Rename {
-    return this.legacy('renameCmd');
-  }
-  get validateCmd(): Validate {
-    return this.legacy('validateCmd');
   }
 
   /**
