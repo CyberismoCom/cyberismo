@@ -20,6 +20,7 @@ import type * as Undici from 'undici';
 
 // Hub requests go out through egressFetch, which uses undici's fetch rather
 import { findCard } from '../src/cards/read.js';
+import { checkoutOf } from '../src/infra/internal.js';
 
 // than the global one, so the stub belongs here.
 const undiciFetch = vi.hoisted(() => vi.fn());
@@ -114,7 +115,7 @@ describe('remove card', () => {
     await ws.cards.addLink(otherCardKey, childKey, linkType);
 
     // Verify the link exists
-    let otherCard = findCard(ws.checkout, otherCardKey);
+    let otherCard = findCard(checkoutOf(ws), otherCardKey);
     const linksBefore = otherCard.metadata?.links?.filter(
       (l) => l.cardKey === childKey,
     );
@@ -124,7 +125,7 @@ describe('remove card', () => {
     await ws.cards.remove(parentCard!.key);
 
     // The link from otherCard to the child should also be removed
-    otherCard = findCard(ws.checkout, otherCardKey);
+    otherCard = findCard(checkoutOf(ws), otherCardKey);
     const linksAfter = otherCard.metadata?.links?.filter(
       (l) => l.cardKey === childKey,
     );
@@ -133,11 +134,11 @@ describe('remove card', () => {
 
   it('should remove card that has children', async () => {
     const cardId = 'decision_5';
-    await Workspace.over(ws.checkout, SYSTEM_ACTOR).cards.remove(cardId);
+    await Workspace.over(checkoutOf(ws), SYSTEM_ACTOR).cards.remove(cardId);
 
-    expect(() => findCard(ws.checkout, cardId)).toThrow(CardNotFoundError);
+    expect(() => findCard(checkoutOf(ws), cardId)).toThrow(CardNotFoundError);
     // Since decision_6 is decision_5's child, it should have been removed as well.
-    expect(() => findCard(ws.checkout, 'decision_6')).toThrow(
+    expect(() => findCard(checkoutOf(ws), 'decision_6')).toThrow(
       CardNotFoundError,
     );
   });
@@ -145,8 +146,8 @@ describe('remove card', () => {
   it('should not delete template cards when removing project cards', async () => {
     // Use simple-page template which has a parent card (decision_3) with a child card (decision_4)
     const templateName = 'decision/templates/simplepage';
-    await ws.checkout.populateCaches();
-    const templateResource = ws.checkout.resources.byType(
+    await checkoutOf(ws).populateCaches();
+    const templateResource = checkoutOf(ws).resources.byType(
       templateName,
       'templates',
     );
@@ -168,19 +169,21 @@ describe('remove card', () => {
     const parentCardKey = createdCards.find(
       (card) => card.parent === 'root' && card.children.length > 0,
     )!.key;
-    const parentCard = findCard(ws.checkout, parentCardKey);
+    const parentCard = findCard(checkoutOf(ws), parentCardKey);
     expect(parentCard.children.length).toBeGreaterThan(0);
 
     // Delete the created project cards
     await ws.cards.remove(parentCardKey!);
 
     // Verify project card and its children are deleted
-    expect(() => findCard(ws.checkout, parentCardKey)).toThrow(
+    expect(() => findCard(checkoutOf(ws), parentCardKey)).toThrow(
       CardNotFoundError,
     );
 
     for (const childKey of parentCard.children) {
-      expect(() => findCard(ws.checkout, childKey)).toThrow(CardNotFoundError);
+      expect(() => findCard(checkoutOf(ws), childKey)).toThrow(
+        CardNotFoundError,
+      );
     }
 
     // Verify template cards still exist and were not deleted
@@ -243,7 +246,9 @@ describe('remove module — spec behaviours', () => {
     expect(existsSync(join(projectDir, '.cards', 'modules', 'trdep'))).toBe(
       true,
     );
-    const topLevelNames = ws.checkout.configuration.modules.map((m) => m.name);
+    const topLevelNames = checkoutOf(ws).configuration.modules.map(
+      (m) => m.name,
+    );
     expect(topLevelNames).toEqual(['trhost']);
 
     await expect(ws.modules.remove('trdep')).rejects.toThrow(
@@ -324,7 +329,9 @@ describe('remove module — spec behaviours', () => {
       false,
     );
     // Top-level declaration gone too.
-    const topLevelNames = ws.checkout.configuration.modules.map((m) => m.name);
+    const topLevelNames = checkoutOf(ws).configuration.modules.map(
+      (m) => m.name,
+    );
     expect(topLevelNames).not.toContain('cha');
   });
 
@@ -360,17 +367,17 @@ describe('remove module — spec behaviours', () => {
     const ws = await openTestWorkspace(projectDir, {});
     await ws.modules.install(aRoot);
     // All three transitives live in the cached prefix list.
-    expect(ws.checkout.allModulePrefixes()).toContain('drpa');
-    expect(ws.checkout.allModulePrefixes()).toContain('drpb');
-    expect(ws.checkout.allModulePrefixes()).toContain('drpc');
+    expect(checkoutOf(ws).allModulePrefixes()).toContain('drpa');
+    expect(checkoutOf(ws).allModulePrefixes()).toContain('drpb');
+    expect(checkoutOf(ws).allModulePrefixes()).toContain('drpc');
 
     await ws.modules.remove('drpa');
 
     // Orphan cascade removed the transitives from disk *and* from the
     // cached prefix list.
-    expect(ws.checkout.allModulePrefixes()).not.toContain('drpa');
-    expect(ws.checkout.allModulePrefixes()).not.toContain('drpb');
-    expect(ws.checkout.allModulePrefixes()).not.toContain('drpc');
+    expect(checkoutOf(ws).allModulePrefixes()).not.toContain('drpa');
+    expect(checkoutOf(ws).allModulePrefixes()).not.toContain('drpb');
+    expect(checkoutOf(ws).allModulePrefixes()).not.toContain('drpc');
   });
 });
 

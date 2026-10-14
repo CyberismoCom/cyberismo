@@ -21,6 +21,7 @@ import type * as CardUpdate from '../../src/cards/update.js';
 import { sortCards } from '../../src/utils/card-utils.js';
 import { openTestWorkspace } from '../helpers/open-test-workspace.js';
 import { metadataOf, projects, snapshot } from '../cards/fixture.js';
+import { checkoutOf } from '../../src/infra/internal.js';
 
 // The card keys whose metadata write is to fail; see 'failedCards'.
 const failing = vi.hoisted(() => new Set<string>());
@@ -184,9 +185,9 @@ describe('clean.run', () => {
   it('takes only the read lock in a dry run: no write hooks, and it nests in a read', async () => {
     const { ws } = await open(spec);
     const afterWrite = vi.fn().mockResolvedValue(undefined);
-    ws.checkout.lock.onAfterWrite(afterWrite);
+    checkoutOf(ws).lock.onAfterWrite(afterWrite);
 
-    const nested = await ws.checkout.lock.read(() => ws.clean.run(true));
+    const nested = await checkoutOf(ws).lock.read(() => ws.clean.run(true));
     expect(nested.findings).not.toEqual([]);
     expect(afterWrite).not.toHaveBeenCalled();
 

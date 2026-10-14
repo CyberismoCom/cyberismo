@@ -21,6 +21,7 @@ import { resourceName } from '../../src/utils/resource-utils.js';
 import type { Card, CardType } from '@cyberismo/model';
 import { openTestWorkspace } from '../helpers/open-test-workspace.js';
 import { findCard } from '../../src/cards/read.js';
+import { checkoutOf } from '../../src/infra/internal.js';
 
 const FIELD = 'decision/fieldTypes/obsoletedBy';
 const RESPONSIBLE_FIELD = 'decision/fieldTypes/responsible';
@@ -93,8 +94,8 @@ describe('fieldOverride fact generation', () => {
   });
 
   it('stored value on an override-enabled calculated field becomes fieldOverride', async () => {
-    const card = findCard(ws.checkout, CARD_KEY) as Card;
-    const facts = await createCardFacts(card, ws.checkout);
+    const card = findCard(checkoutOf(ws), CARD_KEY) as Card;
+    const facts = await createCardFacts(card, checkoutOf(ws));
     expect(facts).toContain(
       `fieldOverride(${CARD_KEY}, "${FIELD}", "decision_999").`,
     );
@@ -102,14 +103,14 @@ describe('fieldOverride fact generation', () => {
   });
 
   it('stored values on regular fields still become field facts', async () => {
-    const card = findCard(ws.checkout, CARD_KEY) as Card;
-    const facts = await createCardFacts(card, ws.checkout);
+    const card = findCard(checkoutOf(ws), CARD_KEY) as Card;
+    const facts = await createCardFacts(card, checkoutOf(ws));
     expect(facts).toContain(`field(${CARD_KEY}, "title"`);
     expect(facts).not.toContain(`fieldOverride(${CARD_KEY}, "title"`);
   });
 
   it('card query: override wins as effective value; calculatedValue shows the calculated value', async () => {
-    const result = await ws.checkout.calculationEngine.runQuery(
+    const result = await checkoutOf(ws).calculationEngine.runQuery(
       'card',
       'localApp',
       { cardKey: CARD_KEY },
@@ -132,7 +133,7 @@ describe('fieldOverride fact generation', () => {
     );
 
     const fresh = await openTestWorkspace(projectPath, {});
-    const result = await fresh.checkout.calculationEngine.runQuery(
+    const result = await checkoutOf(fresh).calculationEngine.runQuery(
       'card',
       'localApp',
       { cardKey: CARD_KEY },
@@ -196,7 +197,7 @@ describe('card query: calculated value without a stored override', () => {
   });
 
   it('calculated value is effective when no override is stored', async () => {
-    const result = await ws.checkout.calculationEngine.runQuery(
+    const result = await checkoutOf(ws).calculationEngine.runQuery(
       'card',
       'localApp',
       { cardKey: CARD_KEY },
@@ -209,7 +210,7 @@ describe('card query: calculated value without a stored override', () => {
   });
 
   it('a field without overridableField reports isOverridable as false', async () => {
-    const result = await ws.checkout.calculationEngine.runQuery(
+    const result = await checkoutOf(ws).calculationEngine.runQuery(
       'card',
       'localApp',
       { cardKey: CARD_KEY },
@@ -222,8 +223,8 @@ describe('card query: calculated value without a stored override', () => {
   });
 
   it('stored value on an override-enabled but non-calculated field still becomes a field fact, not fieldOverride', async () => {
-    const card = findCard(ws.checkout, CARD_KEY) as Card;
-    const facts = await createCardFacts(card, ws.checkout);
+    const card = findCard(checkoutOf(ws), CARD_KEY) as Card;
+    const facts = await createCardFacts(card, checkoutOf(ws));
     expect(facts).toContain(`field(${CARD_KEY}, "${RESPONSIBLE_FIELD}"`);
     expect(facts).not.toContain(
       `fieldOverride(${CARD_KEY}, "${RESPONSIBLE_FIELD}"`,
@@ -247,8 +248,8 @@ describe('card query: calculated value without a stored override', () => {
       }),
     ).resolves.toBeUndefined();
 
-    const cardType = ws.checkout.resources
-      .byType('decision/cardTypes/decision', 'cardTypes')
+    const cardType = checkoutOf(ws)
+      .resources.byType('decision/cardTypes/decision', 'cardTypes')
       .show() as CardType;
     const field = cardType.customFields.find((f) => f.name === FIELD);
     expect(field?.enableOverride).toBeFalsy();
@@ -308,8 +309,8 @@ describe('disabling override on a calculated field that holds values', () => {
       }),
     ).resolves.toBeUndefined();
 
-    const cardType = ws.checkout.resources
-      .byType('decision/cardTypes/decision', 'cardTypes')
+    const cardType = checkoutOf(ws)
+      .resources.byType('decision/cardTypes/decision', 'cardTypes')
       .show() as CardType;
     const field = cardType.customFields.find((f) => f.name === FIELD);
     expect(field?.isCalculated).toBe(true);
@@ -350,7 +351,7 @@ describe('stored value on a calculated non-overridable field is dormant', () => 
   });
 
   it('the calculation is effective and no conflict is raised', async () => {
-    const result = await ws.checkout.calculationEngine.runQuery(
+    const result = await checkoutOf(ws).calculationEngine.runQuery(
       'card',
       'localApp',
       { cardKey: CARD_KEY },
@@ -407,9 +408,9 @@ describe('a declared field whose field type resource is missing', () => {
   });
 
   it('is omitted while the rest of the card still produces facts', async () => {
-    const card = findCard(ws.checkout, CARD_KEY) as Card;
+    const card = findCard(checkoutOf(ws), CARD_KEY) as Card;
 
-    const facts = await createCardFacts(card, ws.checkout);
+    const facts = await createCardFacts(card, checkoutOf(ws));
 
     expect(facts).toContain(`field(${CARD_KEY}, "title"`);
     expect(facts).not.toContain(DANGLING_FIELD);
@@ -464,7 +465,7 @@ describe('fieldCalculated is ignored for a field the card type does not declare 
   });
 
   it('the stored value stands alone and no conflict notification is raised', async () => {
-    const result = await ws.checkout.calculationEngine.runQuery(
+    const result = await checkoutOf(ws).calculationEngine.runQuery(
       'card',
       'localApp',
       { cardKey: CARD_KEY },

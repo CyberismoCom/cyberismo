@@ -27,6 +27,7 @@ import type {
   Workspace,
   WorkspaceOptions,
 } from '../../src/workspace/workspace.js';
+import { checkoutOf } from '../../src/infra/internal.js';
 
 // A module operation fetches outside the workspace lock; these run something
 // else in that window, at the hub refresh that opens it.
@@ -158,7 +159,7 @@ describe('a module operation fetching outside the lock', () => {
     const { ws, replace } = await held(path, { autocommit: true });
     // The checkout that replaced this one has changes of its own.
     const theirs = join(path, 'cardRoot', 'theirs.txt');
-    const lock = ws.checkout.lock;
+    const lock = checkoutOf(ws).lock;
     const write = lock.write.bind(lock) as (...args: unknown[]) => unknown;
     vi.spyOn(lock, 'write').mockImplementation((async (...args: unknown[]) => {
       await replace();
