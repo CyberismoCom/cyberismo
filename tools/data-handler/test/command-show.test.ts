@@ -421,12 +421,12 @@ describe('show', () => {
   it('modules show - no module name defined', async () => {
     const moduleName = '';
 
-    await expect(ws.modulesCmd.show(moduleName)).rejects.toThrow(
+    await expect(ws.modules.show(moduleName)).rejects.toThrow(
       `Module '' does not exist in the project`,
     );
   });
   it('modules list (success)', async () => {
-    const results = await ws.modulesCmd.list();
+    const results = await ws.modules.list();
     expect(results).not.toBeUndefined();
   });
   it('showProject (success)', async () => {

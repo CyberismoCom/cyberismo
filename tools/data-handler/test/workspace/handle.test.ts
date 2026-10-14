@@ -52,7 +52,7 @@ it('shares the checkout, lock and commands between handles; only the actor diffe
   expect([a.actor, b.actor]).toEqual([ann.actor, bob.actor]);
 
   // Each handle has its own view of a command ...
-  expect(a.fetchCmd).not.toBe(b.fetchCmd);
+  expect(a.importCmd).not.toBe(b.importCmd);
   // ... over one shared object: what one handle sets, the other sees.
   const probe = {};
   (a.showCmd as unknown as { probe: object }).probe = probe;
