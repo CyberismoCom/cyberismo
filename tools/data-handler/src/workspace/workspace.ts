@@ -25,60 +25,16 @@ import { Queries } from '../queries/queries.js';
 import { Changes } from './changes.js';
 import { Resources } from './resources.js';
 import { Settings } from './settings.js';
-import { Checkout } from '../containers/project.js';
+import { Checkout, type OpenOptions } from '../containers/project.js';
 import type { ActorRef } from '@cyberismo/model';
 import { runWithCommitContext } from '../utils/commit-context.js';
 import { isWriteMethod } from '../utils/rw-lock.js';
 import type { CommitIdentity, WriteFrame } from '../utils/tx-record.js';
-import { type Level } from 'pino';
-import { join } from 'node:path';
-import { initLogger } from '../utils/log-utils.js';
 import { DEFAULT_HUB } from '@cyberismo/assets';
 import { sharedCommands, type SharedCommands } from './shared-commands.js';
 
-export interface WorkspaceOptions {
-  watchResourceChanges?: boolean;
-  logLevel?: Level;
-  autocommit?: boolean;
-  autopush?: boolean;
-}
-
-/**
- * Opens the checkout at `path` and loads it. Its holder disposes it.
- * @param path Project path.
- * @param options Checkout options.
- * @throws if the project's schema version is not supported.
- */
-export async function openCheckout(
-  path: string,
-  options?: WorkspaceOptions,
-): Promise<Checkout> {
-  // Set up logger before constructing anything so eager child loggers work
-  if (options?.logLevel) {
-    const logPath = join(path, '.logs', 'cyberismo_data-handler.log');
-    initLogger(options.logLevel, logPath);
-  }
-  const checkout = new Checkout(path, {
-    watchResourceChanges: options?.watchResourceChanges,
-    autocommit: options?.autocommit,
-    autopush: options?.autopush,
-  });
-  const compat = checkout.configuration.checkSchemaVersion();
-  if (!compat.isCompatible) {
-    checkout.dispose();
-    throw new Error(compat.message);
-  }
-  try {
-    checkout.resources.changedModules();
-    await checkout.populateCaches();
-    await checkout.initializeGit();
-    await checkout.calculationEngine.generate();
-  } catch (error) {
-    checkout.dispose();
-    throw error;
-  }
-  return checkout;
-}
+/** How a workspace's checkout is opened. */
+export type WorkspaceOptions = OpenOptions;
 
 // A per-handle view of a shared legacy command object: its @write methods
 // open the write as the handle's actor.
@@ -307,7 +263,7 @@ export class Workspace {
     );
 
     const ws = Workspace.over(
-      await openCheckout(projectPath, options),
+      await Checkout.open(projectPath, options),
       actor,
       identity,
     );

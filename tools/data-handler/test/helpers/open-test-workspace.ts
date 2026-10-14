@@ -12,10 +12,10 @@
 */
 
 import type { ActorRef } from '@cyberismo/model';
-import {
-  openCheckout,
+import { openProjectAt } from '../../src/directory/local-folder.js';
+import type {
   Workspace,
-  type WorkspaceOptions,
+  WorkspaceOptions,
 } from '../../src/workspace/workspace.js';
 import {
   SYSTEM_ACTOR,
@@ -35,5 +35,5 @@ export async function openTestWorkspace(
     ...options
   }: WorkspaceOptions & { actor?: ActorRef; identity?: CommitIdentity } = {},
 ): Promise<Workspace> {
-  return Workspace.over(await openCheckout(path, options), actor, identity);
+  return openProjectAt(path, actor, identity, options);
 }

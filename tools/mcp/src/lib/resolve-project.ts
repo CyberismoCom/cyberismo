@@ -16,12 +16,12 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { AuthInfo } from '@modelcontextprotocol/sdk/server/auth/types.js';
 import {
-  Workspace,
-  type Checkout,
-  type ProjectProvider,
+  ProjectNotFoundError,
+  type CommitIdentity,
+  type ProjectDirectory,
+  type Workspace,
 } from '@cyberismo/data-handler';
-
-export type { ProjectProvider } from '@cyberismo/data-handler';
+import type { ActorRef } from '@cyberismo/model';
 
 /** The authenticated user an MCP host puts in `AuthInfo.extra.user`. */
 export interface McpUser {
@@ -49,19 +49,17 @@ export function callerOf({ authInfo }: RequestAuth): McpUser {
 }
 
 /**
- * The calling user's handle over `checkout`; the MCP client acts as the
- * user's agent.
+ * The authenticated user of a request as an actor, with their git identity;
+ * the MCP client acts as the user's agent.
  * @throws if the request carries no authenticated user.
  */
-export function workspaceFor(
-  checkout: Checkout,
+export function actorOf(
   auth: RequestAuth,
   server: McpServer,
-): Workspace {
+): [ActorRef, CommitIdentity] {
   const user = callerOf(auth);
   const client = server.server.getClientVersion()?.name;
-  return Workspace.over(
-    checkout,
+  return [
     {
       kind: user.kind,
       id: user.id,
@@ -69,27 +67,32 @@ export function workspaceFor(
       ...(client && { agent: { name: client } }),
     },
     { name: user.name, email: user.email },
-  );
+  ];
 }
 
 /**
  * Resolve the caller's handle over the project named by projectPrefix.
- * Throws if the prefix is unknown or no projects are available.
+ * @throws if the request carries no authenticated user, or the prefix is
+ *   unknown or no projects are available.
  */
-export function resolveCommands(
-  provider: ProjectProvider,
+export async function resolveWorkspace(
+  directory: ProjectDirectory,
   projectPrefix: string,
   auth: RequestAuth,
   server: McpServer,
-): Workspace {
-  const checkout = provider.get(projectPrefix);
-  if (!checkout) {
-    const available = provider.list().map((p) => p.prefix);
+): Promise<Workspace> {
+  try {
+    return await directory.open(projectPrefix, ...actorOf(auth, server));
+  } catch (error) {
+    if (!(error instanceof ProjectNotFoundError)) {
+      throw error;
+    }
+    const available = (await directory.list()).map((p) => p.prefix);
     throw new Error(
       available.length === 0
         ? 'No projects available.'
         : `Unknown project '${projectPrefix}'. Available projects: ${available.join(', ')}. Ask the user which project to use before retrying.`,
+      { cause: error },
     );
   }
-  return workspaceFor(checkout, auth, server);
 }

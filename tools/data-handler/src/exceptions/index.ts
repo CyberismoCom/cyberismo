@@ -212,6 +212,18 @@ export class ResourceNotFoundError extends DomainError {
 }
 
 /**
+ * Thrown when a project is not in the directory.
+ */
+export class ProjectNotFoundError extends DomainError {
+  readonly code = 'not-found';
+  constructor(public readonly prefix: string) {
+    super(`Project '${prefix}' not found`);
+    this.name = 'ProjectNotFoundError';
+    this.details = { prefix };
+  }
+}
+
+/**
  * Thrown when a disposed workspace is used.
  */
 export class WorkspaceDisposedError extends DomainError {

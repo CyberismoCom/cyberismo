@@ -39,6 +39,24 @@ export async function createTempTestData(
 }
 
 /**
+ * Creates a temporary folder holding a copy of each named test project.
+ * @returns Path to the folder; cleanupTempTestData of a project in it
+ *   removes it.
+ */
+export async function createTempTestFolder(
+  ...testDataNames: string[]
+): Promise<string> {
+  const [first, ...rest] = testDataNames;
+  const folder = path.dirname(await createTempTestData(first));
+  for (const name of rest) {
+    const copy = await createTempTestData(name);
+    await cp(copy, path.join(folder, name), { recursive: true });
+    await cleanupTempTestData(copy);
+  }
+  return folder;
+}
+
+/**
  * Cleans up temporary test data
  * @param tempPath Path to the temporary directory to clean up
  */

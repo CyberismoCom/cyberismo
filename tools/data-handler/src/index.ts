@@ -21,7 +21,8 @@ import {
 import { Validate } from './commands/validate.js';
 export { SCHEMA_VERSION } from '@cyberismo/migrations';
 export * from './interfaces/macros.js';
-export type { ProjectProvider } from './interfaces/project-provider.js';
+export { localFolder, openProjectAt } from './directory/local-folder.js';
+export type { ProjectDirectory } from './directory/project-directory.js';
 import { requestStatus } from './interfaces/request-status-interfaces.js';
 export type { attachmentPayload } from './interfaces/request-status-interfaces.js';
 import { evaluateMacros } from './macros/index.js';
@@ -93,6 +94,7 @@ export {
   MissingActorError,
   ModuleRequestError,
   PermissionDeniedError,
+  ProjectNotFoundError,
   ReadOnlyContainerError,
   ResourceNotFoundError,
   SchemaNotFound,
@@ -101,7 +103,7 @@ export {
 export type { Checkout } from './containers/project.js';
 export { AsciidoctorPdfError } from './export/export.js';
 export type { WorkspaceOpener } from './command-handler.js';
-export { openCheckout, type WorkspaceOptions } from './workspace/workspace.js';
+export type { WorkspaceOptions } from './workspace/workspace.js';
 export { removeResource } from './utils/remove-resource.js';
 export {
   SYSTEM_ACTOR,

@@ -15,25 +15,38 @@
 
 import { describe, expect, test } from 'vitest';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import type { Checkout } from '@cyberismo/data-handler';
 import {
-  resolveCommands,
-  type ProjectProvider,
-} from '../src/lib/resolve-project.js';
+  ProjectNotFoundError,
+  Workspace,
+  type Checkout,
+  type CommitIdentity,
+  type ProjectDirectory,
+} from '@cyberismo/data-handler';
+import type { ActorRef } from '@cyberismo/model';
+import { resolveWorkspace } from '../src/lib/resolve-project.js';
 import { TEST_USER } from './test-utils.js';
 
 // Minimal checkouts; resolution only hands them to the handle.
 const mockCheckout = (prefix: string) =>
   ({ basePath: `/tmp/${prefix}` }) as unknown as Checkout;
 
-function makeProvider(
-  projects: { prefix: string; name: string }[],
-): ProjectProvider {
+function makeDirectory(projects: { prefix: string; name: string }[]) {
   const map = new Map(projects.map((p) => [p.prefix, mockCheckout(p.prefix)]));
-  return {
-    get: (prefix: string) => map.get(prefix),
-    list: () => projects,
-  };
+  const directory = {
+    open: async (
+      prefix: string,
+      actor: ActorRef,
+      identity?: CommitIdentity,
+    ) => {
+      const checkout = map.get(prefix);
+      if (!checkout) {
+        throw new ProjectNotFoundError(prefix);
+      }
+      return Workspace.over(checkout, actor, identity);
+    },
+    list: async () => projects,
+  } as unknown as ProjectDirectory;
+  return { directory, get: (prefix: string) => map.get(prefix) };
 }
 
 const server = (client?: string) =>
@@ -49,16 +62,25 @@ const auth = {
   },
 };
 
-describe('resolveCommands', () => {
-  test('returns a handle over the checkout for a valid prefix', () => {
-    const provider = makeProvider([{ prefix: 'abc', name: 'Project ABC' }]);
-    const result = resolveCommands(provider, 'abc', auth, server());
-    expect(result.checkout).toBe(provider.get('abc'));
+describe('resolveWorkspace', () => {
+  test('returns a handle over the checkout for a valid prefix', async () => {
+    const { directory, get } = makeDirectory([
+      { prefix: 'abc', name: 'Project ABC' },
+    ]);
+    const result = await resolveWorkspace(directory, 'abc', auth, server());
+    expect(result.checkout).toBe(get('abc'));
   });
 
-  test('acts as the authenticated user, with the client as agent', () => {
-    const provider = makeProvider([{ prefix: 'abc', name: 'Project ABC' }]);
-    const result = resolveCommands(provider, 'abc', auth, server('claude'));
+  test('acts as the authenticated user, with the client as agent', async () => {
+    const { directory } = makeDirectory([
+      { prefix: 'abc', name: 'Project ABC' },
+    ]);
+    const result = await resolveWorkspace(
+      directory,
+      'abc',
+      auth,
+      server('claude'),
+    );
     expect(result.actor).toEqual({
       kind: 'user',
       id: TEST_USER.id,
@@ -71,39 +93,41 @@ describe('resolveCommands', () => {
     });
   });
 
-  test('refuses a request without an authenticated user', () => {
-    const provider = makeProvider([{ prefix: 'abc', name: 'Project ABC' }]);
-    expect(() => resolveCommands(provider, 'abc', {}, server())).toThrow(
-      'MCP request has no authenticated user',
-    );
+  test('refuses a request without an authenticated user', async () => {
+    const { directory } = makeDirectory([
+      { prefix: 'abc', name: 'Project ABC' },
+    ]);
+    await expect(
+      resolveWorkspace(directory, 'abc', {}, server()),
+    ).rejects.toThrow('MCP request has no authenticated user');
   });
 
-  test('throws for unknown prefix with available projects listed', () => {
-    const provider = makeProvider([
+  test('throws for unknown prefix with available projects listed', async () => {
+    const { directory } = makeDirectory([
       { prefix: 'abc', name: 'Project ABC' },
       { prefix: 'xyz', name: 'Project XYZ' },
     ]);
-    expect(() => resolveCommands(provider, 'nope', auth, server())).toThrow(
-      /Unknown project 'nope'/,
-    );
-    expect(() => resolveCommands(provider, 'nope', auth, server())).toThrow(
-      /abc, xyz/,
-    );
+    await expect(
+      resolveWorkspace(directory, 'nope', auth, server()),
+    ).rejects.toThrow(/Unknown project 'nope'/);
+    await expect(
+      resolveWorkspace(directory, 'nope', auth, server()),
+    ).rejects.toThrow(/abc, xyz/);
   });
 
-  test('throws for unknown prefix when no projects available', () => {
-    const provider = makeProvider([]);
-    expect(() => resolveCommands(provider, 'anything', auth, server())).toThrow(
-      /No projects available/,
-    );
+  test('throws for unknown prefix when no projects available', async () => {
+    const { directory } = makeDirectory([]);
+    await expect(
+      resolveWorkspace(directory, 'anything', auth, server()),
+    ).rejects.toThrow(/No projects available/);
   });
 
-  test('resolves correct project among multiple', () => {
-    const provider = makeProvider([
+  test('resolves correct project among multiple', async () => {
+    const { directory, get } = makeDirectory([
       { prefix: 'alpha', name: 'Alpha' },
       { prefix: 'beta', name: 'Beta' },
     ]);
-    const result = resolveCommands(provider, 'beta', auth, server());
-    expect(result.checkout).toBe(provider.get('beta'));
+    const result = await resolveWorkspace(directory, 'beta', auth, server());
+    expect(result.checkout).toBe(get('beta'));
   });
 });
