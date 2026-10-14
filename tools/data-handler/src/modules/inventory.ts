@@ -20,14 +20,13 @@ import semver from 'semver';
 import { getChildLogger } from '../utils/log-utils.js';
 import { readJsonFile } from '../utils/json.js';
 import { isGitLocation } from '../utils/location.js';
+import { type ModuleDeclaration, type ModuleInstallation } from './types.js';
 import {
   toVersion,
   toVersionRange,
-  type ModuleDeclaration,
-  type ModuleInstallation,
   type Version,
   type VersionRange,
-} from './types.js';
+} from '../utils/version.js';
 import { type Source, type VersionSource } from '@cyberismo/model';
 
 import type { Checkout } from '../infra/checkout.js';
