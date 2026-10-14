@@ -14,15 +14,10 @@
 import { Command } from 'commander';
 import dotenv from 'dotenv';
 
-import { Commands } from '@cyberismo/data-handler';
 import type { Credentials } from '@cyberismo/model';
-import { openProject } from './open.js';
 
 // Load environment variables from .env file
 dotenv.config({ quiet: true });
-
-// CLI command handler, on the process's one checkout
-export const commandHandler = new Commands(openProject);
 
 // Commander; configured in index.ts. Also the target of program.error.
 export const program = new Command();

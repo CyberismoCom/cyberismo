@@ -14,6 +14,8 @@
 import { readCsvFile } from '../utils/csv.js';
 import { Validate } from './validate.js';
 import { write } from '../utils/rw-lock.js';
+import type { CommitIdentity } from '../utils/tx-record.js';
+import type { ActorRef } from '@cyberismo/model';
 
 import type { Checkout } from '../containers/project.js';
 import {
@@ -32,7 +34,11 @@ export class Import {
    * Creates an instance of Import.
    * @param checkout Project to use.
    */
-  constructor(private checkout: Checkout) {}
+  constructor(
+    private checkout: Checkout,
+    public readonly actor: ActorRef,
+    public readonly identity?: CommitIdentity,
+  ) {}
 
   /**
    * Imports cards based on a csv file

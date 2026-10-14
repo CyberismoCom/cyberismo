@@ -30,7 +30,12 @@ import {
   vi,
 } from 'vitest';
 
-import { ResourceNotFoundError } from '@cyberismo/data-handler';
+import {
+  Import,
+  Rename,
+  ResourceNotFoundError,
+  Validate,
+} from '@cyberismo/data-handler';
 
 import program from '../src/index.js';
 import { exitCodeFor } from '../src/lib/errors.js';
@@ -43,19 +48,29 @@ const ws = vi.hoisted(() => ({
   versions: {} as Record<string, Mock>,
   settings: {} as Record<string, Mock>,
   modules: {} as Record<string, Mock>,
-  renameCmd: {} as Record<string, Mock>,
-  importCmd: {} as Record<string, Mock>,
-  validateCmd: {} as Record<string, Mock>,
 }));
 vi.mock('../src/lib/open.js', async (importOriginal) => ({
   ...(await importOriginal<object>()),
   openWorkspace: async () => ws,
 }));
 
-// Sets the workspace method at a dotted path, e.g. 'queries.runReport'.
+// The commands the CLI creates rather than takes from the handle.
+const commands: Record<string, object> = {
+  Import: Import.prototype,
+  Rename: Rename.prototype,
+  Validate: Validate.getInstance(),
+};
+
+// Sets the workspace or command method at a dotted path, e.g.
+// 'queries.runReport' or 'Rename.rename'.
 function stub(path: string, fn: Mock) {
-  const [owner, method] = path.split('.') as [keyof typeof ws, string];
-  (ws[owner] as Record<string, Mock>)[method] = fn;
+  const [owner, method] = path.split('.') as [string, string];
+  if (owner in commands) {
+    return vi
+      .spyOn(commands[owner] as Record<string, Mock>, method)
+      .mockImplementation(fn);
+  }
+  (ws[owner as keyof typeof ws] as Record<string, Mock>)[method] = fn;
   return fn;
 }
 
@@ -148,29 +163,29 @@ const TABLE: [string, string, unknown[], unknown, string][] = [
   ],
   [
     'validate',
-    'validateCmd.validate',
+    'Validate.validate',
     ['/project', expect.any(Function)],
     '',
     'Project structure validated',
   ],
   [
     'validate',
-    'validateCmd.validate',
+    'Validate.validate',
     ['/project', expect.any(Function)],
     'errors',
     'errors',
   ],
-  ['rename p', 'renameCmd.rename', ['p', undefined], undefined, 'Done'],
+  ['rename p', 'Rename.rename', ['p', undefined], undefined, 'Done'],
   [
     'import csv f.csv',
-    'importCmd.importCsv',
+    'Import.importCsv',
     ['f.csv', undefined],
     ['a_1'],
     `Imported cards:\n${json(['a_1'])}`,
   ],
   [
     'import csv f.csv a_2',
-    'importCmd.importCsv',
+    'Import.importCsv',
     ['f.csv', 'a_2'],
     [],
     `Imported cards:\n${json([])}`,
@@ -227,9 +242,9 @@ describe('verb commands', () => {
     ['clean', 'clean.run'],
     ['publish', 'versions.publish'],
     ['create version minor', 'versions.bump'],
-    ['validate', 'validateCmd.validate'],
-    ['rename p', 'renameCmd.rename'],
-    ['import csv f.csv', 'importCmd.importCsv'],
+    ['validate', 'Validate.validate'],
+    ['rename p', 'Rename.rename'],
+    ['import csv f.csv', 'Import.importCsv'],
     ['fetch hubs', 'modules.fetchHubs'],
   ])('%s fails with the error of %s', async (argv, method) => {
     const error = new ResourceNotFoundError('missing');
@@ -255,7 +270,7 @@ describe('rename', () => {
       vi.fn(async () => ({ version: '1.2.0' })),
     );
     const rename = stub(
-      'renameCmd.rename',
+      'Rename.rename',
       vi.fn(async () => undefined),
     );
 

@@ -41,8 +41,8 @@ async function exportPdf(
 ): Promise<string> {
   let rendered;
   try {
-    // The dispatcher never passed 'recursive', and reads 'version' rather
-    // than '--doc-version'; both kept as they were.
+    // 'recursive' is not passed, and 'version' is read rather than
+    // '--doc-version'; both kept as they were under the dispatcher.
     rendered = await ws.export.pdf({
       title: options.title,
       name: options.name,
@@ -151,7 +151,6 @@ export function registerExport(program: Command) {
             {},
             cliProgress.Presets.shades_classic,
           );
-          // Should be in commandHandler, once it is moved under the CLI package
           try {
             const projectPath = options.projectPath
               ? resolve(options.projectPath)
