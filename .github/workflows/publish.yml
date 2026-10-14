@@ -158,7 +158,7 @@ jobs:
           # selects: env var and CLI flag.
           NPM_REGISTRY: ${{ env.DRYRUN == 'true' && 'http://localhost:4873/' || 'https://registry.npmjs.org/' }}
           pnpm_config_registry: ${{ env.DRYRUN == 'true' && 'http://localhost:4873/' || 'https://registry.npmjs.org/' }}
-          PROVENANCE: ${{ env.DRYRUN == 'true' && '' || '--provenance' }}
+          PROVENANCE: ${{ env.DRYRUN != 'true' && '--provenance' || '' }}
         run: pnpm --filter '!app' --filter '!@cyberismo/node-clingo' publish --access public --no-git-checks --registry "$NPM_REGISTRY" $PROVENANCE
 
       - name: Smoke test installed cli (dry-run only)
