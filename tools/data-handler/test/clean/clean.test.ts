@@ -94,8 +94,7 @@ describe('clean.run', () => {
   });
 
   it('skips a card whose card type cannot be resolved, and leaves it as it is', async () => {
-    const { ws, path, keys } = await open(spec);
-    ws.checkout.dispose();
+    const { path, keys } = await open(spec);
     const file = join(path, 'cardRoot', keys[0], 'index.json');
     const metadata = JSON.parse(readFileSync(file, 'utf-8'));
     writeFileSync(
@@ -103,21 +102,17 @@ describe('clean.run', () => {
       JSON.stringify({ ...metadata, cardType: 'test/cardTypes/gone' }),
     );
     const reopened = await openTestWorkspace(path);
-    try {
-      const before = snapshot(path);
+    const before = snapshot(path);
 
-      const result = await reopened.clean.run(false);
+    const result = await reopened.clean.run(false);
 
-      expect(result.skippedCards).toEqual([keys[0]]);
-      expect(result.findings.map((finding) => finding.cardKey)).not.toContain(
-        keys[0],
-      );
-      expect(snapshot(path)[join('cardRoot', keys[0], 'index.json')]).toBe(
-        before[join('cardRoot', keys[0], 'index.json')],
-      );
-    } finally {
-      reopened.checkout.dispose();
-    }
+    expect(result.skippedCards).toEqual([keys[0]]);
+    expect(result.findings.map((finding) => finding.cardKey)).not.toContain(
+      keys[0],
+    );
+    expect(snapshot(path)[join('cardRoot', keys[0], 'index.json')]).toBe(
+      before[join('cardRoot', keys[0], 'index.json')],
+    );
   });
 
   describe('when a card cannot be written', () => {

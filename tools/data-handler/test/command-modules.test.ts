@@ -333,6 +333,5 @@ describe('module schema version enforcement on import', () => {
       schemaVersion: number;
     };
     expect(installed.schemaVersion).toBe(SCHEMA_VERSION);
-    ws.checkout.dispose();
   });
 });

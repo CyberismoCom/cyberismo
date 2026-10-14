@@ -184,7 +184,7 @@ export async function removeAction(
 
     // Unknown types.
     await onProject(commandOptions, (ws) =>
-      new Remove(ws.checkout, ws.actor, ws.identity).remove(
+      new Remove(ws).remove(
         removed as RemovableResourceTypes,
         commandTarget(type, parameter1!),
       ),

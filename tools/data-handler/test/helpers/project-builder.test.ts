@@ -68,15 +68,7 @@ function readJson(path: string) {
 }
 
 async function validate(path: string): Promise<string> {
-  let checkout: Checkout | undefined;
-  try {
-    return await Validate.getInstance().validate(path, () => {
-      checkout = new Checkout(path);
-      return checkout;
-    });
-  } finally {
-    checkout?.dispose();
-  }
+  return Validate.getInstance().validate(path, () => new Checkout(path));
 }
 
 async function withProject(
@@ -84,12 +76,8 @@ async function withProject(
   check: (checkout: Checkout) => void,
 ): Promise<void> {
   const checkout = new Checkout(path);
-  try {
-    await checkout.populateCaches();
-    check(checkout);
-  } finally {
-    checkout.dispose();
-  }
+  await checkout.populateCaches();
+  check(checkout);
 }
 
 afterEach(async () => {

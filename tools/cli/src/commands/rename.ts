@@ -37,10 +37,7 @@ export function registerRename(program: Command) {
       Object.assign({}, options, program.opts()),
       async (ws) => {
         const published = (await ws.settings.info()).version;
-        await new Rename(ws.checkout, ws.actor, ws.identity).rename(
-          to,
-          options.force,
-        );
+        await new Rename(ws).rename(to, options.force);
         return published
           ? `Version ${published} was published under the old prefix. The ` +
               `next version you publish is a new module: consumers must ` +

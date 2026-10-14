@@ -19,11 +19,7 @@ import { Checkout } from '../src/infra/checkout.js';
 // The project's validation errors; '' when it is valid.
 async function validate(path: string): Promise<string> {
   const checkout = await Checkout.open(path);
-  try {
-    return await Validate.getInstance().validate(path, () => checkout);
-  } finally {
-    checkout.dispose();
-  }
+  return Validate.getInstance().validate(path, () => checkout);
 }
 
 // validation tests do not modify the content - so they can use the original files

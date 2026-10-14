@@ -13,7 +13,7 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { beforeAll, afterAll, describe, expect, test } from 'vitest';
+import { beforeAll, describe, expect, test } from 'vitest';
 import { type Workspace } from '@cyberismo/data-handler';
 import { createMcpServer } from '../src/server.js';
 import { testDataPath } from './test-utils.js';
@@ -28,10 +28,6 @@ let ws: Workspace;
 beforeAll(async () => {
   process.argv = [];
   ws = await openTestWorkspace(testDataPath);
-});
-
-afterAll(async () => {
-  ws.checkout.dispose();
 });
 
 describe('createMcpServer', () => {
