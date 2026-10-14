@@ -14,7 +14,14 @@
 
 import { execFile } from 'node:child_process';
 import { readFileSync } from 'node:fs';
-import { readdir, readFile, writeFile } from 'node:fs/promises';
+import {
+  cp,
+  mkdir,
+  readdir,
+  readFile,
+  rename,
+  writeFile,
+} from 'node:fs/promises';
 import { basename, join } from 'node:path';
 import { promisify } from 'node:util';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -70,10 +77,16 @@ function hold<T extends object>(target: T, method: keyof T & string) {
 // A repository at its root holding a project per spec.
 async function repoOf(...specs: Parameters<typeof folder>) {
   const source = await folder(...specs);
-  await git(source.root, 'init', '--initial-branch=main');
-  await git(source.root, 'add', '.');
+  await commitAll(source.root);
+  return source;
+}
+
+// Makes `path` a repository with its files committed.
+async function commitAll(path: string) {
+  await git(path, 'init', '--initial-branch=main');
+  await git(path, 'add', '.');
   await git(
-    source.root,
+    path,
     '-c',
     'user.name=Test',
     '-c',
@@ -84,10 +97,13 @@ async function repoOf(...specs: Parameters<typeof folder>) {
     '-m',
     'Projects',
   );
-  return source;
 }
 
 describe('localFolder', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   it('opens every project in the folder and lists it', async () => {
     const { root } = await folder(
       { prefix: 'one', name: 'One' },
@@ -113,9 +129,10 @@ describe('localFolder', () => {
     expect((await directory.list()).map((p) => p.prefix)).toEqual(['solo']);
   });
 
-  it('reports a project that fails to load and still opens the others', async () => {
+  it('reports a project that fails to load under its prefix and still opens the others', async () => {
     const { root } = await folder({ prefix: 'broken' }, { prefix: 'good' });
-    const brokenPath = join(root, 'broken');
+    const brokenPath = join(root, 'elsewhere');
+    await rename(join(root, 'broken'), brokenPath);
     // Found by the scan, refused by the schema gate.
     await writeFile(
       join(brokenPath, '.cards', 'local', 'cardsConfig.json'),
@@ -135,6 +152,61 @@ describe('localFolder', () => {
     ]);
     await expect(directory.open('broken', SYSTEM_ACTOR)).rejects.toThrow(
       ProjectNotFoundError,
+    );
+  });
+
+  it('opens a project two folders down', async () => {
+    const { root } = await folder({ prefix: 'deep' });
+    await mkdir(join(root, 'repo'));
+    await rename(join(root, 'deep'), join(root, 'repo', 'deep'));
+
+    const { directory } = await localFolder(root);
+
+    expect((await directory.list()).map((p) => p.prefix)).toEqual(['deep']);
+  });
+
+  it('keeps one project of a prefix two folders have, warning of the other', async () => {
+    const { root } = await folder({ prefix: 'dup' });
+    await cp(join(root, 'dup'), join(root, 'copy'), { recursive: true });
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    const { directory, failed } = await localFolder(root);
+
+    expect((await directory.list()).map((p) => p.prefix)).toEqual(['dup']);
+    expect(failed).toEqual([]);
+    expect(warn).toHaveBeenCalledWith(
+      expect.stringMatching(/^Skipping project '.*': duplicate prefix 'dup'/),
+    );
+  });
+
+  it('skips a project whose configuration names no prefix, warning of it', async () => {
+    const { root } = await folder({ prefix: 'bad' }, { prefix: 'good' });
+    await writeFile(
+      join(root, 'bad', '.cards', 'local', 'cardsConfig.json'),
+      JSON.stringify({ invalid: true }),
+    );
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    const { directory, failed } = await localFolder(root);
+
+    expect((await directory.list()).map((p) => p.prefix)).toEqual(['good']);
+    expect(failed).toEqual([]);
+    expect(warn).toHaveBeenCalledWith(
+      expect.stringContaining(
+        `Skipping project directory '${join(root, 'bad')}': Invalid project configuration`,
+      ),
+    );
+  });
+
+  it('refuses a project folder whose configuration names no prefix', async () => {
+    const { root } = await folder({ prefix: 'bad' });
+    await writeFile(
+      join(root, 'bad', '.cards', 'local', 'cardsConfig.json'),
+      JSON.stringify({ invalid: true }),
+    );
+
+    await expect(localFolder(join(root, 'bad'))).rejects.toThrow(
+      'Invalid project configuration',
     );
   });
 
@@ -534,5 +606,36 @@ describe('directory.clone', () => {
     expect((await directory.open('uno', SYSTEM_ACTOR)).path).toBe(
       join(root, 'one'),
     );
+  });
+
+  it('refuses a repository whose projects all lack a prefix, keeping none of it', async () => {
+    const { root } = await folder({ prefix: 'one' });
+    const source = await folder({ prefix: 'bad' });
+    await writeFile(
+      join(source.root, 'bad', '.cards', 'local', 'cardsConfig.json'),
+      JSON.stringify({ invalid: true }),
+    );
+    await commitAll(source.root);
+    const { directory } = await localFolder(root);
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    await expect(directory.clone(source.root)).rejects.toThrow(
+      `Failed to clone repository '${source.root}': Cloned repository does not contain any Cyberismo projects`,
+    );
+    expect(await readdir(root)).toEqual(['one']);
+  });
+
+  it('refuses a repository that is a project with a broken configuration, keeping none of it', async () => {
+    const { root } = await folder({ prefix: 'one' });
+    const source = await folder({ prefix: 'solo' });
+    const repo = join(source.root, 'solo');
+    await writeFile(join(repo, '.cards', 'local', 'cardsConfig.json'), '{');
+    await commitAll(repo);
+    const { directory } = await localFolder(root);
+
+    await expect(directory.clone(repo)).rejects.toThrow(
+      `Failed to clone repository '${repo}': Invalid JSON`,
+    );
+    expect(await readdir(root)).toEqual(['one']);
   });
 });

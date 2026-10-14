@@ -27,7 +27,6 @@ import {
   resourceNameToString,
 } from './utils/resource-utils.js';
 import { moduleNameFromCardKey } from './utils/card-utils.js';
-import { scanForProjects } from './project-scanner.js';
 
 export {
   Workspace,
@@ -36,7 +35,6 @@ export {
   moduleNameFromCardKey,
   resourceName,
   resourceNameToString,
-  scanForProjects,
   Validate,
   macroErrorText,
   validBumps,
