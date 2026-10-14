@@ -43,7 +43,7 @@ import { registerShow } from './commands/show.js';
 import { registerTransition } from './commands/transition.js';
 import { registerUpdate } from './commands/update.js';
 import { registerValidate } from './commands/validate.js';
-import { program } from './lib/dispatch.js';
+import { program } from './lib/program.js';
 
 // To avoid duplication, fetch description and version from package.json file.
 // Importing dynamically allows filtering of warnings in cli/bin/run.

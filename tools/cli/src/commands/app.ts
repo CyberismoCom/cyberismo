@@ -22,18 +22,15 @@ import {
   startServer,
 } from '@cyberismo/backend';
 import { formatProjectErrors, type ProjectErrors } from '@cyberismo/model';
-import {
-  localFolder,
-  type StartCommandOptions,
-  scanForProjects,
-} from '@cyberismo/data-handler';
+import { localFolder, scanForProjects } from '@cyberismo/data-handler';
 import { errorFunction } from '@cyberismo/data-handler/utils/error-utils';
 
 import { CommandWithPath } from '../lib/args.js';
-import { program } from '../lib/dispatch.js';
+import { program } from '../lib/program.js';
 import { openWorkspace } from '../lib/open.js';
 import { confirm } from '../lib/prompts.js';
 import { validation } from './validate.js';
+import type { StartCommandOptions } from '../options.js';
 
 async function getGitUserConfig(): Promise<MockUserConfig> {
   const git = simpleGit();

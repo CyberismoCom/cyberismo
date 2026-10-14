@@ -14,14 +14,13 @@
 import { writeFile } from 'node:fs/promises';
 
 import { type Command } from 'commander';
-
-import type { CommandOptions } from '@cyberismo/data-handler';
 import { readJsonFile } from '@cyberismo/data-handler/utils/json';
 import type { Context } from '@cyberismo/model';
 
 import { CommandWithPath, contextOption } from '../lib/args.js';
 import { onProject } from '../lib/errors.js';
 import { printResult } from '../lib/output.js';
+import type { ReportCommandOptions } from '../options.js';
 
 export function registerReport(program: Command) {
   // Report command
@@ -41,7 +40,7 @@ export function registerReport(program: Command) {
     async (
       parameters: string,
       output: string,
-      options: CommandOptions<'report'>,
+      options: ReportCommandOptions,
     ) => {
       const report = await onProject(
         Object.assign({}, options, program.opts()),
