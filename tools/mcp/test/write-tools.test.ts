@@ -168,8 +168,8 @@ const childKeys = async (key: string) =>
     .find((node) => node.key === key)
     ?.children?.map((node) => node.key) ?? [];
 
-const resourceNames = (type: string) => ws.showCmd.showResources(type);
-const resource = (name: string) => ws.showCmd.showResource(name);
+const resourceNames = (type: string) => ws.resources.list(type);
+const resource = (name: string) => ws.resources.show(name);
 
 async function addLinkType(description = false) {
   await ws.resources.create('related', 'linkTypes', {});

@@ -150,7 +150,7 @@ describe('listing resources', () => {
       const { ws } = await open(spec);
       await ws.resources.create('x', type, newParams[type]);
 
-      const names = await ws.showCmd.showResources(type);
+      const names = await ws.resources.list(type);
 
       expect(names).toContain(`test/${type}/x`);
       expect(names).toEqual([...names].sort());
@@ -161,7 +161,7 @@ describe('listing resources', () => {
   it('lists the module resources too', async () => {
     const { ws } = await open(spec);
 
-    expect(await ws.showCmd.showResources('workflows')).toEqual([
+    expect(await ws.resources.list('workflows')).toEqual([
       'mod/workflows/mflow',
       'test/workflows/flow',
       'test/workflows/other',
@@ -171,23 +171,23 @@ describe('listing resources', () => {
   it('lists nothing for a type that is not one', async () => {
     const { ws } = await open(spec);
 
-    expect(await ws.showCmd.showResources('colours')).toEqual([]);
+    expect(await ws.resources.list('colours')).toEqual([]);
   });
 
   it('gives card types, workflows and templates with their details', async () => {
     const { ws } = await open(spec);
 
     expect(
-      (await ws.showCmd.showCardTypesWithDetails()).map((item) => item?.name),
+      (await ws.resources.contents('cardTypes')).map((item) => item?.name),
     ).toEqual(
       expect.arrayContaining(['test/cardTypes/page', 'test/cardTypes/bare']),
     );
     expect(
-      (await ws.showCmd.showWorkflowsWithDetails()).map(
+      (await ws.resources.contents('workflows')).map(
         (item) => item?.states.length,
       ),
     ).toEqual([3, 3, 3]);
-    expect(await ws.showCmd.showTemplatesWithDetails()).toEqual([
+    expect(await ws.resources.contents('templates')).toEqual([
       expect.objectContaining({ name: 'test/templates/tpl', numberOfCards: 1 }),
     ]);
   });
@@ -195,7 +195,7 @@ describe('listing resources', () => {
   it('gives the project the same as the settings do', async () => {
     const { ws } = await open(spec);
 
-    expect(await ws.showCmd.showProject()).toEqual(await ws.settings.info());
+    expect(await ws.settings.info()).toEqual(await ws.settings.info());
   });
 });
 

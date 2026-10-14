@@ -6,7 +6,6 @@ import { mkdirSync, rmSync } from 'node:fs';
 import type { CardType } from '@cyberismo/model';
 import { copyDir } from '../src/utils/file-utils.js';
 import type { Checkout } from '../src/containers/project.js';
-import { Show } from '../src/commands/index.js';
 import type { Changes } from '../src/workspace/changes.js';
 import { getTestProject } from './helpers/test-utils.js';
 import { resourceName } from '../src/utils/resource-utils.js';
@@ -66,11 +65,11 @@ describe('update command', () => {
     expect(checkout.resources.exists(name)).toBe(false);
   });
   it('update resource - rank item using string value (name)', async () => {
-    const show = new Show(checkout);
+    const show = Workspace.over(checkout, SYSTEM_ACTOR);
     const name = `${checkout.projectPrefix}/cardTypes/decision`;
     const moveToIndex = 0;
 
-    const before = await show.showResource(name);
+    const before = await show.resources.show(name);
     const foundBefore = (before as CardType).customFields.find((item) => {
       return item.name === 'decision/fieldTypes/finished';
     });
@@ -87,7 +86,7 @@ describe('update command', () => {
       },
     });
 
-    const after = await show.showResource(name);
+    const after = await show.resources.show(name);
     const foundAfter = (after as CardType).customFields.find((item) => {
       return item.name === 'decision/fieldTypes/finished';
     });
@@ -97,11 +96,11 @@ describe('update command', () => {
     expect(indexAfter).toBe(moveToIndex);
   });
   it('update resource - rank item using partial object value', async () => {
-    const show = new Show(checkout);
+    const show = Workspace.over(checkout, SYSTEM_ACTOR);
     const name = `${checkout.projectPrefix}/cardTypes/decision`;
     const moveToIndex = 4;
 
-    const before = (await show.showResource(name)) as CardType;
+    const before = (await show.resources.show(name)) as CardType;
     const foundBefore = before.customFields.find((item) => {
       return item.name === 'decision/fieldTypes/finished';
     })!;
@@ -118,7 +117,7 @@ describe('update command', () => {
       },
     });
 
-    const after = (await show.showResource(name)) as CardType;
+    const after = (await show.resources.show(name)) as CardType;
     const foundAfter = after.customFields.find((item) => {
       return item.name === 'decision/fieldTypes/finished';
     })!;
