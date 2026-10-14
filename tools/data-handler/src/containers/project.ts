@@ -32,7 +32,7 @@ import { ProjectPaths } from './project/project-paths.js';
 import { readCardsConfig } from './project/cards-config.js';
 import { ResourceHandler } from './project/resource-handler.js';
 import { ContentWatcher } from './project/project-content-watcher.js';
-import { getChildLogger } from '../utils/log-utils.js';
+import { getChildLogger, initLogger } from '../utils/log-utils.js';
 import { RWLock } from '../utils/rw-lock.js';
 import { GitSync } from '../utils/git-sync.js';
 import { GitManager } from '../utils/git-manager.js';
@@ -41,6 +41,7 @@ import { ChangeFeed, changedAnything } from '../utils/change-feed.js';
 import { Validate } from '../commands/validate.js';
 
 import type { TemplateResource } from '../resources/template-resource.js';
+import type { Level } from 'pino';
 
 /**
  * Options for Project initialization. All default to off.
@@ -56,6 +57,11 @@ export interface CheckoutOptions {
   watchResourceChanges?: boolean;
   autocommit?: boolean;
   autopush?: boolean;
+}
+
+/** How a checkout is opened: its options and the level it logs at. */
+export interface OpenOptions extends CheckoutOptions {
+  logLevel?: Level;
 }
 
 /**
@@ -199,6 +205,48 @@ export class Checkout {
       this.changeFeed.seal(tx, this.projectPrefix);
     });
     this.lock.onReleased((tx) => this.changeFeed.publish(tx));
+  }
+
+  /**
+   * Opens the checkout at `path` and loads it. Its holder disposes it.
+   * @throws if the project's schema version is not supported.
+   */
+  public static async open(
+    path: string,
+    options?: OpenOptions,
+  ): Promise<Checkout> {
+    // Set up logger before constructing anything so eager child loggers work
+    if (options?.logLevel) {
+      const logPath = join(path, '.logs', 'cyberismo_data-handler.log');
+      initLogger(options.logLevel, logPath);
+    }
+    const checkout = new Checkout(path, {
+      watchResourceChanges: options?.watchResourceChanges,
+      autocommit: options?.autocommit,
+      autopush: options?.autopush,
+    });
+    const compat = checkout.configuration.checkSchemaVersion();
+    if (!compat.isCompatible) {
+      checkout.dispose();
+      throw new Error(compat.message);
+    }
+    try {
+      await checkout.initialize();
+    } catch (error) {
+      checkout.dispose();
+      throw error;
+    }
+    return checkout;
+  }
+
+  /**
+   * Loads the checkout: module resources, caches, git and the engine's facts.
+   */
+  public async initialize() {
+    this.resources.changedModules();
+    await this.populateCaches();
+    await this.initializeGit();
+    await this.calculationEngine.generate();
   }
 
   // Records a tree mutation into the write running it; outside a write

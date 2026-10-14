@@ -9,7 +9,11 @@ import {
   vi,
 } from 'vitest';
 import type { MockInstance } from 'vitest';
-import { type Checkout, type Workspace } from '@cyberismo/data-handler';
+import {
+  ProjectNotFoundError,
+  type ProjectDirectory,
+  type Workspace,
+} from '@cyberismo/data-handler';
 import { X_HONO_DISABLE_SSG_HEADER_KEY } from 'hono/ssg';
 import type { SSEMessage } from 'hono/streaming';
 import type { ChangeEvent } from '@cyberismo/model';
@@ -19,7 +23,7 @@ import { MockAuthProvider } from '../src/auth/mock.js';
 import { computeLifetimeMs } from '../src/domain/events/lifetime.js';
 import { ProjectEvents } from '../src/domain/events/project-events.js';
 import type { Delivery } from '../src/domain/events/project-events.js';
-import { ProjectRegistry } from '../src/project-registry.js';
+import { EventsByProject } from '../src/domain/events/events-by-project.js';
 import { UserRole } from '../src/types.js';
 import { createTempTestData, cleanupTempTestData } from './test-utils.js';
 import {
@@ -30,7 +34,7 @@ import {
 let app: ReturnType<typeof createApp>;
 let tempTestDataPath: string;
 let ws: Workspace;
-let registry: ProjectRegistry;
+let registry: ProjectDirectory;
 // Not exported by hono; the env key toSSG sets on the requests it makes.
 const SSG_CONTEXT = 'HONO_SSG_CONTEXT';
 const readers: ReadableStreamDefaultReader<Uint8Array>[] = [];
@@ -48,7 +52,7 @@ afterEach(async () => {
   vi.useRealTimers();
 });
 afterAll(async () => {
-  registry.dispose();
+  ws.checkout.dispose();
   await cleanupTempTestData(tempTestDataPath);
 });
 
@@ -263,16 +267,29 @@ describe('project event stream over HTTP', () => {
     expect(response.headers.get(X_HONO_DISABLE_SSG_HEADER_KEY)).toBe('true');
   });
 
-  test('disposal closes subscriptions', async () => {
-    // Needs an instance it can dispose without touching the shared app.
-    const ownCommands = await openTestWorkspace(tempTestDataPath);
-    const ownRegistry = directoryOf(ownCommands);
-    const { reader } = await connect(
-      'alice',
-      createApp(new MockAuthProvider({ roster: true }), ownRegistry),
-    );
-    ownRegistry.dispose();
-    expect((await reader.read()).done).toBe(true);
+  test('replacing the project closes its subscriptions', async () => {
+    // Needs an app it can reset without touching the shared one.
+    const ownPath = await createTempTestData('decision-records');
+    const env = { ...process.env };
+    process.env.NODE_ENV = 'test';
+    process.env.npm_config_project_path = ownPath;
+    process.env.CYBERISMO_GOLDEN_PATH = tempTestDataPath;
+    try {
+      const own = await openTestWorkspace(ownPath);
+      const ownApp = createApp(
+        new MockAuthProvider({ roster: true }),
+        directoryOf(own),
+      );
+      const { reader } = await connect('alice', ownApp);
+      const reset = await ownApp.request('/api/test/reset', {
+        method: 'POST',
+      });
+      expect(reset.status).toBe(204);
+      expect((await reader.read()).done).toBe(true);
+    } finally {
+      process.env = env;
+      await cleanupTempTestData(ownPath);
+    }
   });
 });
 
@@ -414,22 +431,32 @@ describe('presence bookkeeping', () => {
     } finally {
       events.dispose();
     }
+  });
 
-    // eventsFor subscribes to the checkout's changes.
-    const changeFeed = { subscribe: () => () => {} };
-    const one = { changeFeed } as unknown as Checkout;
-    const two = { changeFeed } as unknown as Checkout;
-    const projects = new ProjectRegistry();
-    projects.add('one', one);
-    projects.add('two', two);
-    try {
-      expect(projects.eventsFor(one)).toBe(projects.eventsFor(one));
-      expect(projects.eventsFor(one)).not.toBe(projects.eventsFor(two));
-      expect(() => projects.eventsFor({} as Checkout)).toThrow();
-    } finally {
-      projects.eventsFor(one).dispose();
-      projects.eventsFor(two).dispose();
-    }
+  test('a project has one set of events until it is dropped', async () => {
+    // Each project's handle subscribes to its changes.
+    const changes = { subscribe: () => () => {} };
+    const directory = {
+      open: async (prefix: string) => {
+        if (prefix !== 'one' && prefix !== 'two') {
+          throw new ProjectNotFoundError(prefix);
+        }
+        return { changes };
+      },
+    } as unknown as ProjectDirectory;
+    const projects = new EventsByProject(directory);
+    const [first, raced] = await Promise.all([
+      projects.for('one'),
+      projects.for('one'),
+    ]);
+    expect(raced).toBe(first);
+    expect(await projects.for('one')).toBe(first);
+    expect(await projects.for('two')).not.toBe(first);
+    await expect(projects.for('three')).rejects.toThrow(ProjectNotFoundError);
+    projects.drop('one');
+    expect(await projects.for('one')).not.toBe(first);
+    projects.drop('one');
+    projects.drop('two');
   });
 
   test('presence expires unless renewed', () => {
@@ -590,6 +617,8 @@ describe('change events', () => {
 
 describe('stream rotation', () => {
   test('the stream closes at its computed lifetime, sending `rotating` last', async () => {
+    // Its own checkout, so its events do not follow the shared one's writes.
+    const own = await openTestWorkspace(tempTestDataPath);
     vi.useFakeTimers();
     // Whole-second-aligned so exp (epoch seconds) round-trips exactly, and
     // 75s life keeps the ~45s rotation clear of the 30s heartbeat ticks.
@@ -605,7 +634,7 @@ describe('stream rotation', () => {
     };
     const { reader } = await connect(
       'irrelevant',
-      createApp(provider, registry),
+      createApp(provider, directoryOf(own)),
     );
     vi.advanceTimersByTime(50_000);
     const names = await drainEventNames(reader);
@@ -869,7 +898,8 @@ describe('card update notifications', () => {
     edited = scratch.key;
   });
   beforeEach(() => {
-    notify = vi.spyOn(registry.eventsFor(ws.checkout), 'cardsUpdated');
+    // Only the shared app's events follow this checkout.
+    notify = vi.spyOn(ProjectEvents.prototype, 'cardsUpdated');
   });
   afterEach(() => notify.mockRestore());
 
