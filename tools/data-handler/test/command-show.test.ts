@@ -32,7 +32,6 @@ describe('shows command', () => {
 
   describe('show command', () => {
     it('show attachment file', async () => {
-      // No commandHandler command for getting attachment files, so using Show directly
       const checkout = getTestProject(decisionRecordsPath);
       await checkout.populateCaches();
       const result = await new Cards(
@@ -45,7 +44,6 @@ describe('shows command', () => {
       expect(result.mimeType).toBe('image/heic');
     });
     it('show attachment file, card not found', async () => {
-      // No commandHandler command for getting attachment files, so using Show directly
       const checkout = getTestProject(decisionRecordsPath);
       await checkout.populateCaches();
       await expect(
@@ -56,7 +54,6 @@ describe('shows command', () => {
       ).rejects.toThrow(CardNotFoundError);
     });
     it('show attachment file, file not found', async () => {
-      // No commandHandler command for getting attachment files, so using Show directly
       const checkout = getTestProject(decisionRecordsPath);
       await checkout.populateCaches();
       await expect(

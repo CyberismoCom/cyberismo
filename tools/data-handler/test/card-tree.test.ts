@@ -1086,7 +1086,7 @@ describe('Card tree', () => {
       mkdirSync(tempDir, { recursive: true });
       await copyDir('test/test-data/', tempDir);
 
-      // Set path and create CommandManager after directory exists
+      // Set path and open the project after directory exists
       decisionProjectPath = join(tempDir, 'valid', 'decision-records');
 
       ws = await openTestWorkspace(decisionProjectPath, {});

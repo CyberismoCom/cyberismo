@@ -43,6 +43,13 @@ const attachmentFolder: string = 'a';
 const ASCIIDOCTOR_DIAGNOSTIC = /^asciidoctor: (WARNING|ERROR):/;
 const FAILURE_DIAGNOSTIC_LINES = 20;
 
+// To what format the content can be exported to.
+export enum ExportFormats {
+  adoc = 'adoc',
+  site = 'site',
+  pdf = 'pdf',
+}
+
 // Diagnostics can contain server paths, so they stay out of the message
 export class AsciidoctorPdfError extends Error {
   constructor(

@@ -16,7 +16,6 @@ import { readFile } from 'node:fs/promises';
 import { Argument, type Command } from 'commander';
 
 import {
-  Cmd,
   createProject,
   validBumps,
   type Workspace,
@@ -26,10 +25,10 @@ import { resolveTilde } from '@cyberismo/data-handler/utils/file-utils';
 import type { DataType } from '@cyberismo/model';
 
 import { CommandGroup, commandType, nameGuideline } from '../lib/args.js';
-import { commandHandler, program } from '../lib/program.js';
+import { program } from '../lib/program.js';
 import { errorMessage, fail, onProject } from '../lib/errors.js';
 import { existingAncestor, gitAuthor, openWorkspace } from '../lib/open.js';
-import { handleResponse, printResult } from '../lib/output.js';
+import { printResult } from '../lib/output.js';
 import { checkbox } from '../lib/prompts.js';
 import { importableModules, installModule } from './module.js';
 import type {
@@ -71,7 +70,7 @@ function resourceTarget(type: string | undefined): string | undefined {
     const target = commandType(type!);
     return Object.hasOwn(resourceCreates, target) ? target : undefined;
   } catch {
-    // Not a name; the dispatcher reports it.
+    // Not a name; the unknown-type branch reports it.
     return undefined;
   }
 }
@@ -500,12 +499,9 @@ export function registerCreate(program: Command) {
           return;
         }
         // Unknown types.
-        const result = await commandHandler.command(
-          Cmd.create,
-          args,
-          Object.assign({}, options, program.opts()),
-        );
-        handleResponse(result);
+        await onProject(Object.assign({}, options, program.opts()), () => {
+          throw new Error(`Unknown type to create: '${commandType(args[0])}'`);
+        });
       },
     );
 

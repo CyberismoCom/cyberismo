@@ -14,6 +14,8 @@
 import type { Checkout } from '../containers/project.js';
 import type { RemovableResourceTypes } from '@cyberismo/model';
 import { write } from '../utils/rw-lock.js';
+import type { CommitIdentity } from '../utils/tx-record.js';
+import type { ActorRef } from '@cyberismo/model';
 
 /**
  * Remove command.
@@ -23,7 +25,11 @@ export class Remove {
    * Creates a new instance of Remove command.
    * @param project Project instance to use
    */
-  constructor(private checkout: Checkout) {}
+  constructor(
+    private checkout: Checkout,
+    public readonly actor: ActorRef,
+    public readonly identity?: CommitIdentity,
+  ) {}
 
   /**
    * Refuses a type no remove handles; modules go through the modules façade.
