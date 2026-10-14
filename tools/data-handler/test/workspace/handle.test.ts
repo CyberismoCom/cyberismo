@@ -18,6 +18,7 @@ import { afterEach, beforeEach, expect, it } from 'vitest';
 import { Checkout } from '../../src/infra/checkout.js';
 import { Workspace } from '../../src/workspace/workspace.js';
 import { buildProject, type BuiltProject } from '../helpers/project-builder.js';
+import { checkoutOf } from '../../src/infra/internal.js';
 
 const ann = {
   actor: { kind: 'user', id: 'ann', name: 'Ann' },
@@ -44,8 +45,8 @@ it('shares the checkout and lock between handles; only the actor differs', () =>
   const a = Workspace.over(checkout, ann.actor, ann.identity);
   const b = Workspace.over(checkout, bob.actor, bob.identity);
 
-  expect(a.checkout).toBe(b.checkout);
-  expect(a.checkout.lock).toBe(b.checkout.lock);
+  expect(checkoutOf(a)).toBe(checkoutOf(b));
+  expect(checkoutOf(a).lock).toBe(checkoutOf(b).lock);
   expect([a.actor, b.actor]).toEqual([ann.actor, bob.actor]);
 
   // Façades are the handle's own: one per handle, with its actor.

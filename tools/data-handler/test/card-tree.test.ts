@@ -47,6 +47,7 @@ import {
   hasCard,
 } from '../src/cards/read.js';
 import { resourceName } from '../src/utils/resource-utils.js';
+import { checkoutOf } from '../src/infra/internal.js';
 import { openTestWorkspace } from './helpers/open-test-workspace.js';
 
 const baseDir = import.meta.dirname;
@@ -1098,9 +1099,12 @@ describe('Card tree', () => {
 
     it('should create new template, add cards, and verify cards in cache', async () => {
       const name = 'decision/templates/testTemplate';
-      const templateResource = ws.checkout.resources.byType(name, 'templates');
+      const templateResource = checkoutOf(ws).resources.byType(
+        name,
+        'templates',
+      );
       await templateResource.create();
-      ws.checkout.resources.changed();
+      checkoutOf(ws).resources.changed();
       await ws.cards.addToTemplate('decision/cardTypes/decision', name);
       await ws.cards.addToTemplate('decision/cardTypes/simplepage', name);
 
@@ -1110,8 +1114,8 @@ describe('Card tree', () => {
 
       // Check that template cards exist in project cache
       for (const templateCard of templateCards) {
-        expect(hasCard(ws.checkout, templateCard.key)).toBe(true);
-        const cachedCard = findCard(ws.checkout, templateCard.key);
+        expect(hasCard(checkoutOf(ws), templateCard.key)).toBe(true);
+        const cachedCard = findCard(checkoutOf(ws), templateCard.key);
         expect(cachedCard).toBeDefined();
         expect(cachedCard!.key).toBe(templateCard.key);
       }
@@ -1119,23 +1123,26 @@ describe('Card tree', () => {
 
     it('should remove template and verify cards are gone from the cache', async () => {
       const name = 'decision/templates/testTemplate';
-      const templateResource = ws.checkout.resources.byType(name, 'templates');
+      const templateResource = checkoutOf(ws).resources.byType(
+        name,
+        'templates',
+      );
       await templateResource.create();
-      ws.checkout.resources.changed();
+      checkoutOf(ws).resources.changed();
 
-      const template = ws.checkout.resources.byType(name, 'templates');
+      const template = checkoutOf(ws).resources.byType(name, 'templates');
       await ws.cards.addToTemplate('decision/cardTypes/decision', name);
 
       const templateCards = template.cardTree.cards();
       const templateCardKeys = templateCards.map((card) => card.key);
       for (const cardKey of templateCardKeys) {
-        expect(hasCard(ws.checkout, cardKey)).toBe(true);
+        expect(hasCard(checkoutOf(ws), cardKey)).toBe(true);
       }
 
       // Remove template
       await ws.changes.apply({ kind: 'delete', target: resourceName(name) });
       for (const cardKey of templateCardKeys) {
-        expect(hasCard(ws.checkout, cardKey)).toBe(false);
+        expect(hasCard(checkoutOf(ws), cardKey)).toBe(false);
       }
     });
 
@@ -1143,15 +1150,15 @@ describe('Card tree', () => {
       const baseModule = 'https://github.com/CyberismoCom/module-base.git';
       await ws.modules.install(baseModule);
 
-      const allTemplateCards = readAllTemplateCards(ws.checkout);
+      const allTemplateCards = readAllTemplateCards(checkoutOf(ws));
       const baseTemplateCards = allTemplateCards.filter((card: Card) =>
         card.path.includes(`base${sep}templates`),
       );
 
       expect(baseTemplateCards.length).toBeGreaterThan(0);
       for (const templateCard of baseTemplateCards) {
-        expect(hasCard(ws.checkout, templateCard.key)).toBe(true);
-        const cachedCard = findCard(ws.checkout, templateCard.key);
+        expect(hasCard(checkoutOf(ws), templateCard.key)).toBe(true);
+        const cachedCard = findCard(checkoutOf(ws), templateCard.key);
         expect(cachedCard).toBeDefined();
         expect(cachedCard!.key).toBe(templateCard.key);
       }
@@ -1162,7 +1169,7 @@ describe('Card tree', () => {
 
       await ws.modules.install(baseModule);
 
-      const allTemplateCards = readAllTemplateCards(ws.checkout);
+      const allTemplateCards = readAllTemplateCards(checkoutOf(ws));
       const baseTemplateCards = allTemplateCards.filter((card: Card) =>
         card.path.includes(`base${sep}templates`),
       );
@@ -1170,14 +1177,14 @@ describe('Card tree', () => {
       // Verify that module template cards are in cache
       expect(baseTemplateCards.length).toBeGreaterThan(0);
       for (const templateCard of baseTemplateCards) {
-        expect(hasCard(ws.checkout, templateCard.key)).toBe(true);
-        const cachedCard = findCard(ws.checkout, templateCard.key);
+        expect(hasCard(checkoutOf(ws), templateCard.key)).toBe(true);
+        const cachedCard = findCard(checkoutOf(ws), templateCard.key);
         expect(cachedCard).toBeDefined();
         expect(cachedCard!.key).toBe(templateCard.key);
       }
 
       // Get the imported module name
-      const moduleEntry = ws.checkout.configuration.modules.find(
+      const moduleEntry = checkoutOf(ws).configuration.modules.find(
         (m) => m.location && m.location.includes('module-base'),
       );
       expect(moduleEntry).toBeDefined();
@@ -1186,13 +1193,13 @@ describe('Card tree', () => {
       await ws.modules.remove(moduleEntry!.name);
 
       // Verify module template cards are gone from the cache after removal
-      const remainingTemplateCards = readAllTemplateCards(ws.checkout).filter(
-        (card: Card) => card.path.includes(`base${sep}templates`),
-      );
+      const remainingTemplateCards = readAllTemplateCards(
+        checkoutOf(ws),
+      ).filter((card: Card) => card.path.includes(`base${sep}templates`));
 
       expect(remainingTemplateCards.length).toBe(0);
       for (const card of baseTemplateCards) {
-        expect(hasCard(ws.checkout, card.key)).toBe(false);
+        expect(hasCard(checkoutOf(ws), card.key)).toBe(false);
       }
     }, 60000);
   });

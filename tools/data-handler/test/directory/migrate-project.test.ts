@@ -21,6 +21,7 @@ import { openProjectAt } from '../../src/directory/local-folder.js';
 import { migrateProject } from '../../src/directory/migrate-project.js';
 import { SYSTEM_ACTOR } from '../../src/utils/tx-record.js';
 import { folders } from './folder.js';
+import { checkoutOf } from '../../src/infra/internal.js';
 
 const folder = folders();
 
@@ -36,6 +37,6 @@ describe('migrateProject', () => {
     expect(await migrateProject(path)).toContain('Successfully migrated');
 
     const ws = await openProjectAt(path, SYSTEM_ACTOR);
-    expect(ws.checkout.configuration.schemaVersion).toBe(SCHEMA_VERSION);
+    expect(checkoutOf(ws).configuration.schemaVersion).toBe(SCHEMA_VERSION);
   });
 });

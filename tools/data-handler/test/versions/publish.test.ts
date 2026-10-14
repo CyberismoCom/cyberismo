@@ -18,6 +18,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { expectRefused, projects } from '../cards/fixture.js';
 import { git } from './fixture.js';
+import { checkoutOf } from '../../src/infra/internal.js';
 
 const open = projects();
 const spec = { version: '1.2.3', git: true };
@@ -131,9 +132,9 @@ describe('versions.publish', { timeout: 30_000 }, () => {
     const { ws, path } = await open(spec);
     await withRemote(path);
     const events: string[] = [];
-    ws.checkout.lock.onReleased(() => events.push('released'));
-    const push = ws.checkout.git.push.bind(ws.checkout.git);
-    vi.spyOn(ws.checkout.git, 'push').mockImplementation(async (options) => {
+    checkoutOf(ws).lock.onReleased(() => events.push('released'));
+    const push = checkoutOf(ws).git.push.bind(checkoutOf(ws).git);
+    vi.spyOn(checkoutOf(ws).git, 'push').mockImplementation(async (options) => {
       events.push('push');
       return push(options);
     });

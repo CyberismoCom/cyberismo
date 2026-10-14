@@ -11,6 +11,7 @@ import { getTestProject } from './helpers/test-utils.js';
 import { WorkflowCategory } from '@cyberismo/model';
 import { ResourcesFrom } from '../src/infra/resources-from.js';
 import { openTestWorkspace } from './helpers/open-test-workspace.js';
+import { checkoutOf } from '../src/infra/internal.js';
 
 describe('Resource cache', () => {
   const baseDir = import.meta.dirname;
@@ -398,10 +399,10 @@ describe('Resource cache', () => {
 
       await ws.modules.install(baseModule);
 
-      const allWorkflows = ws.checkout.resources.workflows();
+      const allWorkflows = checkoutOf(ws).resources.workflows();
       expect(allWorkflows.length).toBeGreaterThan(0);
 
-      const modules = ws.checkout.resources.moduleNames();
+      const modules = checkoutOf(ws).resources.moduleNames();
       const foundModule = modules.find((m) => m === 'base');
       expect(foundModule).not.toBeUndefined();
     }, 60000);
@@ -410,7 +411,7 @@ describe('Resource cache', () => {
 
       await ws.modules.install(baseModule);
 
-      const modules = ws.checkout.resources.moduleNames();
+      const modules = checkoutOf(ws).resources.moduleNames();
       expect(modules).toBeInstanceOf(Array);
       expect(modules.length).toBeGreaterThan(0);
 
@@ -423,24 +424,24 @@ describe('Resource cache', () => {
 
       await ws.modules.install(baseModule);
 
-      const moduleNames = ws.checkout.resources.moduleNames();
+      const moduleNames = checkoutOf(ws).resources.moduleNames();
       expect(moduleNames.length).toBeGreaterThan(0);
       expect(moduleNames).toContain('base');
 
-      const moduleEntry = ws.checkout.configuration.modules.find(
+      const moduleEntry = checkoutOf(ws).configuration.modules.find(
         (m) => m.location && m.location.includes('module-base'),
       );
       expect(moduleEntry).not.toBeUndefined();
       await ws.modules.remove(moduleEntry!.name);
 
-      const remainingModuleNames = ws.checkout.resources.moduleNames();
+      const remainingModuleNames = checkoutOf(ws).resources.moduleNames();
       expect(remainingModuleNames).not.toContain('base');
     }, 60000);
     it('should get resource names from specific module', async () => {
       const baseModule = 'https://github.com/CyberismoCom/module-base.git';
       await ws.modules.install(baseModule);
 
-      const resourceHandler = ws.checkout.resources;
+      const resourceHandler = checkoutOf(ws).resources;
       const workflowNames = resourceHandler.moduleResourceNames(
         'workflows',
         'base',
@@ -455,7 +456,7 @@ describe('Resource cache', () => {
       });
     }, 60000);
     it('should return empty array for non-existent module', () => {
-      const resourceHandler = ws.checkout.resources;
+      const resourceHandler = checkoutOf(ws).resources;
       const workflowNames = resourceHandler.moduleResourceNames(
         'workflows',
         'nonExistentModule',
@@ -465,27 +466,27 @@ describe('Resource cache', () => {
       expect(workflowNames.length).toBe(0);
     });
     it('should filter local-only resources correctly', () => {
-      const localWorkflows = ws.checkout.resources.workflows(
+      const localWorkflows = checkoutOf(ws).resources.workflows(
         ResourcesFrom.localOnly,
       );
-      const allWorkflows = ws.checkout.resources.workflows();
+      const allWorkflows = checkoutOf(ws).resources.workflows();
 
       expect(localWorkflows.length).toBeGreaterThan(0);
       expect(allWorkflows.length).toBeGreaterThanOrEqual(localWorkflows.length);
     });
     it('should include module resources when using ResourcesFrom.all', async () => {
-      const localOnlyBefore = ws.checkout.resources.workflows(
+      const localOnlyBefore = checkoutOf(ws).resources.workflows(
         ResourcesFrom.localOnly,
       ).length;
-      const allBefore = ws.checkout.resources.workflows().length;
+      const allBefore = checkoutOf(ws).resources.workflows().length;
 
       const baseModule = 'https://github.com/CyberismoCom/module-base.git';
       await ws.modules.install(baseModule);
 
-      const localOnlyAfter = ws.checkout.resources.workflows(
+      const localOnlyAfter = checkoutOf(ws).resources.workflows(
         ResourcesFrom.localOnly,
       ).length;
-      const allAfter = ws.checkout.resources.workflows().length;
+      const allAfter = checkoutOf(ws).resources.workflows().length;
 
       // Local count should not change
       expect(localOnlyAfter).toBe(localOnlyBefore);
@@ -496,15 +497,15 @@ describe('Resource cache', () => {
       const baseModule = 'https://github.com/CyberismoCom/module-base.git';
       await ws.modules.install(baseModule);
 
-      const localWorkflows = ws.checkout.resources.workflows(
+      const localWorkflows = checkoutOf(ws).resources.workflows(
         ResourcesFrom.localOnly,
       );
-      const moduleWorkflows = ws.checkout.resources.workflows(
+      const moduleWorkflows = checkoutOf(ws).resources.workflows(
         ResourcesFrom.importedOnly,
       );
       expect(moduleWorkflows.length).toBeGreaterThan(0);
 
-      const allWorkflows = ws.checkout.resources.workflows();
+      const allWorkflows = checkoutOf(ws).resources.workflows();
       expect(allWorkflows.length).toBeGreaterThanOrEqual(localWorkflows.length);
       expect(allWorkflows.length).toBeGreaterThanOrEqual(
         moduleWorkflows.length,
