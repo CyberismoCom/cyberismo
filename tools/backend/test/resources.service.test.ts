@@ -25,10 +25,10 @@ interface testObjectNode {
 const createMockCommandManager = (overrides: any = {}) => {
   return {
     consistent: vi.fn().mockImplementation((fn: () => unknown) => fn()),
-    modulesCmd: {
+    modules: {
       list: vi.fn().mockResolvedValue([] as { name: string }[]),
       show: vi.fn(),
-      ...overrides.modulesCmd,
+      ...overrides.modules,
     },
     showCmd: {
       showProject: vi.fn().mockResolvedValue({ prefix: 'test' }),
@@ -151,7 +151,7 @@ describe('Resources Service', () => {
 
     test('should build resource tree with modules section', async () => {
       const mockCommands = createMockCommandManager({
-        modulesCmd: {
+        modules: {
           list: vi.fn().mockResolvedValue([{ name: 'module1' }]),
           show: vi.fn().mockResolvedValue({
             name: 'Module One',
@@ -218,7 +218,7 @@ describe('Resources Service', () => {
 
     test('should handle template processing with hierarchical cards', async () => {
       const mockCommands = createMockCommandManager({
-        modulesCmd: {
+        modules: {
           list: vi.fn().mockResolvedValue([{ name: 'module1' }]),
           show: vi.fn().mockResolvedValue({
             name: 'Module One',
