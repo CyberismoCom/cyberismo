@@ -123,10 +123,8 @@ export async function openProject(
   return Workspace.over(checkout, actor, identity);
 }
 
-// The handle for a command's project; refuses a path the way the dispatcher does.
-export async function openWorkspace(
-  options: AllCommandOptions,
-): Promise<Workspace> {
+// The command's project path; refuses one the way the dispatcher does.
+export function projectPathOf(options: AllCommandOptions): string {
   const path = options.projectPath || '';
   const projectPath = resolveTilde(projectRoot(options));
   if (!Validate.validateFolder(projectPath)) {
@@ -140,8 +138,15 @@ export async function openWorkspace(
   if (!pathExists(projectPath)) {
     throw new Error(`Input validation error: cannot find project '${path}'`);
   }
+  return projectPath;
+}
+
+// The handle for a command's project.
+export async function openWorkspace(
+  options: AllCommandOptions,
+): Promise<Workspace> {
   return openProject({
-    projectPath,
+    projectPath: projectPathOf(options),
     logLevel: options.logLevel,
     watchResourceChanges: (options as StartCommandOptions).watchResourceChanges,
     autocommit: options.autocommit,
