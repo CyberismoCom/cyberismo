@@ -28,13 +28,12 @@ import { resourceName } from '../../utils/resource-utils.js';
 import {
   CONFIGURATION_OPERATIONS,
   RETIRED_OPERATIONS,
-} from '../../utils/configuration-logger.js';
+} from '../../infra/replay-log/configuration-logger.js';
 
-import type { ConfigurationLogEntry } from '../../utils/configuration-logger.js';
-import type { ModuleInstallation } from '../../modules/types.js';
+import type { ConfigurationLogEntry } from '../../infra/replay-log/configuration-logger.js';
+import type { ModuleInstallation, ResolvedModule } from './module-types.js';
 import type { ModuleUpdateResult, MutationInput } from '@cyberismo/model';
 import type { Checkout } from '../../infra/checkout.js';
-import type { ResolvedModule } from '../../modules/resolve/types.js';
 import type { SealFile } from '../../infra/replay-log/seal-files.js';
 
 /** A reason one module's update cannot be replayed safely. */

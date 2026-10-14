@@ -42,10 +42,10 @@ import type {
   Change,
   ConflictDemand,
   ResolveConflict,
-  ResolvedModule,
   ResolveResult,
   UpdateRequest,
 } from './types.js';
+import type { ResolvedModule } from '../../mutations/replay/module-types.js';
 
 export interface Edge {
   name: string;

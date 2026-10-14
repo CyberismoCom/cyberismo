@@ -7,7 +7,7 @@ import { tmpdir } from 'node:os';
 import { cleanOrphans } from '../../src/modules/orphans.js';
 import { makeProjectStub } from '../helpers/module-fixtures.js';
 import type { ModuleSetting, ModuleSettingOptions } from '@cyberismo/model';
-import type { ModuleInstallation } from '../../src/modules/types.js';
+import type { ModuleInstallation } from '../../src/mutations/replay/module-types.js';
 
 interface ChildDep {
   name: string;

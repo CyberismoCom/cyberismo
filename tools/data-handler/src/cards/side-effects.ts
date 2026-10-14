@@ -12,8 +12,8 @@
 */
 
 import { CardMetadataUpdater } from './card-metadata-updater.js';
-import { getChildLogger } from './utils/log-utils.js';
-import type { Checkout } from './infra/checkout.js';
+import { getChildLogger } from '../utils/log-utils.js';
+import type { Checkout } from '../infra/checkout.js';
 import type { ExecuteTransition, UpdateField } from '@cyberismo/model';
 
 const logger = getChildLogger({ module: 'sideEffects' });

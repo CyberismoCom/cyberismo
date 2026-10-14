@@ -21,7 +21,7 @@ import { readModuleConfig } from '../infra/cards-config.js';
 import { deleteDir, pathExists } from '../utils/file-utils.js';
 import { getChildLogger } from '../utils/log-utils.js';
 
-import type { ResolvedModule } from './resolve/types.js';
+import type { ResolvedModule } from '../mutations/replay/module-types.js';
 import type { ModuleSetting } from '@cyberismo/model';
 import type { Checkout } from '../infra/checkout.js';
 

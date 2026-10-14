@@ -19,11 +19,13 @@ import {
 } from '../../helpers/replay-fixtures.js';
 
 import type { SealSpec } from '../../helpers/replay-fixtures.js';
-import type { ConfigurationLogEntry } from '../../../src/utils/configuration-logger.js';
-import type { ModuleInstallation } from '../../../src/modules/types.js';
+import type { ConfigurationLogEntry } from '../../../src/infra/replay-log/configuration-logger.js';
+import type {
+  ModuleInstallation,
+  ResolvedModule,
+} from '../../../src/mutations/replay/module-types.js';
 import type { Checkout } from '../../../src/infra/checkout.js';
 import type { ReplayStep } from '../../../src/mutations/replay/replay.js';
-import type { ResolvedModule } from '../../../src/modules/resolve/types.js';
 
 const tmpDir = join(import.meta.dirname, 'tmp-replay-test');
 

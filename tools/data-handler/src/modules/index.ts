@@ -26,7 +26,8 @@ export type {
   InstallationRef,
   ModuleDeclaration,
   ModuleInstallation,
-} from './types.js';
+  ResolvedModule,
+} from '../mutations/replay/module-types.js';
 export type { Version, VersionRange } from '../utils/version.js';
 export type {
   FetchTarget,
@@ -36,7 +37,6 @@ export type {
   Change,
   ConflictDemand,
   ResolveConflict,
-  ResolvedModule,
   ResolveResult,
   UpdateRequest,
 } from './resolve/types.js';

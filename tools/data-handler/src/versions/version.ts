@@ -15,11 +15,11 @@ import semver from 'semver';
 import type { ActorRef, PublishResult, VersionBump } from '@cyberismo/model';
 import { Validate } from '../commands/validate.js';
 import type { Checkout } from '../infra/checkout.js';
-import type { ConfigurationLogEntry } from '../utils/configuration-logger.js';
+import type { ConfigurationLogEntry } from '../infra/replay-log/configuration-logger.js';
 import {
   ConfigurationLogger,
   RETIRED_OPERATIONS,
-} from '../utils/configuration-logger.js';
+} from '../infra/replay-log/configuration-logger.js';
 import type { ChangeClassification } from '../mutations/registry.js';
 import { classify } from '../mutations/dispatcher.js';
 import { entryToMutationInput } from '../mutations/replay/convert.js';
