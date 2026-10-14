@@ -13,11 +13,11 @@
 
 import { type Command } from 'commander';
 
-import { Cmd, type CommandOptions } from '@cyberismo/data-handler';
+import { type CommandOptions } from '@cyberismo/data-handler';
 
 import { CommandWithPath } from '../lib/args.js';
-import { commandHandler } from '../lib/dispatch.js';
-import { handleResponse } from '../lib/output.js';
+import { onProject } from '../lib/errors.js';
+import { printResultWithNote } from '../lib/output.js';
 
 export function registerRename(program: Command) {
   // Rename command
@@ -32,11 +32,18 @@ export function registerRename(program: Command) {
     );
   program.addCommand(renameCmd);
   renameCmd.action(async (to: string, options: CommandOptions<'rename'>) => {
-    const result = await commandHandler.command(
-      Cmd.rename,
-      [to],
+    const note = await onProject(
       Object.assign({}, options, program.opts()),
+      async (ws) => {
+        const published = (await ws.settings.info()).version;
+        await ws.renameCmd.rename(to, options.force);
+        return published
+          ? `Version ${published} was published under the old prefix. The ` +
+              `next version you publish is a new module: consumers must ` +
+              `install it and remove the old one rather than update.`
+          : undefined;
+      },
     );
-    handleResponse(result);
+    printResultWithNote(note);
   });
 }

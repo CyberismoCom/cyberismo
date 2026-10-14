@@ -13,6 +13,7 @@
 
 import { Command, Option } from 'commander';
 
+import { DEFAULT_HUB } from '@cyberismo/assets';
 import { resourceName } from '@cyberismo/data-handler';
 import { validContexts } from '@cyberismo/model';
 
@@ -246,6 +247,11 @@ export function commandType(type: string): string {
 // name, else 'target'.
 export function commandTarget(type: string, target: string): string {
   return resourceName(type).type ? type : target;
+}
+
+// A hub location argument; 'default' names the default hub.
+export function hubLocation(location: string): string {
+  return location === 'default' ? DEFAULT_HUB : location;
 }
 
 // Ensure that all names have the same guideline.

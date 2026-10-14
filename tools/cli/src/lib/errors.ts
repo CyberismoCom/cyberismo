@@ -13,9 +13,11 @@
 
 import {
   DomainError,
+  ModuleRequestError,
   type AllCommandOptions,
   type Workspace,
 } from '@cyberismo/data-handler';
+import { errorFunction } from '@cyberismo/data-handler/utils/error-utils';
 import type { ErrorCode } from '@cyberismo/model';
 
 import { program } from './dispatch.js';
@@ -50,10 +52,25 @@ export function fail(message: string | undefined, exitCode = 1): never {
   return program.error(message || GENERIC_FAILURE_MESSAGE, { exitCode });
 }
 
+// A domain error's message; a module request adds git's text, which only
+// the CLI shows.
+function domainMessage(error: DomainError): string {
+  return error instanceof ModuleRequestError && error.detail
+    ? `${error.message}\n${error.detail}`
+    : error.message;
+}
+
+// The message a failure prints.
+export function errorMessage(error: unknown): string {
+  return error instanceof DomainError
+    ? domainMessage(error)
+    : errorFunction(error);
+}
+
 // Fails with the exit code of the error's domain code.
 export function failWith(error: unknown): never {
   if (error instanceof DomainError) {
-    return fail(error.message, exitCodeFor(error.code));
+    return fail(domainMessage(error), exitCodeFor(error.code));
   }
   return fail(error instanceof Error ? error.message : String(error));
 }
