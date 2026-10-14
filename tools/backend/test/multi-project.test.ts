@@ -36,7 +36,7 @@ describe('multi-project routing', () => {
       new MockAuthProvider(),
       registry,
       undefined,
-      false,
+      undefined,
       multiProjectRoot,
     );
   });

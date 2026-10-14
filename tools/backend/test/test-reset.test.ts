@@ -5,7 +5,10 @@ import { createApp } from '../src/app.js';
 import { ProjectRegistry } from '../src/project-registry.js';
 import { MockAuthProvider } from '../src/auth/mock.js';
 import { createTempTestData, cleanupTempTestData } from './test-utils.js';
-import { openTestWorkspace } from './helpers/open-test-workspace.js';
+import {
+  openTestWorkspace,
+  directoryOf,
+} from './helpers/open-test-workspace.js';
 
 describe('POST /api/test/reset', () => {
   let projectPath: string;
@@ -24,7 +27,7 @@ describe('POST /api/test/reset', () => {
     process.env.CYBERISMO_GOLDEN_PATH = goldenPath;
 
     const ws = await openTestWorkspace(projectPath);
-    registry = ProjectRegistry.fromCheckout(ws.checkout);
+    registry = directoryOf(ws);
     app = createApp(new MockAuthProvider(), registry);
   }, 60_000);
 
