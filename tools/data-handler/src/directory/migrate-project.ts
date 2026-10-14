@@ -28,7 +28,7 @@ import { readJsonFile } from '../utils/json.js';
  * @param projectRoot Absolute path to the project root
  * @returns Human-readable result message; throws on failure
  */
-export async function migrate(projectRoot: string): Promise<string> {
+export async function migrateProject(projectRoot: string): Promise<string> {
   const paths = new ProjectPaths(projectRoot);
   const config = await readJsonFile(paths.configurationFile);
   const currentVersion: unknown = config?.schemaVersion;
