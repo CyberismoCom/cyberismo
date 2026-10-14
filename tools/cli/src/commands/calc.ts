@@ -15,13 +15,12 @@ import { readFileSync } from 'node:fs';
 import { writeFile } from 'node:fs/promises';
 
 import { type Command } from 'commander';
-
-import { type CommandOptions } from '@cyberismo/data-handler';
 import type { Context } from '@cyberismo/model';
 
 import { CommandGroup, contextOption } from '../lib/args.js';
 import { onProject } from '../lib/errors.js';
 import { printJson, printResult } from '../lib/output.js';
+import type { CalcCommandOptions } from '../options.js';
 
 export function registerCalc(program: Command) {
   const calculate = new CommandGroup('calc').description(
@@ -41,7 +40,7 @@ export function registerCalc(program: Command) {
       async (
         destination: string,
         query: string,
-        options: CommandOptions<'calc'>,
+        options: CalcCommandOptions,
       ) => {
         await onProject(
           Object.assign({}, options, program.opts()),
@@ -56,7 +55,7 @@ export function registerCalc(program: Command) {
     .description('Run a logic program')
     .argument('<filePath>', 'Path to the logic program')
     .addOption(contextOption)
-    .action(async (filePath: string, options: CommandOptions<'calc'>) => {
+    .action(async (filePath: string, options: CalcCommandOptions) => {
       const result = await onProject(
         Object.assign({}, options, program.opts()),
         (ws) =>
