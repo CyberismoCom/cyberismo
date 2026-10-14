@@ -387,6 +387,20 @@ describe('the clean note', () => {
   });
 });
 
+describe('remove', () => {
+  it('refuses a type no remove handles, removing nothing', async () => {
+    const apply = stub('changes.apply', vi.fn());
+
+    // A singular type in a resource name maps to no removable type.
+    expect(await cli('remove test/workflow/w')).toBe(1);
+    expect({ stdout, stderr }).toEqual({
+      stdout: '',
+      stderr: "Unknown resource type 'workflo'\n",
+    });
+    expect(apply).not.toHaveBeenCalled();
+  });
+});
+
 describe('update', () => {
   it.each([
     [
