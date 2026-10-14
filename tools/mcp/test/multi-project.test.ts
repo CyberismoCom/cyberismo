@@ -16,28 +16,30 @@
 import { beforeAll, afterAll, describe, expect, test } from 'vitest';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
-import { type Workspace } from '@cyberismo/data-handler';
+import { type ProjectDirectory, type Workspace } from '@cyberismo/data-handler';
 import { createMcpServer } from '../src/server.js';
-import type { ProjectProvider } from '../src/lib/resolve-project.js';
 import { authenticated, testDataPath } from './test-utils.js';
-import { openTestWorkspace } from './helpers/open-test-workspace.js';
+import {
+  directoryOf,
+  openTestWorkspace,
+} from './helpers/open-test-workspace.js';
 
 let ws: Workspace;
 let client: Client;
 
 /**
- * A provider that exposes the same project under two prefixes,
+ * The project's directory, also listing a project that does not open,
  * simulating a multi-project deployment.
  */
-function multiProjectProvider(cmd: Workspace): ProjectProvider {
-  const realPrefix = cmd.checkout.configuration.cardKeyPrefix;
+function multiProjectDirectory(cmd: Workspace): ProjectDirectory {
+  const directory = directoryOf(cmd);
   return {
-    get: (prefix: string) => (prefix === realPrefix ? cmd.checkout : undefined),
-    list: () => [
-      { prefix: realPrefix, name: cmd.checkout.configuration.name },
+    open: (prefix, actor, identity) => directory.open(prefix, actor, identity),
+    list: async () => [
+      ...(await directory.list()),
       { prefix: 'other', name: 'Other project' },
     ],
-  };
+  } as ProjectDirectory;
 }
 
 // Fixes weird issue with asciidoctor
@@ -45,7 +47,7 @@ beforeAll(async () => {
   process.argv = [];
   ws = await openTestWorkspace(testDataPath);
 
-  const server = createMcpServer(multiProjectProvider(ws));
+  const server = createMcpServer(multiProjectDirectory(ws));
   const [clientTransport, serverTransport] =
     InMemoryTransport.createLinkedPair();
 
@@ -121,7 +123,7 @@ describe('Multi-project MCP', () => {
       arguments: { projectPrefix: 'other' },
     });
 
-    // 'other' is listed but provider.get returns undefined for it
+    // 'other' is listed but does not open
     expect(result.isError).toBe(true);
     const text = contentOf(result)[0].text;
     expect(text).toContain("Unknown project 'other'");

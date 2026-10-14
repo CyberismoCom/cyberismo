@@ -20,7 +20,10 @@
  */
 
 import { z } from 'zod';
-import type { ProjectProvider } from '@cyberismo/data-handler';
+import {
+  ProjectNotFoundError,
+  type ProjectDirectory,
+} from '@cyberismo/data-handler';
 
 const POLL_INTERVAL_MS = 10_000;
 const FETCH_TIMEOUT_MS = 2_000;
@@ -91,7 +94,7 @@ async function reportProjects(
 }
 
 export function startPolicyPolling(
-  projects: () => { prefix: string }[] = () => [],
+  projects: () => Promise<{ prefix: string }[]> = async () => [],
 ): void {
   const base = process.env.CYBERISMO_OVERLAY_URL;
   if (!base) return;
@@ -127,7 +130,7 @@ export function startPolicyPolling(
   // is registered within one interval.
   let lastReportFailure: string | undefined;
   const report = async () => {
-    const current = projects();
+    const current = await projects();
     if (current.length === 0) return;
     try {
       await reportProjects(base, token, current);
@@ -166,10 +169,21 @@ export function startPolicyPolling(
  * cannot see which one a call touches. Making a frozen project unresolvable
  * fails closed, at the cost of hiding it from reads and from administrators too.
  */
-export function writableProjects(provider: ProjectProvider): ProjectProvider {
+export function writableProjects(
+  directory: ProjectDirectory,
+): ProjectDirectory {
   return {
-    get: (prefix) =>
-      isProjectReadOnly(prefix) ? undefined : provider.get(prefix),
-    list: () => provider.list().filter((p) => !isProjectReadOnly(p.prefix)),
+    open: async (prefix, actor, identity) => {
+      if (isProjectReadOnly(prefix)) {
+        throw new ProjectNotFoundError(prefix);
+      }
+      return directory.open(prefix, actor, identity);
+    },
+    list: async () =>
+      (await directory.list()).filter((p) => !isProjectReadOnly(p.prefix)),
+    create: (params, actor, identity) =>
+      directory.create(params, actor, identity),
+    clone: (url) => directory.clone(url),
+    replace: (prefix) => directory.replace(prefix),
   };
 }

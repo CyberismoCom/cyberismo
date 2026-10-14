@@ -15,8 +15,8 @@ import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { afterEach, beforeEach, expect, it } from 'vitest';
 
-import type { Checkout } from '../../src/containers/project.js';
-import { openCheckout, Workspace } from '../../src/workspace/workspace.js';
+import { Checkout } from '../../src/containers/project.js';
+import { Workspace } from '../../src/workspace/workspace.js';
 import { sharedCommands } from '../../src/workspace/shared-commands.js';
 import { buildProject, type BuiltProject } from '../helpers/project-builder.js';
 
@@ -34,7 +34,7 @@ let checkout: Checkout;
 
 beforeEach(async () => {
   project = await buildProject({ git: true, cards: [{ title: 'Alpha' }] });
-  checkout = await openCheckout(project.path, { autocommit: true });
+  checkout = await Checkout.open(project.path, { autocommit: true });
 });
 
 afterEach(async () => {
@@ -69,7 +69,7 @@ it('commits a façade write as the actor of its handle', async () => {
     git: true,
     cards: [{ title: 'Parent' }, { title: 'Child' }],
   });
-  const other = await openCheckout(built.path, { autocommit: true });
+  const other = await Checkout.open(built.path, { autocommit: true });
   try {
     const [parent, child] = built.keys;
     await Workspace.over(other, bob.actor, bob.identity).cards.move(

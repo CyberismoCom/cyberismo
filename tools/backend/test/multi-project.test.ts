@@ -1,49 +1,31 @@
 import { expect, test, describe, beforeAll, afterAll } from 'vitest';
 import { createApp } from '../src/app.js';
-import { ProjectRegistry } from '../src/project-registry.js';
 import { MockAuthProvider } from '../src/auth/mock.js';
-import { createTempTestData, cleanupTempTestData } from './test-utils.js';
-import { dirname } from 'node:path';
-import { openTestWorkspace } from './helpers/open-test-workspace.js';
+import { createTempTestFolder } from './test-utils.js';
+import { rm } from 'node:fs/promises';
+import { localFolder } from '@cyberismo/data-handler';
 
 describe('multi-project routing', () => {
   let app: ReturnType<typeof createApp>;
-  let tempDecisionPath: string;
-  let tempMinimalPath: string;
+  let folder: string;
 
   beforeAll(async () => {
     process.argv = [];
-    tempDecisionPath = await createTempTestData('decision-records');
-    tempMinimalPath = await createTempTestData('minimal');
+    folder = await createTempTestFolder('decision-records', 'minimal');
+    const { directory } = await localFolder(folder);
 
-    const decisionCommands = await openTestWorkspace(tempDecisionPath);
-    const minimalCommands = await openTestWorkspace(tempMinimalPath);
-
-    const registry = new ProjectRegistry([
-      {
-        prefix: decisionCommands.checkout.configuration.cardKeyPrefix,
-        checkout: decisionCommands.checkout,
-      },
-      {
-        prefix: minimalCommands.checkout.configuration.cardKeyPrefix,
-        checkout: minimalCommands.checkout,
-      },
-    ]);
-
-    // Use parent of temp path as multiProjectRoot to enable project creation
-    const multiProjectRoot = dirname(tempDecisionPath);
+    // The folder as multiProjectRoot enables project creation
     app = createApp(
       new MockAuthProvider(),
-      registry,
+      directory,
       undefined,
       undefined,
-      multiProjectRoot,
+      folder,
     );
   });
 
   afterAll(async () => {
-    await cleanupTempTestData(tempDecisionPath);
-    await cleanupTempTestData(tempMinimalPath);
+    await rm(folder, { recursive: true, force: true });
   });
 
   test('GET /api/projects lists both projects', async () => {
@@ -111,34 +93,21 @@ describe('multi-project routing', () => {
 
 describe('multi-project export mode routing', () => {
   let exportApp: ReturnType<typeof createApp>;
-  let tempDecisionPath: string;
-  let tempMinimalPath: string;
+  let folder: string;
 
   beforeAll(async () => {
     process.argv = [];
-    tempDecisionPath = await createTempTestData('decision-records');
-    tempMinimalPath = await createTempTestData('minimal');
+    folder = await createTempTestFolder('decision-records', 'minimal');
+    const { directory } = await localFolder(folder);
 
-    const decisionCommands = await openTestWorkspace(tempDecisionPath);
-    const minimalCommands = await openTestWorkspace(tempMinimalPath);
-
-    const registry = new ProjectRegistry([
-      {
-        prefix: decisionCommands.checkout.configuration.cardKeyPrefix,
-        checkout: decisionCommands.checkout,
-      },
-      {
-        prefix: minimalCommands.checkout.configuration.cardKeyPrefix,
-        checkout: minimalCommands.checkout,
-      },
+    exportApp = createApp(new MockAuthProvider(), directory, undefined, [
+      'decision',
+      'mini',
     ]);
-
-    exportApp = createApp(new MockAuthProvider(), registry, undefined, true);
   });
 
   afterAll(async () => {
-    await cleanupTempTestData(tempDecisionPath);
-    await cleanupTempTestData(tempMinimalPath);
+    await rm(folder, { recursive: true, force: true });
   });
 
   test('routes work at concrete prefixes in export mode', async () => {
