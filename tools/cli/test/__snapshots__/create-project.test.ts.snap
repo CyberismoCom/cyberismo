@@ -3,7 +3,7 @@
 exports[`create project > refuses a resource named as a projects resource name 1`] = `
 {
   "code": 1,
-  "stderr": "Input validation error: invalid project name 'gold/projects/golden'
+  "stderr": "Unknown type to create: 'project'
 ",
   "stdout": "",
 }
@@ -29,7 +29,12 @@ exports[`create project > refuses an invalid prefix, creating nothing 1`] = `
 
 exports[`create project > skipping module import 1`] = `
 {
-  "commits": null,
+  "commits": [
+    "Ann <ann@example.com> | Cyberismo Bot <bot@cyberismo.com> | Initial commit",
+    "A	.cards/local/.schema",
+    "A	.cards/local/cardsConfig.json",
+    "A	.gitignore",
+  ],
   "files": {
     ".cards/local/.schema": "[
     {
@@ -59,6 +64,7 @@ exports[`create project > skipping module import 1`] = `
 .logs
 .cache
 ",
+    ".logs/cyberismo_data-handler.log": "<log>",
   },
   "output": {
     "code": 0,
@@ -66,7 +72,7 @@ exports[`create project > skipping module import 1`] = `
     "stdout": "Done
 ",
   },
-  "uncommitted": null,
+  "uncommitted": [],
 }
 `;
 
@@ -75,7 +81,7 @@ exports[`create project > with autocommit 1`] = `
   "commits": [
     "Ann <ann@example.com> | Cyberismo Bot <bot@cyberismo.com> | Add hub https://raw.githubusercontent.com/CyberismoCom/cyberismo/main/tools/assets/src/hub/",
     "M	.cards/local/cardsConfig.json",
-    "Cyberismo Bot <bot@cyberismo.com> | Cyberismo Bot <bot@cyberismo.com> | Initial commit",
+    "Ann <ann@example.com> | Cyberismo Bot <bot@cyberismo.com> | Initial commit",
     "A	.cards/local/.schema",
     "A	.cards/local/cardsConfig.json",
     "A	.gitignore",
@@ -122,7 +128,6 @@ exports[`create project > with autocommit 1`] = `
   "output": {
     "code": 1,
     "stderr": "Could not fetch hub data - https://raw.githubusercontent.com/CyberismoCom/cyberismo/main/tools/assets/src/hub/: fetch failed
-Modules from the hubs that could be read were refreshed.
 No modules available
 ",
     "stdout": "",
@@ -133,7 +138,12 @@ No modules available
 
 exports[`create project > with autocommit, skipping module import 1`] = `
 {
-  "commits": null,
+  "commits": [
+    "Ann <ann@example.com> | Cyberismo Bot <bot@cyberismo.com> | Initial commit",
+    "A	.cards/local/.schema",
+    "A	.cards/local/cardsConfig.json",
+    "A	.gitignore",
+  ],
   "files": {
     ".cards/local/.schema": "[
     {
@@ -163,6 +173,7 @@ exports[`create project > with autocommit, skipping module import 1`] = `
 .logs
 .cache
 ",
+    ".logs/cyberismo_data-handler.log": "<log>",
   },
   "output": {
     "code": 0,
@@ -170,13 +181,18 @@ exports[`create project > with autocommit, skipping module import 1`] = `
     "stdout": "Done
 ",
   },
-  "uncommitted": null,
+  "uncommitted": [],
 }
 `;
 
 exports[`create project > without autocommit 1`] = `
 {
-  "commits": null,
+  "commits": [
+    "Ann <ann@example.com> | Cyberismo Bot <bot@cyberismo.com> | Initial commit",
+    "A	.cards/local/.schema",
+    "A	.cards/local/cardsConfig.json",
+    "A	.gitignore",
+  ],
   "files": {
     ".cards/local/.schema": "[
     {
@@ -219,11 +235,12 @@ exports[`create project > without autocommit 1`] = `
   "output": {
     "code": 1,
     "stderr": "Could not fetch hub data - https://raw.githubusercontent.com/CyberismoCom/cyberismo/main/tools/assets/src/hub/: fetch failed
-Modules from the hubs that could be read were refreshed.
 No modules available
 ",
     "stdout": "",
   },
-  "uncommitted": null,
+  "uncommitted": [
+    " M .cards/local/cardsConfig.json",
+  ],
 }
 `;

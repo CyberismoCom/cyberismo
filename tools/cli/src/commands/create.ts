@@ -18,6 +18,7 @@ import { Argument, type Command } from 'commander';
 import {
   Cmd,
   createProject,
+  type AllCommandOptions,
   type CommandOptions,
   validBumps,
   type Workspace,
@@ -26,18 +27,12 @@ import { errorFunction } from '@cyberismo/data-handler/utils/error-utils';
 import { resolveTilde } from '@cyberismo/data-handler/utils/file-utils';
 import type { DataType } from '@cyberismo/model';
 
-import {
-  CommandGroup,
-  commandType,
-  hubLocation,
-  nameGuideline,
-} from '../lib/args.js';
+import { CommandGroup, commandType, nameGuideline } from '../lib/args.js';
 import { commandHandler, program } from '../lib/dispatch.js';
 import { errorMessage, fail, onProject } from '../lib/errors.js';
-import { openWorkspace } from '../lib/open.js';
+import { existingAncestor, gitAuthor, openWorkspace } from '../lib/open.js';
 import { handleResponse, printResult } from '../lib/output.js';
 import { checkbox } from '../lib/prompts.js';
-import { fetchHubs } from './fetch.js';
 import { importableModules, installModule } from './module.js';
 
 // Each resource type's create, from the arguments after the type.
@@ -78,28 +73,39 @@ function resourceTarget(type: string | undefined): string | undefined {
   }
 }
 
-// Whether a resource name names projects ('<prefix>/projects/<name>').
-function namesProjects(type: string): boolean {
-  try {
-    return commandType(type) === 'project';
-  } catch {
-    return false;
-  }
-}
-
-// Creates a project at 'path' from [name, prefix, category, description];
-// a failure exits.
-async function createProjectAt(path: string, args: (string | undefined)[]) {
+// Creates a project at 'path' from [name, prefix, category, description],
+// printing what did not happen; a failure exits.
+async function createProjectAt(
+  path: string,
+  args: (string | undefined)[],
+  options: AllCommandOptions,
+  skipDefaultHub = false,
+) {
   const [name, prefix, category, description] = args;
-  try {
-    await createProject(resolveTilde(path), {
+  const projectPath = resolveTilde(path);
+  const { actor, identity } = await gitAuthor(existingAncestor(projectPath));
+  const { failures, warnings } = await createProject(
+    projectPath,
+    {
       name: name!,
       prefix: prefix!,
       category: category || '',
       description: description || '',
-    });
-  } catch (error) {
-    fail(errorFunction(error));
+      skipDefaultHub,
+    },
+    actor,
+    identity,
+    {
+      logLevel: options.logLevel,
+      autocommit: options.autocommit,
+      autopush: options.autopush,
+    },
+  ).catch((error: unknown) => fail(errorFunction(error)));
+  for (const warning of warnings) {
+    console.warn(warning);
+  }
+  if (failures.length > 0) {
+    fail(failures.join('\n'));
   }
 }
 
@@ -338,42 +344,16 @@ export function registerCreate(program: Command) {
         options.projectPath = path;
         const commandOptions = Object.assign({}, options, program.opts());
 
-        await createProjectAt(commandOptions.projectPath || '', [
-          name,
-          prefix,
-          category,
-          description,
-        ]);
+        await createProjectAt(
+          commandOptions.projectPath || '',
+          [name, prefix, category, description],
+          commandOptions,
+          commandOptions.skipModuleImport,
+        );
 
         // Post-handling after creating a new project
         if (!commandOptions.skipModuleImport) {
           try {
-            // add default hub
-            const addHubError = await openWorkspace(commandOptions)
-              .then((ws) => ws.settings.hubs.add(hubLocation('default')))
-              .then(
-                () => undefined,
-                (error: unknown) => errorFunction(error),
-              );
-            if (addHubError !== undefined) {
-              program.error(
-                `Project creation failed: could not add default hub - ${addHubError || 'Unknown error'}`,
-              );
-            }
-
-            // fetch modules from default hub
-            const fetchError = await openWorkspace(commandOptions)
-              .then(fetchHubs)
-              .catch(errorMessage);
-            // The project already exists at this point and hubs that could be
-            // read were still refreshed, so an unreachable hub only narrows the
-            // module selection below; it must not fail the creation.
-            if (fetchError !== undefined) {
-              console.warn(
-                `Could not fetch hub data - ${fetchError || 'Unknown error'}`,
-              );
-            }
-
             // show importable modules
             const choices = await importableModules(commandOptions);
             const selectedModules = await checkbox({
@@ -516,16 +496,11 @@ export function registerCreate(program: Command) {
           return;
         }
         if (args[0] === 'project') {
-          await createProjectAt(options.projectPath || '', args.slice(1));
-          printResult();
-          return;
-        }
-        if (namesProjects(args[0])) {
-          // At the open project's path, which already holds one.
-          const ws = await openWorkspace(
+          await createProjectAt(
+            options.projectPath || '',
+            args.slice(1),
             Object.assign({}, options, program.opts()),
-          ).catch((error: unknown) => fail(errorFunction(error)));
-          await createProjectAt(ws.checkout.basePath, args);
+          );
           printResult();
           return;
         }

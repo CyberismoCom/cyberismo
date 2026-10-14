@@ -5,13 +5,17 @@ exports[`POST /api/projects > with autocommit 1`] = `
   "body": {
     "category": "Testing",
     "description": "A golden project",
+    "failures": [],
     "name": "Golden Project",
     "prefix": "gold",
+    "warnings": [
+      "Could not fetch hub data - https://raw.githubusercontent.com/CyberismoCom/cyberismo/main/tools/assets/src/hub/: fetch failed",
+    ],
   },
   "commits": [
     "Bea <bea@example.com> | Cyberismo Bot <bot@cyberismo.com> | Add hub https://raw.githubusercontent.com/CyberismoCom/cyberismo/main/tools/assets/src/hub/",
     "M	.cards/local/cardsConfig.json",
-    "Cyberismo Bot <bot@cyberismo.com> | Cyberismo Bot <bot@cyberismo.com> | Initial commit",
+    "Bea <bea@example.com> | Cyberismo Bot <bot@cyberismo.com> | Initial commit",
     "A	.cards/local/.schema",
     "A	.cards/local/cardsConfig.json",
     "A	.gitignore",
@@ -72,8 +76,12 @@ exports[`POST /api/projects > without autocommit 1`] = `
   "body": {
     "category": "Testing",
     "description": "A golden project",
+    "failures": [],
     "name": "Golden Project",
     "prefix": "gold",
+    "warnings": [
+      "Could not fetch hub data - https://raw.githubusercontent.com/CyberismoCom/cyberismo/main/tools/assets/src/hub/: fetch failed",
+    ],
   },
   "commits": [
     "Bea <bea@example.com> | Cyberismo Bot <bot@cyberismo.com> | Initial commit",
