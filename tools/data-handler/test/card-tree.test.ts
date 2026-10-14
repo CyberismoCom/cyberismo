@@ -1141,7 +1141,7 @@ describe('Card tree', () => {
 
     it('should import base module and verify template cards in cache', async () => {
       const baseModule = 'https://github.com/CyberismoCom/module-base.git';
-      await ws.modulesCmd.install(baseModule);
+      await ws.modules.install(baseModule);
 
       const allTemplateCards = readAllTemplateCards(ws.checkout);
       const baseTemplateCards = allTemplateCards.filter((card: Card) =>
@@ -1160,7 +1160,7 @@ describe('Card tree', () => {
     it('should remove base module and verify template cards are gone from the cache', async () => {
       const baseModule = 'https://github.com/CyberismoCom/module-base.git';
 
-      await ws.modulesCmd.install(baseModule);
+      await ws.modules.install(baseModule);
 
       const allTemplateCards = readAllTemplateCards(ws.checkout);
       const baseTemplateCards = allTemplateCards.filter((card: Card) =>
@@ -1183,7 +1183,7 @@ describe('Card tree', () => {
       expect(moduleEntry).toBeDefined();
 
       // Remove module
-      await ws.removeCmd.remove('module', moduleEntry!.name);
+      await ws.modules.remove(moduleEntry!.name);
 
       // Verify module template cards are gone from the cache after removal
       const remainingTemplateCards = readAllTemplateCards(ws.checkout).filter(
