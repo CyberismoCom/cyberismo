@@ -11,9 +11,6 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { readFile } from 'node:fs/promises';
-import { resolve } from 'node:path';
-
 import { Argument, type Command } from 'commander';
 
 import { Cmd, type CommandOptions } from '@cyberismo/data-handler';
@@ -25,7 +22,6 @@ import {
   parseSourceAtVersion,
 } from '../lib/args.js';
 import { commandHandler, credentials, program } from '../lib/dispatch.js';
-import { projectRoot } from '../lib/open.js';
 import { deprecationNote, handleResponse } from '../lib/output.js';
 import { select } from '../lib/prompts.js';
 import { renderUpdatePlan } from '../update-plan-lines.js';
@@ -89,34 +85,6 @@ export async function moduleInstallAction(
       );
       process.exit(1);
     }
-  } else {
-    try {
-      const projectPath = projectRoot(options);
-      const moduleListPath = resolve(projectPath, '.temp/moduleList.json');
-      let moduleListContent = '{ "modules": [] }';
-      try {
-        moduleListContent = await readFile(moduleListPath, 'utf-8');
-      } catch {
-        // if file is missing, either project that was created before hub support, or
-        // creation of project done with 'skipModuleImport' flag.
-        // TODO: The item should be logged once we have log that is shareable between applications.
-      }
-      const moduleList = JSON.parse(moduleListContent);
-      const modules = moduleList.modules || [];
-      const foundModule = modules?.find(
-        (m: ModuleSettingFromHub) => m.name === parsedSource,
-      );
-
-      if (foundModule) {
-        resolvedSource = foundModule.location;
-        resolvedUseCredentials = useCredentials ?? foundModule.private ?? false;
-      }
-    } catch (error) {
-      if (error instanceof Error) {
-        // TODO: The item should be logged.
-        console.error(error.message);
-      }
-    }
   }
 
   const result = await commandHandler.command(
@@ -124,7 +92,10 @@ export async function moduleInstallAction(
     [
       'module',
       resolvedSource!,
-      String(resolvedUseCredentials),
+      // Unset lets a hub module's own private flag apply.
+      resolvedUseCredentials === undefined
+        ? ''
+        : String(resolvedUseCredentials),
       ...(version ? [version] : []),
     ],
     Object.assign({}, options, program.opts()),
