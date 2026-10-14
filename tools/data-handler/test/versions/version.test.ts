@@ -24,6 +24,7 @@ import type { BumpType } from '../../src/versions/version.js';
 import { expectRefused, projects } from '../cards/fixture.js';
 import { commitAll, gitLog, publishedVersion } from './fixture.js';
 import { remove, rename } from '../resources/fixture.js';
+import { checkoutOf } from '../../src/infra/internal.js';
 
 const open = projects();
 const autocommit = { autocommit: true };
@@ -80,7 +81,7 @@ describe('versions.bump', () => {
 
       expect(result).toEqual({ previousVersion: '1.2.3', newVersion: next });
       expect(publishedVersion(path)).toBe(next);
-      expect(ws.checkout.configuration.version).toBe(next);
+      expect(checkoutOf(ws).configuration.version).toBe(next);
       expect((await gitLog(path))[0]).toBe(`Version ${type} bump`);
     },
   );
@@ -137,7 +138,7 @@ describe('versions.bump', () => {
       const { ws, path } = await open(spec, autocommit);
 
       await refused(ws, path, 'huge' as BumpType, /Invalid bump type 'huge'/);
-      expect(ws.checkout.configuration.version).toBe('1.2.3');
+      expect(checkoutOf(ws).configuration.version).toBe('1.2.3');
     });
 
     it('a project with validation errors', async () => {
@@ -208,7 +209,7 @@ describe('versions.bump', () => {
         await changes[change](ws);
 
         await expectRefused(path, () => ws.versions.bump(type), message);
-        expect(ws.checkout.configuration.version).toBe('1.2.3');
+        expect(checkoutOf(ws).configuration.version).toBe('1.2.3');
       },
     );
 
