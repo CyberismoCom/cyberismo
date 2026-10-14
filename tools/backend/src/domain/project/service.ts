@@ -74,7 +74,7 @@ async function toModuleInfo(
 
 export async function getProject(ws: Workspace): Promise<ProjectInfo> {
   return ws.consistent(async () => {
-    const project = await ws.showCmd.showProject();
+    const project = await ws.settings.info();
     const modules = await ws.modules.inventory();
     const moduleDetails = await Promise.all(
       modules.map((row) => toModuleInfo(ws, row)),
