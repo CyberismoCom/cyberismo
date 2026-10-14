@@ -1,9 +1,10 @@
 import { nodeConfig } from '../../eslint.config.js';
 
-// Layers under src/: api/ (handles and façades) and domain/ sit above infra/
-// and shared/. infra/, shared/ and the root-level files may not import api/
-// or domain/. `*/**` (not `**`) leaves the folder under api/ or domain/
-// unmatched, so an allowlist negation can re-include a file in it.
+// Layers under src/: api/ (the handle and the directory) sits above domain/,
+// which sits above infra/ and shared/. infra/, shared/ and the root-level
+// files may not import api/ or domain/. `*/**` (not `**`) leaves the folder
+// under api/ or domain/ unmatched, so an allowlist negation can re-include a
+// file in it.
 const UPPER = ['**/api/*/**', '**/domain/*/**'];
 
 // The infra boundary, minus the allowlisted import paths in `allow`.
@@ -39,7 +40,7 @@ function sharedBoundary(allow = []) {
               'src/shared/ and root-level files may not import api/ or domain/ code.',
           },
           {
-            group: ['**/infra/**', ...allowed],
+            group: ['**/infra/*/**', '**/infra/*.js', ...allowed],
             allowTypeImports: true,
             message:
               'src/shared/ and root-level files may import infra types only.',
@@ -49,6 +50,58 @@ function sharedBoundary(allow = []) {
     ],
   };
 }
+
+// api/ imports a domain only through its door, domain/<x>/index.ts. `allow`
+// lists allowlisted import paths.
+function apiBoundary(allow = []) {
+  return {
+    'no-restricted-imports': [
+      'error',
+      {
+        patterns: [
+          {
+            group: [
+              '**/domain/*/**',
+              '!**/domain/*/index.js',
+              ...allow.map((path) => `!${path}`),
+            ],
+            message:
+              'src/api/ imports a domain only through domain/<x>/index.ts.',
+          },
+        ],
+      },
+    ],
+  };
+}
+
+// domain/ may not import api/, bar the allowlisted import paths in `allow`.
+function domainBoundary(allow = []) {
+  return {
+    'no-restricted-imports': [
+      'error',
+      {
+        patterns: [
+          {
+            group: ['**/api/*/**', ...allow.map((path) => `!${path}`)],
+            message: 'src/domain/ may not import api/ code.',
+          },
+        ],
+      },
+    ],
+  };
+}
+
+// A relative import() hides a dependency cycle from the layer rules; use a
+// static import.
+const NO_RELATIVE_DYNAMIC_IMPORT = {
+  'no-restricted-syntax': [
+    'error',
+    {
+      selector: 'ImportExpression[source.value=/^\\./]',
+      message: 'Use a static import; a relative import() hides a cycle.',
+    },
+  ],
+};
 
 export default [
   ...nodeConfig,
@@ -66,7 +119,7 @@ export default [
   // Allowlist: the remaining infra -> domain edges, each with its ticket.
   // Ticket (to file): inject the report runner into the engine.
   {
-    files: ['src/infra/calculation-engine.ts'],
+    files: ['src/infra/engine/calculation-engine.ts'],
     rules: infraBoundary(['**/domain/queries/report.js']),
   },
   // Ticket (to file): resources-as-data or a resource factory; the cache
@@ -74,17 +127,17 @@ export default [
   // Ticket (to file, V-series): Validate's process-wide caches, cleared by
   // the checkout's repopulate().
   {
-    files: ['src/infra/checkout.ts'],
+    files: ['src/infra/checkout/checkout.ts'],
     rules: infraBoundary([
       '**/domain/resources/template-resource.js',
-      '**/domain/commands/validate.js',
+      '**/domain/validation/validate.js',
     ]),
   },
   // Ticket (to file, V-series): the prefix and project-name checks live on
   // Validate; move them out with the validation redesign.
   {
-    files: ['src/infra/project-settings.ts'],
-    rules: infraBoundary(['**/domain/commands/validate.js']),
+    files: ['src/infra/checkout/project-settings.ts'],
+    rules: infraBoundary(['**/domain/validation/validate.js']),
   },
   {
     files: ['src/infra/resource-cache.ts'],
@@ -96,22 +149,22 @@ export default [
     ignores: ['src/index.ts'],
     rules: sharedBoundary(),
   },
-  // Allowlist: the remaining shared -> domain/infra edges, each with its
-  // ticket.
-  // Ticket (to file): xref resolution reads cards; move it next to the
-  // xref macro or pass the card lookup in.
+  { files: ['src/api/**/*.ts'], rules: apiBoundary() },
+  { files: ['src/domain/**/*.ts'], rules: domainBoundary() },
+  // Ticket (to file, V-series): Validate takes the Workspace handle; the
+  // validation redesign inverts it.
   {
-    files: ['src/shared/utils/asciidoc-xref.ts'],
-    rules: sharedBoundary(['**/domain/cards/read.js']),
+    files: ['src/domain/validation/validate.ts'],
+    rules: domainBoundary(['**/api/workspace/workspace.js']),
   },
-  // Ticket (to file): prefix rename rewrites cards and resources; it is a
-  // domain operation, not a utility (move it out of utils/).
+  { files: ['src/**/*.ts'], rules: NO_RELATIVE_DYNAMIC_IMPORT },
+  // Ticket (to file, V-series): these two break a cycle with Validate and
+  // the macros; they go with the validation and macro rework.
   {
-    files: ['src/shared/utils/prefix-rename.ts'],
-    rules: sharedBoundary([
-      '**/domain/cards/attachments.js',
-      '**/domain/cards/update.js',
-      '**/infra/resources-from.js',
-    ]),
+    files: [
+      'src/domain/resources/resource-object.ts',
+      'src/domain/export/export.ts',
+    ],
+    rules: { 'no-restricted-syntax': 'off' },
   },
 ];
