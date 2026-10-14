@@ -21,7 +21,7 @@ import type {
   ProjectErrors,
   ProjectSummary,
 } from '@cyberismo/model';
-import { Create } from '../commands/create.js';
+import { cloneProject } from './clone-project.js';
 import { Checkout } from '../infra/checkout.js';
 import {
   ProjectExistsError,
@@ -32,7 +32,7 @@ import { SYSTEM_ACTOR, type CommitIdentity } from '../utils/tx-record.js';
 import { Workspace, type WorkspaceOptions } from '../workspace/workspace.js';
 import { createAndOpen } from './create-project.js';
 import type { ProjectDirectory } from './project-directory.js';
-import { Rename } from '../commands/rename.js';
+import { renameProject } from './rename-project.js';
 
 /**
  * The actor's handle over the project at `path`, on a checkout of its own
@@ -196,7 +196,7 @@ class LocalFolder implements ProjectDirectory {
   }
 
   async clone(url: string): Promise<CloneProjectResult> {
-    const clonedPath = await Create.cloneProject(url, this.root);
+    const clonedPath = await cloneProject(url, this.root);
     const scanned = await scanForProjects(clonedPath);
 
     const registered: { prefix: string; name: string }[] = [];
@@ -232,7 +232,7 @@ class LocalFolder implements ProjectDirectory {
       if (newPrefix !== prefix && this.holds(newPrefix)) {
         throw new ProjectExistsError(newPrefix);
       }
-      await new Rename(ws).rename(newPrefix, force);
+      await renameProject(ws, newPrefix, { force });
     });
   }
 

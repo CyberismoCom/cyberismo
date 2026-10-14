@@ -21,7 +21,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { DEFAULT_HUB } from '@cyberismo/assets';
 
-import { Rename } from '../../src/commands/rename.js';
+import { PrefixRename } from '../../src/directory/rename-project.js';
 import { localFolder } from '../../src/directory/local-folder.js';
 import {
   ProjectExistsError,
@@ -254,10 +254,10 @@ describe('directory.rename', () => {
     let release!: () => void;
     const atRename = new Promise<void>((resolve) => (reached = resolve));
     const released = new Promise<void>((resolve) => (release = resolve));
-    const original = Rename.prototype.rename;
+    const original = PrefixRename.prototype.rename;
     const spy = vi
-      .spyOn(Rename.prototype, 'rename')
-      .mockImplementationOnce(async function (this: Rename, to, force) {
+      .spyOn(PrefixRename.prototype, 'rename')
+      .mockImplementationOnce(async function (this: PrefixRename, to, force) {
         reached();
         await released;
         return original.call(this, to, force);

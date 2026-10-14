@@ -11,9 +11,9 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { type Command } from 'commander';
+import { readFile } from 'node:fs/promises';
 
-import { Import } from '@cyberismo/data-handler';
+import { type Command } from 'commander';
 
 import { CommandGroup } from '../lib/args.js';
 import { onProject } from '../lib/errors.js';
@@ -46,7 +46,13 @@ export function registerImport(program: Command) {
       ) => {
         const cards = await onProject(
           Object.assign({}, options, program.opts()),
-          (ws) => new Import(ws).importCsv(csvFile, cardKey),
+          // The file is read inside the write that commits under its name.
+          (ws) =>
+            ws.atomic(
+              async () =>
+                ws.cards.importCsv(await readFile(csvFile, 'utf-8'), cardKey),
+              `Import cards from CSV ${csvFile}`,
+            ),
         );
         console.log('Imported cards:');
         printJson(cards);
