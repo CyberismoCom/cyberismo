@@ -17,15 +17,13 @@ import { join } from 'node:path';
 
 import { type Command } from 'commander';
 
-import {
-  CardNotFoundError,
-  type CommandOptions,
-} from '@cyberismo/data-handler';
+import { CardNotFoundError } from '@cyberismo/data-handler';
 import { UserPreferences } from '@cyberismo/data-handler/utils/user-preferences';
 
 import { CommandWithPath } from '../lib/args.js';
 import { onProject } from '../lib/errors.js';
 import { printResult } from '../lib/output.js';
+import type { EditCommandOptions } from '../options.js';
 
 // Opens the card's content and metadata files in the editor of cards.prefs.json.
 export async function editCard(cardPath: string) {
@@ -70,7 +68,7 @@ export function registerEdit(program: Command) {
     .description('Edit a card')
     .argument('<cardKey>', 'Card key of card');
   program.addCommand(editCmd);
-  editCmd.action(async (cardKey: string, options: CommandOptions<'edit'>) => {
+  editCmd.action(async (cardKey: string, options: EditCommandOptions) => {
     await onProject(Object.assign({}, options, program.opts()), async (ws) => {
       // details refuses an empty key with its own message; edit never did.
       if (!cardKey) throw new CardNotFoundError(cardKey);

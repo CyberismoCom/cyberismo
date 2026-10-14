@@ -13,11 +13,12 @@
 
 import { type Command } from 'commander';
 
-import { type CommandOptions } from '@cyberismo/data-handler';
+import { Rename } from '@cyberismo/data-handler';
 
 import { CommandWithPath } from '../lib/args.js';
 import { onProject } from '../lib/errors.js';
 import { printResultWithNote } from '../lib/output.js';
+import type { RenameCommandOptions } from '../options.js';
 
 export function registerRename(program: Command) {
   // Rename command
@@ -31,12 +32,15 @@ export function registerRename(program: Command) {
       'Rename even though a version has been published; the next version is then a new module',
     );
   program.addCommand(renameCmd);
-  renameCmd.action(async (to: string, options: CommandOptions<'rename'>) => {
+  renameCmd.action(async (to: string, options: RenameCommandOptions) => {
     const note = await onProject(
       Object.assign({}, options, program.opts()),
       async (ws) => {
         const published = (await ws.settings.info()).version;
-        await ws.renameCmd.rename(to, options.force);
+        await new Rename(ws.checkout, ws.actor, ws.identity).rename(
+          to,
+          options.force,
+        );
         return published
           ? `Version ${published} was published under the old prefix. The ` +
               `next version you publish is a new module: consumers must ` +

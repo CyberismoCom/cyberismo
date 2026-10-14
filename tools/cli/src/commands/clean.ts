@@ -12,13 +12,12 @@
 */
 
 import { type Command } from 'commander';
-
-import { type CommandOptions } from '@cyberismo/data-handler';
 import type { CleanResult } from '@cyberismo/model';
 
 import { CommandWithPath } from '../lib/args.js';
 import { onProject } from '../lib/errors.js';
 import { printResult } from '../lib/output.js';
+import type { CleanCommandOptions } from '../options.js';
 
 // What 'clean' removed, or would remove in a dry run.
 function cleanSummary(result: CleanResult, dryRun: boolean): string {
@@ -55,7 +54,7 @@ export function registerClean(program: Command) {
     )
     .option('--dry-run', 'Show what would be cleaned without cleaning');
   program.addCommand(cleanCmd);
-  cleanCmd.action(async (options: CommandOptions<'clean'>) => {
+  cleanCmd.action(async (options: CleanCommandOptions) => {
     const dryRun = !!options.dryRun;
     const result = await onProject(
       Object.assign({}, options, program.opts()),
