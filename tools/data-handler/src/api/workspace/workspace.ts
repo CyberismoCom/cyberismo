@@ -10,16 +10,16 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Clean } from '../../domain/clean/clean.js';
-import { Export } from '../../domain/export/export.js';
-import { Modules } from '../../domain/modules/modules.js';
-import { Versions } from '../../domain/versions/version.js';
-import { Cards } from '../../domain/cards/cards.js';
-import { Render } from '../../domain/macros/render.js';
-import { Queries } from '../../domain/queries/queries.js';
-import { Changes } from '../../domain/resources/changes.js';
-import { Resources } from '../../domain/resources/resources.js';
-import { Settings } from '../../domain/settings/settings.js';
+import { Clean } from '../../domain/clean/index.js';
+import { Export } from '../../domain/export/index.js';
+import { Modules } from '../../domain/modules/index.js';
+import { Versions } from '../../domain/versions/index.js';
+import { Cards } from '../../domain/cards/index.js';
+import { Render } from '../../domain/macros/index.js';
+import { Queries } from '../../domain/queries/index.js';
+import { Changes } from '../../domain/resources/index.js';
+import { Resources } from '../../domain/resources/index.js';
+import { Settings } from '../../domain/settings/index.js';
 import type { Checkout, OpenOptions } from '../../infra/checkout/checkout.js';
 import type { ActorRef } from '@cyberismo/model';
 import { runWithCommitContext } from '../../infra/tx/commit-context.js';
