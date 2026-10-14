@@ -61,7 +61,7 @@ export const attachProjectDirectory = (
     }
     const user = getCurrentUser(c);
     if (!user) {
-      throw new Error('CommandManager expects a user');
+      throw new Error('A project handle expects a user');
     }
     const identity = { name: user.name, email: user.email };
     const ws = await directory.open(prefix, actorOf(user), identity);
