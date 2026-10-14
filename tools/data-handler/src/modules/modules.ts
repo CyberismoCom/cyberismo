@@ -18,10 +18,16 @@ import {
   redactUserinfo,
   unreachable,
 } from '../exceptions/index.js';
-import { pathExists } from '../utils/file-utils.js';
+import { isValidFolderName, pathExists } from '../utils/file-utils.js';
+import { readJsonFile } from '../utils/json.js';
 import { getChildLogger } from '../utils/log-utils.js';
 import { read, write } from '../utils/rw-lock.js';
-import { Validate } from './validate.js';
+import { Validate } from '../commands/validate.js';
+import {
+  Fetch,
+  MODULE_LIST_FULL_PATH,
+  type ModuleListFile,
+} from '../commands/fetch.js';
 
 import {
   applyModules,
@@ -46,9 +52,9 @@ import {
   pickVersion,
   toDeclaredRange,
   toVersionRange,
-} from '../modules/index.js';
+} from './index.js';
 import { readModuleConfig } from '../containers/project/cards-config.js';
-import { cleanOrphans } from '../modules/orphans.js';
+import { cleanOrphans } from './orphans.js';
 import {
   executeModuleReplays,
   filterStepsToApplied,
@@ -58,22 +64,24 @@ import {
 } from '../mutations/replay/replay.js';
 
 import type {
+  ActorRef,
   Credentials,
+  HubDetails,
+  HubFetchFailure,
+  HubSetting,
   ModuleContent,
   ModuleInfo,
   ModuleSetting,
+  ModuleSettingFromHub,
   ModuleSettingOptions,
   ProjectModuleInfo,
+  Source,
   UpdatePlan,
   UpdateTarget,
 } from '@cyberismo/model';
-import type { Source } from '../modules/types.js';
-import type { Fetch } from './fetch.js';
 import type { Checkout } from '../containers/project.js';
-import type {
-  ResolveConflict,
-  ResolvedModule,
-} from '../modules/resolve/types.js';
+import type { CommitIdentity } from '../utils/tx-record.js';
+import type { ResolveConflict, ResolvedModule } from './resolve/types.js';
 
 /**
  * Coerce a caller-supplied source into the canonical form used by the
@@ -113,22 +121,23 @@ function resolutionConflictError(conflicts: ResolveConflict[]): Error {
 }
 
 /**
- * Handles the module lifecycle of a project: install, update, remove and read.
+ * The modules and hubs of one handle: install, update, remove and read.
+ * Writes through it are the handle's actor's. Holds no state of its own.
  */
 export class Modules {
   private get logger() {
     return getChildLogger({ module: 'modules' });
   }
 
-  /**
-   * Creates an instance of Modules.
-   * @param checkout Project to use.
-   * @param fetchCmd Instance of Fetch to use.
-   */
+  private readonly fetchCmd: Fetch;
+
   constructor(
-    private checkout: Checkout,
-    private fetchCmd: Fetch,
-  ) {}
+    private readonly checkout: Checkout,
+    public readonly actor: ActorRef,
+    public readonly identity: CommitIdentity | undefined,
+  ) {
+    this.fetchCmd = new Fetch(checkout);
+  }
 
   /** Temp directory shared between the resolver and the applier. */
   private get tempModulesDir(): string {
@@ -227,7 +236,7 @@ export class Modules {
     // missing paths before we hand off to the resolver.
     if (isFileLocation(location)) {
       const folder = location.substring(FILE_PROTOCOL.length);
-      if (!Validate.validateFolder(folder)) {
+      if (!isValidFolderName(folder)) {
         throw new Error(
           `Input validation error: folder name is invalid '${folder}'`,
         );
@@ -383,6 +392,9 @@ export class Modules {
    */
   @write((moduleName) => `Remove module ${moduleName}`)
   public async remove(moduleName: string) {
+    // Ensure module list is up to date when removing modules
+    await this.fetchCmd.ensureModuleListUpToDate();
+
     const declaration = declaredModules(this.checkout).find(
       (d) => d.name === moduleName,
     );
@@ -480,6 +492,120 @@ export class Modules {
       throw new Error(`Module '${moduleName}' does not exist in the project`);
     }
     return moduleDetails;
+  }
+
+  /**
+   * Shows importable modules.
+   * @param showAll - When true, shows all importable modules, even if they have already been imported
+   * @param showDetails - When true, shows all properties of modules, not just name.
+   * @returns list of modules; the list content depends on the parameters provided
+   *          by default it is a list of module names that could be imported into the project,
+   *          with 'showDetails' true, instead of name, the list consists of full details of the modules
+   *          with 'showAll' true, the list consists of all modules in the hubs, even if they have already been imported
+   *          Note that the two boolean options can be combined.
+   * @note Reads the cached hub data as-is; refreshing it is the caller's call.
+   */
+  @read
+  public async importable(
+    showAll?: boolean,
+    showDetails?: boolean,
+  ): Promise<ModuleSettingFromHub[]> {
+    try {
+      const moduleList = (
+        await readJsonFile(
+          pathResolve(this.checkout.basePath, MODULE_LIST_FULL_PATH),
+        )
+      ).modules;
+      const currentModules = this.checkout.resources.moduleNames();
+      const nonImportedModules = moduleList.filter(
+        (item: ModuleSettingFromHub) => {
+          return !currentModules.some((module) => item.name === module);
+        },
+      );
+
+      if (showAll && showDetails) {
+        return moduleList;
+      }
+      if (showAll) {
+        return moduleList?.map((item: ModuleSettingFromHub) => item?.name);
+      }
+      if (showDetails) {
+        return nonImportedModules;
+      }
+      // By default return the non-imported modules
+      return nonImportedModules.map((item: ModuleSettingFromHub) => item?.name);
+    } catch (error) {
+      if (error instanceof Error) {
+        this.logger.error(error.message);
+      }
+      // Module list doesn't exist, return empty list
+      return [];
+    }
+  }
+
+  /**
+   * Shows hubs of the project.
+   * @returns list of hubs.
+   */
+  @read
+  public async hubs(): Promise<HubSetting[]> {
+    return this.checkout.configuration.hubs;
+  }
+
+  /**
+   * Shows hubs of the project with the modules available from each hub.
+   * @returns list of hubs with their available modules.
+   * @note Reads the cached hub data as-is; refreshing it is the caller's call.
+   */
+  @read
+  public async hubDetails(): Promise<HubDetails[]> {
+    let cachedHubs: ModuleListFile['hubs'] = [];
+    try {
+      const moduleList = (await readJsonFile(
+        pathResolve(this.checkout.basePath, MODULE_LIST_FULL_PATH),
+      )) as ModuleListFile;
+      cachedHubs = moduleList.hubs ?? [];
+    } catch (error) {
+      this.logger.info(
+        error,
+        'No readable module list; showing hubs without modules',
+      );
+    }
+
+    return this.checkout.configuration.hubs.map((hub) => {
+      const cached = cachedHubs.find((item) => item.location === hub.location);
+      return {
+        location: hub.location,
+        displayName: hub.displayName ?? cached?.displayName,
+        description: hub.description ?? cached?.description,
+        modules: (cached?.modules ?? []) as ModuleSettingFromHub[],
+      };
+    });
+  }
+
+  /**
+   * Fetches the hubs' module lists into the cache; only hubs with a newer
+   * version unless 'force' is set.
+   * @returns the hubs that could not be read, in configuration order.
+   */
+  @write(() => 'Fetch hubs')
+  public async fetchHubs(force: boolean = false): Promise<HubFetchFailure[]> {
+    return this.fetchCmd.fetchHubs(force);
+  }
+
+  /**
+   * Ensures the module list is up to date by fetching if needed.
+   * @returns the hubs that could not be read.
+   */
+  @write()
+  public async ensureModuleListUpToDate(): Promise<HubFetchFailure[]> {
+    return this.fetchCmd.ensureModuleListUpToDate();
+  }
+
+  /** Fetches hub data only when no local cache exists yet. */
+  @write()
+  public async ensureModuleListExists(): Promise<void> {
+    return this.fetchCmd.ensureModuleListExists();
   }
 }
 

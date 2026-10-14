@@ -49,11 +49,11 @@ const resourceTypes: ResourceFolderType[] = [
 
 async function getModules(ws: Workspace) {
   try {
-    const modules = await ws.modulesCmd.list();
+    const modules = await ws.modules.list();
     return Promise.all(
       modules.map(async (mod) => {
         try {
-          const module = await ws.modulesCmd.show(mod.name);
+          const module = await ws.modules.show(mod.name);
           return { name: module.name, cardKeyPrefix: module.cardKeyPrefix };
         } catch {
           return { name: mod.name, cardKeyPrefix: mod.name };

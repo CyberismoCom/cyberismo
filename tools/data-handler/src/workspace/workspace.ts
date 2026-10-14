@@ -13,9 +13,8 @@
 import { Clean } from '../clean/clean.js';
 import { Create } from '../commands/create.js';
 import { Export } from '../export/export.js';
-import type { Fetch } from '../commands/fetch.js';
 import type { Import } from '../commands/import.js';
-import type { Modules } from '../commands/modules.js';
+import { Modules } from '../modules/modules.js';
 import type { Remove } from '../commands/remove.js';
 import { Versions } from '../versions/version.js';
 import type { Rename } from '../commands/rename.js';
@@ -120,6 +119,7 @@ export class Workspace {
   private cleanFacade?: Clean;
   private versionsFacade?: Versions;
   private renderFacade?: Render;
+  private modulesFacade?: Modules;
 
   private constructor(
     public readonly checkout: Checkout,
@@ -220,19 +220,23 @@ export class Workspace {
     return this.renderFacade;
   }
 
+  /** Modules and hubs, as this handle's actor. */
+  get modules(): Modules {
+    this.modulesFacade ??= new Modules(
+      this.checkout,
+      this.actor,
+      this.identity,
+    );
+    return this.modulesFacade;
+  }
+
   /** Path of the project. */
   get path(): string {
     return this.checkout.basePath;
   }
 
-  get fetchCmd(): Fetch {
-    return this.legacy('fetchCmd');
-  }
   get importCmd(): Import {
     return this.legacy('importCmd');
-  }
-  get modulesCmd(): Modules {
-    return this.legacy('modulesCmd');
   }
   get removeCmd(): Remove {
     return this.legacy('removeCmd');
@@ -317,7 +321,7 @@ export class Workspace {
     // Add default hub and fetch module data
     try {
       await ws.settings.hubs.add(DEFAULT_HUB);
-      await ws.fetchCmd.fetchHubs();
+      await ws.modules.fetchHubs();
     } catch {
       // Hub setup is non-critical; project is still usable
     }

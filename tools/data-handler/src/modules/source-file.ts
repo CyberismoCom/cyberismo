@@ -15,9 +15,13 @@
 import { mkdir } from 'node:fs/promises';
 import { join, resolve as pathResolve } from 'node:path';
 
-import { Validate } from '../commands/validate.js';
 import { ProjectPaths } from '../containers/project/project-paths.js';
-import { copyDir, deleteDir, pathExists } from '../utils/file-utils.js';
+import {
+  copyDir,
+  deleteDir,
+  isValidFolderName,
+  pathExists,
+} from '../utils/file-utils.js';
 import {
   listSealFiles,
   type SealFile,
@@ -26,8 +30,7 @@ import { readModuleConfig } from '../containers/project/cards-config.js';
 
 import { isFileLocation, stripFileProtocol } from './location.js';
 import type { FetchTarget, SourceLayer } from './source.js';
-import type { Source } from './types.js';
-import type { ProjectSettings } from '@cyberismo/model';
+import type { ProjectSettings, Source } from '@cyberismo/model';
 
 /**
  * Source layer for `file:` URLs and bare filesystem paths.
@@ -56,7 +59,7 @@ export class FileSourceLayer implements SourceLayer {
       // Preserve the validation messages previously emitted by
       // `applier.validateFileSources`.
       const folder = stripFileProtocol(target.location);
-      if (!Validate.validateFolder(folder)) {
+      if (!isValidFolderName(folder)) {
         throw new Error(
           `Input validation error: folder name is invalid '${folder}'`,
         );
