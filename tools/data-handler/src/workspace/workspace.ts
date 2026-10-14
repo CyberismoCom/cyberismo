@@ -18,7 +18,6 @@ import { Modules } from '../modules/modules.js';
 import type { Remove } from '../commands/remove.js';
 import { Versions } from '../versions/version.js';
 import type { Rename } from '../commands/rename.js';
-import type { Show } from '../commands/show.js';
 import type { Validate } from '../commands/validate.js';
 import { Cards } from '../cards/cards.js';
 import { Render } from '../macros/render.js';
@@ -243,9 +242,6 @@ export class Workspace {
   }
   get renameCmd(): Rename {
     return this.legacy('renameCmd');
-  }
-  get showCmd(): Show {
-    return this.legacy('showCmd');
   }
   get validateCmd(): Validate {
     return this.legacy('validateCmd');
