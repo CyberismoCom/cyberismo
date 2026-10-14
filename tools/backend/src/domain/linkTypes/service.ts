@@ -14,7 +14,7 @@
 import type { Workspace } from '@cyberismo/data-handler';
 
 export async function getLinkTypes(ws: Workspace) {
-  const response = await ws.showCmd.showResources('linkTypes');
+  const response = await ws.resources.list('linkTypes');
   if (!response) {
     throw new Error('No link types found');
   }

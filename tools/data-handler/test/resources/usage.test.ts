@@ -13,19 +13,15 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { edit, newParams, projects, spec } from './fixture.js';
+import { ResourceNotFoundError } from '../../src/exceptions/index.js';
+import { edit, newParams, projects, snapshot, spec } from './fixture.js';
 
 const open = projects();
 
 type Opened = Awaited<ReturnType<typeof open>>;
 type Keys = { cards: string[]; template: string };
 
-const usedIn = async (ws: Opened['ws'], name: string) =>
-  (
-    (await ws.showCmd.showResource(name, true)) as unknown as {
-      usedIn: string[];
-    }
-  ).usedIn;
+const usedIn = (ws: Opened['ws'], name: string) => ws.resources.usage(name);
 
 describe('where a resource is used', () => {
   // A card and a calculation that name the resource, whatever its type.
@@ -91,5 +87,15 @@ describe('where a resource is used', () => {
         template: templateKeys['test/templates/tpl'][0],
       }).sort(),
     );
+  });
+
+  it('refuses a resource that is not there', async () => {
+    const { ws, path } = await open(spec);
+    const before = snapshot(path);
+
+    await expect(
+      ws.resources.usage('test/workflows/missing'),
+    ).rejects.toBeInstanceOf(ResourceNotFoundError);
+    expect(snapshot(path)).toEqual(before);
   });
 });

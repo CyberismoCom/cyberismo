@@ -392,8 +392,8 @@ describe('fetch command', () => {
       });
       await fetchCmd.fetchHubs(true);
 
-      const showCmd = Workspace.over(checkout, SYSTEM_ACTOR).modules;
-      const hubs = await showCmd.hubDetails();
+      const modules = Workspace.over(checkout, SYSTEM_ACTOR).modules;
+      const hubs = await modules.hubDetails();
 
       expect(hubs).toHaveLength(1);
       expect(hubs[0].location).toBe('https://test.com/hub-details');
@@ -417,8 +417,8 @@ describe('fetch command', () => {
       });
       fetchStub.mockRejectedValue(new Error('network down'));
 
-      const showCmd = Workspace.over(checkout, SYSTEM_ACTOR).modules;
-      const hubs = await showCmd.hubDetails();
+      const modules = Workspace.over(checkout, SYSTEM_ACTOR).modules;
+      const hubs = await modules.hubDetails();
 
       expect(hubs).toHaveLength(1);
       expect(hubs[0].location).toBe('https://unreachable.test.com/hub');

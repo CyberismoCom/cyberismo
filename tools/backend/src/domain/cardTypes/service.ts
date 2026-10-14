@@ -19,7 +19,7 @@ import {
 import type { VisibilityGroup, FieldVisibilityBody } from './schema.js';
 
 export async function getCardTypes(ws: Workspace) {
-  const cardTypesWithDetails = await ws.showCmd.showCardTypesWithDetails();
+  const cardTypesWithDetails = await ws.resources.contents('cardTypes');
   return cardTypesWithDetails;
 }
 
@@ -62,7 +62,7 @@ export async function updateFieldVisibility(
 
   await ws.atomic(async () => {
     // Read is now inside the write lock
-    const cardType = await ws.showCmd.showResource(cardTypeName, 'cardTypes');
+    const cardType = await ws.resources.show(cardTypeName, 'cardTypes');
     if (!cardType) {
       throw new Error(`Card type '${cardTypeName}' not found`);
     }
