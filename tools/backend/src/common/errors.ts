@@ -12,7 +12,11 @@
 */
 
 import { DomainError } from '@cyberismo/data-handler';
-import { ERROR_HTTP_STATUS, type ErrorBody } from '@cyberismo/model';
+import {
+  ERROR_HTTP_STATUS,
+  type ErrorBody,
+  type ErrorCode,
+} from '@cyberismo/model';
 import type { ContentfulStatusCode } from 'hono/utils/http-status';
 
 /**
@@ -39,4 +43,13 @@ export function errorResponse(error: Error): {
     status: 500,
     body: { error: message, code: 'internal', message },
   };
+}
+
+/** The body of an error the edge decides itself. */
+export function errorBody(
+  code: ErrorCode,
+  message: string,
+  details?: Record<string, unknown>,
+): ErrorBody {
+  return { error: message, code, message, ...(details && { details }) };
 }

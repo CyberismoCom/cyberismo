@@ -43,6 +43,8 @@ export interface ProjectDirectory {
 
   /**
    * Creates a project in the directory, with the default hub, as the actor.
+   * @throws ProjectExistsError if the directory has a project `params.prefix`,
+   *   or a renamed project has its folder.
    */
   create(
     params: CreateProjectParams,
@@ -55,6 +57,21 @@ export interface ProjectDirectory {
    * in it whose prefixes the directory does not have yet.
    */
   clone(url: string): Promise<CloneProjectResult>;
+
+  /**
+   * Changes the prefix of the project with `prefix` to `newPrefix`, as the
+   * actor; the directory has it under `newPrefix` from then on.
+   * @param options.force Rename even though a version has been published.
+   * @throws ProjectNotFoundError if the directory has no such project.
+   * @throws ProjectExistsError if the directory has a project `newPrefix`.
+   */
+  rename(
+    prefix: string,
+    newPrefix: string,
+    actor: ActorRef,
+    identity?: CommitIdentity,
+    options?: { force?: boolean },
+  ): Promise<void>;
 
   /**
    * Reopens the project with `prefix` from its files; handles over the old
