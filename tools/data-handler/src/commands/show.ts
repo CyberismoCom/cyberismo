@@ -11,16 +11,8 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-// node
-import { resolve } from 'node:path';
-
-import { type ModuleListFile, MODULE_LIST_FULL_PATH } from './fetch.js';
-
 import type {
   Context,
-  HubDetails,
-  HubSetting,
-  ModuleSettingFromHub,
   ProjectMetadata,
   ResourceType,
   AnyResourceContent,
@@ -35,8 +27,6 @@ import type { ResourceMap } from '../containers/project/resource-cache.js';
 
 import { read } from '../utils/rw-lock.js';
 import { projectInfo } from '../workspace/settings.js';
-import { readJsonFile } from '../utils/json.js';
-import { getChildLogger } from '../utils/log-utils.js';
 import { findCard } from '../cards/read.js';
 import { renderSkillTemplates } from '../queries/skills.js';
 import type { ResourcesFrom } from '../containers/project/resources-from.js';
@@ -63,12 +53,6 @@ export class Show {
 
   constructor(private checkout: Checkout) {}
 
-  private get logger() {
-    return getChildLogger({
-      module: 'show',
-    });
-  }
-
   // Fetch resource names as a list
   private resourceNames<T extends keyof ResourceMap>(
     resourceType: T,
@@ -92,95 +76,6 @@ export class Show {
       }
     }
     return structuredClone(container);
-  }
-
-  /**
-   * Shows importable modules.
-   * @param showAll - When true, shows all importable modules, even if they have already been imported
-   * @param showDetails - When true, shows all properties of modules, not just name.
-   * @returns list of modules; the list content depends on the parameters provided
-   *          by default it is a list of module names that could be imported into the project,
-   *          with 'showDetails' true, instead of name, the list consists of full details of the modules
-   *          with 'showAll' true, the list consists of all modules in the hubs, even if they have already been imported
-   *          Note that the two boolean options can be combined.
-   * @note Reads the cached hub data as-is; refreshing it is the caller's call.
-   */
-  @read
-  public async showImportableModules(
-    showAll?: boolean,
-    showDetails?: boolean,
-  ): Promise<ModuleSettingFromHub[]> {
-    try {
-      const moduleList = (
-        await readJsonFile(
-          resolve(this.checkout.basePath, MODULE_LIST_FULL_PATH),
-        )
-      ).modules;
-      const currentModules = this.checkout.resources.moduleNames();
-      const nonImportedModules = moduleList.filter(
-        (item: ModuleSettingFromHub) => {
-          return !currentModules.some((module) => item.name === module);
-        },
-      );
-
-      if (showAll && showDetails) {
-        return moduleList;
-      }
-      if (showAll) {
-        return moduleList?.map((item: ModuleSettingFromHub) => item?.name);
-      }
-      if (showDetails) {
-        return nonImportedModules;
-      }
-      // By default return the non-imported modules
-      return nonImportedModules.map((item: ModuleSettingFromHub) => item?.name);
-    } catch (error) {
-      if (error instanceof Error) {
-        this.logger.error(error.message);
-      }
-      // Module list doesn't exist, return empty list
-      return [];
-    }
-  }
-
-  /**
-   * Shows hubs of the project.
-   * @returns list of hubs.
-   */
-  @read
-  public async showHubs(): Promise<HubSetting[]> {
-    return this.checkout.configuration.hubs;
-  }
-
-  /**
-   * Shows hubs of the project with the modules available from each hub.
-   * @returns list of hubs with their available modules.
-   * @note Reads the cached hub data as-is; refreshing it is the caller's call.
-   */
-  @read
-  public async showHubDetails(): Promise<HubDetails[]> {
-    let cachedHubs: ModuleListFile['hubs'] = [];
-    try {
-      const moduleList = (await readJsonFile(
-        resolve(this.checkout.basePath, MODULE_LIST_FULL_PATH),
-      )) as ModuleListFile;
-      cachedHubs = moduleList.hubs ?? [];
-    } catch (error) {
-      this.logger.info(
-        error,
-        'No readable module list; showing hubs without modules',
-      );
-    }
-
-    return this.checkout.configuration.hubs.map((hub) => {
-      const cached = cachedHubs.find((item) => item.location === hub.location);
-      return {
-        location: hub.location,
-        displayName: hub.displayName ?? cached?.displayName,
-        description: hub.description ?? cached?.description,
-        modules: (cached?.modules ?? []) as ModuleSettingFromHub[],
-      };
-    });
   }
 
   /**

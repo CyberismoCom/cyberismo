@@ -26,7 +26,6 @@ export type {
   InstallationRef,
   ModuleDeclaration,
   ModuleInstallation,
-  Source,
   Version,
   VersionRange,
 } from './types.js';

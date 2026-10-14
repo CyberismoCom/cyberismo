@@ -239,6 +239,12 @@ export interface HubDetails extends HubSetting {
   modules: ModuleSettingFromHub[];
 }
 
+// A hub that could not be read during a fetch.
+export interface HubFetchFailure {
+  location: string;
+  message: string;
+}
+
 // Module configuration.
 export interface ModuleSetting extends ModuleSettingOptions {
   name: string;
