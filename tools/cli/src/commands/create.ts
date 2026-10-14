@@ -15,7 +15,6 @@ import { readFile } from 'node:fs/promises';
 
 import { Argument, type Command } from 'commander';
 
-import { DEFAULT_HUB } from '@cyberismo/assets';
 import {
   Cmd,
   type CommandOptions,
@@ -25,13 +24,19 @@ import {
 import { errorFunction } from '@cyberismo/data-handler/utils/error-utils';
 import type { DataType } from '@cyberismo/model';
 
-import { CommandGroup, commandType, nameGuideline } from '../lib/args.js';
+import {
+  CommandGroup,
+  commandType,
+  hubLocation,
+  nameGuideline,
+} from '../lib/args.js';
 import { commandHandler, program } from '../lib/dispatch.js';
-import { onProject } from '../lib/errors.js';
+import { errorMessage, onProject } from '../lib/errors.js';
 import { openWorkspace } from '../lib/open.js';
 import { handleResponse, printResult } from '../lib/output.js';
 import { checkbox } from '../lib/prompts.js';
-import { importableModules } from './module.js';
+import { fetchHubs } from './fetch.js';
+import { importableModules, installModule } from './module.js';
 
 // Each resource type's create, from the arguments after the type.
 const resourceCreates: Record<
@@ -317,7 +322,7 @@ export function registerCreate(program: Command) {
           try {
             // add default hub
             const addHubError = await openWorkspace(commandOptions)
-              .then((ws) => ws.settings.hubs.add(DEFAULT_HUB))
+              .then((ws) => ws.settings.hubs.add(hubLocation('default')))
               .then(
                 () => undefined,
                 (error: unknown) => errorFunction(error),
@@ -329,17 +334,15 @@ export function registerCreate(program: Command) {
             }
 
             // fetch modules from default hub
-            const fetchResult = await commandHandler.command(
-              Cmd.fetch,
-              ['hubs'],
-              commandOptions,
-            );
+            const fetchError = await openWorkspace(commandOptions)
+              .then(fetchHubs)
+              .catch(errorMessage);
             // The project already exists at this point and hubs that could be
             // read were still refreshed, so an unreachable hub only narrows the
             // module selection below; it must not fail the creation.
-            if (fetchResult.statusCode !== 200) {
+            if (fetchError !== undefined) {
               console.warn(
-                `Could not fetch hub data - ${fetchResult.message || 'Unknown error'}`,
+                `Could not fetch hub data - ${fetchError || 'Unknown error'}`,
               );
             }
 
@@ -354,15 +357,16 @@ export function registerCreate(program: Command) {
             // finally, import the selected modules
             const failedModules: string[] = [];
             for (const module of selectedModules) {
-              const importResult = await commandHandler.command(
-                Cmd.import,
-                ['module', module.location, module.private ? 'true' : 'false'],
-                commandOptions,
-              );
-              if (importResult.statusCode !== 200) {
+              try {
+                await openWorkspace(commandOptions).then((ws) =>
+                  installModule(ws, module.location, {
+                    private: !!module.private,
+                  }),
+                );
+              } catch (error) {
                 console.warn(
                   `Failed to import module '${module.name}':`,
-                  importResult.message || 'Unknown error',
+                  errorMessage(error) || 'Unknown error',
                 );
                 failedModules.push(module.name);
               }
@@ -503,11 +507,13 @@ export function registerCreate(program: Command) {
       new Argument('<bump>', 'Version bump type').choices([...validBumps]),
     )
     .action(async (bump: string, options: CommandOptions<'version'>) => {
-      const result = await commandHandler.command(
-        Cmd.version,
-        [bump],
+      const result = await onProject(
         Object.assign({}, options, program.opts()),
+        (ws) => ws.versions.bump(bump as (typeof validBumps)[number]),
       );
-      handleResponse(result);
+      const previousInfo = result.previousVersion
+        ? ` (was v${result.previousVersion})`
+        : '';
+      printResult(`Bumped to v${result.newVersion}${previousInfo}`);
     });
 }

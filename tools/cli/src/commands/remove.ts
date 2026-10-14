@@ -13,7 +13,6 @@
 
 import { type Command } from 'commander';
 
-import { DEFAULT_HUB } from '@cyberismo/assets';
 import {
   Cmd,
   removeResource,
@@ -25,6 +24,7 @@ import {
   CommandWithPath,
   commandTarget,
   commandType,
+  hubLocation,
   ResourceTypeParser as Parser,
   Resources,
 } from '../lib/args.js';
@@ -148,10 +148,6 @@ export async function removeAction(
     if (!parameter1 && type === 'hub') {
       program.error('error: missing argument <location>');
     }
-    if (type === 'hub' && parameter1 === 'default') {
-      parameter1 = DEFAULT_HUB;
-    }
-
     if (['attachment', 'card', 'label', 'link'].includes(type)) {
       await onProject(Object.assign({}, options, program.opts()), (ws) =>
         removeFromCard(ws, type, parameter1!, [parameter2!, parameter3!]),
@@ -163,8 +159,13 @@ export async function removeAction(
     const commandOptions = Object.assign({}, options, program.opts());
     if (type === 'hub') {
       await onProject(commandOptions, (ws) =>
-        ws.settings.hubs.remove(parameter1!),
+        ws.settings.hubs.remove(hubLocation(parameter1!)),
       );
+      printResult();
+      return;
+    }
+    if (type === 'module') {
+      await onProject(commandOptions, (ws) => ws.modules.remove(parameter1!));
       printResult();
       return;
     }
@@ -181,7 +182,7 @@ export async function removeAction(
       return;
     }
 
-    // Modules and unknown types.
+    // Unknown types.
     const result = await commandHandler.command(
       Cmd.remove,
       [type, parameter1!, parameter2!, parameter3!],

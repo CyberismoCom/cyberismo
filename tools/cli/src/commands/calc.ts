@@ -11,16 +11,17 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
+import { readFileSync } from 'node:fs';
 import { writeFile } from 'node:fs/promises';
 
 import { type Command } from 'commander';
 
-import { Cmd, type CommandOptions } from '@cyberismo/data-handler';
+import { type CommandOptions } from '@cyberismo/data-handler';
+import type { Context } from '@cyberismo/model';
 
 import { CommandGroup, contextOption } from '../lib/args.js';
-import { commandHandler } from '../lib/dispatch.js';
 import { onProject } from '../lib/errors.js';
-import { handleResponse, printResult } from '../lib/output.js';
+import { printJson, printResult } from '../lib/output.js';
 
 export function registerCalc(program: Command) {
   const calculate = new CommandGroup('calc').description(
@@ -56,11 +57,14 @@ export function registerCalc(program: Command) {
     .argument('<filePath>', 'Path to the logic program')
     .addOption(contextOption)
     .action(async (filePath: string, options: CommandOptions<'calc'>) => {
-      const result = await commandHandler.command(
-        Cmd.calc,
-        ['run', filePath],
+      const result = await onProject(
         Object.assign({}, options, program.opts()),
+        (ws) =>
+          ws.queries.runLogicProgram(
+            readFileSync(filePath, 'utf-8'),
+            (options.context || 'commandLine') as Context,
+          ),
       );
-      handleResponse(result);
+      printJson(result);
     });
 }

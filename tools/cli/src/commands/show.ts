@@ -13,11 +13,7 @@
 
 import { type Command } from 'commander';
 
-import {
-  Cmd,
-  type CommandOptions,
-  type Workspace,
-} from '@cyberismo/data-handler';
+import { type CommandOptions, type Workspace } from '@cyberismo/data-handler';
 
 import {
   CommandWithPath,
@@ -26,9 +22,9 @@ import {
   ResourceTypeParser as Parser,
   Resources,
 } from '../lib/args.js';
-import { commandHandler, program } from '../lib/dispatch.js';
+import { program } from '../lib/dispatch.js';
 import { onProject } from '../lib/errors.js';
-import { deprecationNote, handleResponse, printJson } from '../lib/output.js';
+import { deprecationNote, printJson } from '../lib/output.js';
 
 // Card reads of 'show'; a resource name '<prefix>/cards/<x>' shows card <x>.
 const cardReads = new Map<string, (ws: Workspace, detail: string) => unknown>([
@@ -61,6 +57,30 @@ function resourceRead(
   return undefined;
 }
 
+// Module and hub reads of 'show'; listings of hub data refresh it first.
+function moduleRead(
+  type: string,
+  options: CommandOptions<'show'>,
+): ((ws: Workspace, detail: string) => Promise<unknown>) | undefined {
+  switch (type) {
+    case 'importableModules':
+      return async (ws) => {
+        await ws.modules.ensureModuleListUpToDate();
+        return ws.modules.importable(options?.showAll, options?.details);
+      };
+    case 'module':
+      return (ws, detail) => ws.modules.show(detail);
+    case 'hubs':
+      return async (ws) => {
+        await ws.modules.ensureModuleListUpToDate();
+        return ws.modules.hubs();
+      };
+    case 'modules':
+      return (ws) => ws.modules.list();
+  }
+  return undefined;
+}
+
 export async function showAction(
   type: string,
   typeDetail: string | undefined,
@@ -70,37 +90,23 @@ export async function showAction(
     return;
   }
   const target = commandType(type);
-  const read = cardReads.get(target) ?? resourceRead(target, options);
-  if (read) {
-    const detail = commandTarget(type, typeDetail!) || '';
-    const result = await onProject(
-      Object.assign({}, options, program.opts()),
-      async (ws) => (await read(ws, detail)) as object,
-    );
-    // By default, do not show the content of a card or of a resource
-    if (!options.details && 'content' in result) {
-      delete (result as { content?: unknown }).content;
-    }
-    printJson(result);
-  } else {
-    // Modules, hubs and unknown types.
-    const result = await commandHandler.command(
-      Cmd.show,
-      [type, typeDetail!],
-      Object.assign({}, options, program.opts()),
-    );
-    // By default, do not show resources' content files
-    if (!options.details) {
-      if (
-        typeof result.payload === 'object' &&
-        result.payload !== null &&
-        'content' in result.payload
-      ) {
-        delete (result.payload as { content?: unknown }).content;
-      }
-    }
-    handleResponse(result);
+  const read =
+    cardReads.get(target) ??
+    resourceRead(target, options) ??
+    moduleRead(target, options) ??
+    (async () => {
+      throw new Error(`Unknown or not yet handled type ${target}`);
+    });
+  const detail = commandTarget(type, typeDetail!) || '';
+  const result = await onProject(
+    Object.assign({}, options, program.opts()),
+    async (ws) => (await read(ws, detail)) as object,
+  );
+  // By default, do not show the content of a card or of a resource
+  if (!options.details && 'content' in result) {
+    delete (result as { content?: unknown }).content;
   }
+  printJson(result);
 }
 
 export function registerShow(program: Command) {
