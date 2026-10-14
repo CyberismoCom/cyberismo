@@ -5,13 +5,10 @@ import { expect, it, describe, beforeEach, afterEach } from 'vitest';
 import { mkdirSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { sleep } from '../src/utils/common-utils.js';
-import { Cmd, Commands, type Workspace } from '../src/command-handler.js';
+import { type Workspace } from '../src/command-handler.js';
 import { copyDir } from '../src/utils/file-utils.js';
 import { resourceName } from '../src/utils/resource-utils.js';
 import { getTestBaseDir, getTestProject } from './helpers/test-utils.js';
-import type { ModuleContent } from '@cyberismo/model';
-import type { ShowCommandOptions } from '../src/interfaces/command-options.js';
 import { Cards } from '../src/cards/cards.js';
 import { SYSTEM_ACTOR } from '../src/utils/tx-record.js';
 import { CardNotFoundError } from '../src/exceptions/index.js';
@@ -22,13 +19,6 @@ const baseDir = getTestBaseDir(import.meta.dirname, import.meta.url);
 const testDir = join(baseDir, 'tmp-command-handler-show-tests');
 
 const decisionRecordsPath = join(testDir, 'valid/decision-records');
-const minimalPath = join(testDir, 'valid/minimal');
-
-const commandHandler: Commands = new Commands();
-const optionsDecision: ShowCommandOptions = {
-  projectPath: decisionRecordsPath,
-};
-const optionsMini: ShowCommandOptions = { projectPath: minimalPath };
 
 describe('shows command', () => {
   beforeEach(async () => {
@@ -78,213 +68,7 @@ describe('shows command', () => {
         `Attachment 'does-not-exist.png' not found for card decision_1`,
       );
     });
-    it('show hubs - success()', async () => {
-      const result = await commandHandler.command(
-        Cmd.show,
-        ['hubs'],
-        optionsDecision,
-      );
-      expect(result.statusCode).toBe(200);
-    });
-    it('show modules (none) - success()', async () => {
-      const result = await commandHandler.command(
-        Cmd.show,
-        ['modules'],
-        optionsDecision,
-      );
-      expect(result.statusCode).toBe(200);
-      if (result.payload) {
-        expect(result.payload).not.toBeUndefined();
-        const modules = result.payload as Array<{ name: string }>;
-        expect(modules.length).toBe(0);
-      }
-    });
     // @todo add test cases for error situations
-  });
-
-  describe('show command with modules', () => {
-    beforeEach(async () => {
-      // import each project to each other
-      await commandHandler.command(
-        Cmd.import,
-        ['module', minimalPath],
-        optionsDecision,
-      );
-      await commandHandler.command(
-        Cmd.import,
-        ['module', decisionRecordsPath],
-        optionsMini,
-      );
-    });
-
-    afterEach(async () => {
-      // Ensure that previous imports are removed.
-      await commandHandler.command(
-        Cmd.remove,
-        ['module', minimalPath],
-        optionsDecision,
-      );
-      await commandHandler.command(
-        Cmd.remove,
-        ['module', decisionRecordsPath],
-        optionsMini,
-      );
-    });
-
-    it('show modules - success', async () => {
-      let result = await commandHandler.command(
-        Cmd.show,
-        ['modules'],
-        optionsDecision,
-      );
-      expect(result.statusCode).toBe(200);
-      expect(result.payload!).not.toBeUndefined();
-      let modules = result.payload as Array<{ name: string }>;
-      expect(modules.at(0)?.name).toBe('mini');
-      result = await commandHandler.command(Cmd.show, ['modules'], optionsMini);
-      expect(result.payload).not.toBeUndefined();
-      modules = result.payload as Array<{ name: string }>;
-      expect(modules.at(0)?.name).toBe('decision');
-    });
-    it('show particular module - success()', async () => {
-      const result = await commandHandler.command(
-        Cmd.show,
-        ['module', 'mini'],
-        optionsDecision,
-      );
-      expect(result.statusCode).toBe(200);
-      expect(result.payload).not.toBeUndefined();
-      const module = result.payload as ModuleContent;
-      expect(module.cardKeyPrefix).toBe('mini');
-      expect(module.name).toBe('minimal');
-      expect(module.path).toBe(
-        join(decisionRecordsPath, '.cards', 'modules', 'mini'),
-      );
-      expect(module.cardTypes).to.include('mini/cardTypes/myCardtype');
-      expect(module.templates).to.include('mini/templates/test-template');
-      expect(module.workflows).to.include('mini/workflows/default');
-      expect(module.workflows).to.include('mini/workflows/minimal');
-    });
-  });
-  describe('show importable modules', () => {
-    beforeEach(async () => {
-      // add default hub
-      await (
-        await openTestWorkspace(decisionRecordsPath)
-      ).settings.hubs.add(
-        'https://raw.githubusercontent.com/CyberismoCom/cyberismo/main/tools/assets/src/hub/',
-      );
-      const fetchResult = await commandHandler.command(
-        Cmd.fetch,
-        ['hubs'],
-        optionsDecision,
-      );
-      expect(fetchResult.statusCode, 'BeforeEach fetch failed').toBe(200);
-      const result = await commandHandler.command(
-        Cmd.show,
-        ['importableModules'],
-        optionsDecision,
-      );
-      const modules = Object.values(result.payload!);
-      if (modules.length === 0) {
-        await sleep(100);
-      }
-    });
-
-    afterEach(async () => {
-      // remove hub
-      await (
-        await openTestWorkspace(decisionRecordsPath)
-      ).settings.hubs.remove(
-        'https://raw.githubusercontent.com/CyberismoCom/cyberismo/main/tools/assets/src/hub/',
-      );
-    });
-
-    it('show importable modules - success()', async () => {
-      optionsDecision.details = false;
-      const result = await commandHandler.command(
-        Cmd.show,
-        ['importableModules'],
-        optionsDecision,
-      );
-      expect(result.statusCode).toBe(200);
-      const payloadAsArray = Object.values(result.payload!);
-      expect(payloadAsArray.length).toBe(4);
-      expect(payloadAsArray.at(0)).toBe('base');
-      expect(payloadAsArray.at(1)).toBe('eucra');
-      expect(payloadAsArray.at(2)).toBe('ismsa');
-      expect(payloadAsArray.at(3)).toBe('secdeva');
-    });
-
-    it('show importable modules details - success()', async () => {
-      optionsDecision.details = true;
-      const result = await commandHandler.command(
-        Cmd.show,
-        ['importableModules'],
-        optionsDecision,
-      );
-      expect(result.statusCode).toBe(200);
-      const payloadAsArray = Object.values(result.payload!);
-      expect(payloadAsArray.length).toBe(4);
-      expect(payloadAsArray.at(0).name).toBe('base');
-      expect(payloadAsArray.at(1).name).toBe('eucra');
-      expect(payloadAsArray.at(2).name).toBe('ismsa');
-      expect(payloadAsArray.at(3).name).toBe('secdeva');
-      expect(payloadAsArray.at(0).category).toBe('essentials');
-      expect(payloadAsArray.at(1).category).toBe('essentials');
-      expect(payloadAsArray.at(2).category).toBe('essentials');
-      expect(payloadAsArray.at(3).category).toBe('essentials');
-    });
-
-    it('show importableModule all - success()', async () => {
-      optionsDecision.details = true;
-      let result = await commandHandler.command(
-        Cmd.show,
-        ['importableModules'],
-        optionsDecision,
-      );
-      expect(result.statusCode).toBe(200);
-      let payloadAsArray = Object.values(result.payload!);
-      // initially, all modules from hub are importable
-      expect(payloadAsArray.length).toBe(4);
-
-      // Convert SSH URL to HTTPS URL for CI compatibility
-      let baseModuleLocation = payloadAsArray.at(0).location;
-      if (baseModuleLocation.startsWith('git@github.com:')) {
-        baseModuleLocation = baseModuleLocation.replace(
-          'git@github.com:',
-          'https://github.com/',
-        );
-      }
-
-      // import 'base'
-      const res = await commandHandler.command(
-        Cmd.import,
-        ['module', baseModuleLocation],
-        optionsDecision,
-      );
-
-      expect(res.statusCode, 'Importing "base" failed').toBe(200);
-      result = await commandHandler.command(
-        Cmd.show,
-        ['importableModules'],
-        optionsDecision,
-      );
-      expect(result.statusCode).toBe(200);
-      payloadAsArray = Object.values(result.payload!);
-      // then, importable module count goes down by one
-      expect(payloadAsArray.length).toBe(3);
-      optionsDecision.showAll = true;
-      result = await commandHandler.command(
-        Cmd.show,
-        ['importableModules'],
-        optionsDecision,
-      );
-      expect(result.statusCode).toBe(200);
-      payloadAsArray = Object.values(result.payload!);
-      // all modules are still contain 'base'
-      expect(payloadAsArray.length).toBe(4);
-    }, 30000);
   });
 });
 

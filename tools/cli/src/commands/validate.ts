@@ -13,11 +13,17 @@
 
 import { type Command } from 'commander';
 
-import { Cmd, type CommandOptions } from '@cyberismo/data-handler';
+import { type CommandOptions, type Workspace } from '@cyberismo/data-handler';
 
 import { CommandWithPath } from '../lib/args.js';
-import { commandHandler } from '../lib/dispatch.js';
-import { handleResponse } from '../lib/output.js';
+import { onProject } from '../lib/errors.js';
+import { printResult } from '../lib/output.js';
+
+// The project's validation errors, or 'Project structure validated'.
+export async function validation(ws: Workspace): Promise<string> {
+  const result = await ws.validateCmd.validate(ws.path, () => ws.checkout);
+  return result.length ? result : 'Project structure validated';
+}
 
 export function registerValidate(program: Command) {
   // Validate command
@@ -26,11 +32,8 @@ export function registerValidate(program: Command) {
   );
   program.addCommand(validateCmd);
   validateCmd.action(async (options: CommandOptions<'validate'>) => {
-    const result = await commandHandler.command(
-      Cmd.validate,
-      [],
-      Object.assign({}, options, program.opts()),
+    printResult(
+      await onProject(Object.assign({}, options, program.opts()), validation),
     );
-    handleResponse(result);
   });
 }
