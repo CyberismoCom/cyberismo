@@ -3,7 +3,7 @@ import { expect, describe, it, beforeAll, afterAll } from 'vitest';
 import { join } from 'node:path';
 import { mkdirSync, rmSync } from 'node:fs';
 
-import { copyDir } from '../src/utils/file-utils.js';
+import { copyDir } from '../src/shared/utils/file-utils.js';
 import { getTestProject } from './helpers/test-utils.js';
 import type { Checkout } from '../src/infra/checkout.js';
 import { ResourceHandler } from '../src/infra/resource-handler.js';

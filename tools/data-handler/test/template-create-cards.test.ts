@@ -19,14 +19,14 @@ import { mkdirSync, rmSync } from 'node:fs';
 import { mkdir, readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
-import { copyDir } from '../src/utils/file-utils.js';
+import { copyDir } from '../src/shared/utils/file-utils.js';
 import { getTestProject } from './helpers/test-utils.js';
-import { readJsonFile } from '../src/utils/json.js';
+import { readJsonFile } from '../src/shared/utils/json.js';
 import { CardNameRegEx } from '@cyberismo/model';
-import { CardNotFoundError } from '../src/exceptions/index.js';
-import type { TemplateResource } from '../src/resources/template-resource.js';
-import { instantiateTemplate } from '../src/cards/instantiate.js';
-import { findCard } from '../src/cards/read.js';
+import { CardNotFoundError } from '../src/shared/exceptions/index.js';
+import type { TemplateResource } from '../src/domain/resources/template-resource.js';
+import { instantiateTemplate } from '../src/domain/cards/instantiate.js';
+import { findCard } from '../src/domain/cards/read.js';
 import type { Checkout } from '../src/infra/checkout.js';
 
 const baseDir = import.meta.dirname;

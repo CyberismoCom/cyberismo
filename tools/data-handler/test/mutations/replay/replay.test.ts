@@ -9,9 +9,9 @@ import {
   executeModuleReplays,
   filterStepsToApplied,
   planModuleReplays,
-} from '../../../src/mutations/replay/replay.js';
+} from '../../../src/domain/mutations/replay/replay.js';
 import { formatSealFileName } from '../../../src/infra/replay-log/seal-files.js';
-import { ResourceMutations } from '../../../src/mutations/resource-mutations.js';
+import { ResourceMutations } from '../../../src/domain/mutations/resource-mutations.js';
 import {
   installedModule,
   logLine,
@@ -23,9 +23,9 @@ import type { ConfigurationLogEntry } from '../../../src/infra/replay-log/config
 import type {
   ModuleInstallation,
   ResolvedModule,
-} from '../../../src/mutations/replay/module-types.js';
+} from '../../../src/domain/mutations/replay/module-types.js';
 import type { Checkout } from '../../../src/infra/checkout.js';
-import type { ReplayStep } from '../../../src/mutations/replay/replay.js';
+import type { ReplayStep } from '../../../src/domain/mutations/replay/replay.js';
 
 const tmpDir = join(import.meta.dirname, 'tmp-replay-test');
 

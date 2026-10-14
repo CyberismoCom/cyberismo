@@ -6,9 +6,9 @@ import { readFile } from 'node:fs/promises';
 import { join, resolve as pathResolve } from 'node:path';
 
 // cyberismo
-import { Workspace } from '../src/workspace/workspace.js';
-import { createProject } from '../src/directory/create-project.js';
-import { copyDir } from '../src/utils/file-utils.js';
+import { Workspace } from '../src/api/workspace/workspace.js';
+import { createProject } from '../src/api/directory/create-project.js';
+import { copyDir } from '../src/shared/utils/file-utils.js';
 import {
   MODULE_LIST_FULL_PATH,
   type ModuleListFile,
@@ -19,7 +19,7 @@ import { makeFakeModuleFixture } from './helpers/module-fixtures.js';
 import type * as Undici from 'undici';
 
 // Hub requests go out through egressFetch, which uses undici's fetch rather
-import { findCard } from '../src/cards/read.js';
+import { findCard } from '../src/domain/cards/read.js';
 import { checkoutOf } from '../src/infra/internal.js';
 
 // than the global one, so the stub belongs here.
@@ -28,8 +28,8 @@ vi.mock('undici', async (importOriginal) => {
   const actual = await importOriginal<typeof Undici>();
   return { ...actual, fetch: undiciFetch };
 });
-import { CardNotFoundError } from '../src/exceptions/index.js';
-import { SYSTEM_ACTOR } from '../src/utils/tx-record.js';
+import { CardNotFoundError } from '../src/shared/exceptions/index.js';
+import { SYSTEM_ACTOR } from '../src/shared/utils/tx-record.js';
 import { openTestWorkspace } from './helpers/open-test-workspace.js';
 
 // Create test artifacts in a temp folder.

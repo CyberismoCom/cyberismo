@@ -12,12 +12,12 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { isGitLocation } from '../../utils/location.js';
+import { isGitLocation } from '../../shared/utils/location.js';
 import { CompositeSourceLayer } from './source-composite.js';
 import { FileSourceLayer } from './source-file.js';
 import { GitSourceLayer } from './source-git.js';
 import type { Source } from '@cyberismo/model';
-import { type Version } from '../../utils/version.js';
+import { type Version } from '../../shared/utils/version.js';
 import type { ProjectSettings } from '@cyberismo/model';
 import type { SealFile } from '../replay-log/seal-files.js';
 

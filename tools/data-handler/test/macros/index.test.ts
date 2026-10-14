@@ -12,8 +12,8 @@ import { join } from 'node:path';
 import { mkdirSync, rmSync } from 'node:fs';
 
 import Handlebars from 'handlebars';
-import BaseMacro from '../../src/macros/base-macro.js';
-import { copyDir } from '../../src/utils/file-utils.js';
+import BaseMacro from '../../src/domain/macros/base-macro.js';
+import { copyDir } from '../../src/shared/utils/file-utils.js';
 import { getTestProject } from '../helpers/test-utils.js';
 import {
   createAdmonition,
@@ -22,16 +22,16 @@ import {
   evaluateMacros,
   registerMacros,
   validateMacroContent,
-} from '../../src/macros/index.js';
+} from '../../src/domain/macros/index.js';
 import type { Checkout } from '../../src/infra/checkout.js';
-import TaskQueue from '../../src/macros/task-queue.js';
+import TaskQueue from '../../src/domain/macros/task-queue.js';
 
-import { MAX_LEVEL_OFFSET, ROOT } from '../../src/utils/constants.js';
+import { MAX_LEVEL_OFFSET, ROOT } from '../../src/shared/utils/constants.js';
 
 import type { Card } from '@cyberismo/model';
-import type { MacroGenerationContext } from '../../src/interfaces/macros.js';
-import { CardNotFoundError } from '../../src/exceptions/index.js';
-import type { Mode } from '../../src/interfaces/macros.js';
+import type { MacroGenerationContext } from '../../src/shared/interfaces/macros.js';
+import { CardNotFoundError } from '../../src/shared/exceptions/index.js';
+import type { Mode } from '../../src/shared/interfaces/macros.js';
 
 const baseDir = import.meta.dirname;
 const testDir = join(baseDir, 'tmp-calculate-tests');

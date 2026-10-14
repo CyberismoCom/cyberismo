@@ -98,7 +98,7 @@ afterEach(async () => {
 });
 
 const { egressFetch, resetEgressDispatcherForTest } =
-  await import('../src/utils/egress.js');
+  await import('../src/shared/utils/egress.js');
 
 /** Fetches the origin and asserts it answered, returning the parsed body. */
 async function get(): Promise<unknown> {

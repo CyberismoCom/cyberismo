@@ -13,8 +13,8 @@
 
 import { join, resolve } from 'node:path';
 import { readdir } from 'node:fs/promises';
-import { pathExists, resolveTilde } from './utils/file-utils.js';
-import { readJsonFileSync } from './utils/json.js';
+import { pathExists, resolveTilde } from './shared/utils/file-utils.js';
+import { readJsonFileSync } from './shared/utils/json.js';
 
 export interface ProjectEntry {
   path: string;

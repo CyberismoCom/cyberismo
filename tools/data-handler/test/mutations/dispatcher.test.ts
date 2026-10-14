@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { dispatch } from '../../src/mutations/dispatcher.js';
-import { PlainHandler } from '../../src/mutations/handlers/plain-handler.js';
-import { resourceName } from '../../src/utils/resource-utils.js';
+import { dispatch } from '../../src/domain/mutations/dispatcher.js';
+import { PlainHandler } from '../../src/domain/mutations/handlers/plain-handler.js';
+import { resourceName } from '../../src/shared/utils/resource-utils.js';
 import type { Checkout } from '../../src/infra/checkout.js';
 
 // dispatcher does not touch the Project; pass a stand-in.

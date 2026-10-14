@@ -6,7 +6,7 @@ import type { HubSetting, ModuleSetting } from '@cyberismo/model';
 
 import { ProjectConfiguration } from '../src/infra/project-settings.js';
 import { SCHEMA_VERSION } from '@cyberismo/migrations';
-import { readJsonFileSync } from '../src/utils/json.js';
+import { readJsonFileSync } from '../src/shared/utils/json.js';
 
 describe('project settings', () => {
   const baseDir = import.meta.dirname;

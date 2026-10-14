@@ -21,15 +21,15 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { DEFAULT_HUB } from '@cyberismo/assets';
 
-import { PrefixRename } from '../../src/directory/rename-project.js';
-import { localFolder } from '../../src/directory/local-folder.js';
+import { PrefixRename } from '../../src/api/directory/rename-project.js';
+import { localFolder } from '../../src/api/directory/local-folder.js';
 import {
   ProjectExistsError,
   ProjectNotFoundError,
-} from '../../src/exceptions/index.js';
-import { resetEgressDispatcherForTest } from '../../src/utils/egress.js';
+} from '../../src/shared/exceptions/index.js';
+import { resetEgressDispatcherForTest } from '../../src/shared/utils/egress.js';
 import { GitManager } from '../../src/infra/git-manager.js';
-import { SYSTEM_ACTOR } from '../../src/utils/tx-record.js';
+import { SYSTEM_ACTOR } from '../../src/shared/utils/tx-record.js';
 import {
   isolatedGitEnv,
   OFFLINE_EGRESS_PROXY,
