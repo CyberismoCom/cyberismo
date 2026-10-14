@@ -21,6 +21,7 @@ import {
   type AllCommandOptions,
   type Checkout,
   type CommitIdentity,
+  type StartCommandOptions,
   type WorkspaceOptions,
 } from '@cyberismo/data-handler';
 import {
@@ -135,6 +136,7 @@ export async function openWorkspace(
   return openProject({
     projectPath,
     logLevel: options.logLevel,
+    watchResourceChanges: (options as StartCommandOptions).watchResourceChanges,
     autocommit: options.autocommit,
     autopush: options.autopush,
   });

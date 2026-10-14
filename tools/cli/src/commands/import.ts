@@ -13,11 +13,11 @@
 
 import { type Command } from 'commander';
 
-import { Cmd, type CommandOptions } from '@cyberismo/data-handler';
+import { type CommandOptions } from '@cyberismo/data-handler';
 
 import { CommandGroup } from '../lib/args.js';
-import { commandHandler } from '../lib/dispatch.js';
-import { handleResponse } from '../lib/output.js';
+import { onProject } from '../lib/errors.js';
+import { printJson } from '../lib/output.js';
 import { registerImportModule } from './module.js';
 
 export function registerImport(program: Command) {
@@ -43,12 +43,12 @@ export function registerImport(program: Command) {
         cardKey: string,
         options: CommandOptions<'import'>,
       ) => {
-        const result = await commandHandler.command(
-          Cmd.import,
-          ['csv', csvFile, cardKey],
+        const cards = await onProject(
           Object.assign({}, options, program.opts()),
+          (ws) => ws.importCmd.importCsv(csvFile, cardKey),
         );
-        handleResponse(result);
+        console.log('Imported cards:');
+        printJson(cards);
       },
     );
 }
