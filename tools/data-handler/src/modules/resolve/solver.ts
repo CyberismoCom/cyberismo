@@ -24,14 +24,14 @@ import {
 } from '../../infra/replay-log/seal-files.js';
 import { installedModulesWithSources, declaredModules } from '../inventory.js';
 import { buildRemoteUrl } from '../remote-url.js';
-import { versionToTag } from '../../utils/version.js';
 import {
   DEFAULT_VERSION_RANGE,
   toVersion,
   toVersionRange,
+  versionToTag,
   type Version,
   type VersionRange,
-} from '../types.js';
+} from '../../utils/version.js';
 import {
   createSourceLayer,
   type SourceLayer,
