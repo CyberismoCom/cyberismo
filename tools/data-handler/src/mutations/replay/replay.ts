@@ -32,7 +32,7 @@ import {
 
 import type { ConfigurationLogEntry } from '../../utils/configuration-logger.js';
 import type { ModuleInstallation } from '../../modules/types.js';
-import type { MutationInput } from '@cyberismo/model';
+import type { ModuleUpdateResult, MutationInput } from '@cyberismo/model';
 import type { Checkout } from '../../containers/project.js';
 import type { ResolvedModule } from '../../modules/resolve/types.js';
 import type { SealFile } from '../../infra/replay-log/seal-files.js';
@@ -94,6 +94,8 @@ export class ModuleReplayConflictError extends DomainError {
  */
 export class ModuleReplayFailedError extends DomainError {
   readonly code = 'replay-failed';
+  /** What the update did before the replay failed (skipped replays). */
+  result?: ModuleUpdateResult;
   constructor(
     readonly modulePrefix: string,
     readonly sealFileName: string,
@@ -133,6 +135,8 @@ export class ModuleValidationFailedError extends DomainError {
   constructor(
     readonly validationErrors: string,
     executedSteps: ReplayStep[],
+    /** What the update did before validation failed. */
+    readonly result?: ModuleUpdateResult,
   ) {
     const steps = executedSteps.map(
       ({ modulePrefix, fromVersion, toVersion }) => ({
