@@ -237,7 +237,7 @@ export function registerResources(
         extra,
         server,
       );
-      const workflows = await ws.showCmd.showWorkflowsWithDetails();
+      const workflows = await ws.resources.contents('workflows');
       return {
         contents: [
           {
