@@ -75,6 +75,7 @@ const moduleListQueue = new Map<string, Promise<void>>();
 
 export class Fetch {
   private moduleListPath;
+  /** @internal */
   constructor(private checkout: Checkout) {
     this.moduleListPath = resolve(
       this.checkout.basePath,

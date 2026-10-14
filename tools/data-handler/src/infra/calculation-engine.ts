@@ -61,6 +61,7 @@ import { resourceNameToString } from '../utils/resource-utils.js';
 const ALL_CATEGORY = 'all';
 
 export class CalculationEngine {
+  /** @internal */
   constructor(private checkout: Checkout) {}
 
   private clingo = new ClingoContext();

@@ -54,6 +54,7 @@ export class ResourceHandler {
   /**
    * Creates instance of ResourceHandler.
    * @param checkout Project to use in cache
+   * @internal
    */
   constructor(checkout: Checkout) {
     this.cache = ResourceCache.create(checkout);

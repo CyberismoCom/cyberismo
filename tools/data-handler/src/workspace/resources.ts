@@ -13,6 +13,7 @@
 */
 
 import type {
+  ActorRef,
   AnyResourceContent,
   Context,
   CreateParamsByType,
@@ -26,6 +27,7 @@ import { findCard } from '../cards/read.js';
 import { Validate } from '../commands/validate.js';
 import type { Checkout } from '../infra/checkout.js';
 import type { ResourceMap } from '../infra/resource-cache.js';
+import { pluralResourceType } from '../infra/resource-handler.js';
 import type { ResourcesFrom } from '../infra/resources-from.js';
 import { createSubject } from '../mutations/resource-mutations.js';
 import {
@@ -35,7 +37,8 @@ import {
 } from '../queries/skills.js';
 import { runWithDefaultCommitMessage } from '../infra/commit-context.js';
 import { resourceName } from '../utils/resource-utils.js';
-import { read } from '../infra/rw-lock.js';
+import { read, write } from '../infra/rw-lock.js';
+import type { CommitIdentity } from '../utils/tx-record.js';
 import type { Changes } from './changes.js';
 
 /**
@@ -59,9 +62,12 @@ export class Resources {
     workflows: (from) => this.resourceNames('workflows', from),
   };
 
+  /** @internal */
   constructor(
     private readonly checkout: Checkout,
     private readonly changes: Changes,
+    public readonly actor: ActorRef,
+    public readonly identity: CommitIdentity | undefined,
   ) {}
 
   /**
@@ -85,6 +91,24 @@ export class Resources {
     await runWithDefaultCommitMessage(createSubject(type, name), () =>
       this.changes.apply({ kind: 'create', target, params }),
     );
+  }
+
+  /**
+   * Deletes a resource, with its cascade. `name` is its full resource name,
+   * or its identifier in this project when `type` (singular, e.g.
+   * 'workflow') says which.
+   */
+  @write((name, type) => `Remove ${type} ${name}`)
+  public async remove(name: string, type: string): Promise<void> {
+    const parsed = resourceName(name);
+    await this.changes.apply({
+      kind: 'delete',
+      target: {
+        prefix: parsed.prefix || this.checkout.configuration.cardKeyPrefix,
+        type: parsed.type || pluralResourceType(type),
+        identifier: parsed.identifier,
+      },
+    });
   }
 
   /** The resource's validation errors; '' when it is valid. */

@@ -30,6 +30,7 @@ import type { ShowReturnType } from './resource-object.js';
 export abstract class FileResource<
   T extends ResourceBaseMetadata,
 > extends ResourceObject<T, never> {
+  /** @internal */
   constructor(
     checkout: Checkout,
     name: ResourceName,
