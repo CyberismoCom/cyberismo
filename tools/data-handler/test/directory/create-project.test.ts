@@ -16,22 +16,39 @@ import { existsSync, readFileSync } from 'node:fs';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { SCHEMA_VERSION } from '@cyberismo/migrations';
+import type { CreateProjectParams } from '@cyberismo/model';
 import { Validate } from '../../src/commands/validate.js';
 import { Checkout } from '../../src/containers/project.js';
 import { createProject } from '../../src/directory/create-project.js';
+import { SYSTEM_ACTOR } from '../../src/utils/tx-record.js';
+import {
+  isolatedGitEnv,
+  projectSnapshot,
+} from '../helpers/project-snapshot.js';
 
 let root: string;
 
 beforeEach(async () => {
   root = await mkdtemp(join(tmpdir(), 'cyberismo-create-'));
+  for (const [name, value] of Object.entries(await isolatedGitEnv(root))) {
+    vi.stubEnv(name, value);
+  }
 });
 
 afterEach(async () => {
+  vi.unstubAllEnvs();
   await rm(root, { recursive: true, force: true });
 });
+
+// Offline: no default hub.
+const createOffline = (path: string, params: CreateProjectParams) =>
+  createProject(path, { ...params, skipDefaultHub: true }, SYSTEM_ACTOR, {
+    name: 'Bea',
+    email: 'bea@example.com',
+  });
 
 const config = (path: string) =>
   JSON.parse(
@@ -39,10 +56,10 @@ const config = (path: string) =>
   );
 
 describe('createProject', () => {
-  it('writes a valid project with the given values, and no repository', async () => {
+  it('writes a valid project with the given values, committed as the actor', async () => {
     const path = join(root, 'new');
 
-    await createProject(path, {
+    const result = await createOffline(path, {
       name: 'New Project',
       prefix: 'newp',
       category: 'Development',
@@ -59,7 +76,17 @@ describe('createProject', () => {
       hubs: [],
     });
     expect(existsSync(join(path, 'cardRoot'))).toBe(true);
-    expect(existsSync(join(path, '.git'))).toBe(false);
+    expect(result).toEqual({
+      path,
+      prefix: 'newp',
+      failures: [],
+      warnings: [],
+    });
+    const { commits, uncommitted } = await projectSnapshot(path);
+    expect(commits?.[0]).toBe(
+      'Bea <bea@example.com> | Cyberismo Bot <bot@cyberismo.com> | Initial commit',
+    );
+    expect(uncommitted).toEqual([]);
     expect(
       await Validate.getInstance().validate(path, () => new Checkout(path)),
     ).toBe('');
@@ -68,7 +95,7 @@ describe('createProject', () => {
   it('leaves out the category and description it is not given', async () => {
     const path = join(root, 'new');
 
-    await createProject(path, { name: 'New Project', prefix: 'newp' });
+    await createOffline(path, { name: 'New Project', prefix: 'newp' });
 
     expect(config(path)).not.toHaveProperty('category');
     expect(config(path).description).toBe('');
@@ -103,16 +130,16 @@ describe('createProject', () => {
   ])('refuses %s, writing nothing', async (_, folder, params, message) => {
     const path = join(root, folder);
 
-    await expect(createProject(path, params)).rejects.toThrow(message);
+    await expect(createOffline(path, params)).rejects.toThrow(message);
     expect(existsSync(path)).toBe(false);
   });
 
   it('refuses a path that holds a project', async () => {
     const path = join(root, 'new');
-    await createProject(path, { name: 'New', prefix: 'newp' });
+    await createOffline(path, { name: 'New', prefix: 'newp' });
 
     await expect(
-      createProject(path, { name: 'Other', prefix: 'other' }),
+      createOffline(path, { name: 'Other', prefix: 'other' }),
     ).rejects.toThrow('Project already exists');
     expect(config(path).name).toBe('New');
   });
