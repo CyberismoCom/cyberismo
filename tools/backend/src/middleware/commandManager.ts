@@ -12,11 +12,7 @@
 
 import type { Context, MiddlewareHandler } from 'hono';
 import type { ActorRef } from '@cyberismo/model';
-import {
-  ProjectNotFoundError,
-  type ProjectDirectory,
-  type Workspace,
-} from '@cyberismo/data-handler';
+import type { ProjectDirectory, Workspace } from '@cyberismo/data-handler';
 import { getCurrentUser } from './auth.js';
 import { UserRole, type UserInfo } from '../types.js';
 import type { ProjectEvents } from '../domain/events/project-events.js';
@@ -28,6 +24,8 @@ declare module 'hono' {
     ws: Workspace;
     events: ProjectEvents;
     projectPath: string;
+    directory: ProjectDirectory;
+    eventsByProject: EventsByProject;
   }
 }
 
@@ -42,7 +40,8 @@ export function actorOf(user: UserInfo): ActorRef {
 
 /**
  * Middleware that opens the authenticated user's handle over the project
- * and puts it, with the project's events, on the context.
+ * and puts it, with the project's events and the directory, on the context.
+ * An unknown project is refused with ProjectNotFoundError (404).
  *
  * @param directory - Directory the project is opened from.
  * @param events - Events of the directory's projects.
@@ -65,15 +64,9 @@ export const attachProjectDirectory = (
       throw new Error('CommandManager expects a user');
     }
     const identity = { name: user.name, email: user.email };
-    let ws: Workspace;
-    try {
-      ws = await directory.open(prefix, actorOf(user), identity);
-    } catch (error) {
-      if (error instanceof ProjectNotFoundError) {
-        return c.json({ error: error.message }, 404);
-      }
-      throw error;
-    }
+    const ws = await directory.open(prefix, actorOf(user), identity);
+    c.set('directory', directory);
+    c.set('eventsByProject', events);
     c.set('events', await events.for(prefix));
     c.set('ws', ws);
     c.set('projectPath', ws.path);
