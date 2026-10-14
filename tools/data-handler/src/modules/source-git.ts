@@ -25,7 +25,8 @@ import {
 } from '../infra/replay-log/seal-files.js';
 import { versionToTag } from './version.js';
 import type { FetchTarget, SourceLayer } from './source.js';
-import type { Source, Version } from './types.js';
+import type { Source } from '@cyberismo/model';
+import type { Version } from './types.js';
 import type { ProjectSettings } from '@cyberismo/model';
 
 function cloneOptions(ref?: string): string[] {

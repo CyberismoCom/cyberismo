@@ -13,7 +13,7 @@
 
 // node
 import type { Dirent } from 'node:fs';
-import { basename, dirname, extname, join, parse, resolve } from 'node:path';
+import { dirname, extname, join, parse, resolve } from 'node:path';
 import { readdir } from 'node:fs/promises';
 
 // dependencies
@@ -38,15 +38,15 @@ import type {
 import { errorFunction } from '../utils/error-utils.js';
 import { sortCards } from '../utils/card-utils.js';
 import { isPredefinedField } from '../utils/constants.js';
-import { pathExists } from '../utils/file-utils.js';
+import {
+  invalidNames,
+  isValidFolderName,
+  pathExists,
+} from '../utils/file-utils.js';
 import type { Checkout } from '../containers/project.js';
 import { readJsonFile } from '../utils/json.js';
 import { resourceName } from '../utils/resource-utils.js';
 import { normalizeSchemaId, schemaValidator } from '../utils/validate.js';
-
-const invalidNames = new RegExp(
-  '[<>:"/\\|?*\x00-\x1F]|^(?:aux|con|clock$|nul|prn|com[1-9]|lpt[1-9])$', // eslint-disable-line no-control-regex
-);
 
 const SHORT_TEXT_MAX_LENGTH = 80;
 
@@ -647,17 +647,9 @@ export class Validate {
     return validationErrors;
   }
 
-  /**
-   * Validates folder name.
-   * @todo: This should check that the path is resolvable and can be used as a folder name in various operating systems.
-   * @param path path to a folder
-   * @returns true, if the path is valid and can be used; false otherwise.
-   */
+  /** Whether `path` is a valid folder name; see isValidFolderName. */
   public static validateFolder(path: string): boolean {
-    if (path === '' || path === '.' || path === '..') {
-      return false;
-    }
-    return !invalidNames.test(basename(path));
+    return isValidFolderName(path);
   }
 
   /**
