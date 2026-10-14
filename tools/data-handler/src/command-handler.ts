@@ -45,6 +45,7 @@ import type {
   RenameCommandOptions,
   StartCommandOptions,
   UpdateCommandOptions,
+  UpdateModulesCommandOptions,
 } from './interfaces/command-options.js';
 
 import type { requestStatus } from './interfaces/request-status-interfaces.js';
@@ -76,7 +77,6 @@ import { validBumps, type BumpType } from './commands/version.js';
 export const Cmd = {
   add: 'add',
   calc: 'calc',
-  checkUpdates: 'check-updates',
   clean: 'clean',
   create: 'create',
   edit: 'edit',
@@ -540,30 +540,28 @@ export class Commands {
         }
       } else if (command === Cmd.updateModules) {
         const [module, targetVersion] = args;
-        if (module) {
-          await this.commands?.modulesCmd.update(
-            { module, version: targetVersion || undefined },
-            credentials,
+        if (!module && targetVersion) {
+          throw new ModuleRequestError(
+            'A target version can only be specified together with a module name',
           );
-        } else {
-          if (targetVersion) {
-            throw new ModuleRequestError(
-              'A target version can only be specified together with a module name',
-            );
-          }
-          await this.commands?.modulesCmd.update({}, credentials);
         }
+        const target = module
+          ? { module, version: targetVersion || undefined }
+          : {};
+        if ((options as UpdateModulesCommandOptions).dryRun) {
+          return {
+            statusCode: 200,
+            payload: await this.commands?.modulesCmd.planUpdate(
+              target,
+              credentials,
+            ),
+          };
+        }
+        await this.commands?.modulesCmd.update(target, credentials);
         return {
           statusCode: 200,
           note: await this.cleanRecommendation(),
         };
-      } else if (command === Cmd.checkUpdates) {
-        const [moduleName] = args;
-        const results = await this.commands?.checkUpdatesCmd.checkUpdates(
-          moduleName || undefined,
-          credentials,
-        );
-        return { statusCode: 200, payload: results };
       } else if (command === Cmd.clean) {
         return this.clean(args);
       } else if (command === Cmd.validate) {
