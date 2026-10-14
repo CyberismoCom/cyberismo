@@ -16,7 +16,10 @@ vi.mock('../src/utils.js', async (importOriginal) => {
   };
 });
 import { cleanupTempTestData, createTempTestData } from './test-utils.js';
-import { openTestWorkspace } from './helpers/open-test-workspace.js';
+import {
+  openTestWorkspace,
+  directoryOf,
+} from './helpers/open-test-workspace.js';
 
 describe('export module', () => {
   beforeEach(() => {
@@ -177,7 +180,7 @@ describe('export module', () => {
         },
       } as unknown as Workspace;
 
-      const registry = ProjectRegistry.fromCheckout(ws.checkout);
+      const registry = directoryOf(ws);
 
       await expect(
         exportSite(registry, tempDir, {

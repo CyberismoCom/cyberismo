@@ -19,12 +19,14 @@ import path from 'node:path';
 import { promisify } from 'node:util';
 import { fileURLToPath } from 'node:url';
 import { createApp } from '../src/app.js';
-import { ProjectRegistry } from '../src/project-registry.js';
 import { MockAuthProvider } from '../src/auth/mock.js';
 import { UserRole, type UserInfo } from '../src/types.js';
 import type { AuthProvider } from '../src/auth/types.js';
 import { buildProject } from '../../data-handler/test/helpers/project-builder.js';
-import { openTestWorkspace } from './helpers/open-test-workspace.js';
+import {
+  openTestWorkspace,
+  directoryOf,
+} from './helpers/open-test-workspace.js';
 
 const fileUrl = fileURLToPath(import.meta.url);
 const dirname = path.dirname(fileUrl);
@@ -40,10 +42,7 @@ beforeAll(async () => {
       '../../data-handler/test/test-data/valid/decision-records',
     ),
   );
-  app = createApp(
-    new MockAuthProvider(),
-    ProjectRegistry.fromCheckout(ws.checkout),
-  );
+  app = createApp(new MockAuthProvider(), directoryOf(ws));
 });
 
 describe('MCP HTTP Endpoint', () => {
@@ -93,7 +92,7 @@ describe('MCP HTTP Endpoint', () => {
       };
       const sessionApp = createApp(
         { authenticate: async () => user },
-        ProjectRegistry.fromCheckout(ws.checkout),
+        directoryOf(ws),
       );
       const post = (body: object, sessionId?: string) =>
         sessionApp.request('/mcp', {
@@ -183,7 +182,7 @@ describe('MCP HTTP Endpoint', () => {
       );
       sessionApp = createApp(
         { authenticate: async () => user },
-        ProjectRegistry.fromCheckout(ws.checkout),
+        directoryOf(ws),
       );
     });
 
@@ -316,10 +315,7 @@ describe('MCP HTTP Endpoint', () => {
         '../../data-handler/test/test-data/valid/decision-records',
       ),
     );
-    const readerApp = createApp(
-      readerProvider,
-      ProjectRegistry.fromCheckout(ws.checkout),
-    );
+    const readerApp = createApp(readerProvider, directoryOf(ws));
 
     const response = await readerApp.request('/mcp', {
       method: 'POST',
