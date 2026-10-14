@@ -5,7 +5,10 @@ import { MockAuthProvider } from '../src/auth/mock.js';
 import { createTempTestData, cleanupTempTestData } from './test-utils.js';
 import { rm } from 'node:fs/promises';
 import { join } from 'node:path';
-import { openTestWorkspace } from './helpers/open-test-workspace.js';
+import {
+  openTestWorkspace,
+  directoryOf,
+} from './helpers/open-test-workspace.js';
 
 type ProjectsResponse = {
   projects: { prefix: string; name: string }[];
@@ -19,10 +22,7 @@ describe('GET /api/projects', () => {
   beforeEach(async () => {
     tempTestDataPath = await createTempTestData('decision-records');
     const ws = await openTestWorkspace(tempTestDataPath);
-    app = createApp(
-      new MockAuthProvider(),
-      ProjectRegistry.fromCheckout(ws.checkout),
-    );
+    app = createApp(new MockAuthProvider(), directoryOf(ws));
   });
 
   afterEach(async () => {
@@ -46,9 +46,9 @@ describe('GET /api/projects', () => {
     const ws = await openTestWorkspace(tempTestDataPath);
     const appWithRoot = createApp(
       new MockAuthProvider(),
-      ProjectRegistry.fromCheckout(ws.checkout),
+      directoryOf(ws),
       undefined,
-      false,
+      undefined,
       tempTestDataPath,
     );
 
@@ -79,7 +79,7 @@ describe('POST /api/projects', () => {
   beforeEach(async () => {
     tempDir = await createTempTestData('decision-records');
     const ws = await openTestWorkspace(tempDir);
-    registry = ProjectRegistry.fromCheckout(ws.checkout);
+    registry = directoryOf(ws);
   });
 
   afterEach(async () => {
@@ -106,7 +106,7 @@ describe('POST /api/projects', () => {
       new MockAuthProvider(),
       registry,
       undefined,
-      false,
+      undefined,
       multiRoot,
     );
 
@@ -127,7 +127,7 @@ describe('POST /api/projects', () => {
       new MockAuthProvider(),
       registry,
       undefined,
-      false,
+      undefined,
       multiRoot,
     );
 
@@ -163,7 +163,7 @@ describe('POST /api/projects', () => {
       new MockAuthProvider(),
       registry,
       undefined,
-      false,
+      undefined,
       multiRoot,
     );
 
@@ -184,7 +184,7 @@ describe('POST /api/projects/clone', () => {
   beforeEach(async () => {
     tempDir = await createTempTestData('decision-records');
     const ws = await openTestWorkspace(tempDir);
-    registry = ProjectRegistry.fromCheckout(ws.checkout);
+    registry = directoryOf(ws);
   });
 
   afterEach(async () => {
@@ -211,7 +211,7 @@ describe('POST /api/projects/clone', () => {
       new MockAuthProvider(),
       registry,
       undefined,
-      false,
+      undefined,
       multiRoot,
     );
 

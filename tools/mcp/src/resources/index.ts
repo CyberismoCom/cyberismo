@@ -16,11 +16,8 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { ResourceTemplate } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { ResourceTypeConfig } from '../lib/mcp-helpers.js';
-import {
-  callerOf,
-  resolveCommands,
-  type ProjectProvider,
-} from '../lib/resolve-project.js';
+import type { ProjectDirectory } from '@cyberismo/data-handler';
+import { callerOf, resolveWorkspace } from '../lib/resolve-project.js';
 
 import { getCardTree } from '../lib/render.js';
 
@@ -66,7 +63,7 @@ const resourceTypeConfigs: ResourceTypeConfig[] = [
 
 const registerResourceType = (
   server: McpServer,
-  provider: ProjectProvider,
+  directory: ProjectDirectory,
   config: ResourceTypeConfig,
 ) => {
   server.registerResource(
@@ -77,8 +74,8 @@ const registerResourceType = (
     ),
     { description: config.description, mimeType: 'application/json' },
     async (uri, { projectPrefix }, extra) => {
-      const ws = resolveCommands(
-        provider,
+      const ws = await resolveWorkspace(
+        directory,
         projectPrefix as string,
         extra,
         server,
@@ -105,7 +102,7 @@ const registerResourceType = (
  */
 export function registerResources(
   server: McpServer,
-  provider: ProjectProvider,
+  directory: ProjectDirectory,
 ): void {
   // Projects listing (static URI)
   server.registerResource(
@@ -117,7 +114,7 @@ export function registerResources(
     },
     async (_uri, extra) => {
       callerOf(extra);
-      const projects = provider.list();
+      const projects = await directory.list();
       return {
         contents: [
           {
@@ -141,8 +138,8 @@ export function registerResources(
       mimeType: 'application/json',
     },
     async (uri, { projectPrefix }, extra) => {
-      const ws = resolveCommands(
-        provider,
+      const ws = await resolveWorkspace(
+        directory,
         projectPrefix as string,
         extra,
         server,
@@ -171,8 +168,8 @@ export function registerResources(
       mimeType: 'application/json',
     },
     async (uri, { projectPrefix }, extra) => {
-      const ws = resolveCommands(
-        provider,
+      const ws = await resolveWorkspace(
+        directory,
         projectPrefix as string,
         extra,
         server,
@@ -201,8 +198,8 @@ export function registerResources(
       mimeType: 'application/json',
     },
     async (uri, { projectPrefix }, extra) => {
-      const ws = resolveCommands(
-        provider,
+      const ws = await resolveWorkspace(
+        directory,
         projectPrefix as string,
         extra,
         server,
@@ -231,8 +228,8 @@ export function registerResources(
       mimeType: 'application/json',
     },
     async (uri, { projectPrefix }, extra) => {
-      const ws = resolveCommands(
-        provider,
+      const ws = await resolveWorkspace(
+        directory,
         projectPrefix as string,
         extra,
         server,
@@ -261,8 +258,8 @@ export function registerResources(
       mimeType: 'application/json',
     },
     async (uri, { projectPrefix }, extra) => {
-      const ws = resolveCommands(
-        provider,
+      const ws = await resolveWorkspace(
+        directory,
         projectPrefix as string,
         extra,
         server,
@@ -281,6 +278,6 @@ export function registerResources(
   );
 
   resourceTypeConfigs.forEach((config) => {
-    registerResourceType(server, provider, config);
+    registerResourceType(server, directory, config);
   });
 }

@@ -27,13 +27,16 @@ import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
 import { resourceName, type Workspace } from '@cyberismo/data-handler';
 import type { ChangeEvent } from '@cyberismo/model';
-import { createMcpServer, singleProjectProvider } from '../src/server.js';
+import { createMcpServer } from '../src/server.js';
 import {
   buildProject,
   type BuiltProject,
 } from '../../data-handler/test/helpers/project-builder.js';
 import { authenticated, TEST_USER } from './test-utils.js';
-import { openTestWorkspace } from './helpers/open-test-workspace.js';
+import {
+  openTestWorkspace,
+  directoryOf,
+} from './helpers/open-test-workspace.js';
 
 // MCP autocommits are the calling user's, with the client as agent.
 const COMMIT_AUTHOR = `${TEST_USER.name} <${TEST_USER.email}>`;
@@ -85,7 +88,7 @@ beforeEach(async () => {
   ws.changes.subscribe((event) => events.push(event));
   const [clientTransport, serverTransport] =
     InMemoryTransport.createLinkedPair();
-  await createMcpServer(singleProjectProvider(ws.checkout)).connect(
+  await createMcpServer(directoryOf(ws)).connect(
     authenticated(serverTransport),
   );
   client = new Client({ name: 'test-client', version: '1.0.0' });

@@ -19,9 +19,12 @@ import { join } from 'node:path';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
 import { type Workspace } from '@cyberismo/data-handler';
-import { createMcpServer, singleProjectProvider } from '../src/server.js';
+import { createMcpServer } from '../src/server.js';
 import { authenticated, testDataPath } from './test-utils.js';
-import { openTestWorkspace } from './helpers/open-test-workspace.js';
+import {
+  openTestWorkspace,
+  directoryOf,
+} from './helpers/open-test-workspace.js';
 
 const baseDir = import.meta.dirname;
 const projectPath = join(baseDir, 'tmp-skills-mcp');
@@ -93,7 +96,7 @@ beforeAll(async () => {
   );
 
   ws = await openTestWorkspace(projectPath);
-  const server = createMcpServer(singleProjectProvider(ws.checkout));
+  const server = createMcpServer(directoryOf(ws));
   const [clientTransport, serverTransport] =
     InMemoryTransport.createLinkedPair();
   await server.connect(authenticated(serverTransport));
