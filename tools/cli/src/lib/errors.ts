@@ -15,8 +15,8 @@ import {
   DomainError,
   ModuleRequestError,
   type Workspace,
+  errorFunction,
 } from '@cyberismo/data-handler';
-import { errorFunction } from '@cyberismo/data-handler/utils/error-utils';
 import type { ErrorCode } from '@cyberismo/model';
 
 import { program } from './program.js';

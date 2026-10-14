@@ -66,10 +66,6 @@ const edit = (updateKey: object, operation: object) => ({
   updateKey,
   operation,
 });
-const remove = (type: string, identifier: string) => ({
-  kind: 'delete',
-  target: { prefix: 'test', type, identifier },
-});
 
 // argv, workspace method, its arguments, its result, stdout
 const TABLE: [string, string, unknown[], unknown, string][] = [
@@ -195,15 +191,15 @@ const TABLE: [string, string, unknown[], unknown, string][] = [
   ],
   [
     'remove cardType c',
-    'changes.apply',
-    [remove('cardTypes', 'c')],
+    'resources.remove',
+    ['c', 'cardType'],
     undefined,
     'Done',
   ],
   [
     'remove test/workflows/w',
-    'changes.apply',
-    [remove('workflows', 'w')],
+    'resources.remove',
+    ['test/workflows/w', 'workflow'],
     undefined,
     'Done',
   ],
@@ -361,6 +357,10 @@ describe('the clean note', () => {
       'changes.apply',
       vi.fn(async () => undefined),
     );
+    stub(
+      'resources.remove',
+      vi.fn(async () => undefined),
+    );
     const summary = stub(
       'clean.dormantSummary',
       vi.fn(async () => ({ valueCount: 3, cardCount: 2 })),
@@ -378,7 +378,7 @@ describe('the clean note', () => {
 
   it('is left out when nothing is dormant', async () => {
     stub(
-      'changes.apply',
+      'resources.remove',
       vi.fn(async () => undefined),
     );
 
@@ -389,7 +389,7 @@ describe('the clean note', () => {
 
 describe('remove', () => {
   it('refuses a type no remove handles, removing nothing', async () => {
-    const apply = stub('changes.apply', vi.fn());
+    const remove = stub('resources.remove', vi.fn());
 
     // A singular type in a resource name maps to no removable type.
     expect(await cli('remove test/workflow/w')).toBe(1);
@@ -397,7 +397,7 @@ describe('remove', () => {
       stdout: '',
       stderr: "Unknown resource type 'workflo'\n",
     });
-    expect(apply).not.toHaveBeenCalled();
+    expect(remove).not.toHaveBeenCalled();
   });
 });
 

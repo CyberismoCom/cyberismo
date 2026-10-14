@@ -21,7 +21,6 @@ import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
 import { localFolder } from '@cyberismo/data-handler';
-import { resetEgressDispatcherForTest } from '@cyberismo/data-handler/utils/egress';
 import { createApp } from '../src/app.js';
 import { MockAuthProvider } from '../src/auth/mock.js';
 import {
@@ -37,13 +36,12 @@ beforeEach(async () => {
   for (const [name, value] of Object.entries(await isolatedGitEnv(root))) {
     vi.stubEnv(name, value);
   }
+  // Read at this file's first fetch and kept; every test sets the same one.
   vi.stubEnv('CYBERISMO_EGRESS_PROXY', OFFLINE_EGRESS_PROXY);
-  await resetEgressDispatcherForTest();
 });
 
 afterEach(async () => {
   vi.unstubAllEnvs();
-  await resetEgressDispatcherForTest();
   await rm(root, { recursive: true, force: true });
 });
 

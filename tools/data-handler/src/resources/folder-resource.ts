@@ -54,6 +54,7 @@ export abstract class FolderResource<
    * @param checkout Project in which this resource exists.
    * @param name Name for the resource.
    * @param type Type for this resource.
+   * @internal
    */
   constructor(
     checkout: Checkout,

@@ -13,11 +13,12 @@
 
 import { Argument, type Command } from 'commander';
 
-import { ModuleRequestError, type Workspace } from '@cyberismo/data-handler';
 import {
+  ModuleRequestError,
+  type Workspace,
   ModuleReplayFailedError,
   ModuleValidationFailedError,
-} from '@cyberismo/data-handler/mutations/replay/replay';
+} from '@cyberismo/data-handler';
 import type {
   Credentials,
   ModuleInstallResult,

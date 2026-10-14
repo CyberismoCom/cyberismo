@@ -17,7 +17,6 @@ import { promisify } from 'node:util';
 import { describe, expect, it } from 'vitest';
 
 import { ResourceNotFoundError } from '../../src/exceptions/index.js';
-import { removeResource } from '../../src/utils/remove-resource.js';
 import {
   expectRefused,
   local,
@@ -62,7 +61,7 @@ describe('removing a resource', () => {
     const { ws } = await open(spec);
     await ws.resources.create('x', type, newParams[type]);
 
-    await removeResource(ws, singular, 'x');
+    await ws.resources.remove('x', singular);
 
     await expect(ws.resources.show(`test/${type}/x`)).rejects.toBeInstanceOf(
       ResourceNotFoundError,
@@ -76,7 +75,7 @@ describe('removing a resource', () => {
     );
     await ws.resources.create('x', 'workflows', newParams.workflows);
 
-    await removeResource(ws, 'workflow', 'x');
+    await ws.resources.remove('x', 'workflow');
 
     expect(
       (

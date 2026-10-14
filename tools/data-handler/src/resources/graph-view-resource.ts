@@ -40,6 +40,7 @@ export class GraphViewResource extends FolderResource<
    * Creates instance of GraphViewResource
    * @param checkout Project to use
    * @param name Resource name
+   * @internal
    */
   constructor(checkout: Checkout, name: ResourceName) {
     super(checkout, name, 'graphViews');

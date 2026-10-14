@@ -14,11 +14,7 @@
 */
 
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import {
-  removeResource,
-  resourceName,
-  type ProjectDirectory,
-} from '@cyberismo/data-handler';
+import { resourceName, type ProjectDirectory } from '@cyberismo/data-handler';
 import { z } from 'zod';
 import { toolResult, toolError } from '../lib/mcp-helpers.js';
 import { renderCard, getCardTree } from '../lib/render.js';
@@ -946,7 +942,7 @@ export function registerTools(
           extra,
           server,
         );
-        await removeResource(ws, resourceType, name);
+        await ws.resources.remove(name, resourceType);
         return toolResult({ resourceType, name });
       } catch (error) {
         return toolError('deleting resource', error);

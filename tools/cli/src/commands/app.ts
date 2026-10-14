@@ -22,8 +22,11 @@ import {
   startServer,
 } from '@cyberismo/backend';
 import { formatProjectErrors, type ProjectErrors } from '@cyberismo/model';
-import { localFolder, scanForProjects } from '@cyberismo/data-handler';
-import { errorFunction } from '@cyberismo/data-handler/utils/error-utils';
+import {
+  localFolder,
+  scanForProjects,
+  errorFunction,
+} from '@cyberismo/data-handler';
 
 import { CommandWithPath } from '../lib/args.js';
 import { program } from '../lib/program.js';
