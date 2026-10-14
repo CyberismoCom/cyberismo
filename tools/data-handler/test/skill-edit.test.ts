@@ -34,7 +34,7 @@ describe('edit skill', () => {
 
   // Reads the stored metadata back through the same path the app uses.
   async function relatedTools(): Promise<string[]> {
-    const skill = (await ws.showCmd.showResource(SKILL)) as Skill;
+    const skill = (await ws.resources.show(SKILL)) as Skill;
     return skill.relatedTools;
   }
 
