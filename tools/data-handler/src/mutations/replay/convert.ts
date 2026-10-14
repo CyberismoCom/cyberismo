@@ -12,7 +12,7 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import type { ConfigurationLogEntry } from '../../utils/configuration-logger.js';
+import type { ConfigurationLogEntry } from '../../infra/replay-log/configuration-logger.js';
 import type { Operation, MutationInput } from '@cyberismo/model';
 import { resourceName } from '../../utils/resource-utils.js';
 

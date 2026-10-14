@@ -20,7 +20,7 @@ import type {
 } from '@cyberismo/model';
 import { Validate } from '../commands/validate.js';
 import type { Checkout } from '../infra/checkout.js';
-import { ActionGuard } from '../permissions/action-guard.js';
+import { assertAllowed } from './guard.js';
 import { isExternalItemKey } from '../utils/card-utils.js';
 import { isPredefinedField } from '../utils/constants.js';
 import { getChildLogger } from '../utils/log-utils.js';
@@ -167,8 +167,7 @@ export async function editCardContent(
     return updateCardContent(checkout, cardKey, changedContent);
   }
   if (findCard(checkout, cardKey)) {
-    const actionGuard = new ActionGuard(checkout.calculationEngine);
-    await actionGuard.checkPermission('editContent', cardKey);
+    await assertAllowed(checkout, 'editContent', cardKey);
     await updateCardContent(checkout, cardKey, changedContent);
   }
 }
@@ -198,8 +197,7 @@ export async function editCardMetadata(
   }
 
   // check for editing rights
-  const actionGuard = new ActionGuard(checkout.calculationEngine);
-  await actionGuard.checkPermission('editField', cardKey, changedKey);
+  await assertAllowed(checkout, 'editField', cardKey, changedKey);
   await updateCardMetadataKey(checkout, cardKey, changedKey, newValue);
 }
 
