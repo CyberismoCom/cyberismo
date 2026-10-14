@@ -24,14 +24,16 @@ import {
 } from '@cyberismo/backend';
 import { formatProjectErrors, type ProjectErrors } from '@cyberismo/model';
 import {
-  Cmd,
   type StartCommandOptions,
   scanForProjects,
 } from '@cyberismo/data-handler';
+import { errorFunction } from '@cyberismo/data-handler/utils/error-utils';
 
 import { CommandWithPath } from '../lib/args.js';
-import { commandHandler, program } from '../lib/dispatch.js';
+import { program } from '../lib/dispatch.js';
+import { openWorkspace } from '../lib/open.js';
 import { confirm } from '../lib/prompts.js';
+import { validation } from './validate.js';
 
 async function getGitUserConfig(): Promise<MockUserConfig> {
   const git = simpleGit();
@@ -47,15 +49,14 @@ async function validateProjects(
 ): Promise<ProjectErrors[]> {
   const invalid: ProjectErrors[] = [];
   for (const project of projects) {
-    const result = await commandHandler.command(
-      Cmd.validate,
-      [],
+    // A project that cannot be opened reports why as its errors.
+    const result = await openWorkspace(
       Object.assign({}, options, program.opts(), {
         projectPath: project.path,
       }),
-    );
+    ).then(validation, errorFunction);
     const message =
-      result.message ||
+      result ||
       program.error(
         `Expected validation result for project '${project.name}', but got none`,
       );
