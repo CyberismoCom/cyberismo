@@ -102,20 +102,6 @@ export async function renderMermaidToSvg(code: string): Promise<string> {
 }
 
 /**
- * Pre-processes AsciiDoc content to convert [mermaid] blocks into passthrough HTML
- * that can be detected and rendered by the frontend.
- * This must run BEFORE asciidoctor.js converts the AsciiDoc to HTML.
- * @param content - Raw AsciiDoc content
- * @returns AsciiDoc content with mermaid blocks replaced by passthrough HTML divs
- */
-export function preprocessMermaidBlocksForHtml(content: string): string {
-  return content.replace(MERMAID_BLOCK_REGEX, (_match, _delim, code) => {
-    const encoded = Buffer.from(code, 'utf-8').toString('base64');
-    return `++++\n<div class="mermaid-block" data-mermaid-code="${encoded}"></div>\n++++`;
-  });
-}
-
-/**
  * Pre-processes AsciiDoc content to convert [mermaid] blocks into inline
  * base64-encoded PNG images for PDF export using the mmdc CLI.
  *

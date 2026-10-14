@@ -32,6 +32,7 @@ export class LinkTypeResource extends FileResource<LinkType> {
    * Creates instance of LinkTypeResource
    * @param checkout Project to use
    * @param name Resource name
+   * @internal
    */
   constructor(checkout: Checkout, name: ResourceName) {
     super(checkout, name, 'linkTypes');

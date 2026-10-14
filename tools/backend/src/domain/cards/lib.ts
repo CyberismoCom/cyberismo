@@ -13,7 +13,7 @@
 
 import type { Card, QueryResult } from '@cyberismo/model';
 import type { Workspace } from '@cyberismo/data-handler';
-import { preprocessMermaidBlocksForHtml } from '@cyberismo/data-handler/utils/mermaid-renderer';
+import { preprocessMermaidBlocksForHtml } from './mermaid.js';
 import { getCardQueryResult } from '../../export.js';
 import type { TreeOptions } from '../../types.js';
 

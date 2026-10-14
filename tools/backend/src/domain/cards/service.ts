@@ -17,7 +17,7 @@ import type {
   MetadataContent,
 } from '@cyberismo/model';
 import { AsciidoctorPdfError, type Workspace } from '@cyberismo/data-handler';
-import { preprocessMermaidBlocksForHtml } from '@cyberismo/data-handler/utils/mermaid-renderer';
+import { preprocessMermaidBlocksForHtml } from './mermaid.js';
 import { allCards } from './lib.js';
 import type { TreeOptions } from '../../types.js';
 

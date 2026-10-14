@@ -13,8 +13,7 @@
 
 import { type Command } from 'commander';
 
-import { migrateProject } from '@cyberismo/data-handler';
-import { errorFunction } from '@cyberismo/data-handler/utils/error-utils';
+import { migrateProject, errorFunction } from '@cyberismo/data-handler';
 
 import { pathGuideline } from '../lib/args.js';
 import { fail } from '../lib/errors.js';

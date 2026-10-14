@@ -18,9 +18,9 @@ import { join } from 'node:path';
 import { type Command } from 'commander';
 
 import { CardNotFoundError } from '@cyberismo/data-handler';
-import { UserPreferences } from '@cyberismo/data-handler/utils/user-preferences';
 
 import { CommandWithPath } from '../lib/args.js';
+import { UserPreferences } from '../lib/user-preferences.js';
 import { onProject } from '../lib/errors.js';
 import { printResult } from '../lib/output.js';
 import type { EditCommandOptions } from '../options.js';

@@ -79,6 +79,7 @@ function describeEntries(entries: ClassifiedEntry[]): string {
  * handle's actor's. Holds no state of its own.
  */
 export class Versions {
+  /** @internal */
   constructor(
     private readonly checkout: Checkout,
     public readonly actor: ActorRef,
