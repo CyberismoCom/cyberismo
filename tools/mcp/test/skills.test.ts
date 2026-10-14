@@ -20,9 +20,9 @@ import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
 import {
   ProjectNotFoundError,
-  Workspace,
   type CommitIdentity,
   type ProjectDirectory,
+  type Workspace,
 } from '@cyberismo/data-handler';
 import type { ActorRef } from '@cyberismo/model';
 import { createMcpServer } from '../src/server.js';
@@ -112,7 +112,6 @@ beforeAll(async () => {
 
 afterAll(async () => {
   await client.close();
-  ws.checkout.dispose();
   await rm(projectPath, { recursive: true, force: true });
 });
 
@@ -328,7 +327,7 @@ describe('skill discovery MCP prompts', () => {
         if (prefix !== 'registeredUnderOtherKey') {
           throw new ProjectNotFoundError(prefix);
         }
-        return Workspace.over(ws.checkout, actor, identity);
+        return directoryOf(ws).open('decision', actor, identity);
       },
       list: async () => [
         { prefix: 'registeredUnderOtherKey', name: 'decision' },

@@ -186,7 +186,7 @@ describe('directory.open', () => {
 });
 
 describe('directory.replace', () => {
-  it('reopens the project from its files and disposes the old checkout', async () => {
+  it('reopens the project from its files and refuses the old handle', async () => {
     const { root } = await folder({ prefix: 'one', name: 'Before' });
     const { directory } = await localFolder(root);
     const before = await directory.open('one', SYSTEM_ACTOR);
@@ -199,7 +199,9 @@ describe('directory.replace', () => {
     await directory.replace('one');
 
     const after = await directory.open('one', SYSTEM_ACTOR);
-    expect(before.checkout.disposed).toBe(true);
+    await expect(
+      before.modules.install(`file:${join(root, 'one')}`),
+    ).rejects.toMatchObject({ code: 'workspace-disposed' });
     expect(after.checkout).not.toBe(before.checkout);
     expect(after.settings.name).toBe('After');
   });

@@ -46,11 +46,7 @@ export function registerImport(program: Command) {
       ) => {
         const cards = await onProject(
           Object.assign({}, options, program.opts()),
-          (ws) =>
-            new Import(ws.checkout, ws.actor, ws.identity).importCsv(
-              csvFile,
-              cardKey,
-            ),
+          (ws) => new Import(ws).importCsv(csvFile, cardKey),
         );
         console.log('Imported cards:');
         printJson(cards);

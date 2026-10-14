@@ -12,6 +12,7 @@
 */
 
 import { type Checkout } from '../infra/checkout.js';
+import type { Workspace } from '../workspace/workspace.js';
 import { renameProjectPrefix } from '../utils/prefix-rename.js';
 import { write } from '../infra/rw-lock.js';
 import type { CommitIdentity } from '../utils/tx-record.js';
@@ -27,15 +28,16 @@ import type { ActorRef } from '@cyberismo/model';
  * module, and consumers cannot update to it from the old one.
  */
 export class Rename {
-  /**
-   * Creates an instance of Rename command.
-   * @param checkout Project instance to use.
-   */
-  constructor(
-    private checkout: Checkout,
-    public readonly actor: ActorRef,
-    public readonly identity?: CommitIdentity,
-  ) {}
+  private readonly checkout: Checkout;
+  public readonly actor: ActorRef;
+  public readonly identity?: CommitIdentity;
+
+  /** Acts on the handle's project as its actor. */
+  constructor(ws: Workspace) {
+    this.checkout = ws.checkout;
+    this.actor = ws.actor;
+    this.identity = ws.identity;
+  }
 
   /**
    * Renames project prefix.

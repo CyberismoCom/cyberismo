@@ -29,7 +29,6 @@ describe('edit skill', () => {
   });
 
   afterEach(() => {
-    ws.checkout.dispose();
     rmSync(testDir, { recursive: true, force: true });
   });
 
