@@ -39,6 +39,7 @@ export class FieldTypeResource extends FileResource<FieldType> {
    * Creates an instance of FieldTypeResource
    * @param checkout Project to use
    * @param name Resource name
+   * @internal
    */
   constructor(checkout: Checkout, name: ResourceName) {
     super(checkout, name, 'fieldTypes');

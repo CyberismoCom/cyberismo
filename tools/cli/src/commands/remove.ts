@@ -13,7 +13,7 @@
 
 import { type Command } from 'commander';
 
-import { removeResource, type Workspace } from '@cyberismo/data-handler';
+import type { Workspace } from '@cyberismo/data-handler';
 
 import {
   CommandWithPath,
@@ -167,7 +167,7 @@ export async function removeAction(
     const removed = commandType(type);
     if (Resources.includes(removed)) {
       const note = await onProject(commandOptions, async (ws) => {
-        await removeResource(ws, removed, commandTarget(type, parameter1!));
+        await ws.resources.remove(commandTarget(type, parameter1!), removed);
         // Card types stop declaring a deleted field type, so the values its
         // cards stored are left in place; nothing else removed here can strand
         // a value that 'clean' would find.

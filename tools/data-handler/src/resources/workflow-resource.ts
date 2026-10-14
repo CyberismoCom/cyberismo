@@ -41,6 +41,7 @@ export class WorkflowResource extends FileResource<Workflow> {
    * Creates an instance of WorkflowResource
    * @param checkout Project to use
    * @param name Resource name
+   * @internal
    */
   constructor(checkout: Checkout, name: ResourceName) {
     super(checkout, name, 'workflows');

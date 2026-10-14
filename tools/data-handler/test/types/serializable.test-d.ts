@@ -149,8 +149,12 @@ export const changes: FacadeSerializable<Omit<Changes, 'subscribe'>> &
 
 export const changeEvent: Serializable<ChangeEvent> = true;
 
-export const resources: FacadeSerializable<Resources> = {
+export const resources: FacadeSerializable<Resources> &
+  PropertiesSerializable<Resources> = {
+  actor: true,
+  identity: true,
   create: true,
+  remove: true,
   validate: true,
   show: true,
   list: true,
