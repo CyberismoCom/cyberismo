@@ -232,10 +232,7 @@ class LocalFolder implements ProjectDirectory {
       if (newPrefix !== prefix && this.holds(newPrefix)) {
         throw new ProjectExistsError(newPrefix);
       }
-      await new Rename(ws.checkout, ws.actor, ws.identity).rename(
-        newPrefix,
-        force,
-      );
+      await new Rename(ws).rename(newPrefix, force);
     });
   }
 

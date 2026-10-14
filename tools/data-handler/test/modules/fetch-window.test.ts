@@ -15,12 +15,18 @@ import { existsSync, readdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { localFolder } from '../../src/directory/local-folder.js';
 import { Fetch } from '../../src/infra/hub-store.js';
 import { FileSourceLayer } from '../../src/infra/module-source/source-file.js';
+import { SYSTEM_ACTOR } from '../../src/utils/tx-record.js';
 import { projects } from '../cards/fixture.js';
+import { buildProject } from '../helpers/project-builder.js';
 import { readJson } from '../resources/fixture.js';
 
-import type { Workspace } from '../../src/workspace/workspace.js';
+import type {
+  Workspace,
+  WorkspaceOptions,
+} from '../../src/workspace/workspace.js';
 
 // A module operation fetches outside the workspace lock; these run something
 // else in that window, at the hub refresh that opens it.
@@ -60,8 +66,28 @@ const versionMini = (path: string, version: string) => {
   writeFileSync(file, JSON.stringify({ ...readJson(file), version }));
 };
 
-afterEach(() => {
+// A handle on the project as a directory holds it, and its replacement there.
+async function held(path: string, options?: WorkspaceOptions) {
+  const { directory } = await localFolder(path, options);
+  const [{ prefix }] = await directory.list();
+  return {
+    ws: await directory.open(prefix, SYSTEM_ACTOR),
+    replace: () => directory.replace(prefix),
+  };
+}
+
+const built: (() => Promise<void>)[] = [];
+
+// A project on disk that nothing has opened.
+async function unopened(spec: Parameters<typeof buildProject>[0] = {}) {
+  const project = await buildProject(spec);
+  built.push(project.cleanup);
+  return project;
+}
+
+afterEach(async () => {
   vi.restoreAllMocks();
+  for (const cleanup of built.splice(0)) await cleanup();
 });
 
 describe('a module operation fetching outside the lock', () => {
@@ -127,14 +153,15 @@ describe('a module operation fetching outside the lock', () => {
     });
   });
 
-  it('leaves the directory alone when disposed while waiting to write', async () => {
-    const { ws, path } = await open({ git: true }, { autocommit: true });
+  it('leaves the directory alone when replaced while waiting to write', async () => {
+    const { path } = await unopened({ git: true });
+    const { ws, replace } = await held(path, { autocommit: true });
     // The checkout that replaced this one has changes of its own.
     const theirs = join(path, 'cardRoot', 'theirs.txt');
     const lock = ws.checkout.lock;
     const write = lock.write.bind(lock) as (...args: unknown[]) => unknown;
-    vi.spyOn(lock, 'write').mockImplementation(((...args: unknown[]) => {
-      ws.checkout.dispose();
+    vi.spyOn(lock, 'write').mockImplementation((async (...args: unknown[]) => {
+      await replace();
       writeFileSync(theirs, 'theirs');
       return write(...args);
     }) as typeof lock.write);
@@ -145,9 +172,10 @@ describe('a module operation fetching outside the lock', () => {
     expect(existsSync(theirs)).toBe(true);
   });
 
-  it('applies nothing into a checkout disposed meanwhile', async () => {
-    const { ws, path } = await open();
-    whileFetching(async () => ws.checkout.dispose());
+  it('applies nothing into a checkout replaced meanwhile', async () => {
+    const { path } = await unopened();
+    const { ws, replace } = await held(path);
+    whileFetching(replace);
 
     await expect(ws.modules.install(mini)).rejects.toMatchObject({
       code: 'workspace-disposed',

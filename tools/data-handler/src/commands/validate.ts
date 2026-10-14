@@ -44,6 +44,7 @@ import {
   pathExists,
 } from '../utils/file-utils.js';
 import type { Checkout } from '../infra/checkout.js';
+import type { Workspace } from '../workspace/workspace.js';
 import { readJsonFile } from '../utils/json.js';
 import { resourceName } from '../utils/resource-utils.js';
 import { normalizeSchemaId, schemaValidator } from '../utils/validate.js';
@@ -645,6 +646,11 @@ export class Validate {
       validationErrors += errorFunction(error);
     }
     return validationErrors;
+  }
+
+  /** As `validate`, for the handle's project. */
+  public async validateWorkspace(ws: Workspace): Promise<string> {
+    return this.validate(ws.path, () => ws.checkout);
   }
 
   /** Whether `path` is a valid folder name; see isValidFolderName. */
