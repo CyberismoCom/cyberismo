@@ -18,7 +18,7 @@ import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 
 import { runMigrationChain, SCHEMA_VERSION } from '@cyberismo/migrations';
-import { migrate } from '../src/commands/migrate.js';
+import { migrateProject } from '../src/directory/migrate-project.js';
 
 import type * as migrations from '@cyberismo/migrations';
 
@@ -50,26 +50,26 @@ describe('migrate command', () => {
 
   it('rejects when project has no schema version', async () => {
     writeConfig({ cardKeyPrefix: 'demo' });
-    await expect(migrate(testDir)).rejects.toThrow('no schema version');
+    await expect(migrateProject(testDir)).rejects.toThrow('no schema version');
     expect(runChainMock).not.toHaveBeenCalled();
   });
 
   it('reports project already at the latest version', async () => {
     writeConfig({ schemaVersion: SCHEMA_VERSION });
-    const message = await migrate(testDir);
+    const message = await migrateProject(testDir);
     expect(message).toContain('already at version');
     expect(runChainMock).not.toHaveBeenCalled();
   });
 
   it('rejects a project newer than the tool', async () => {
     writeConfig({ schemaVersion: SCHEMA_VERSION + 1 });
-    await expect(migrate(testDir)).rejects.toThrow('Upgrade cyberismo');
+    await expect(migrateProject(testDir)).rejects.toThrow('Upgrade cyberismo');
     expect(runChainMock).not.toHaveBeenCalled();
   });
 
   it('runs the chain from the current version to the latest', async () => {
     writeConfig({ schemaVersion: 1 });
-    const message = await migrate(testDir);
+    const message = await migrateProject(testDir);
     expect(runChainMock).toHaveBeenCalledWith(testDir, 1);
     expect(message).toContain('Successfully migrated');
   });
@@ -79,6 +79,6 @@ describe('migrate command', () => {
     runChainMock.mockRejectedValueOnce(
       new Error('Migration to schema 5 failed: boom'),
     );
-    await expect(migrate(testDir)).rejects.toThrow('boom');
+    await expect(migrateProject(testDir)).rejects.toThrow('boom');
   });
 });

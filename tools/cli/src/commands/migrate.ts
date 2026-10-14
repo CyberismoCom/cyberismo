@@ -13,11 +13,13 @@
 
 import { type Command } from 'commander';
 
-import { Cmd, type CommandOptions } from '@cyberismo/data-handler';
+import { migrateProject, type CommandOptions } from '@cyberismo/data-handler';
+import { errorFunction } from '@cyberismo/data-handler/utils/error-utils';
 
 import { pathGuideline } from '../lib/args.js';
-import { commandHandler } from '../lib/dispatch.js';
-import { handleResponse } from '../lib/output.js';
+import { fail } from '../lib/errors.js';
+import { projectPathOf } from '../lib/open.js';
+import { printResult } from '../lib/output.js';
 
 export function registerMigrate(program: Command) {
   // Migrate command
@@ -26,11 +28,15 @@ export function registerMigrate(program: Command) {
     .description('Migrate project schema to the latest version.')
     .option('-p, --project-path [path]', `${pathGuideline}`)
     .action(async (options: CommandOptions<'migrate'>) => {
-      const result = await commandHandler.command(
-        Cmd.migrate,
-        [],
-        Object.assign({}, options, program.opts()),
-      );
-      handleResponse(result);
+      // The project is not opened: its schema may be one opening refuses.
+      try {
+        printResult(
+          await migrateProject(
+            projectPathOf(Object.assign({}, options, program.opts())),
+          ),
+        );
+      } catch (error) {
+        fail(errorFunction(error));
+      }
     });
 }
