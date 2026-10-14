@@ -11,7 +11,7 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { ActionGuard } from '../permissions/action-guard.js';
+import { assertAllowed } from './guard.js';
 import { ContainerMismatchError } from '../exceptions/index.js';
 import type { Checkout } from '../infra/checkout.js';
 import type { CardTree } from '../infra/card-tree.js';
@@ -99,8 +99,7 @@ export async function moveCard(
   }
 
   // make sure source card can be moved
-  const actionGuard = new ActionGuard(checkout.calculationEngine);
-  await actionGuard.checkPermission('move', source);
+  await assertAllowed(checkout, 'move', source);
 
   await relocateCard(checkout, source, newParent, targetTree.name);
 

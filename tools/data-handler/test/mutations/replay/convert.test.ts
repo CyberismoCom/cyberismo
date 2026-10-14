@@ -14,7 +14,7 @@
 
 import { describe, it, expect } from 'vitest';
 import { entryToMutationInput } from '../../../src/mutations/replay/convert.js';
-import type { ConfigurationLogEntry } from '../../../src/utils/configuration-logger.js';
+import type { ConfigurationLogEntry } from '../../../src/infra/replay-log/configuration-logger.js';
 
 describe('entryToMutationInput', () => {
   it('converts resource_update', () => {
