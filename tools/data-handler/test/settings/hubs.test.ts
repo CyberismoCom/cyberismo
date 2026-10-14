@@ -57,7 +57,7 @@ const cachedModules = (path: string) =>
       name: string;
     }[]
   ).map((module) => module.name);
-const hubs = (ws: Opened['ws']) => ws.showCmd.showHubs();
+const hubs = (ws: Opened['ws']) => ws.modules.hubs();
 
 describe('adding a hub', () => {
   // Resolving moduleList.json against a location without the closing slash
@@ -269,7 +269,7 @@ describe('showing the hubs with their modules', () => {
       }),
     );
 
-    expect(await ws.showCmd.showHubDetails()).toEqual([
+    expect(await ws.modules.hubDetails()).toEqual([
       {
         location: hubA,
         displayName: 'Mine',
@@ -288,7 +288,7 @@ describe('showing the hubs with their modules', () => {
   it('gives the hubs without modules when nothing is cached', async () => {
     const { ws } = await open({ hubs: [{ location: hubA }] });
 
-    expect(await ws.showCmd.showHubDetails()).toEqual([
+    expect(await ws.modules.hubDetails()).toEqual([
       {
         location: hubA,
         displayName: undefined,
