@@ -16,9 +16,6 @@ import { spawnSync } from 'node:child_process';
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { resolve } from 'node:path';
 
-// On Windows the `npm` binary is `npm.cmd`; spawn won't auto-resolve.
-const NPM = process.platform === 'win32' ? 'npm.cmd' : 'npm';
-
 // Must match the umbrella's optionalDependencies and TARGETS in
 // build-native-packages.js.
 const KNOWN_TARGETS = new Set([
@@ -44,7 +41,7 @@ Options:
                     "@cyberismo/node-clingo-".
                     Default: tools/node-clingo/dist-packages/@cyberismo
   --tag <dist-tag>  npm dist-tag to publish under. Default: latest
-  --dry-run         Run "npm publish --dry-run" instead of a real publish.
+  --dry-run         Run "pnpm publish --dry-run" instead of a real publish.
                     The idempotency check still runs first; sub-packages
                     already on npm at the umbrella's version are skipped.
   -h, --help        Print this help.
@@ -199,12 +196,12 @@ for (const { dir, pkg } of candidates) {
   console.log('----');
   console.log(`Considering ${pkg.name}@${pkg.version} from ${dir}`);
 
-  // `npm view` exits non-zero (and prints nothing) when the version isn't
-  // on the registry; an exact-version stdout match means already published.
+  // `pnpm view` exits non-zero when the version isn't on the registry; an
+  // exact-version stdout match means already published.
   const view = spawnSync(
-    NPM,
+    'pnpm',
     ['view', `${pkg.name}@${pkg.version}`, 'version'],
-    { encoding: 'utf8' },
+    { encoding: 'utf8', shell: process.platform === 'win32' },
   );
   const viewOut = (view.stdout || '').trim();
   if (view.status === 0 && viewOut === pkg.version) {
@@ -218,9 +215,17 @@ for (const { dir, pkg } of candidates) {
       `Dry run: would publish ${pkg.name}@${pkg.version} with --tag ${opts.tag}`,
     );
     const result = spawnSync(
-      'npm',
-      ['publish', '--dry-run', '--tag', opts.tag, '--access', 'public'],
-      { cwd: dir, stdio: 'inherit' },
+      'pnpm',
+      [
+        'publish',
+        '--dry-run',
+        '--no-git-checks',
+        '--tag',
+        opts.tag,
+        '--access',
+        'public',
+      ],
+      { cwd: dir, stdio: 'inherit', shell: process.platform === 'win32' },
     );
     if (result.status !== 0) {
       failures.push(
@@ -234,9 +239,17 @@ for (const { dir, pkg } of candidates) {
 
   console.log(`Publishing ${pkg.name}@${pkg.version} with --tag ${opts.tag}`);
   const result = spawnSync(
-    NPM,
-    ['publish', '--tag', opts.tag, '--provenance', '--access', 'public'],
-    { cwd: dir, stdio: 'inherit' },
+    'pnpm',
+    [
+      'publish',
+      '--no-git-checks',
+      '--tag',
+      opts.tag,
+      '--provenance',
+      '--access',
+      'public',
+    ],
+    { cwd: dir, stdio: 'inherit', shell: process.platform === 'win32' },
   );
   if (result.status !== 0) {
     failures.push(`${pkg.name}@${pkg.version} (publish exit ${result.status})`);
