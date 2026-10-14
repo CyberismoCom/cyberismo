@@ -64,11 +64,17 @@ export class AsciidoctorPdfError extends Error {
  * Handles all export commands.
  */
 export class Export {
+  /** @internal */
+  protected checkout: Checkout;
+
   /**
    * Creates an instance of export.
    * @param checkout Project to use
+   * @internal
    */
-  constructor(protected checkout: Checkout) {}
+  constructor(checkout: Checkout) {
+    this.checkout = checkout;
+  }
 
   // This file should set the top level items to the adoc.
   private async toAdocFile(files: AdocFiles, cards: Card[]) {

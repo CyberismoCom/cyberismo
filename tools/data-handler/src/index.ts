@@ -14,13 +14,11 @@ import { Workspace } from './workspace/workspace.js';
 import { ExportFormats } from './export/export.js';
 import { Validate } from './commands/validate.js';
 export { SCHEMA_VERSION } from '@cyberismo/migrations';
-export * from './interfaces/macros.js';
 export { createProject } from './directory/create-project.js';
 export { localFolder, openProjectAt } from './directory/local-folder.js';
 export { renameProject } from './directory/rename-project.js';
 export { migrateProject } from './directory/migrate-project.js';
 export type { ProjectDirectory } from './directory/project-directory.js';
-import { evaluateMacros } from './macros/index.js';
 import { macroErrorText } from './macros/render.js';
 import { validBumps } from './versions/version.js';
 import {
@@ -40,7 +38,6 @@ export {
   resourceNameToString,
   scanForProjects,
   Validate,
-  evaluateMacros,
   macroErrorText,
   validBumps,
 };
@@ -63,13 +60,12 @@ export {
   SchemaNotFound,
   WorkspaceDisposedError,
 } from './exceptions/index.js';
-export type { Checkout } from './infra/checkout.js';
 export { AsciidoctorPdfError } from './export/export.js';
-export type { WorkspaceOptions } from './workspace/workspace.js';
-export { removeResource } from './utils/remove-resource.js';
 export {
-  SYSTEM_ACTOR,
-  type CommitIdentity,
-  type WriteFrame,
-} from './utils/tx-record.js';
+  ModuleReplayFailedError,
+  ModuleValidationFailedError,
+} from './mutations/replay/replay.js';
+export { errorFunction } from './utils/error-utils.js';
+export type { WorkspaceOptions } from './workspace/workspace.js';
+export { SYSTEM_ACTOR, type CommitIdentity } from './utils/tx-record.js';
 export { createGit } from './infra/git-config.js';

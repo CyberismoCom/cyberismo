@@ -65,6 +65,7 @@ import {
  * Holds no state of its own.
  */
 export class Cards {
+  /** @internal */
   constructor(
     private readonly checkout: Checkout,
     public readonly actor: ActorRef,

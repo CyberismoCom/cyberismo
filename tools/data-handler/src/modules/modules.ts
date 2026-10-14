@@ -152,6 +152,7 @@ export class Modules {
 
   private readonly fetchCmd: Fetch;
 
+  /** @internal */
   constructor(
     private readonly checkout: Checkout,
     public readonly actor: ActorRef,

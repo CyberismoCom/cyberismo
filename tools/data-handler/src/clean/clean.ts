@@ -42,6 +42,7 @@ const logger = () => getChildLogger({ module: 'clean' });
  * ("dormant") until this command runs; dry-run reports without writing.
  */
 export class Clean {
+  /** @internal */
   constructor(
     private readonly checkout: Checkout,
     public readonly actor: ActorRef,

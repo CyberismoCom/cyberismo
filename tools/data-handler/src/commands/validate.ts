@@ -54,6 +54,7 @@ const SHORT_TEXT_MAX_LENGTH = 80;
 import * as EmailValidator from 'email-validator';
 import { evaluateMacros } from '../macros/index.js';
 import { allTemplateCards } from '../cards/read.js';
+import { checkoutOf } from '../infra/internal.js';
 const baseDir = import.meta.dirname ?? new URL('.', import.meta.url).pathname;
 const subFoldersToValidate = ['.cards', 'cardRoot'];
 
@@ -529,6 +530,7 @@ export class Validate {
    * @param projectPath path to validate.
    * @param projectFn function that returns a Project instance.
    * @returns string containing all validation errors
+   * @internal
    */
   public async validate(
     projectPath: string,
@@ -650,7 +652,7 @@ export class Validate {
 
   /** As `validate`, for the handle's project. */
   public async validateWorkspace(ws: Workspace): Promise<string> {
-    return this.validate(ws.path, () => ws.checkout);
+    return this.validate(ws.path, () => checkoutOf(ws));
   }
 
   /** Whether `path` is a valid folder name; see isValidFolderName. */
@@ -738,6 +740,7 @@ export class Validate {
    * @param card specific card
    * @throws when card does not have metadata
    * @returns validation errors, if any.
+   * @internal
    */
   public async validateCustomFields(
     checkout: Checkout,
@@ -905,6 +908,7 @@ export class Validate {
    * @param checkout Project object.
    * @param card Card object to validate
    * @returns validation errors, if any.
+   * @internal
    */
   public async validateWorkflowState(
     checkout: Checkout,
@@ -978,6 +982,7 @@ export class Validate {
    * @param resourceName Resource to validate
    * @param checkout Project instance to use.
    * @returns validation errors, if any.
+   * @internal
    */
   public async validateResource(
     resourceName: ResourceName,

@@ -12,6 +12,7 @@
 */
 
 import { type Checkout } from '../infra/checkout.js';
+import { checkoutOf } from '../infra/internal.js';
 import type { Workspace } from '../workspace/workspace.js';
 import { renameProjectPrefix } from '../utils/prefix-rename.js';
 import { write } from '../infra/rw-lock.js';
@@ -34,7 +35,7 @@ export class PrefixRename {
 
   /** Acts on the handle's project as its actor. */
   constructor(ws: Workspace) {
-    this.checkout = ws.checkout;
+    this.checkout = checkoutOf(ws);
     this.actor = ws.actor;
     this.identity = ws.identity;
   }
