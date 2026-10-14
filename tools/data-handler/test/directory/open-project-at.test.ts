@@ -45,17 +45,12 @@ describe('openProjectAt', () => {
 
     const ws = await openProjectAt(path, ann.actor, ann.identity);
     const other = await openProjectAt(path, ann.actor);
-    try {
-      expect([ws.path, ws.actor, ws.identity]).toEqual([
-        path,
-        ann.actor,
-        ann.identity,
-      ]);
-      expect(other.checkout).not.toBe(ws.checkout);
-    } finally {
-      ws.checkout.dispose();
-      other.checkout.dispose();
-    }
+    expect([ws.path, ws.actor, ws.identity]).toEqual([
+      path,
+      ann.actor,
+      ann.identity,
+    ]);
+    expect(other.checkout).not.toBe(ws.checkout);
   });
 
   it('refuses a folder of projects', async () => {

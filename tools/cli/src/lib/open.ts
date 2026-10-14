@@ -18,9 +18,8 @@ import {
   openProjectAt,
   SYSTEM_ACTOR,
   Validate,
-  Workspace,
-  type Checkout,
   type CommitIdentity,
+  type Workspace,
   type WorkspaceOptions,
 } from '@cyberismo/data-handler';
 import {
@@ -28,7 +27,7 @@ import {
   resolveTilde,
 } from '@cyberismo/data-handler/utils/file-utils';
 import type { ActorRef } from '@cyberismo/model';
-import type { AllCommandOptions, StartCommandOptions } from '../options.js';
+import type { AllCommandOptions } from '../options.js';
 
 // Nearest folder at or above 'path' that holds '.cards'; '' if none.
 function findProjectRoot(path: string): string {
@@ -99,10 +98,9 @@ export function existingAncestor(path: string): string {
   return pathExists(path) || parent === path ? path : existingAncestor(parent);
 }
 
-// The process's one checkout; replaced when a command chain moves to another
+// The process's one handle; replaced when a command chain moves to another
 // project (e.g. 'create project' and then its first imports).
-let checkout: Checkout | undefined;
-process.on('exit', () => checkout?.dispose());
+let open: Workspace | undefined;
 
 /**
  * The caller's handle over the process's one checkout.
@@ -112,20 +110,12 @@ export async function openProject(
   options: WorkspaceOptions & { projectPath: string },
 ): Promise<Workspace> {
   const { projectPath, ...checkoutOptions } = options;
-  const { actor, identity } = await gitAuthor(projectPath);
-  if (checkout?.basePath !== projectPath) {
-    checkout?.dispose();
-    checkout = undefined;
-    const ws = await openProjectAt(
-      projectPath,
-      actor,
-      identity,
-      checkoutOptions,
-    );
-    checkout = ws.checkout;
-    return ws;
+  if (open?.path !== projectPath) {
+    open = undefined;
+    const { actor, identity } = await gitAuthor(projectPath);
+    open = await openProjectAt(projectPath, actor, identity, checkoutOptions);
   }
-  return Workspace.over(checkout, actor, identity);
+  return open;
 }
 
 // The command's project path; refuses one that is not a project.
@@ -153,7 +143,6 @@ export async function openWorkspace(
   return openProject({
     projectPath: projectPathOf(options),
     logLevel: options.logLevel,
-    watchResourceChanges: (options as StartCommandOptions).watchResourceChanges,
     autocommit: options.autocommit,
     autopush: options.autopush,
   });

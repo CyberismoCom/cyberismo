@@ -26,7 +26,7 @@ import {
 } from '../helpers/project-builder.js';
 import { openTestWorkspace } from '../helpers/open-test-workspace.js';
 
-// Call once per file; every project it opens is disposed after each test.
+// Call once per file; every project it builds is removed after each test.
 export function projects() {
   const cleanups: (() => Promise<void>)[] = [];
   afterEach(async () => {
@@ -35,10 +35,7 @@ export function projects() {
   return async (spec: ProjectSpec = {}, options: WorkspaceOptions = {}) => {
     const project = await buildProject(spec);
     const ws = await openTestWorkspace(project.path, options);
-    cleanups.push(async () => {
-      ws.checkout.dispose();
-      await project.cleanup();
-    });
+    cleanups.push(project.cleanup);
     return { ws, cards: ws.cards, ...project };
   };
 }
