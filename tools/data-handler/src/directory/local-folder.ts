@@ -22,7 +22,10 @@ import type {
 } from '@cyberismo/model';
 import { Create } from '../commands/create.js';
 import { Checkout } from '../containers/project.js';
-import { ProjectNotFoundError } from '../exceptions/index.js';
+import {
+  ProjectExistsError,
+  ProjectNotFoundError,
+} from '../exceptions/index.js';
 import { isProjectDirectory, scanForProjects } from '../project-scanner.js';
 import { SYSTEM_ACTOR, type CommitIdentity } from '../utils/tx-record.js';
 import { Workspace, type WorkspaceOptions } from '../workspace/workspace.js';
@@ -86,6 +89,7 @@ function systemSettings(checkout: Checkout) {
 // prefix -> Checkout of the projects under one folder.
 class LocalFolder implements ProjectDirectory {
   private readonly checkouts = new Map<string, Checkout>();
+  private queue: Promise<unknown> = Promise.resolve();
 
   constructor(
     private readonly root: string,
@@ -96,7 +100,50 @@ class LocalFolder implements ProjectDirectory {
     if (this.checkouts.has(prefix)) {
       throw new Error(`Project '${prefix}' is already registered`);
     }
+    this.hold(prefix, checkout);
+  }
+
+  private hold(prefix: string, checkout: Checkout) {
     this.checkouts.set(prefix, checkout);
+    // A write's event names the project's prefix once the write is done, so
+    // a rename is followed only if it stands.
+    checkout.changeFeed.subscribe(({ project }) =>
+      this.follow(checkout, project),
+    );
+  }
+
+  // Runs `fn` after the renames and creates started before it, so each one's
+  // check sees the prefixes the earlier ones took.
+  private serially<T>(fn: () => Promise<T>): Promise<T> {
+    const run = this.queue.then(fn);
+    this.queue = run.catch(() => {});
+    return run;
+  }
+
+  // Whether a project has `prefix`: under its key, or on disk inside a write
+  // that renamed it and has not ended yet.
+  private holds(prefix: string): boolean {
+    return (
+      this.checkouts.has(prefix) ||
+      [...this.checkouts.values()].some(
+        (checkout) => checkout.projectPrefix === prefix,
+      )
+    );
+  }
+
+  // Keeps `checkout` under `prefix`, its prefix now, unless another project
+  // holds it.
+  private follow(checkout: Checkout, prefix: string) {
+    if (this.checkouts.has(prefix)) {
+      return;
+    }
+    for (const [key, held] of this.checkouts) {
+      if (held === checkout) {
+        this.checkouts.delete(key);
+        this.checkouts.set(prefix, checkout);
+        return;
+      }
+    }
   }
 
   private checkout(prefix: string): Checkout {
@@ -133,14 +180,16 @@ class LocalFolder implements ProjectDirectory {
     identity?: CommitIdentity,
   ): Promise<ProjectSummary> {
     const { name, prefix, category, description } = params;
-    const ws = await Workspace.createProjectWithDefaults(
-      join(this.root, prefix),
-      params,
-      actor,
-      identity,
-      this.options,
-    );
-    this.add(prefix, ws.checkout);
+    await this.serially(async () => {
+      const ws = await Workspace.createProjectWithDefaults(
+        join(this.root, prefix),
+        params,
+        actor,
+        identity,
+        this.options,
+      );
+      this.add(prefix, ws.checkout);
+    });
     return {
       prefix,
       name,
@@ -174,10 +223,26 @@ class LocalFolder implements ProjectDirectory {
     };
   }
 
+  async rename(
+    prefix: string,
+    newPrefix: string,
+    actor: ActorRef,
+    identity?: CommitIdentity,
+    { force = false }: { force?: boolean } = {},
+  ): Promise<void> {
+    await this.serially(async () => {
+      const ws = await this.open(prefix, actor, identity);
+      if (newPrefix !== prefix && this.holds(newPrefix)) {
+        throw new ProjectExistsError(newPrefix);
+      }
+      await ws.renameCmd.rename(newPrefix, force);
+    });
+  }
+
   async replace(prefix: string): Promise<void> {
     const old = this.checkout(prefix);
     const checkout = await Checkout.open(old.basePath, this.options);
     old.dispose();
-    this.checkouts.set(prefix, checkout);
+    this.hold(prefix, checkout);
   }
 }

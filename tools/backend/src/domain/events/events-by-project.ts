@@ -36,10 +36,29 @@ export class EventsByProject {
     // Another request may have created them while this one waited.
     let events = this.events.get(prefix);
     if (!events) {
-      events = new ProjectEvents(ws.changes);
-      this.events.set(prefix, events);
+      const held = new ProjectEvents(ws.changes);
+      this.events.set(prefix, held);
+      // An event names the project's prefix once its write is done, so a
+      // rename is followed as the directory follows it.
+      ws.changes.subscribe(({ project }) => this.follow(held, project));
+      events = held;
     }
     return events;
+  }
+
+  // Keeps `events` under `prefix`, its project's prefix now, unless another
+  // project's events hold it.
+  private follow(events: ProjectEvents, prefix: string) {
+    if (this.events.has(prefix)) {
+      return;
+    }
+    for (const [key, held] of this.events) {
+      if (held === events) {
+        this.events.delete(key);
+        this.events.set(prefix, events);
+        return;
+      }
+    }
   }
 
   /** Disposes the project's events, closing their connections. */

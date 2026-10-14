@@ -11,7 +11,7 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { type Workspace } from '@cyberismo/data-handler';
+import { type ProjectDirectory, type Workspace } from '@cyberismo/data-handler';
 import {
   type CleanResult,
   type HubFetchFailure,
@@ -95,13 +95,19 @@ export async function getProject(ws: Workspace): Promise<ProjectInfo> {
 
 export async function updateProject(
   ws: Workspace,
+  directory: ProjectDirectory,
   updates: ProjectUpdatePayload,
 ): Promise<ProjectInfo> {
   const { name, cardKeyPrefix, description, category, gitRemoteUrl } = updates;
 
   await ws.atomic(async () => {
     if (cardKeyPrefix) {
-      await ws.renameCmd.rename(cardKeyPrefix);
+      await directory.rename(
+        ws.settings.prefix,
+        cardKeyPrefix,
+        ws.actor,
+        ws.identity,
+      );
     }
     if (name) {
       await ws.settings.setName(name);
