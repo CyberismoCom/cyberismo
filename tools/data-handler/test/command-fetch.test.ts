@@ -16,8 +16,8 @@ import { join } from 'node:path';
 
 import { Workspace } from '../src/workspace/workspace.js';
 import { copyDir } from '../src/utils/file-utils.js';
-import { Fetch, MODULE_LIST_FULL_PATH } from '../src/commands/fetch.js';
-import { Checkout } from '../src/containers/project.js';
+import { Fetch, MODULE_LIST_FULL_PATH } from '../src/infra/hub-store.js';
+import { Checkout } from '../src/infra/checkout.js';
 
 import type { HubSetting } from '@cyberismo/model';
 import type * as Undici from 'undici';

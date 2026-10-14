@@ -3,7 +3,7 @@ import { expect, it, describe, beforeAll, afterAll } from 'vitest';
 import { join } from 'node:path';
 import { appendFileSync, mkdirSync, rmSync } from 'node:fs';
 import { copyDir } from '../src/utils/file-utils.js';
-import type { Checkout } from '../src/containers/project.js';
+import type { Checkout } from '../src/infra/checkout.js';
 import type { QueryResult } from '@cyberismo/model';
 import Handlebars from 'handlebars';
 import { lpFiles, pdfReport } from '@cyberismo/assets';

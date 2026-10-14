@@ -2,7 +2,7 @@ import { expect, it, describe } from 'vitest';
 import {
   runWithCommitContext,
   getCommitContext,
-} from '../src/utils/commit-context.js';
+} from '../src/infra/commit-context.js';
 import { deferred } from './test-utils.js';
 
 describe('commit-context', () => {

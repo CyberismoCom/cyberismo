@@ -13,9 +13,9 @@
 
 import semver from 'semver';
 import { createGit, gitTimeout } from './git-config.js';
-import { getChildLogger } from './log-utils.js';
-import { stripTagPrefix, versionToTag } from '../modules/version.js';
-import type { CommitIdentity } from './tx-record.js';
+import { getChildLogger } from '../utils/log-utils.js';
+import { stripTagPrefix, versionToTag } from '../utils/version.js';
+import type { CommitIdentity } from '../utils/tx-record.js';
 
 // Whitespace and control characters, so a value can't add lines or trailers.
 const LINE_BREAKING = /[\s\p{Cc}]+/gu;

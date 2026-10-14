@@ -16,14 +16,14 @@ import { randomBytes } from 'node:crypto';
 import { mkdir, rename } from 'node:fs/promises';
 import { join } from 'node:path';
 
-import { ProjectPaths } from '../containers/project/project-paths.js';
-import { readModuleConfig } from '../containers/project/cards-config.js';
+import { ProjectPaths } from '../infra/project-paths.js';
+import { readModuleConfig } from '../infra/cards-config.js';
 import { deleteDir, pathExists } from '../utils/file-utils.js';
 import { getChildLogger } from '../utils/log-utils.js';
 
 import type { ResolvedModule } from './resolve/types.js';
 import type { ModuleSetting } from '@cyberismo/model';
-import type { Checkout } from '../containers/project.js';
+import type { Checkout } from '../infra/checkout.js';
 
 const logger = getChildLogger({ module: 'applier' });
 

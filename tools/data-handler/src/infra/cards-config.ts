@@ -12,7 +12,7 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { readJsonFile, readJsonFileSync } from '../../utils/json.js';
+import { readJsonFile, readJsonFileSync } from '../utils/json.js';
 import { ProjectPaths } from './project-paths.js';
 
 import type { ProjectSettings } from '@cyberismo/model';

@@ -18,8 +18,12 @@ import {
   runWithDefaultCommitMessage,
 } from './commit-context.js';
 import { MissingActorError } from '../exceptions/index.js';
-import { getChildLogger } from './log-utils.js';
-import { createTxRecord, type TxRecord, type WriteFrame } from './tx-record.js';
+import { getChildLogger } from '../utils/log-utils.js';
+import {
+  createTxRecord,
+  type TxRecord,
+  type WriteFrame,
+} from '../utils/tx-record.js';
 
 interface LockContext {
   mode: 'read' | 'write';

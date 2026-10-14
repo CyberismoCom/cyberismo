@@ -35,7 +35,7 @@ import type {
   ResourceFolderType,
   ResourceBaseMetadata,
 } from '@cyberismo/model';
-import type { Checkout } from '../containers/project.js';
+import type { Checkout } from '../infra/checkout.js';
 import type { ShowReturnType } from './resource-object.js';
 
 /**

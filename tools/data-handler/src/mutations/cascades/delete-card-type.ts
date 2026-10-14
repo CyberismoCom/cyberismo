@@ -13,7 +13,7 @@
 */
 
 import type { MutationContext } from '../handler.js';
-import { ResourcesFrom } from '../../containers/project/resources-from.js';
+import { ResourcesFrom } from '../../infra/resources-from.js';
 import type { Card, Operation } from '@cyberismo/model';
 import { deleteCards } from '../../cards/delete.js';
 

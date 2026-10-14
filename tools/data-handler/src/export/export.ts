@@ -30,9 +30,9 @@ import { generateReportContent } from '../queries/report.js';
 import { preprocessMermaidBlocksForPdf } from '../utils/mermaid-renderer.js';
 import { rewriteAsciidocCardXrefs } from '../utils/asciidoc-xref.js';
 import { getStaticDirectoryPath, pdfReport } from '@cyberismo/assets';
-import { Checkout } from '../containers/project.js';
+import { Checkout } from '../infra/checkout.js';
 import { ROOT } from '../utils/constants.js';
-import { read } from '../utils/rw-lock.js';
+import { read } from '../infra/rw-lock.js';
 import { sortItems } from '../utils/lexorank.js';
 import { findCard, cardsByKeys } from '../cards/read.js';
 

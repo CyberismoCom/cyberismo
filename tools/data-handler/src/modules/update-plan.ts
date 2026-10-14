@@ -19,21 +19,21 @@ import {
   installedModules,
   versionSourceOf,
 } from './inventory.js';
-import { isGitLocation } from './location.js';
+import { isGitLocation } from '../utils/location.js';
 import { ModuleRequestError, unreachable } from '../exceptions/index.js';
 import { findOrphans } from './orphans.js';
 import { buildRemoteUrl } from './remote-url.js';
 import { conflictReason } from './resolve/format.js';
 import { solve, type SolveOutcome } from './resolve/solver.js';
-import type { SourceLayer } from './source.js';
+import type { SourceLayer } from '../infra/module-source/source.js';
 import { toDeclaredRange, toVersion, type ModuleDeclaration } from './types.js';
 import {
   isBreakingMove,
   pickVersion,
   validateVersionAgainstConstraints,
-} from './version.js';
+} from '../utils/version.js';
 
-import type { Checkout } from '../containers/project.js';
+import type { Checkout } from '../infra/checkout.js';
 import type { Credentials, UpdatePlan, UpdateTarget } from '@cyberismo/model';
 import type { UpdateRequest } from './resolve/types.js';
 

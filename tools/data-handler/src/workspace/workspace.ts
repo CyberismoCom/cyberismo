@@ -20,9 +20,9 @@ import { Queries } from '../queries/queries.js';
 import { Changes } from './changes.js';
 import { Resources } from './resources.js';
 import { Settings } from './settings.js';
-import type { Checkout, OpenOptions } from '../containers/project.js';
+import type { Checkout, OpenOptions } from '../infra/checkout.js';
 import type { ActorRef } from '@cyberismo/model';
-import { runWithCommitContext } from '../utils/commit-context.js';
+import { runWithCommitContext } from '../infra/commit-context.js';
 import type { CommitIdentity, WriteFrame } from '../utils/tx-record.js';
 
 /** How a workspace's checkout is opened. */

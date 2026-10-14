@@ -5,7 +5,7 @@
 import { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { vi } from 'vitest';
-import { Checkout } from '../../src/containers/project.js';
+import { Checkout } from '../../src/infra/checkout.js';
 import { Fetch } from '../../src/commands/index.js';
 import { SCHEMA_VERSION } from '@cyberismo/migrations';
 

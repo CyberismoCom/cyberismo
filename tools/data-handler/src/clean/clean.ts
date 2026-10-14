@@ -11,12 +11,12 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import type { Checkout } from '../containers/project.js';
-import { ResourcesFrom } from '../containers/project/resources-from.js';
+import type { Checkout } from '../infra/checkout.js';
+import { ResourcesFrom } from '../infra/resources-from.js';
 import { isPredefinedField } from '../utils/constants.js';
 import { getChildLogger } from '../utils/log-utils.js';
 import { sortCards } from '../utils/card-utils.js';
-import { read, write } from '../utils/rw-lock.js';
+import { read, write } from '../infra/rw-lock.js';
 
 import type {
   ActorRef,

@@ -16,7 +16,7 @@ import {
   getRankAfter,
   getRankBetween,
   rebalanceRanks,
-} from '../../utils/lexorank.js';
+} from '../utils/lexorank.js';
 
 // A sibling set the planners work over, in rank order. 'rank' is undefined
 // for a card that has none the arithmetic can extend.
