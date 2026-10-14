@@ -27,7 +27,7 @@ export async function createCalculation(ws: Workspace, identifier: string) {
     await ws.resources.create(identifier, 'calculations', {});
 
     // Set displayName to capitalized version of identifier
-    const project = await ws.showCmd.showProject();
+    const project = await ws.settings.info();
     await updateResourceWithOperation(
       ws,
       { prefix: project.prefix, type: 'calculations', identifier },

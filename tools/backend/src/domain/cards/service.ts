@@ -23,14 +23,14 @@ import type { TreeOptions } from '../../types.js';
 
 export async function getProjectInfo(ws: Workspace) {
   return ws.consistent(async () => {
-    const projectResponse = await ws.showCmd.showProject();
+    const projectResponse = await ws.settings.info();
 
     const workflowsResponse = await ws.showCmd.showWorkflowsWithDetails();
     if (!workflowsResponse) {
       throw new Error('No workflows found');
     }
 
-    const cardTypesResponse = await ws.showCmd.showCardTypesWithDetails();
+    const cardTypesResponse = await ws.resources.contents('cardTypes');
     if (!cardTypesResponse) {
       throw new Error('No card types found');
     }

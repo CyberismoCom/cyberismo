@@ -233,14 +233,14 @@ describe('skill discovery', () => {
 
   describe('renderSkill', () => {
     it('renders stored content', async () => {
-      const rendered = await ws.showCmd.renderSkill(
+      const rendered = await ws.resources.skillPreview(
         'decision/skills/globalSkill',
       );
       expect(rendered).toContain('Use this any time.');
     });
 
     it('renders a per-card skill with the cardKey interpolated', async () => {
-      const rendered = await ws.showCmd.renderSkill(
+      const rendered = await ws.resources.skillPreview(
         'decision/skills/cardSkill',
         { cardKey: 'decision_5' },
       );
@@ -257,7 +257,7 @@ describe('skill discovery', () => {
           })
         ).status,
       ).toBe('not-enabled');
-      const rendered = await ws.showCmd.renderSkill(
+      const rendered = await ws.resources.skillPreview(
         'decision/skills/cardSkill',
         { cardKey: 'decision_1' },
       );
@@ -265,7 +265,7 @@ describe('skill discovery', () => {
     });
 
     it('renders unsaved content instead of what is stored', async () => {
-      const rendered = await ws.showCmd.renderSkill(
+      const rendered = await ws.resources.skillPreview(
         'decision/skills/globalSkill',
         { skillContent: '# Draft\nStill being written.\n' },
       );
@@ -274,7 +274,7 @@ describe('skill discovery', () => {
     });
 
     it('runs an unsaved query and uses its result as context', async () => {
-      const rendered = await ws.showCmd.renderSkill(
+      const rendered = await ws.resources.skillPreview(
         'decision/skills/globalSkill',
         {
           skillQuery: 'result(decision_5).\n',
@@ -286,13 +286,13 @@ describe('skill discovery', () => {
 
     it('throws for an unknown skill', async () => {
       await expect(
-        ws.showCmd.renderSkill('decision/skills/doesNotExist'),
+        ws.resources.skillPreview('decision/skills/doesNotExist'),
       ).rejects.toThrow(/does not exist/);
     });
 
     it('throws for an unknown card', async () => {
       await expect(
-        ws.showCmd.renderSkill('decision/skills/globalSkill', {
+        ws.resources.skillPreview('decision/skills/globalSkill', {
           cardKey: 'decision_does_not_exist',
         }),
       ).rejects.toThrow();
@@ -300,7 +300,7 @@ describe('skill discovery', () => {
 
     it('surfaces an error from a broken query', async () => {
       await expect(
-        ws.showCmd.renderSkill('decision/skills/globalSkill', {
+        ws.resources.skillPreview('decision/skills/globalSkill', {
           skillQuery: 'this is not a logic program',
         }),
       ).rejects.toThrow();

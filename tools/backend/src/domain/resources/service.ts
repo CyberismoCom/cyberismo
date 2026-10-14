@@ -85,7 +85,7 @@ function sortTemplateCardsByRank(
 
 export async function buildResourceTree(ws: Workspace) {
   return ws.consistent(async () => {
-    const project = await ws.showCmd.showProject();
+    const project = await ws.settings.info();
     const tree: unknown[] = [];
 
     const sortByDisplayName = (
@@ -215,7 +215,7 @@ async function createResourceNode(
   children?: unknown[];
   readOnly?: boolean;
 }> {
-  const resourceData = await ws.showCmd.showResource(name);
+  const resourceData = await ws.resources.show(name);
   const node: {
     id: string;
     type: ResourceFolderType;
@@ -305,7 +305,7 @@ function createCardNode(
 
 // Helper function to process templates using templateTree query
 async function processTemplates(ws: Workspace, projectPrefix: string) {
-  const templates = await ws.showCmd.showResources('templates');
+  const templates = await ws.resources.list('templates');
   const templateTree = await ws.cards.templateCards();
 
   const rootTemplates: { [templateName: string]: unknown[] } = {};
@@ -399,7 +399,7 @@ async function groupResourcesByPrefix(
   resourceType: ResourceFolderType,
   projectPrefix: string,
 ) {
-  const resourceNames = await ws.showCmd.showResources(resourceType);
+  const resourceNames = await ws.resources.list(resourceType);
   const resources = await Promise.all(
     resourceNames.map((name: string) =>
       createResourceNode(ws, resourceType, name, projectPrefix),
@@ -462,7 +462,7 @@ export async function validateResource(
 export async function listWorkflowGraphParams(
   ws: Workspace,
 ): Promise<{ prefix: string; identifier: string }[]> {
-  const workflows = await ws.showCmd.showResources('workflows');
+  const workflows = await ws.resources.list('workflows');
   return workflows.map((name) => {
     const { prefix, identifier } = resourceName(name);
     return { prefix, identifier };
@@ -487,7 +487,7 @@ export async function getWorkflowGraph(
 ): Promise<string> {
   return ws.consistent(async () => {
     try {
-      await ws.showCmd.showResource(workflowName, 'workflows');
+      await ws.resources.show(workflowName, 'workflows');
     } catch (error) {
       if (error instanceof ResourceNotFoundError) {
         throw new Error(`Workflow '${workflowName}' not found`, {
@@ -534,7 +534,7 @@ export async function previewSkill(
   const { cardKey, skillContent, skillQuery } = body;
   return ws.consistent(async () => {
     try {
-      await ws.showCmd.showResource(skillName, 'skills');
+      await ws.resources.show(skillName, 'skills');
     } catch (error) {
       if (error instanceof ResourceNotFoundError) {
         throw new Error(`Skill '${skillName}' not found`, { cause: error });
@@ -551,7 +551,7 @@ export async function previewSkill(
         throw error;
       }
     }
-    return ws.showCmd.renderSkill(skillName, {
+    return ws.resources.skillPreview(skillName, {
       cardKey,
       skillContent,
       skillQuery,

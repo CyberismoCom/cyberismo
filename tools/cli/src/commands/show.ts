@@ -45,12 +45,15 @@ function resourceRead(
 ): ((ws: Workspace, detail: string) => Promise<unknown>) | undefined {
   if (Resources.includes(type)) {
     return (ws, detail) =>
-      options.showUse
-        ? ws.showCmd.showResource(detail, true)
-        : ws.resources.show(detail);
+      ws.consistent(async () => {
+        const shown = await ws.resources.show(detail);
+        return options.showUse
+          ? { ...shown, usedIn: await ws.resources.usage(detail) }
+          : shown;
+      });
   }
   if (Resources.some((resource) => `${resource}s` === type)) {
-    return (ws) => ws.showCmd.showResources(type);
+    return (ws) => ws.resources.list(type);
   }
   if (type === 'project') {
     return (ws) => ws.settings.info();

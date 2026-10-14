@@ -15,7 +15,7 @@ import type { Workspace } from '@cyberismo/data-handler';
 import { resourceName } from '@cyberismo/data-handler';
 
 export async function getTemplatesWithDetails(ws: Workspace) {
-  const response = await ws.showCmd.showTemplatesWithDetails();
+  const response = await ws.resources.contents('templates');
   if (!response) {
     throw new Error('No templates found');
   }
