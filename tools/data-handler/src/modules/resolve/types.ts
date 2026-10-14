@@ -14,7 +14,8 @@
 
 import type { Source } from '@cyberismo/model';
 import type { SealFile } from '../../infra/replay-log/seal-files.js';
-import type { ModuleDeclaration, Version, VersionRange } from '../types.js';
+import type { ModuleDeclaration } from '../types.js';
+import type { Version, VersionRange } from '../../utils/version.js';
 
 export type UpdateRequest =
   | { kind: 'verify' }
