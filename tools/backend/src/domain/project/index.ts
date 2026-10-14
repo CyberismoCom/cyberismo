@@ -45,7 +45,11 @@ router.patch(
     const ws = c.get('ws');
     const updates = c.req.valid('json');
 
-    const project = await projectService.updateProject(ws, updates);
+    const project = await projectService.updateProject(
+      ws,
+      c.get('directory'),
+      updates,
+    );
     return c.json(project);
   },
 );
