@@ -17,7 +17,7 @@ import { getChildLogger } from '../utils/log-utils.js';
 import { declaredModules, installedModules } from './inventory.js';
 
 import type { Checkout } from '../infra/checkout.js';
-import type { ModuleInstallation } from './types.js';
+import type { ModuleInstallation } from '../mutations/replay/module-types.js';
 
 /**
  * Options for {@link cleanOrphans}.

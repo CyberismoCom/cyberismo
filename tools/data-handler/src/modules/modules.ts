@@ -90,7 +90,8 @@ import type {
 } from '@cyberismo/model';
 import type { Checkout } from '../infra/checkout.js';
 import type { CommitIdentity } from '../utils/tx-record.js';
-import type { ResolveConflict, ResolvedModule } from './resolve/types.js';
+import type { ResolveConflict } from './resolve/types.js';
+import type { ResolvedModule } from '../mutations/replay/module-types.js';
 import type { SourceLayer } from '../infra/module-source/source.js';
 import type { CheckedTarget } from './update-plan.js';
 

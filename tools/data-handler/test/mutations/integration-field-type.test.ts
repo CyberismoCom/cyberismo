@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import { copyDir } from '../../src/utils/file-utils.js';
 import type { Checkout } from '../../src/infra/checkout.js';
 import { getTestProject } from '../helpers/test-utils.js';
-import { ConfigurationLogger } from '../../src/utils/configuration-logger.js';
+import { ConfigurationLogger } from '../../src/infra/replay-log/configuration-logger.js';
 import { resourceName } from '../../src/utils/resource-utils.js';
 import { Workspace } from '../../src/workspace/workspace.js';
 import { SYSTEM_ACTOR } from '../../src/utils/tx-record.js';

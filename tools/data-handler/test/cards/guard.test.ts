@@ -15,15 +15,13 @@
 import { afterEach, describe, expect, it } from 'vitest';
 
 import { PermissionDeniedError } from '../../src/exceptions/index.js';
-import {
-  ActionGuard,
-  type Action,
-} from '../../src/permissions/action-guard.js';
+import { assertAllowed, type Action } from '../../src/cards/guard.js';
 import type { Workspace } from '../../src/workspace/workspace.js';
 import { openTestWorkspace } from '../helpers/open-test-workspace.js';
 import { buildProject, type BuiltProject } from '../helpers/project-builder.js';
 import { findCard } from '../../src/cards/read.js';
 import { checkoutOf } from '../../src/infra/internal.js';
+import type { Checkout } from '../../src/infra/checkout.js';
 
 // Denies every guarded action on the card titled "Locked", with one
 // reason each, except that only "To Closed" is a denied transition.
@@ -46,7 +44,7 @@ editingContentDenied(C, "no content edit") :- card(C).
 
 interface Fixture {
   ws: Workspace;
-  guard: ActionGuard;
+  checkout: Checkout;
   locked: string;
   child: string;
   free: string;
@@ -77,7 +75,7 @@ async function fixture(calculation: string): Promise<Fixture> {
   const [locked, child, free, other] = project.keys;
   return {
     ws,
-    guard: new ActionGuard(checkoutOf(ws).calculationEngine),
+    checkout: checkoutOf(ws),
     locked,
     child,
     free,
@@ -95,7 +93,7 @@ async function denial(promise: Promise<unknown>) {
   return (error as PermissionDeniedError).reasons;
 }
 
-describe('ActionGuard.checkPermission', () => {
+describe('assertAllowed', () => {
   it.each<[Action, string | undefined, string]>([
     ['transition', 'To Closed', 'no closing'],
     ['move', undefined, 'no moving'],
@@ -103,10 +101,10 @@ describe('ActionGuard.checkPermission', () => {
     ['editField', 'title', 'no title edit'],
     ['editContent', undefined, 'no content edit'],
   ])('denies %s with the calculation reason', async (action, param, reason) => {
-    const { guard, locked } = await fixture(LOCKED('Locked'));
-    expect(await denial(guard.checkPermission(action, locked, param))).toEqual([
-      reason,
-    ]);
+    const { checkout, locked } = await fixture(LOCKED('Locked'));
+    expect(
+      await denial(assertAllowed(checkout, action, locked, param)),
+    ).toEqual([reason]);
   });
 
   it.each<[Action, string | undefined]>([
@@ -116,8 +114,8 @@ describe('ActionGuard.checkPermission', () => {
     ['editField', 'title'],
     ['editContent', undefined],
   ])('allows %s on a card without denials', async (action, param) => {
-    const { guard, free } = await fixture(LOCKED('Locked'));
-    await expect(guard.checkPermission(action, free, param)).resolves.toBe(
+    const { checkout, free } = await fixture(LOCKED('Locked'));
+    await expect(assertAllowed(checkout, action, free, param)).resolves.toBe(
       undefined,
     );
   });
@@ -126,18 +124,18 @@ describe('ActionGuard.checkPermission', () => {
     ['transition', 'To In Progress'],
     ['editField', 'labels'],
   ])('%s denials only apply to the named %s', async (action, param) => {
-    const { guard, locked } = await fixture(LOCKED('Locked'));
-    await expect(guard.checkPermission(action, locked, param)).resolves.toBe(
+    const { checkout, locked } = await fixture(LOCKED('Locked'));
+    await expect(assertAllowed(checkout, action, locked, param)).resolves.toBe(
       undefined,
     );
   });
 
   it('reports every reason when several rules deny the same action', async () => {
-    const { guard, locked } = await fixture(
+    const { checkout, locked } = await fixture(
       `deletingCardDenied(C, "first") :- field(C, "title", "Locked").
        deletingCardDenied(C, "second") :- field(C, "title", "Locked").`,
     );
-    const reasons = await denial(guard.checkPermission('delete', locked));
+    const reasons = await denial(assertAllowed(checkout, 'delete', locked));
     expect([...reasons].sort()).toEqual(['first', 'second']);
   });
 });
