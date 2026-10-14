@@ -352,7 +352,7 @@ describe('module update — spec behaviours', () => {
     expect(create.statusCode).toBe(200);
 
     const ws = await openTestWorkspace(projectDir, {});
-    await ws.modulesCmd.install(hostRoot);
+    await ws.modules.install(hostRoot);
 
     const installedHost = join(projectDir, '.cards', 'modules', 'fkhost');
     const installedDep = join(projectDir, '.cards', 'modules', 'fkdep');
@@ -365,9 +365,9 @@ describe('module update — spec behaviours', () => {
       modules: [],
     });
 
-    const plan = await ws.modulesCmd.planUpdate({});
+    const plan = await ws.modules.planUpdate({});
     expect(plan.removed).toEqual(['fkdep']);
-    await ws.modulesCmd.update({});
+    await ws.modules.update({});
 
     // host is still around; dep must have been removed by the orphan
     // cascade that runs at the end of updateAll.
@@ -399,7 +399,7 @@ describe('module update — spec behaviours', () => {
 
     const ws = await openTestWorkspace(projectDir, {});
     // First import: host is declared, dep is installed transitively on disk.
-    await ws.modulesCmd.install(hostRoot);
+    await ws.modules.install(hostRoot);
 
     const installedHost = join(projectDir, '.cards', 'modules', 'reimphost');
     const installedDep = join(projectDir, '.cards', 'modules', 'reimpdep');
@@ -417,7 +417,7 @@ describe('module update — spec behaviours', () => {
     });
 
     // Re-import via install (not updateAll).
-    await ws.modulesCmd.install(hostRoot);
+    await ws.modules.install(hostRoot);
 
     // cleanOrphans must have run: dep folder gone, host still present.
     expect(existsSync(installedHost)).toBe(true);
@@ -453,7 +453,7 @@ describe('module update — spec behaviours', () => {
     expect(create.statusCode).toBe(200);
 
     const ws = await openTestWorkspace(projectDir, {});
-    await ws.modulesCmd.install(hostRoot);
+    await ws.modules.install(hostRoot);
     // Initially only `newhost` is installed — no `newdep` yet.
     expect(ws.checkout.allModulePrefixes()).toContain('newhost');
     expect(ws.checkout.allModulePrefixes()).not.toContain('newdep');
@@ -464,7 +464,7 @@ describe('module update — spec behaviours', () => {
       modules: [{ name: 'newdep', location: `file:${pathResolve(depRoot)}` }],
     });
 
-    await ws.modulesCmd.update({});
+    await ws.modules.update({});
 
     // The new transitive is installed on disk...
     expect(existsSync(join(projectDir, '.cards', 'modules', 'newdep'))).toBe(
@@ -493,7 +493,7 @@ describe('module update — spec behaviours', () => {
     makeFakeModuleFixture(depRoot, { cardKeyPrefix: 'ovmod' });
 
     const ws = await openTestWorkspace(projectDir, {});
-    await ws.modulesCmd.install(depRoot);
+    await ws.modules.install(depRoot);
 
     // Synthesise a declared range on the persisted module so the
     // constraint-validation path fires. The caller-supplied override
@@ -505,7 +505,7 @@ describe('module update — spec behaviours', () => {
     modSetting!.version = '^1.0.0';
 
     await expect(
-      ws.modulesCmd.update({ module: 'ovmod', version: '2.0.0' }),
+      ws.modules.update({ module: 'ovmod', version: '2.0.0' }),
     ).rejects.toThrow(/does not satisfy constraint '\^1\.0\.0'/);
   });
 
@@ -527,7 +527,7 @@ describe('module update — spec behaviours', () => {
     makeFakeModuleFixture(depRoot, { cardKeyPrefix: 'ovkmod' });
 
     const ws = await openTestWorkspace(projectDir, {});
-    await ws.modulesCmd.install(depRoot);
+    await ws.modules.install(depRoot);
 
     const modSetting = ws.checkout.configuration.modules.find(
       (m) => m.name === 'ovkmod',
@@ -538,7 +538,7 @@ describe('module update — spec behaviours', () => {
     // No throw: constraint check passes, file source fetch/install runs
     // end-to-end. The persisted range stays at `^1.0.0` — the applier
     // only writes back the declared range, never the resolved tag.
-    await ws.modulesCmd.update({ module: 'ovkmod', version: '1.3.0' });
+    await ws.modules.update({ module: 'ovkmod', version: '1.3.0' });
 
     const after = ws.checkout.configuration.modules.find(
       (m) => m.name === 'ovkmod',
@@ -572,14 +572,14 @@ describe('module update — spec behaviours', () => {
     expect(create.statusCode).toBe(200);
 
     const ws = await openTestWorkspace(projectDir, {});
-    await ws.modulesCmd.install(hostRoot);
+    await ws.modules.install(hostRoot);
     const topLevelNames = ws.checkout.configuration.modules.map((m) => m.name);
     expect(topLevelNames).toEqual(['tuphost']);
     expect(existsSync(join(projectDir, '.cards', 'modules', 'tupdep'))).toBe(
       true,
     );
 
-    await expect(ws.modulesCmd.update({ module: 'tupdep' })).rejects.toThrow(
+    await expect(ws.modules.update({ module: 'tupdep' })).rejects.toThrow(
       "Cannot use module 'tupdep' because it is required by 'tuphost'. Use the parent module(s) instead.",
     );
   });
@@ -603,7 +603,7 @@ describe('module update — spec behaviours', () => {
     expect(create.statusCode).toBe(200);
 
     const ws = await openTestWorkspace(projectDir, {});
-    await ws.modulesCmd.install(modRoot);
+    await ws.modules.install(modRoot);
 
     // Seed the INSTALLED config with a version newer than the override
     // target. The fixture's own config carries no version, so a
@@ -622,7 +622,7 @@ describe('module update — spec behaviours', () => {
     writeFileSync(installedConfigPath, JSON.stringify(installedConfig));
 
     await expect(
-      ws.modulesCmd.update({ module: 'dgmod', version: '0.1.0' }),
+      ws.modules.update({ module: 'dgmod', version: '0.1.0' }),
     ).rejects.toThrow(/cannot downgrade from 1\.0\.0 to 0\.1\.0/i);
 
     // The refusal fired during resolution: the seeded marker survives.
@@ -649,7 +649,7 @@ describe('module update — spec behaviours', () => {
     const ws = await openTestWorkspace(projectDir, {
       autoSaveConfiguration: false,
     });
-    await ws.modulesCmd.install(depRoot);
+    await ws.modules.install(depRoot);
 
     // Reshape the persisted declaration into the legacy form: a versioned
     // (git) source with no declared range. Importing from a file source
@@ -677,9 +677,9 @@ describe('module update — spec behaviours', () => {
     // 1.0.0 is the only tag, so the module stays exactly where it is.
     vi.spyOn(GitManager, 'listRemoteVersionTags').mockResolvedValue(['1.0.0']);
 
-    const plan = await ws.modulesCmd.planUpdate({});
+    const plan = await ws.modules.planUpdate({});
     expect(plan.rangeWrites).toEqual([{ module: 'bkfmod', range: '1.x' }]);
-    await ws.modulesCmd.update({});
+    await ws.modules.update({});
 
     const persisted = JSON.parse(
       readFileSync(
@@ -736,7 +736,7 @@ describe('module update — spec behaviours', () => {
     expect(create.statusCode).toBe(200);
 
     const ws = await openTestWorkspace(projectDir, {});
-    await ws.modulesCmd.install(moduleSource);
+    await ws.modules.install(moduleSource);
 
     await ws.resources.create(`${prefix}/cardTypes/consumer`, 'cardTypes', {
       workflow: 'decision/workflows/decision',
@@ -787,7 +787,7 @@ describe('module update — spec behaviours', () => {
     sealSourceRelease(moduleSource, []);
 
     await expect(
-      ws.modulesCmd.update({ module: 'decision', version: '2.0.0' }),
+      ws.modules.update({ module: 'decision', version: '2.0.0' }),
     ).rejects.toThrow(/Module 'decision' now declares the prefix 'decrec'/);
 
     // Nothing moved: the installation is still there at its old version.
@@ -831,7 +831,7 @@ describe('module update — spec behaviours', () => {
     ]);
 
     // plan -> applyModules -> replay -> final validation; must not throw.
-    await ws.modulesCmd.update({ module: 'decision', version: '2.0.0' });
+    await ws.modules.update({ module: 'decision', version: '2.0.0' });
 
     // Module files landed: new version, renamed workflow file.
     const afterConfig = JSON.parse(readFileSync(installedConfigPath, 'utf-8'));
@@ -886,7 +886,7 @@ describe('module update — spec behaviours', () => {
     // A card type requires a workflow, so the replayed delete repairs the
     // consumer by removal: card type and all of its cards. The project is
     // then valid and the update succeeds.
-    await ws.modulesCmd.update({ module: 'decision', version: '2.0.0' });
+    await ws.modules.update({ module: 'decision', version: '2.0.0' });
 
     const afterConfig = JSON.parse(readFileSync(installedConfigPath, 'utf-8'));
     expect(afterConfig.version).toBe('2.0.0');
@@ -932,7 +932,7 @@ describe('module update — spec behaviours', () => {
       }),
     ]);
 
-    const error = await ws.modulesCmd
+    const error = await ws.modules
       .update({ module: 'decision', version: '2.0.0' })
       .catch((e) => e);
 
@@ -1007,7 +1007,7 @@ describe('module schema version enforcement on import', () => {
   it('migrates an older module before installing it', async () => {
     setModuleSchemaVersion(4);
     const ws = await openTestWorkspace(hostPath);
-    await ws.modulesCmd.install(modulePath);
+    await ws.modules.install(modulePath);
     const installed = readJsonFileSync(installedConfigPath) as {
       schemaVersion: number;
     };
@@ -1018,7 +1018,7 @@ describe('module schema version enforcement on import', () => {
   it('refuses a module newer than the tool, before any disk change', async () => {
     setModuleSchemaVersion(SCHEMA_VERSION + 1);
     const ws = await openTestWorkspace(hostPath);
-    await expect(ws.modulesCmd.install(modulePath)).rejects.toThrow(
+    await expect(ws.modules.install(modulePath)).rejects.toThrow(
       'Upgrade cyberismo',
     );
     expect(existsSync(installedConfigPath)).toBe(false);
@@ -1028,7 +1028,7 @@ describe('module schema version enforcement on import', () => {
   it('refuses a module without a schema version', async () => {
     setModuleSchemaVersion(undefined);
     const ws = await openTestWorkspace(hostPath);
-    await expect(ws.modulesCmd.install(modulePath)).rejects.toThrow(
+    await expect(ws.modules.install(modulePath)).rejects.toThrow(
       "no 'schemaVersion'",
     );
     ws.checkout.dispose();
