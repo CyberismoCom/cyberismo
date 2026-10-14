@@ -11,8 +11,8 @@ import { mkdtemp, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 
-import { GitSourceLayer } from '../../src/modules/source-git.js';
-import { GitManager } from '../../src/utils/git-manager.js';
+import { GitSourceLayer } from '../../src/infra/module-source/source-git.js';
+import { GitManager } from '../../src/infra/git-manager.js';
 
 vi.mock('simple-git', () => {
   const cloneMock = vi.fn();

@@ -16,7 +16,7 @@ import {
   buildCardHierarchy,
   flattenCardArray,
 } from '../src/utils/card-utils.js';
-import { Checkout } from '../src/containers/project.js';
+import { Checkout } from '../src/infra/checkout.js';
 import { ProjectConfiguration } from '../src/project-settings.js';
 import { getTestProject } from './helpers/test-utils.js';
 import { CardNotFoundError } from '../src/exceptions/index.js';

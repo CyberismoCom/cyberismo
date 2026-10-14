@@ -24,13 +24,13 @@ import {
 import { isValidFolderName, pathExists } from '../utils/file-utils.js';
 import { readJsonFile } from '../utils/json.js';
 import { getChildLogger } from '../utils/log-utils.js';
-import { read, write } from '../utils/rw-lock.js';
+import { read, write } from '../infra/rw-lock.js';
 import { Validate } from '../commands/validate.js';
 import {
   Fetch,
   MODULE_LIST_FULL_PATH,
   type ModuleListFile,
-} from '../commands/fetch.js';
+} from '../infra/hub-store.js';
 
 import {
   applyModules,
@@ -57,7 +57,7 @@ import {
   toDeclaredRange,
   toVersionRange,
 } from './index.js';
-import { readModuleConfig } from '../containers/project/cards-config.js';
+import { readModuleConfig } from '../infra/cards-config.js';
 import { moduleFingerprint } from './fingerprint.js';
 import { cleanOrphans } from './orphans.js';
 import {
@@ -88,10 +88,10 @@ import type {
   UpdatePlan,
   UpdateTarget,
 } from '@cyberismo/model';
-import type { Checkout } from '../containers/project.js';
+import type { Checkout } from '../infra/checkout.js';
 import type { CommitIdentity } from '../utils/tx-record.js';
 import type { ResolveConflict, ResolvedModule } from './resolve/types.js';
-import type { SourceLayer } from './source.js';
+import type { SourceLayer } from '../infra/module-source/source.js';
 import type { CheckedTarget } from './update-plan.js';
 
 /**

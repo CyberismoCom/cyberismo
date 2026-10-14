@@ -16,7 +16,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterAll, describe, expect, it, vi } from 'vitest';
 
-import { GitSourceLayer } from '../../src/modules/source-git.js';
+import { GitSourceLayer } from '../../src/infra/module-source/source-git.js';
 
 const clone = vi.hoisted(() => vi.fn());
 vi.mock('simple-git', () => ({ simpleGit: () => ({ clone }) }));

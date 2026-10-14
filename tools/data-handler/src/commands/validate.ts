@@ -43,7 +43,7 @@ import {
   isValidFolderName,
   pathExists,
 } from '../utils/file-utils.js';
-import type { Checkout } from '../containers/project.js';
+import type { Checkout } from '../infra/checkout.js';
 import { readJsonFile } from '../utils/json.js';
 import { resourceName } from '../utils/resource-utils.js';
 import { normalizeSchemaId, schemaValidator } from '../utils/validate.js';

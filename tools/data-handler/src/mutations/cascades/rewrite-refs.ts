@@ -12,10 +12,10 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { ResourcesFrom } from '../../containers/project/resources-from.js';
+import { ResourcesFrom } from '../../infra/resources-from.js';
 import { filename } from '@cyberismo/model';
 
-import type { Checkout } from '../../containers/project.js';
+import type { Checkout } from '../../infra/checkout.js';
 import { updateCardContent } from '../../cards/update.js';
 
 /**
