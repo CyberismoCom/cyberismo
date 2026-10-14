@@ -11,9 +11,9 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { type Checkout } from '../containers/project.js';
+import { type Checkout } from '../infra/checkout.js';
 import { renameProjectPrefix } from '../utils/prefix-rename.js';
-import { write } from '../utils/rw-lock.js';
+import { write } from '../infra/rw-lock.js';
 import type { CommitIdentity } from '../utils/tx-record.js';
 import type { ActorRef } from '@cyberismo/model';
 

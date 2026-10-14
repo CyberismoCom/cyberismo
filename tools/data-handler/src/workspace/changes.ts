@@ -13,9 +13,9 @@
 */
 
 import type { ActorRef, ChangeEvent, MutationInput } from '@cyberismo/model';
-import type { Checkout } from '../containers/project.js';
+import type { Checkout } from '../infra/checkout.js';
 import { ResourceMutations } from '../mutations/resource-mutations.js';
-import { write } from '../utils/rw-lock.js';
+import { write } from '../infra/rw-lock.js';
 import type { CommitIdentity } from '../utils/tx-record.js';
 
 /**

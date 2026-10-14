@@ -70,7 +70,7 @@ export {
   SchemaNotFound,
   WorkspaceDisposedError,
 } from './exceptions/index.js';
-export type { Checkout } from './containers/project.js';
+export type { Checkout } from './infra/checkout.js';
 export { AsciidoctorPdfError } from './export/export.js';
 export type { WorkspaceOptions } from './workspace/workspace.js';
 export { removeResource } from './utils/remove-resource.js';
@@ -79,3 +79,4 @@ export {
   type CommitIdentity,
   type WriteFrame,
 } from './utils/tx-record.js';
+export { createGit } from './infra/git-config.js';

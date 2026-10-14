@@ -21,8 +21,8 @@ import type {
   MetadataContent,
   TemplateCardTree,
 } from '@cyberismo/model';
-import type { Checkout } from '../containers/project.js';
-import { read, write } from '../utils/rw-lock.js';
+import type { Checkout } from '../infra/checkout.js';
+import { read, write } from '../infra/rw-lock.js';
 import type { CommitIdentity } from '../utils/tx-record.js';
 import {
   addAttachment,

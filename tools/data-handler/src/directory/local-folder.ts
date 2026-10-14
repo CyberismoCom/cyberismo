@@ -22,7 +22,7 @@ import type {
   ProjectSummary,
 } from '@cyberismo/model';
 import { Create } from '../commands/create.js';
-import { Checkout } from '../containers/project.js';
+import { Checkout } from '../infra/checkout.js';
 import {
   ProjectExistsError,
   ProjectNotFoundError,

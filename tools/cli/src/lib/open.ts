@@ -14,6 +14,7 @@
 import { dirname, join, resolve } from 'node:path';
 
 import {
+  createGit,
   openProjectAt,
   SYSTEM_ACTOR,
   Validate,
@@ -26,7 +27,6 @@ import {
   pathExists,
   resolveTilde,
 } from '@cyberismo/data-handler/utils/file-utils';
-import { createGit } from '@cyberismo/data-handler/utils/git-config';
 import type { ActorRef } from '@cyberismo/model';
 import type { AllCommandOptions, StartCommandOptions } from '../options.js';
 

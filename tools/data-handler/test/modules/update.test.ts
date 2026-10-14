@@ -15,8 +15,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { SCHEMA_VERSION } from '@cyberismo/migrations';
 import { ModuleRequestError } from '../../src/exceptions/index.js';
-import type * as SourceModule from '../../src/modules/source.js';
-import type { SourceLayer } from '../../src/modules/source.js';
+import type * as SourceModule from '../../src/infra/module-source/source.js';
+import type { SourceLayer } from '../../src/infra/module-source/source.js';
 import { InMemorySource, type FakeModuleConfig } from './in-memory-source.js';
 import {
   declared,
@@ -27,14 +27,14 @@ import {
   snapshot,
   sources,
 } from './fixture.js';
-import { GitManager } from '../../src/utils/git-manager.js';
+import { GitManager } from '../../src/infra/git-manager.js';
 import { gitLog } from '../versions/fixture.js';
 
 // The module sources the operations under test read; unset, the real ones.
 const remote = vi.hoisted(() => ({
   layer: undefined as SourceLayer | undefined,
 }));
-vi.mock('../../src/modules/source.js', async (importOriginal) => {
+vi.mock('../../src/infra/module-source/source.js', async (importOriginal) => {
   const actual = await importOriginal<typeof SourceModule>();
   return {
     ...actual,

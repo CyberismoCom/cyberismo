@@ -11,7 +11,7 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { pluralResourceType } from '../containers/project/resource-handler.js';
+import { pluralResourceType } from '../infra/resource-handler.js';
 import type { Workspace } from '../workspace/workspace.js';
 import { resourceName } from './resource-utils.js';
 

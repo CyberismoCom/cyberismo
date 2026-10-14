@@ -1,5 +1,5 @@
 import { expect, it, describe } from 'vitest';
-import type { CalculationEngine } from '../../src/containers/project/calculation-engine.js';
+import type { CalculationEngine } from '../../src/infra/calculation-engine.js';
 import { generateReportContent } from '../../src/queries/report.js';
 
 // Minimal stub of CalculationEngine that records logic program invocations.
