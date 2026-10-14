@@ -19,7 +19,10 @@ import type {
   HubSetting,
   ModuleContent,
   ModuleInfo,
+  ModuleInstallResult,
   ModuleSettingFromHub,
+  ModuleUpdateResult,
+  ReplayedModule,
   RemovableResourceTypes,
   ResourceTypes,
 } from '@cyberismo/model';
@@ -51,6 +54,10 @@ import {
   resolveTilde,
 } from './utils/file-utils.js';
 import { ModuleRequestError } from './exceptions/index.js';
+import {
+  ModuleReplayFailedError,
+  ModuleValidationFailedError,
+} from './mutations/replay/replay.js';
 import { errorFunction } from './utils/error-utils.js';
 import { resourceName } from './utils/resource-utils.js';
 
@@ -283,12 +290,13 @@ export class Commands {
         const target = args.splice(0, 1)[0];
         if (target === 'module') {
           const [source, useCredentials, version] = args;
-          await this.import(
+          const result = await this.import(
             source,
-            useCredentials && useCredentials === 'true' ? true : false,
+            useCredentials ? useCredentials === 'true' : undefined,
             credentials,
             version,
           );
+          if (result) printModuleResult(result);
           return {
             statusCode: 200,
             note: await this.cleanRecommendation(),
@@ -346,7 +354,8 @@ export class Commands {
             payload: await this.ws?.modules.planUpdate(target, credentials),
           };
         }
-        await this.ws?.modules.update(target, credentials);
+        const result = await this.ws?.modules.update(target, credentials);
+        if (result) printModuleResult(result);
         return {
           statusCode: 200,
           note: await this.cleanRecommendation(),
@@ -359,6 +368,13 @@ export class Commands {
         return { statusCode: 500, message: 'Unknown command' };
       }
     } catch (e) {
+      if (
+        (e instanceof ModuleReplayFailedError ||
+          e instanceof ModuleValidationFailedError) &&
+        e.result
+      ) {
+        printModuleResult(e.result);
+      }
       const detail = e instanceof ModuleRequestError ? e.detail : undefined;
       return {
         statusCode: 400,
@@ -620,4 +636,46 @@ export class Commands {
       message: result.length ? result : 'Project structure validated',
     };
   }
+}
+
+// Prints what a module install or update did besides installing the modules.
+function printModuleResult(result: ModuleUpdateResult | ModuleInstallResult) {
+  for (const step of result.skippedReplays) {
+    console.warn(
+      `Skipping migration replay for module '${step.modulePrefix}' ` +
+        `(${step.fromVersion} -> ${step.toVersion}): the module failed to apply.`,
+    );
+  }
+  for (const step of result.replayed) {
+    console.log(
+      `Replayed migrations for module '${step.modulePrefix}': ` +
+        `${step.fromVersion} -> ${step.toVersion} (${step.seals} seal(s))` +
+        describeSkipped(step),
+    );
+  }
+  if ('newValidationErrors' in result && result.newValidationErrors) {
+    console.error(
+      `There are new validations errors after importing the module. Check the project`,
+    );
+  }
+}
+
+// Retired entries are expected and no build will apply them; unknown ones
+// were most likely written by a newer build, so upgrading may apply them.
+function describeSkipped({ retired, unknown }: ReplayedModule): string {
+  const count = (n: number) => `${n} ${n === 1 ? 'entry' : 'entries'}`;
+  const ops = (list: string[]) => [...new Set(list)].join(', ');
+  let text = '';
+  if (retired.length > 0) {
+    text +=
+      `; ignored ${count(retired.length)} for retired operations ` +
+      `(${ops(retired)})`;
+  }
+  if (unknown.length > 0) {
+    text +=
+      `; skipped ${count(unknown.length)} this version does not recognise ` +
+      `(${ops(unknown)}) — upgrade cyberismo to apply ` +
+      `${unknown.length === 1 ? 'it' : 'them'}`;
+  }
+  return text;
 }
