@@ -14,7 +14,6 @@
 import { Import } from '../commands/import.js';
 import { Remove } from '../commands/remove.js';
 import { Rename } from '../commands/rename.js';
-import { Show } from '../commands/show.js';
 import { Validate } from '../commands/validate.js';
 import type { Checkout } from '../containers/project.js';
 
@@ -26,13 +25,10 @@ export class SharedCommands {
   public importCmd: Import;
   public removeCmd: Remove;
   public renameCmd: Rename;
-  public showCmd: Show;
   public validateCmd: Validate;
 
   constructor(checkout: Checkout) {
     this.validateCmd = Validate.getInstance();
-
-    this.showCmd = new Show(checkout);
     this.importCmd = new Import(checkout);
     this.removeCmd = new Remove(checkout);
     this.renameCmd = new Rename(checkout);
