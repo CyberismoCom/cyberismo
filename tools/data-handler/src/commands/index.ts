@@ -14,10 +14,9 @@
 import { Create } from './create.js';
 import { Fetch } from './fetch.js';
 import { Import } from './import.js';
-import { Modules } from './modules.js';
 import { Remove } from './remove.js';
 import { Rename } from './rename.js';
 import { Show } from './show.js';
 import { Validate } from './validate.js';
 
-export { Create, Fetch, Import, Modules, Remove, Rename, Show, Validate };
+export { Create, Fetch, Import, Remove, Rename, Show, Validate };

@@ -11,9 +11,10 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { type Workspace, type HubFetchFailure } from '@cyberismo/data-handler';
+import { type Workspace } from '@cyberismo/data-handler';
 import {
   type CleanResult,
+  type HubFetchFailure,
   type ModuleSettingFromHub,
   type ProjectModuleInfo,
   type UpdatePlan,
@@ -60,7 +61,7 @@ async function toModuleInfo(
   row: ProjectModuleInfo,
 ): Promise<ProjectModule> {
   try {
-    const data = await ws.modulesCmd.show(row.name);
+    const data = await ws.modules.show(row.name);
     return {
       ...row,
       name: data.name || row.name,
@@ -74,7 +75,7 @@ async function toModuleInfo(
 export async function getProject(ws: Workspace): Promise<ProjectInfo> {
   return ws.consistent(async () => {
     const project = await ws.showCmd.showProject();
-    const modules = await ws.modulesCmd.inventory();
+    const modules = await ws.modules.inventory();
     const moduleDetails = await Promise.all(
       modules.map((row) => toModuleInfo(ws, row)),
     );
@@ -125,22 +126,22 @@ export async function updateModule(
   module: string,
   range?: string,
 ) {
-  await ws.modulesCmd.update(range ? { module, range } : { module });
+  await ws.modules.update(range ? { module, range } : { module });
 }
 
 export async function updateAllModules(ws: Workspace) {
-  await ws.modulesCmd.update({});
+  await ws.modules.update({});
 }
 
 export async function getUpdatePlan(ws: Workspace): Promise<UpdatePlan> {
-  return ws.modulesCmd.planUpdate({});
+  return ws.modules.planUpdate({});
 }
 
 export async function listModuleVersions(
   ws: Workspace,
   target: { module?: string; source?: string },
 ): Promise<string[]> {
-  return ws.modulesCmd.listVersions(
+  return ws.modules.listVersions(
     target.source !== undefined
       ? { source: target.source }
       : { module: target.module! },
@@ -148,14 +149,14 @@ export async function listModuleVersions(
 }
 
 export async function deleteModule(ws: Workspace, module: string) {
-  await ws.removeCmd.remove('module', module);
+  await ws.modules.remove(module);
 }
 
 // Hub data is only refreshed on demand, so a project that has never fetched
 // would otherwise show an empty catalogue until the user asks for a refresh.
 async function populateHubCache(ws: Workspace) {
   try {
-    await ws.fetchCmd.ensureModuleListExists();
+    await ws.modules.ensureModuleListExists();
   } catch (error) {
     // An unreachable hub must not fail listing the hubs we already know about.
     console.warn('Failed to populate the hub cache', error);
@@ -166,7 +167,7 @@ export async function getImportableModules(
   ws: Workspace,
 ): Promise<ModuleSettingFromHub[]> {
   await populateHubCache(ws);
-  return ws.showCmd.showImportableModules(false, true);
+  return ws.modules.importable(false, true);
 }
 
 export async function importModule(
@@ -174,14 +175,14 @@ export async function importModule(
   source: string,
   range?: string,
 ): Promise<void> {
-  await ws.modulesCmd.install(source, range ? { version: range } : undefined);
+  await ws.modules.install(source, range ? { version: range } : undefined);
 }
 
 export async function getHubs(ws: Workspace): Promise<HubInfo[]> {
   await populateHubCache(ws);
-  const hubs = await ws.showCmd.showHubDetails();
+  const hubs = await ws.modules.hubDetails();
   const importedModules = new Set(
-    (await ws.modulesCmd.list()).map((mod) => mod.name),
+    (await ws.modules.list()).map((mod) => mod.name),
   );
   return hubs.map((hub) => ({
     location: hub.location,
@@ -203,7 +204,7 @@ export async function addHub(
   await ws.settings.hubs.add(location);
   // The hub is configured even when it cannot be reached right now; its
   // modules appear once a later refresh succeeds.
-  return ws.fetchCmd.fetchHubs(true);
+  return ws.modules.fetchHubs(true);
 }
 
 export async function removeHub(ws: Workspace, location: string) {
@@ -211,7 +212,7 @@ export async function removeHub(ws: Workspace, location: string) {
 }
 
 export async function fetchHubs(ws: Workspace): Promise<HubFetchFailure[]> {
-  return ws.fetchCmd.fetchHubs(true);
+  return ws.modules.fetchHubs(true);
 }
 
 export async function cleanProject(

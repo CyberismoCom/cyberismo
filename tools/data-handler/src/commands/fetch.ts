@@ -28,7 +28,7 @@ import { readJsonFile, writeJsonFile } from '../utils/json.js';
 import { validateJson } from '../utils/validate.js';
 import { write } from '../utils/rw-lock.js';
 
-import type { ModuleSetting } from '@cyberismo/model';
+import type { HubFetchFailure, ModuleSetting } from '@cyberismo/model';
 import type { Checkout } from '../containers/project.js';
 
 // Cached data of a single hub.
@@ -60,12 +60,6 @@ const hubVersionSchema = z.looseObject({ version: z.number().optional() });
 export interface ModuleListFile {
   modules: ModuleSetting[];
   hubs: CachedHub[];
-}
-
-// A hub that could not be read during a fetch.
-export interface HubFetchFailure {
-  location: string;
-  message: string;
 }
 
 const FETCH_TIMEOUT_MS = 30 * 1000; // 30s timeout for fetching a hub file.

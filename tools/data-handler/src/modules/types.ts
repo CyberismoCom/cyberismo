@@ -14,17 +14,13 @@
 
 import semver from 'semver';
 
+import type { Source } from '@cyberismo/model';
+
 import { ModuleRequestError } from '../exceptions/index.js';
 
 // ---------------------------------------------------------------------------
 // Value types
 // ---------------------------------------------------------------------------
-
-/** A location a module can be fetched from; `private` defaults to false. */
-export interface Source {
-  location: string;
-  private?: boolean;
-}
 
 /** Branded concrete semver version (e.g. `"1.2.3"`). Construct via {@link toVersion}. */
 export type Version = string & { readonly __brand: 'Version' };
