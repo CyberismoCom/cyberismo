@@ -14,7 +14,7 @@
 import { describe, expect, it } from 'vitest';
 
 import type { Workflow } from '@cyberismo/model';
-import { ResourceNotFoundError } from '../../src/exceptions/index.js';
+import { ResourceNotFoundError } from '../../src/shared/exceptions/index.js';
 import {
   edit,
   expectRefused,

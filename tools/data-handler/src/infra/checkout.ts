@@ -22,25 +22,25 @@ import { CardTree, type CardTreeChange } from './card-tree.js';
 import {
   CardNotFoundError,
   DuplicateCardKeyError,
-} from '../exceptions/index.js';
+} from '../shared/exceptions/index.js';
 import { type CardNode, type ModuleContent } from '@cyberismo/model';
-import { pathExists } from '../utils/file-utils.js';
-import { isModulePath } from '../utils/card-utils.js';
+import { pathExists } from '../shared/utils/file-utils.js';
+import { isModulePath } from '../shared/utils/card-utils.js';
 import { ProjectConfiguration } from './project-settings.js';
-import { resourceName } from '../utils/resource-utils.js';
+import { resourceName } from '../shared/utils/resource-utils.js';
 import { ProjectPaths } from './project-paths.js';
 import { readCardsConfig } from './cards-config.js';
 import { ResourceHandler } from './resource-handler.js';
 import { ContentWatcher } from './project-content-watcher.js';
-import { getChildLogger, initLogger } from '../utils/log-utils.js';
+import { getChildLogger, initLogger } from '../shared/utils/log-utils.js';
 import { RWLock } from './rw-lock.js';
 import { GitSync } from './git-sync.js';
 import { GitManager } from './git-manager.js';
-import { commitTrailers } from '../utils/tx-record.js';
+import { commitTrailers } from '../shared/utils/tx-record.js';
 import { ChangeFeed, changedAnything } from './change-feed.js';
-import { Validate } from '../commands/validate.js';
+import { Validate } from '../domain/commands/validate.js';
 
-import type { TemplateResource } from '../resources/template-resource.js';
+import type { TemplateResource } from '../domain/resources/template-resource.js';
 import type { Level } from 'pino';
 
 /**

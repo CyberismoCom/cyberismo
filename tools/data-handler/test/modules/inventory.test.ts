@@ -7,7 +7,7 @@ import {
   declaredModules,
   installedModules,
   installedModulesWithSources,
-} from '../../src/modules/inventory.js';
+} from '../../src/domain/modules/inventory.js';
 import { makeProjectStub } from '../helpers/module-fixtures.js';
 import type { ModuleSetting } from '@cyberismo/model';
 

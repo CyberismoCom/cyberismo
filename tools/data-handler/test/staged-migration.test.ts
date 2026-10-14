@@ -17,11 +17,11 @@ import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { SCHEMA_VERSION } from '@cyberismo/migrations';
-import { ensureStagedSchemas } from '../src/modules/staged-migration.js';
-import { copyDir } from '../src/utils/file-utils.js';
-import { readJsonFileSync } from '../src/utils/json.js';
+import { ensureStagedSchemas } from '../src/domain/modules/staged-migration.js';
+import { copyDir } from '../src/shared/utils/file-utils.js';
+import { readJsonFileSync } from '../src/shared/utils/json.js';
 
-import type { ResolvedModule } from '../src/mutations/replay/module-types.js';
+import type { ResolvedModule } from '../src/domain/mutations/replay/module-types.js';
 
 const testDir = join(import.meta.dirname, 'tmp-staged-migration-tests');
 const stagedPath = join(testDir, 'staged');

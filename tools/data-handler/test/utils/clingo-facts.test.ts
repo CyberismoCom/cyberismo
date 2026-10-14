@@ -8,7 +8,7 @@ import {
   createContextFacts,
   createSkillFacts,
   createWorkflowFacts,
-} from '../../src/utils/clingo-facts.js';
+} from '../../src/shared/utils/clingo-facts.js';
 import {
   WorkflowCategory,
   type CardType,
@@ -17,9 +17,9 @@ import {
 } from '@cyberismo/model';
 import type { Card } from '@cyberismo/model';
 import type { Checkout } from '../../src/infra/checkout.js';
-import { copyDir } from '../../src/utils/file-utils.js';
+import { copyDir } from '../../src/shared/utils/file-utils.js';
 import { getTestProject } from '../helpers/test-utils.js';
-import { findCard } from '../../src/cards/read.js';
+import { findCard } from '../../src/domain/cards/read.js';
 
 const testCases = [
   { context: 'localApp' as const, expectedFact: 'localApp().\n' },

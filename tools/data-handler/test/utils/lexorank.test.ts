@@ -5,7 +5,7 @@ import {
   rebalanceRanks,
   getRankBefore,
   FIRST_RANK,
-} from '../../src/utils/lexorank.js';
+} from '../../src/shared/utils/lexorank.js';
 import { expect, it, describe } from 'vitest';
 
 describe('lexorank', () => {

@@ -13,11 +13,11 @@
 
 import { describe, expect, it } from 'vitest';
 
-import type { Workspace } from '../../src/workspace/workspace.js';
+import type { Workspace } from '../../src/api/workspace/workspace.js';
 import {
   CardNotFoundError,
   ReadOnlyContainerError,
-} from '../../src/exceptions/index.js';
+} from '../../src/shared/exceptions/index.js';
 import {
   childKeys,
   expectRefused,

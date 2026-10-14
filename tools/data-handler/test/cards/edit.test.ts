@@ -18,7 +18,7 @@ import { describe, expect, it } from 'vitest';
 import {
   CardNotFoundError,
   ReadOnlyContainerError,
-} from '../../src/exceptions/index.js';
+} from '../../src/shared/exceptions/index.js';
 import {
   expectRefused,
   metadataOf,

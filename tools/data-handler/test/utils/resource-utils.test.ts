@@ -8,7 +8,7 @@ import {
   resourceName,
   resourceNameToString,
   resourceFilePath,
-} from '../../src/utils/resource-utils.js';
+} from '../../src/shared/utils/resource-utils.js';
 import { getTestProject } from '../helpers/test-utils.js';
 
 describe('resource utils', () => {

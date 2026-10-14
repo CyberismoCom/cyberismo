@@ -21,11 +21,14 @@ import {
   deleteDir,
   isValidFolderName,
   pathExists,
-} from '../../utils/file-utils.js';
+} from '../../shared/utils/file-utils.js';
 import { listSealFiles, type SealFile } from '../replay-log/seal-files.js';
 import { readModuleConfig } from '../cards-config.js';
 
-import { isFileLocation, stripFileProtocol } from '../../utils/location.js';
+import {
+  isFileLocation,
+  stripFileProtocol,
+} from '../../shared/utils/location.js';
 import type { FetchTarget, SourceLayer } from './source.js';
 import type { ProjectSettings, Source } from '@cyberismo/model';
 
