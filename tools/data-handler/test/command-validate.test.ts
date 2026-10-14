@@ -1,5 +1,5 @@
 // testing
-import { expect, it, describe, vi } from 'vitest';
+import { expect, it, describe } from 'vitest';
 
 // node
 import { join } from 'node:path';
@@ -13,31 +13,24 @@ import {
 
 // cyberismo
 import { copyDir } from '../src/utils/file-utils.js';
-import { Cmd, Commands } from '../src/command-handler.js';
+import { Validate } from '../src/commands/validate.js';
+import { Checkout } from '../src/containers/project.js';
 
-const commandHandler: Commands = new Commands();
+// The project's validation errors; '' when it is valid.
+async function validate(path: string): Promise<string> {
+  const checkout = await Checkout.open(path);
+  try {
+    return await Validate.getInstance().validate(path, () => checkout);
+  } finally {
+    checkout.dispose();
+  }
+}
 
 // validation tests do not modify the content - so they can use the original files
 const baseDir = process.cwd();
 const testDir = join(baseDir, 'test/test-data');
 
-describe('command-handler: validate command', () => {
-  it('missing path', async () => {
-    vi.spyOn(commandHandler, 'setProjectPath').mockResolvedValueOnce('path');
-
-    await expect(commandHandler.command(Cmd.validate, [], {})).resolves.toEqual(
-      {
-        message: "Input validation error: cannot find project ''",
-        statusCode: 400,
-      },
-    );
-  });
-  it('valid schema', async () => {
-    const result = await commandHandler.command(Cmd.validate, [], {
-      projectPath: join(testDir, 'valid/decision-records'),
-    });
-    expect(result.statusCode).toBe(200);
-  });
+describe('validate', () => {
   it('workflow with duplicate transition names fails validation', async () => {
     // Workflow create/update rejects duplicate transition names; a hand-edited
     // or pre-existing workflow file must be caught by project validation.
@@ -53,12 +46,8 @@ describe('command-handler: validate command', () => {
       );
       writeFileSync(workflowPath, JSON.stringify(workflow));
 
-      // Validate reports errors in the message with status 200.
-      const result = await commandHandler.command(Cmd.validate, [], {
-        projectPath: tmpDir,
-      });
-      expect(result.statusCode).toBe(200);
-      expect(result.message).toContain(
+      const result = await validate(tmpDir);
+      expect(result).toContain(
         "has several transitions named 'Branch'; transition names must be unique",
       );
     } finally {
@@ -75,12 +64,9 @@ describe('command-handler: validate command', () => {
       workflow.name = 'decision/workflows'; // malformed: missing the identifier part
       writeFileSync(workflowPath, JSON.stringify(workflow));
 
-      const result = await commandHandler.command(Cmd.validate, [], {
-        projectPath: tmpDir,
-      });
-      expect(result.statusCode).toBe(200);
-      expect(result.message).toContain(workflowPath);
-      expect(result.message).toContain('is not valid resource name');
+      const result = await validate(tmpDir);
+      expect(result).toContain(workflowPath);
+      expect(result).toContain('is not valid resource name');
     } finally {
       rmSync(tmpDir, { recursive: true, force: true });
     }
@@ -96,12 +82,9 @@ describe('command-handler: validate command', () => {
         '\n{{#graph}}"model": "decision/graphModels/test", "view": ""{{/graph}}\n',
       );
 
-      const result = await commandHandler.command(Cmd.validate, [], {
-        projectPath: tmpDir,
-      });
-      expect(result.statusCode).toBe(200);
-      expect(result.message).toContain("Card 'decision_5'");
-      expect(result.message).toContain(
+      const result = await validate(tmpDir);
+      expect(result).toContain("Card 'decision_5'");
+      expect(result).toContain(
         'Must define resource name to query its details',
       );
     } finally {
@@ -112,15 +95,14 @@ describe('command-handler: validate command', () => {
     // Calculation create/update rejects invalid logic programs; files edited
     // by hand or brought in by git pull must be caught by project validation,
     // and each file must be validated independently so all failures are listed.
-    const result = await commandHandler.command(Cmd.validate, [], {
-      projectPath: join(testDir, 'invalid/invalid-calculations'),
-    });
-    expect(result.statusCode).toBe(200);
-    expect(result.message).toContain('mini/calculations/syntaxError');
-    expect(result.message).toContain('syntax error');
-    expect(result.message).toContain('mini/calculations/unsafeVars');
-    expect(result.message).toContain('unsafe variables');
-    expect(result.message).not.toContain('mini/calculations/validCalc');
+    const result = await validate(
+      join(testDir, 'invalid/invalid-calculations'),
+    );
+    expect(result).toContain('mini/calculations/syntaxError');
+    expect(result).toContain('syntax error');
+    expect(result).toContain('mini/calculations/unsafeVars');
+    expect(result).toContain('unsafe variables');
+    expect(result).not.toContain('mini/calculations/validCalc');
   });
   it('override-enabled calculated field with stored value passes validation', async () => {
     // A calculated field marked enableOverride may legitimately carry a
@@ -147,11 +129,8 @@ describe('command-handler: validate command', () => {
       card['decision/fieldTypes/obsoletedBy'] = 'decision_999';
       writeFileSync(cardPath, JSON.stringify(card));
 
-      const result = await commandHandler.command(Cmd.validate, [], {
-        projectPath: tmpDir,
-      });
-      expect(result.statusCode).toBe(200);
-      expect(result.message).toBe('Project structure validated');
+      const result = await validate(tmpDir);
+      expect(result).toBe('');
     } finally {
       rmSync(tmpDir, { recursive: true, force: true });
     }
@@ -171,11 +150,8 @@ describe('command-handler: validate command', () => {
       card['decision/fieldTypes/obsoletedBy'] = 'decision_999';
       writeFileSync(cardPath, JSON.stringify(card));
 
-      const result = await commandHandler.command(Cmd.validate, [], {
-        projectPath: tmpDir,
-      });
-      expect(result.statusCode).toBe(200);
-      expect(result.message).toBe('Project structure validated');
+      const result = await validate(tmpDir);
+      expect(result).toBe('');
     } finally {
       rmSync(tmpDir, { recursive: true, force: true });
     }
@@ -194,11 +170,8 @@ describe('command-handler: validate command', () => {
       delete card['decision/fieldTypes/responsible'];
       writeFileSync(cardPath, JSON.stringify(card));
 
-      const result = await commandHandler.command(Cmd.validate, [], {
-        projectPath: tmpDir,
-      });
-      expect(result.statusCode).toBe(200);
-      expect(result.message).toBe('Project structure validated');
+      const result = await validate(tmpDir);
+      expect(result).toBe('');
     } finally {
       rmSync(tmpDir, { recursive: true, force: true });
     }
@@ -216,11 +189,8 @@ describe('command-handler: validate command', () => {
       card['decision/fieldTypes/obsoletedBy'] = 'decision_999';
       writeFileSync(cardPath, JSON.stringify(card));
 
-      const result = await commandHandler.command(Cmd.validate, [], {
-        projectPath: tmpDir,
-      });
-      expect(result.statusCode).toBe(200);
-      expect(result.message).toBe('Project structure validated');
+      const result = await validate(tmpDir);
+      expect(result).toBe('');
     } finally {
       rmSync(tmpDir, { recursive: true, force: true });
     }
@@ -240,11 +210,8 @@ describe('command-handler: validate command', () => {
       card['decision/fieldTypes/obsoletedBy'] = null;
       writeFileSync(cardPath, JSON.stringify(card));
 
-      const result = await commandHandler.command(Cmd.validate, [], {
-        projectPath: tmpDir,
-      });
-      expect(result.statusCode).toBe(200);
-      expect(result.message).toBe('Project structure validated');
+      const result = await validate(tmpDir);
+      expect(result).toBe('');
     } finally {
       rmSync(tmpDir, { recursive: true, force: true });
     }
@@ -276,11 +243,8 @@ describe('command-handler: validate command', () => {
       card['decision/fieldTypes/obsoletedBy'] = 'x'.repeat(81);
       writeFileSync(cardPath, JSON.stringify(card));
 
-      const result = await commandHandler.command(Cmd.validate, [], {
-        projectPath: tmpDir,
-      });
-      expect(result.statusCode).toBe(200);
-      expect(result.message).toContain(
+      const result = await validate(tmpDir);
+      expect(result).toContain(
         "field 'decision/fieldTypes/obsoletedBy' value exceeds the maximum length for 'shortText'",
       );
     } finally {

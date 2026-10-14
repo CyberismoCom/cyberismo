@@ -39,8 +39,6 @@ export function noWorkspaceWithoutAnActor(
     new Workspace(checkout, SYSTEM_ACTOR, undefined),
     // @ts-expect-error the actor is required
     Workspace.over(checkout),
-    // @ts-expect-error no actor-less singleton
-    Workspace.getInstance('path'),
     // @ts-expect-error the directory opens a project for an actor
     directory.open('prefix'),
     // @ts-expect-error a project at a path is opened for an actor

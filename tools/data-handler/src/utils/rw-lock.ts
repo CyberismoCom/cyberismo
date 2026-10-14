@@ -305,18 +305,10 @@ export function read<This extends object, Args extends unknown[], Return>(
   };
 }
 
-// A façade carries its handle's actor and identity; legacy commands do not.
+// A façade, or a command made for a handle, carries its actor and identity.
 function handleFrame(instance: object): WriteFrame | undefined {
   const { actor, identity } = instance as Partial<WriteFrame>;
   return actor ? { actor, identity } : undefined;
-}
-
-// Marks the methods @write wraps, so a handle can open their write.
-const WRITE_METHOD = Symbol('writeMethod');
-
-/** Whether `fn` is a method wrapped by @write. */
-export function isWriteMethod(fn: unknown): boolean {
-  return typeof fn === 'function' && WRITE_METHOD in fn;
 }
 
 /**
@@ -340,7 +332,7 @@ export function write<This extends object, Args extends unknown[], Return>(
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function write(message?: (...args: any[]) => string): unknown {
   return function (target: (...args: unknown[]) => Promise<unknown>) {
-    const method = function (this: object, ...args: unknown[]) {
+    return function (this: object, ...args: unknown[]) {
       const run = () => {
         const fn = () => target.call(this, ...args);
         const frame = handleFrame(this);
@@ -352,6 +344,5 @@ export function write(message?: (...args: any[]) => string): unknown {
       const label = message(...args);
       return runWithDefaultCommitMessage(label, run);
     };
-    return Object.assign(method, { [WRITE_METHOD]: true });
   };
 }
