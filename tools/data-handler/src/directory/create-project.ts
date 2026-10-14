@@ -84,16 +84,15 @@ export async function createProject(
   params: CreateProjectParams,
   actor: ActorRef,
   identity?: CommitIdentity,
-  options?: OpenOptions,
+  options?: Omit<OpenOptions, 'watchResourceChanges'>,
 ): Promise<CreateProjectResult> {
-  const { checkout, result } = await createAndOpen(
+  const { result } = await createAndOpen(
     projectPath,
     params,
     actor,
     identity,
     options,
   );
-  checkout.dispose();
   return result;
 }
 

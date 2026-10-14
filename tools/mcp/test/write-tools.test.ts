@@ -102,7 +102,6 @@ afterEach(async () => {
   }
   savedEnv.clear();
   await client.close();
-  ws.checkout.dispose();
   await project.cleanup();
   await rm(configDir, { recursive: true, force: true });
 });

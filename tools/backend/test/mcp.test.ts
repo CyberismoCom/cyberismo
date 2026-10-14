@@ -158,7 +158,6 @@ describe('MCP HTTP Endpoint', () => {
       );
       expect(stdout.trim()).toBe('Dana Renamed <dana@new.example.com>');
     } finally {
-      ws.checkout.dispose();
       await project.cleanup();
     }
   });

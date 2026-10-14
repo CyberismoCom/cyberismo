@@ -23,9 +23,8 @@ import {
 } from '../../src/utils/tx-record.js';
 
 /**
- * Opens a fresh checkout at `path` and returns a handle over it; the test
- * disposes the checkout. The system acts unless an actor is given; options
- * (e.g. autocommit) pass through.
+ * Opens a fresh checkout at `path` and returns a handle over it. The system
+ * acts unless an actor is given; options (e.g. autocommit) pass through.
  */
 export async function openTestWorkspace(
   path: string,

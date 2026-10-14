@@ -41,7 +41,7 @@ describe('renameCmd.rename', () => {
     const { ws, path, keys } = await open(spec);
     const [parent, child] = keys;
 
-    await new Rename(ws.checkout, ws.actor, ws.identity).rename('new');
+    await new Rename(ws).rename('new');
 
     const renamed = (key: string) => key.replace(/^old_/, 'new_');
     expect(existsSync(cardDir(path, parent))).toBe(false);
@@ -52,19 +52,15 @@ describe('renameCmd.rename', () => {
     ).toBe(true);
     expect(config(path).cardKeyPrefix).toBe('new');
     const reopened = await openTestWorkspace(path);
-    try {
-      expect(
-        await Validate.getInstance().validate(path, () => reopened.checkout),
-      ).toBe('');
-    } finally {
-      reopened.checkout.dispose();
-    }
+    expect(
+      await Validate.getInstance().validate(path, () => reopened.checkout),
+    ).toBe('');
   });
 
   it('renames a project that has no cards', async () => {
     const { ws, path } = await open({ prefix: 'old' });
 
-    await new Rename(ws.checkout, ws.actor, ws.identity).rename('new');
+    await new Rename(ws).rename('new');
 
     expect(config(path).cardKeyPrefix).toBe('new');
   });
@@ -73,7 +69,7 @@ describe('renameCmd.rename', () => {
     const { ws, path, keys } = await open(spec);
     await ws.cards.addAttachment(keys[0], 'old.png', Buffer.from('img'));
 
-    await new Rename(ws.checkout, ws.actor, ws.identity).rename('new');
+    await new Rename(ws).rename('new');
 
     const attachments = join(
       cardDir(path, keys[0].replace(/^old_/, 'new_')),
@@ -88,7 +84,7 @@ describe('renameCmd.rename', () => {
     const { ws, path } = await open(spec);
     const before = await ConfigurationLogger.entries(path);
 
-    await new Rename(ws.checkout, ws.actor, ws.identity).rename('new');
+    await new Rename(ws).rename('new');
 
     expect(await ConfigurationLogger.entries(path)).toEqual(before);
   });
@@ -99,11 +95,7 @@ describe('renameCmd.rename', () => {
   ])('refuses %s and changes nothing', async (_name, to, error) => {
     const { ws, path } = await open(spec);
 
-    await expectRefused(
-      path,
-      () => new Rename(ws.checkout, ws.actor, ws.identity).rename(to),
-      error,
-    );
+    await expectRefused(path, () => new Rename(ws).rename(to), error);
   });
 
   it('refuses once a version is published and moves nothing', async () => {
@@ -111,7 +103,7 @@ describe('renameCmd.rename', () => {
 
     await expectRefused(
       path,
-      () => new Rename(ws.checkout, ws.actor, ws.identity).rename('new'),
+      () => new Rename(ws).rename('new'),
       /version 1\.2\.0\b.*'cyberismo rename new --force'/s,
     );
   });
@@ -120,7 +112,7 @@ describe('renameCmd.rename', () => {
     const { ws, path, keys } = await open(published);
     const before = await ConfigurationLogger.entries(path);
 
-    await new Rename(ws.checkout, ws.actor, ws.identity).rename('new', true);
+    await new Rename(ws).rename('new', true);
 
     expect(existsSync(cardDir(path, keys[0].replace(/^old_/, 'new_')))).toBe(
       true,
