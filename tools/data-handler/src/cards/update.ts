@@ -19,7 +19,7 @@ import type {
   MetadataContent,
 } from '@cyberismo/model';
 import { Validate } from '../commands/validate.js';
-import type { Checkout } from '../containers/project.js';
+import type { Checkout } from '../infra/checkout.js';
 import { ActionGuard } from '../permissions/action-guard.js';
 import { isExternalItemKey } from '../utils/card-utils.js';
 import { isPredefinedField } from '../utils/constants.js';

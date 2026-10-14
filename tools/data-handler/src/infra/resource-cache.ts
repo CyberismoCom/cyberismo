@@ -15,27 +15,27 @@
 import { dirname, extname, join } from 'node:path';
 import { type Dirent, readdirSync, readFileSync } from 'node:fs';
 
-import { getChildLogger } from '../../utils/log-utils.js';
+import { getChildLogger } from '../utils/log-utils.js';
 import {
   pathToResourceName,
   resourceName,
   resourceNameToString,
-} from '../../utils/resource-utils.js';
-import { stripExtension } from '../../utils/file-utils.js';
-import { VALID_FOLDER_RESOURCE_FILES } from '../../utils/constants.js';
+} from '../utils/resource-utils.js';
+import { stripExtension } from '../utils/file-utils.js';
+import { VALID_FOLDER_RESOURCE_FILES } from '../utils/constants.js';
 
-import { CalculationResource } from '../../resources/calculation-resource.js';
-import { CardTypeResource } from '../../resources/card-type-resource.js';
-import { FieldTypeResource } from '../../resources/field-type-resource.js';
-import { GraphModelResource } from '../../resources/graph-model-resource.js';
-import { GraphViewResource } from '../../resources/graph-view-resource.js';
-import { LinkTypeResource } from '../../resources/link-type-resource.js';
-import { ReportResource } from '../../resources/report-resource.js';
-import { SkillResource } from '../../resources/skill-resource.js';
-import { TemplateResource } from '../../resources/template-resource.js';
-import { WorkflowResource } from '../../resources/workflow-resource.js';
+import { CalculationResource } from '../resources/calculation-resource.js';
+import { CardTypeResource } from '../resources/card-type-resource.js';
+import { FieldTypeResource } from '../resources/field-type-resource.js';
+import { GraphModelResource } from '../resources/graph-model-resource.js';
+import { GraphViewResource } from '../resources/graph-view-resource.js';
+import { LinkTypeResource } from '../resources/link-type-resource.js';
+import { ReportResource } from '../resources/report-resource.js';
+import { SkillResource } from '../resources/skill-resource.js';
+import { TemplateResource } from '../resources/template-resource.js';
+import { WorkflowResource } from '../resources/workflow-resource.js';
 
-import type { Checkout } from '../project.js';
+import type { Checkout } from './checkout.js';
 import type { ResourceFolderType, ResourceName } from '@cyberismo/model';
 import { ResourcesFrom } from './resources-from.js';
 

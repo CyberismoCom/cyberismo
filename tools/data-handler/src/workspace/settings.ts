@@ -12,11 +12,11 @@
 */
 
 import type { ActorRef, ProjectMetadata } from '@cyberismo/model';
-import { Fetch } from '../commands/fetch.js';
-import type { Checkout } from '../containers/project.js';
+import { Fetch } from '../infra/hub-store.js';
+import type { Checkout } from '../infra/checkout.js';
 import { moduleInfos } from '../modules/index.js';
-import { recordSettingsChange } from '../utils/change-feed.js';
-import { read, write } from '../utils/rw-lock.js';
+import { recordSettingsChange } from '../infra/change-feed.js';
+import { read, write } from '../infra/rw-lock.js';
 import type { CommitIdentity } from '../utils/tx-record.js';
 
 // Project information; the project's own name, prefix and the like, with its

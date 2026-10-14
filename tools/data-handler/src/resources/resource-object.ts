@@ -40,7 +40,7 @@ import type {
   ResourceName,
 } from '@cyberismo/model';
 import type { Logger } from 'pino';
-import type { Checkout } from '../containers/project.js';
+import type { Checkout } from '../infra/checkout.js';
 import type { Validate } from '../commands/validate.js';
 import { allTemplateCards } from '../cards/read.js';
 import { ResourceNotFoundError } from '../exceptions/index.js';

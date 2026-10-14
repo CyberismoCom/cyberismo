@@ -12,7 +12,7 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import type { Checkout } from '../containers/project.js';
+import type { Checkout } from '../infra/checkout.js';
 import type { MutationInput } from '@cyberismo/model';
 
 export type MutationOrigin =

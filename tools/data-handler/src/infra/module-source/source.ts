@@ -12,14 +12,14 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { isGitLocation } from './location.js';
+import { isGitLocation } from '../../utils/location.js';
 import { CompositeSourceLayer } from './source-composite.js';
 import { FileSourceLayer } from './source-file.js';
 import { GitSourceLayer } from './source-git.js';
 import type { Source } from '@cyberismo/model';
-import { type Version } from './types.js';
+import { type Version } from '../../modules/types.js';
 import type { ProjectSettings } from '@cyberismo/model';
-import type { SealFile } from '../infra/replay-log/seal-files.js';
+import type { SealFile } from '../replay-log/seal-files.js';
 
 /** A concrete fetch target. `remoteUrl` is pre-built with any credentials injected. */
 export interface FetchTarget {

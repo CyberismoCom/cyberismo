@@ -1,10 +1,10 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { createSourceLayer } from '../../src/modules/source.js';
-import { CompositeSourceLayer } from '../../src/modules/source-composite.js';
-import { FileSourceLayer } from '../../src/modules/source-file.js';
-import { GitSourceLayer } from '../../src/modules/source-git.js';
-import { GitManager } from '../../src/utils/git-manager.js';
+import { createSourceLayer } from '../../src/infra/module-source/source.js';
+import { CompositeSourceLayer } from '../../src/infra/module-source/source-composite.js';
+import { FileSourceLayer } from '../../src/infra/module-source/source-file.js';
+import { GitSourceLayer } from '../../src/infra/module-source/source-git.js';
+import { GitManager } from '../../src/infra/git-manager.js';
 
 describe('modules/source-composite', () => {
   afterEach(() => {
