@@ -12,7 +12,7 @@ import {
   resolveForApply,
 } from '../../../src/modules/resolve/solver.js';
 import { conflictReason } from '../../../src/modules/resolve/format.js';
-import type { Version, VersionRange } from '../../../src/modules/types.js';
+import type { Version, VersionRange } from '../../../src/utils/version.js';
 import type { ModuleSetting } from '@cyberismo/model';
 
 const baseDir = import.meta.dirname;

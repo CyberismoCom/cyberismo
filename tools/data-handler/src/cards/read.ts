@@ -26,7 +26,6 @@ import type { Checkout } from '../infra/checkout.js';
 import {
   buildCardHierarchy,
   compareAttachments,
-  flattenCardArray,
   sortCards,
 } from '../utils/card-utils.js';
 
@@ -51,6 +50,38 @@ export function cardsByKeys(checkout: Checkout, cardIds: string[]): Card[] {
   }
   return cards;
 }
+
+/**
+ * Flattens card tree so that children are shown on same level regardless of nesting level.
+ * @param array Card tree to flatten
+ * @param checkout Project to use
+ * @returns Flattened card tree.
+ */
+export const flattenCardArray = (array: Card[], checkout: Checkout) => {
+  const result: Card[] = [];
+
+  array.forEach((item) => {
+    const { key, path, parent, children, attachments, metadata } = item;
+    const childCardIds = cardsByKeys(checkout, children).map(
+      (item) => item.key,
+    );
+
+    result.push({
+      key,
+      path,
+      parent,
+      children: [...childCardIds],
+      attachments,
+      metadata,
+    });
+    if (children) {
+      result.push(
+        ...flattenCardArray(cardsByKeys(checkout, children), checkout),
+      );
+    }
+  });
+  return result;
+};
 
 // Metadata-level view of one card; throws if the checkout does not hold it.
 export function cardNode(checkout: Checkout, cardKey: string): CardNode {
