@@ -15,6 +15,7 @@ import { join } from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
 
 import { flow, metadataOf, projects, snapshot } from './fixture.js';
+import { checkoutOf } from '../../src/infra/internal.js';
 
 const open = projects();
 
@@ -156,7 +157,7 @@ describe('transition side effects', () => {
 
   it('completes the transition when the side-effect query fails', async () => {
     const { ws, keys, state } = await openWith(run('A', 'Start', 'B', 'Close'));
-    const engine = ws.checkout.calculationEngine;
+    const engine = checkoutOf(ws).calculationEngine;
     const runQuery = engine.runQuery.bind(engine);
     vi.spyOn(engine, 'runQuery').mockImplementation((async (
       ...args: Parameters<typeof runQuery>
@@ -190,7 +191,7 @@ describe('creation side effects', () => {
 
   it('queries once for a batch of created cards', async () => {
     const { ws } = await openWith();
-    const query = vi.spyOn(ws.checkout.calculationEngine, 'creationQuery');
+    const query = vi.spyOn(checkoutOf(ws).calculationEngine, 'creationQuery');
 
     const created = await ws.cards.create('test/templates/tpl', undefined);
 

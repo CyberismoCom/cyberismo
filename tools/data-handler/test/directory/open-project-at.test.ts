@@ -19,6 +19,7 @@ import { describe, expect, it } from 'vitest';
 import { SCHEMA_VERSION } from '@cyberismo/migrations';
 import { openProjectAt } from '../../src/directory/local-folder.js';
 import { folders } from './folder.js';
+import { checkoutOf } from '../../src/infra/internal.js';
 
 const folder = folders();
 
@@ -50,7 +51,7 @@ describe('openProjectAt', () => {
       ann.actor,
       ann.identity,
     ]);
-    expect(other.checkout).not.toBe(ws.checkout);
+    expect(checkoutOf(other)).not.toBe(checkoutOf(ws));
   });
 
   it('refuses a folder of projects', async () => {

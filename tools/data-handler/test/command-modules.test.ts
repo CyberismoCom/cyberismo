@@ -22,6 +22,7 @@ import { readJsonFileSync } from '../src/utils/json.js';
 import { SCHEMA_VERSION } from '@cyberismo/migrations';
 import { writeSeals } from './helpers/replay-fixtures.js';
 import { openTestWorkspace } from './helpers/open-test-workspace.js';
+import { checkoutOf } from '../src/infra/internal.js';
 
 // Create test artifacts in a temp folder.
 const baseDir = import.meta.dirname;
@@ -68,8 +69,8 @@ describe('module update — spec behaviours', () => {
     const ws = await openTestWorkspace(projectDir, {});
     await ws.modules.install(hostRoot);
     // Initially only `newhost` is installed — no `newdep` yet.
-    expect(ws.checkout.allModulePrefixes()).toContain('newhost');
-    expect(ws.checkout.allModulePrefixes()).not.toContain('newdep');
+    expect(checkoutOf(ws).allModulePrefixes()).toContain('newhost');
+    expect(checkoutOf(ws).allModulePrefixes()).not.toContain('newdep');
 
     // Upstream starts declaring the new transitive.
     rewriteFakeModuleFixture(hostRoot, {
@@ -85,8 +86,8 @@ describe('module update — spec behaviours', () => {
     );
     // ...and immediately visible through the cached prefix list without any
     // manual refresh call.
-    expect(ws.checkout.allModulePrefixes()).toContain('newdep');
-    expect(ws.checkout.allModulePrefixes()).toContain('newhost');
+    expect(checkoutOf(ws).allModulePrefixes()).toContain('newdep');
+    expect(checkoutOf(ws).allModulePrefixes()).toContain('newhost');
   });
 
   it('updateAll writes the assumed 1.x into a version-less declaration', async () => {
@@ -111,7 +112,7 @@ describe('module update — spec behaviours', () => {
     // Reshape the persisted declaration into the legacy form: a versioned
     // (git) source with no declared range. Importing from a file source
     // already leaves the range off, so only the location has to change.
-    const declaration = ws.checkout.configuration.modules.find(
+    const declaration = checkoutOf(ws).configuration.modules.find(
       (m) => m.name === 'bkfmod',
     );
     expect(declaration).toBeDefined();
