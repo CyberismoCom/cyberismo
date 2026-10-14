@@ -26,9 +26,8 @@ export type {
   InstallationRef,
   ModuleDeclaration,
   ModuleInstallation,
-  Version,
-  VersionRange,
 } from './types.js';
+export type { Version, VersionRange } from '../utils/version.js';
 export type {
   FetchTarget,
   SourceLayer,
@@ -45,7 +44,11 @@ export type { ApplyOptions } from './applier.js';
 export type { CleanOrphansOptions } from './orphans.js';
 
 // Version and location primitives.
-export { toDeclaredRange, toVersion, toVersionRange } from './types.js';
+export {
+  toDeclaredRange,
+  toVersion,
+  toVersionRange,
+} from '../utils/version.js';
 export {
   FILE_PROTOCOL,
   isFileLocation,

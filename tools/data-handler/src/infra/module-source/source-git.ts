@@ -20,10 +20,9 @@ import { ModuleRequestError, redactUserinfo } from '../../exceptions/index.js';
 import { createGit, gitTimeout } from '../git-config.js';
 import { GitManager } from '../git-manager.js';
 import { parseSealFileName, type SealFile } from '../replay-log/seal-files.js';
-import { versionToTag } from '../../utils/version.js';
+import { versionToTag, type Version } from '../../utils/version.js';
 import type { FetchTarget, SourceLayer } from './source.js';
 import type { Source } from '@cyberismo/model';
-import type { Version } from '../../modules/types.js';
 import type { ProjectSettings } from '@cyberismo/model';
 
 function cloneOptions(ref?: string): string[] {
