@@ -508,6 +508,86 @@ describe('fetch command', () => {
       checkout.configuration.hubs = originalHubs;
     });
 
+    it('drops a hub that is removed while it is being fetched', async () => {
+      const originalHubs = checkout.configuration.hubs;
+      const kept = { location: 'https://kept.test.com/hub' };
+      checkout.configuration.hubs = [
+        kept,
+        { location: 'https://removed.test.com/hub' },
+      ];
+      fetchStub.mockImplementation(async (url: string) => {
+        if (url.includes('removed')) checkout.configuration.hubs = [kept];
+        return {
+          ok: true,
+          json: async () => ({
+            description: 'A hub',
+            displayName: 'A hub',
+            version: 1,
+            modules: [
+              { name: 'base', location: 'https://github.com/test/base.git' },
+            ],
+          }),
+          headers: new Headers({ 'content-type': 'application/json' }),
+        };
+      });
+
+      await fetchCmd.fetchHubs(true);
+
+      const moduleList = JSON.parse(
+        await readFile(join(decisionRecordsPath, MODULE_LIST_FULL_PATH), {
+          encoding: 'utf-8',
+        }),
+      );
+      expect(moduleList.hubs.map((hub: HubSetting) => hub.location)).toEqual([
+        kept.location,
+      ]);
+
+      checkout.configuration.hubs = originalHubs;
+    });
+
+    it('drops a hub that is removed while its list waits to be written', async () => {
+      const originalHubs = checkout.configuration.hubs;
+      const kept = { location: 'https://kept.test.com/hub' };
+      checkout.configuration.hubs = [
+        kept,
+        { location: 'https://removed.test.com/hub' },
+      ];
+      fetchStub.mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          description: 'A hub',
+          displayName: 'A hub',
+          version: 1,
+          modules: [],
+        }),
+        headers: new Headers({ 'content-type': 'application/json' }),
+      });
+      const proto = Fetch.prototype as unknown as {
+        writeModuleList: (hubs: unknown[]) => Promise<void>;
+      };
+      const writeModuleList = proto.writeModuleList;
+      vi.spyOn(proto, 'writeModuleList').mockImplementation(function (
+        this: unknown,
+        hubs,
+      ) {
+        checkout.configuration.hubs = [kept];
+        return writeModuleList.call(this, hubs);
+      });
+
+      await fetchCmd.fetchHubs(true);
+
+      const moduleList = JSON.parse(
+        await readFile(join(decisionRecordsPath, MODULE_LIST_FULL_PATH), {
+          encoding: 'utf-8',
+        }),
+      );
+      expect(moduleList.hubs.map((hub: HubSetting) => hub.location)).toEqual([
+        kept.location,
+      ]);
+
+      checkout.configuration.hubs = originalHubs;
+    });
+
     it('keeps cached modules of a hub when a later fetch of it fails', async () => {
       const originalHubs = checkout.configuration.hubs;
       checkout.configuration.hubs = [

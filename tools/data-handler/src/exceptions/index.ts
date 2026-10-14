@@ -53,6 +53,17 @@ export class ModuleRequestError extends DomainError {
   }
 }
 
+/** The project's modules changed while a module operation was fetching. */
+export class ModuleConflictError extends DomainError {
+  readonly code = 'conflict';
+  constructor() {
+    super(
+      "The project's modules changed while this operation was fetching; run it again",
+    );
+    this.name = 'ModuleConflictError';
+  }
+}
+
 /** Git errors quote the remote URL, which may carry credentials. */
 export function redactUserinfo(message: string): string {
   return message.replace(/\/\/[^/\s]*@/g, '//');
