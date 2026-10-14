@@ -6,7 +6,7 @@ import { expect, describe, it, beforeAll } from 'vitest';
 
 import { copyDir } from '../src/utils/file-utils.js';
 import { readJsonFile } from '../src/utils/json.js';
-import { Validate } from '../src/commands/index.js';
+import { Validate } from '../src/commands/validate.js';
 import type { Checkout } from '../src/infra/checkout.js';
 import { errorFunction } from '../src/utils/error-utils.js';
 import { resourceName } from '../src/utils/resource-utils.js';
