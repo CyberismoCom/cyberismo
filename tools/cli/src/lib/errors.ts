@@ -14,14 +14,14 @@
 import {
   DomainError,
   ModuleRequestError,
-  type AllCommandOptions,
   type Workspace,
 } from '@cyberismo/data-handler';
 import { errorFunction } from '@cyberismo/data-handler/utils/error-utils';
 import type { ErrorCode } from '@cyberismo/model';
 
-import { program } from './dispatch.js';
+import { program } from './program.js';
 import { openWorkspace } from './open.js';
+import type { AllCommandOptions } from '../options.js';
 
 // Shown when a failure carries no message of its own.
 export const GENERIC_FAILURE_MESSAGE = 'Command failed';

@@ -16,7 +16,7 @@ import { describe, expect, it } from 'vitest';
 
 import { ERROR_CODES, ERROR_HTTP_STATUS } from '@cyberismo/model';
 
-import { program } from '../src/lib/dispatch.js';
+import { program } from '../src/lib/program.js';
 import { exitCodeFor, GENERIC_FAILURE_MESSAGE } from '../src/lib/errors.js';
 import { handleResponse } from '../src/lib/output.js';
 

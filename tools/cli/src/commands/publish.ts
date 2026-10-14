@@ -12,12 +12,10 @@
 */
 
 import { type Command } from 'commander';
-
-import { type CommandOptions } from '@cyberismo/data-handler';
-
 import { CommandWithPath } from '../lib/args.js';
 import { onProject } from '../lib/errors.js';
 import { printResult } from '../lib/output.js';
+import type { PublishCommandOptions } from '../options.js';
 
 export function registerPublish(program: Command) {
   // Publish command - creates a git tag from cardsConfig version and pushes
@@ -28,7 +26,7 @@ export function registerPublish(program: Command) {
     .option('--dry-run', 'Show what would happen without doing it')
     .option('--remote <name>', 'Git remote to push to (default: origin)');
   program.addCommand(publishCmd);
-  publishCmd.action(async (options: CommandOptions<'publish'>) => {
+  publishCmd.action(async (options: PublishCommandOptions) => {
     const result = await onProject(
       Object.assign({}, options, program.opts()),
       (ws) =>

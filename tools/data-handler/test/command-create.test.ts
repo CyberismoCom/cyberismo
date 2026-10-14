@@ -5,7 +5,7 @@ import { expect, it, describe, beforeAll, afterAll } from 'vitest';
 import { mkdirSync, readFileSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 
-import type { Workspace } from '../src/command-handler.js';
+import type { Workspace } from '../src/workspace/workspace.js';
 import { copyDir } from '../src/utils/file-utils.js';
 import { DefaultContent } from '../src/resources/create-defaults.js';
 

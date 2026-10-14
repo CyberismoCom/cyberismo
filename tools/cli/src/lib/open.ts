@@ -18,10 +18,8 @@ import {
   SYSTEM_ACTOR,
   Validate,
   Workspace,
-  type AllCommandOptions,
   type Checkout,
   type CommitIdentity,
-  type StartCommandOptions,
   type WorkspaceOptions,
 } from '@cyberismo/data-handler';
 import {
@@ -30,6 +28,7 @@ import {
 } from '@cyberismo/data-handler/utils/file-utils';
 import { createGit } from '@cyberismo/data-handler/utils/git-config';
 import type { ActorRef } from '@cyberismo/model';
+import type { AllCommandOptions, StartCommandOptions } from '../options.js';
 
 // Nearest folder at or above 'path' that holds '.cards'; '' if none.
 function findProjectRoot(path: string): string {

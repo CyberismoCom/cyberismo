@@ -8,6 +8,7 @@ import { resourceName } from '../src/utils/resource-utils.js';
 
 import type { Operation, Skill } from '@cyberismo/model';
 import { openTestWorkspace } from './helpers/open-test-workspace.js';
+import { Validate } from '../src/commands/validate.js';
 
 const baseDir = import.meta.dirname;
 const testDir = join(baseDir, 'tmp-skill-edit-tests');
@@ -80,7 +81,7 @@ describe('edit skill', () => {
 
   it('keeps the project valid after editing relatedTools', async () => {
     await edit({ name: 'add', target: 'query_cards' });
-    const errors = await ws.validateCmd.validate(
+    const errors = await Validate.getInstance().validate(
       projectPath,
       () => ws.checkout,
     );

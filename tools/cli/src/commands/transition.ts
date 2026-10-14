@@ -12,12 +12,10 @@
 */
 
 import { type Command } from 'commander';
-
-import { type CommandOptions } from '@cyberismo/data-handler';
-
 import { CommandWithPath } from '../lib/args.js';
 import { onProject } from '../lib/errors.js';
 import { printResult } from '../lib/output.js';
+import type { TransitionCommandOptions } from '../options.js';
 
 export function registerTransition(program: Command) {
   // Transition command
@@ -33,7 +31,7 @@ export function registerTransition(program: Command) {
     async (
       cardKey: string,
       transition: string,
-      options: CommandOptions<'transition'>,
+      options: TransitionCommandOptions,
     ) => {
       await onProject(Object.assign({}, options, program.opts()), (ws) =>
         ws.cards.transition(cardKey, transition),
