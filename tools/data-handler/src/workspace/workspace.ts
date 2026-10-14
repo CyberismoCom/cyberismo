@@ -11,7 +11,6 @@
 */
 
 import { Clean } from '../clean/clean.js';
-import { Create } from '../commands/create.js';
 import { Export } from '../export/export.js';
 import type { Import } from '../commands/import.js';
 import { Modules } from '../modules/modules.js';
@@ -25,12 +24,11 @@ import { Queries } from '../queries/queries.js';
 import { Changes } from './changes.js';
 import { Resources } from './resources.js';
 import { Settings } from './settings.js';
-import { Checkout, type OpenOptions } from '../containers/project.js';
+import type { Checkout, OpenOptions } from '../containers/project.js';
 import type { ActorRef } from '@cyberismo/model';
 import { runWithCommitContext } from '../utils/commit-context.js';
 import { isWriteMethod } from '../utils/rw-lock.js';
 import type { CommitIdentity, WriteFrame } from '../utils/tx-record.js';
-import { DEFAULT_HUB } from '@cyberismo/assets';
 import { sharedCommands, type SharedCommands } from './shared-commands.js';
 
 /** How a workspace's checkout is opened. */
@@ -230,54 +228,5 @@ export class Workspace {
    */
   public async consistent<T>(fn: () => Promise<T>): Promise<T> {
     return this.checkout.lock.read(fn);
-  }
-
-  /**
-   * Creates a new project with default configuration.
-   * Sets up the project files, initializes git, and adds the default hub.
-   * @param projectPath Path where the project will be created
-   * @param params Project parameters (name, prefix, category, description)
-   * @param actor Who creates the project.
-   * @param identity Git author of the project's first commits.
-   * @param options Optional checkout options
-   * @returns The actor's handle over the new project's checkout
-   */
-  public static async createProjectWithDefaults(
-    projectPath: string,
-    params: {
-      name: string;
-      prefix: string;
-      category?: string;
-      description?: string;
-    },
-    actor: ActorRef,
-    identity: CommitIdentity | undefined,
-    options?: WorkspaceOptions,
-  ): Promise<Workspace> {
-    await Create.createProject(
-      projectPath,
-      params.prefix,
-      params.name,
-      params.category ?? '',
-      params.description ?? '',
-    );
-
-    const ws = Workspace.over(
-      await Checkout.open(projectPath, options),
-      actor,
-      identity,
-    );
-
-    await ws.checkout.git.initialize(identity);
-
-    // Add default hub and fetch module data
-    try {
-      await ws.settings.hubs.add(DEFAULT_HUB);
-      await ws.modules.fetchHubs();
-    } catch {
-      // Hub setup is non-critical; project is still usable
-    }
-
-    return ws;
   }
 }
