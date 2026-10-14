@@ -13,13 +13,20 @@
 */
 
 import { execFile } from 'node:child_process';
-import { readFile, writeFile } from 'node:fs/promises';
+import { readFileSync } from 'node:fs';
+import { readdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { promisify } from 'node:util';
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { Rename } from '../../src/commands/rename.js';
 import { localFolder } from '../../src/directory/local-folder.js';
-import { ProjectNotFoundError } from '../../src/exceptions/index.js';
+import {
+  ProjectExistsError,
+  ProjectNotFoundError,
+} from '../../src/exceptions/index.js';
+import { resetEgressDispatcherForTest } from '../../src/utils/egress.js';
+import { GitManager } from '../../src/utils/git-manager.js';
 import { SYSTEM_ACTOR } from '../../src/utils/tx-record.js';
 import { folders } from './folder.js';
 
@@ -32,6 +39,46 @@ const ann = {
 
 const git = (cwd: string, ...args: string[]) =>
   promisify(execFile)('git', args, { cwd }).then(({ stdout }) => stdout.trim());
+
+// Holds the next call of `method` until `release`; `reached` resolves when it
+// starts.
+function hold<T extends object>(target: T, method: keyof T & string) {
+  let reached!: () => void;
+  let release!: () => void;
+  const atCall = new Promise<void>((resolve) => (reached = resolve));
+  const released = new Promise<void>((resolve) => (release = resolve));
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const original = target[method] as any;
+  const spy = vi
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    .spyOn(target, method as any)
+    .mockImplementationOnce(async function (this: unknown, ...args: unknown[]) {
+      reached();
+      await released;
+      return original.apply(this, args);
+    });
+  return { reached: atCall, release, restore: () => spy.mockRestore() };
+}
+
+// A repository at its root holding a project per spec.
+async function repoOf(...specs: Parameters<typeof folder>) {
+  const source = await folder(...specs);
+  await git(source.root, 'init', '--initial-branch=main');
+  await git(source.root, 'add', '.');
+  await git(
+    source.root,
+    '-c',
+    'user.name=Test',
+    '-c',
+    'user.email=test@example.com',
+    '-c',
+    'commit.gpgsign=false',
+    'commit',
+    '-m',
+    'Projects',
+  );
+  return source;
+}
 
 describe('localFolder', () => {
   it('opens every project in the folder and lists it', async () => {
@@ -161,24 +208,226 @@ describe('directory.replace', () => {
   });
 });
 
+describe('directory.rename', () => {
+  const prefixOf = (root: string, project: string) =>
+    JSON.parse(
+      readFileSync(
+        join(root, project, '.cards', 'local', 'cardsConfig.json'),
+        'utf-8',
+      ),
+    ).cardKeyPrefix;
+
+  it('keeps the project under its new prefix', async () => {
+    const { root } = await folder({ prefix: 'one' }, { prefix: 'two' });
+    const { directory } = await localFolder(root);
+    const before = await directory.open('one', SYSTEM_ACTOR);
+
+    await directory.rename('one', 'uno', ann.actor);
+
+    expect((await directory.open('uno', SYSTEM_ACTOR)).checkout).toBe(
+      before.checkout,
+    );
+    await expect(directory.open('one', SYSTEM_ACTOR)).rejects.toThrow(
+      ProjectNotFoundError,
+    );
+    expect((await directory.list()).map((p) => p.prefix).sort()).toEqual([
+      'two',
+      'uno',
+    ]);
+    expect(prefixOf(root, 'one')).toBe('uno');
+  });
+
+  it('refuses a prefix another project has, renaming nothing', async () => {
+    const { root } = await folder({ prefix: 'one' }, { prefix: 'two' });
+    const { directory } = await localFolder(root);
+
+    await expect(directory.rename('one', 'two', ann.actor)).rejects.toThrow(
+      new ProjectExistsError('two'),
+    );
+    expect(prefixOf(root, 'one')).toBe('one');
+    expect((await directory.list()).map((p) => p.prefix).sort()).toEqual([
+      'one',
+      'two',
+    ]);
+  });
+
+  it("refuses the project's own prefix as the rename does, not as taken", async () => {
+    const { root } = await folder({ prefix: 'one' });
+    const { directory } = await localFolder(root);
+
+    await expect(directory.rename('one', 'one', ann.actor)).rejects.toThrow(
+      "Project prefix is already 'one'",
+    );
+  });
+
+  it('refuses a prefix an earlier rename is taking', async () => {
+    const { root } = await folder({ prefix: 'one' }, { prefix: 'two' });
+    const { directory } = await localFolder(root);
+    let reached!: () => void;
+    let release!: () => void;
+    const atRename = new Promise<void>((resolve) => (reached = resolve));
+    const released = new Promise<void>((resolve) => (release = resolve));
+    const original = Rename.prototype.rename;
+    const spy = vi
+      .spyOn(Rename.prototype, 'rename')
+      .mockImplementationOnce(async function (this: Rename, to, force) {
+        reached();
+        await released;
+        return original.call(this, to, force);
+      });
+    try {
+      const first = directory.rename('one', 'uno', ann.actor);
+      await atRename;
+      const second = directory.rename('two', 'uno', ann.actor);
+      release();
+
+      await first;
+      await expect(second).rejects.toThrow(new ProjectExistsError('uno'));
+      expect(prefixOf(root, 'two')).toBe('two');
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
+  it('refuses a prefix a rename inside a write still open has taken', async () => {
+    const { root } = await folder({ prefix: 'one' }, { prefix: 'two' });
+    const { directory } = await localFolder(root);
+    const ws = await directory.open('one', ann.actor);
+
+    await ws.atomic(async () => {
+      await directory.rename('one', 'uno', ann.actor);
+      await expect(directory.rename('two', 'uno', ann.actor)).rejects.toThrow(
+        new ProjectExistsError('uno'),
+      );
+    }, 'Update project settings');
+
+    expect(prefixOf(root, 'two')).toBe('two');
+    expect((await directory.list()).map((p) => p.prefix).sort()).toEqual([
+      'two',
+      'uno',
+    ]);
+  });
+
+  it('follows a rename of a reopened project', async () => {
+    const { root } = await folder({ prefix: 'one' });
+    const { directory } = await localFolder(root);
+    await directory.replace('one');
+    const reopened = await directory.open('one', SYSTEM_ACTOR);
+
+    await directory.rename('one', 'uno', ann.actor);
+
+    expect((await directory.open('uno', SYSTEM_ACTOR)).checkout).toBe(
+      reopened.checkout,
+    );
+    expect((await directory.list()).map((p) => p.prefix)).toEqual(['uno']);
+  });
+
+  it('refuses a published project unless forced', async () => {
+    const { root } = await folder({ prefix: 'one', version: '1.0.0' });
+    const { directory } = await localFolder(root);
+
+    await expect(directory.rename('one', 'uno', ann.actor)).rejects.toThrow(
+      'is this module',
+    );
+    await directory.rename('one', 'uno', ann.actor, undefined, {
+      force: true,
+    });
+
+    expect((await directory.list()).map((p) => p.prefix)).toEqual(['uno']);
+  });
+
+  it('keeps the old prefix when the write the rename is part of fails', async () => {
+    const { root } = await folder({ prefix: 'one', git: true });
+    const { directory } = await localFolder(root, { autocommit: true });
+    const ws = await directory.open('one', ann.actor, ann.identity);
+
+    await expect(
+      ws.atomic(async () => {
+        await directory.rename('one', 'uno', ann.actor, ann.identity);
+        throw new Error('a later step fails');
+      }, 'Update project settings'),
+    ).rejects.toThrow('a later step fails');
+
+    expect(prefixOf(root, 'one')).toBe('one');
+    expect((await directory.list()).map((p) => p.prefix)).toEqual(['one']);
+  });
+});
+
+describe('directory.create', () => {
+  beforeEach(async () => {
+    // Hubs are fetched through it and it refuses: creating stays offline.
+    vi.stubEnv('CYBERISMO_EGRESS_PROXY', 'http://127.0.0.1:9');
+    await resetEgressDispatcherForTest();
+  });
+
+  afterEach(async () => {
+    vi.unstubAllEnvs();
+    await resetEgressDispatcherForTest();
+  });
+
+  it('refuses a prefix an earlier rename is taking, writing nothing', async () => {
+    const { root } = await folder({ prefix: 'one' });
+    const { directory } = await localFolder(root);
+    const rename = hold(Rename.prototype, 'rename');
+    try {
+      const first = directory.rename('one', 'uno', ann.actor);
+      await rename.reached;
+      const second = directory.create(
+        { name: 'New', prefix: 'uno' },
+        ann.actor,
+      );
+      rename.release();
+
+      await first;
+      await expect(second).rejects.toThrow(new ProjectExistsError('uno'));
+      expect(await readdir(root)).toEqual(['one']);
+    } finally {
+      rename.restore();
+    }
+  });
+
+  it("refuses the prefix a renamed project's folder still has", async () => {
+    const { root } = await folder({ prefix: 'one' });
+    const { directory } = await localFolder(root);
+    await directory.rename('one', 'uno', ann.actor);
+
+    await expect(
+      directory.create({ name: 'New', prefix: 'one' }, ann.actor),
+    ).rejects.toThrow(new ProjectExistsError('one'));
+  });
+
+  it('makes a clone started meanwhile skip its prefix', async () => {
+    const { root } = await folder();
+    const source = await repoOf({ prefix: 'newp' });
+    const { directory } = await localFolder(root);
+    const init = hold(GitManager.prototype, 'initialize');
+    try {
+      const first = directory.create(
+        { name: 'New', prefix: 'newp' },
+        ann.actor,
+      );
+      await init.reached;
+      const second = directory.clone(source.root);
+      init.release();
+
+      await first;
+      expect(await second).toEqual({
+        projects: [],
+        skippedDuplicates: ['newp'],
+      });
+      expect((await directory.open('newp', SYSTEM_ACTOR)).path).toBe(
+        join(root, 'newp'),
+      );
+    } finally {
+      init.restore();
+    }
+  });
+});
+
 describe('directory.clone', () => {
   it('adds the projects of a cloned repository, skipping a prefix it has', async () => {
     const { root } = await folder({ prefix: 'one' });
-    const source = await folder({ prefix: 'one' }, { prefix: 'two' });
-    await git(source.root, 'init', '--initial-branch=main');
-    await git(source.root, 'add', '.');
-    await git(
-      source.root,
-      '-c',
-      'user.name=Test',
-      '-c',
-      'user.email=test@example.com',
-      '-c',
-      'commit.gpgsign=false',
-      'commit',
-      '-m',
-      'Projects',
-    );
+    const source = await repoOf({ prefix: 'one' }, { prefix: 'two' });
     const { directory } = await localFolder(root);
 
     const result = await directory.clone(source.root);
@@ -191,5 +440,25 @@ describe('directory.clone', () => {
       'one',
       'two',
     ]);
+  });
+
+  it('skips a prefix a rename inside a write still open has taken', async () => {
+    const { root } = await folder({ prefix: 'one' });
+    const source = await repoOf({ prefix: 'uno' });
+    const { directory } = await localFolder(root);
+    const ws = await directory.open('one', ann.actor);
+
+    await ws.atomic(async () => {
+      await directory.rename('one', 'uno', ann.actor);
+      expect(await directory.clone(source.root)).toEqual({
+        projects: [],
+        skippedDuplicates: ['uno'],
+      });
+    }, 'Update project settings');
+
+    expect((await directory.list()).map((p) => p.prefix)).toEqual(['uno']);
+    expect((await directory.open('uno', SYSTEM_ACTOR)).path).toBe(
+      join(root, 'one'),
+    );
   });
 });

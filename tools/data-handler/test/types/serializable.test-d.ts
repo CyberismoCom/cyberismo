@@ -222,4 +222,5 @@ export const directory: FacadeSerializable<
   list: true,
   create: true,
   clone: true,
+  rename: true,
 };
