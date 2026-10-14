@@ -1,10 +1,11 @@
 import { expect, test, describe, beforeEach, afterEach } from 'vitest';
 import { createApp } from '../src/app.js';
-import { ProjectRegistry } from '../src/project-registry.js';
 import { MockAuthProvider } from '../src/auth/mock.js';
 import { createTempTestData, cleanupTempTestData } from './test-utils.js';
-import { rm } from 'node:fs/promises';
-import { join } from 'node:path';
+import { mkdtemp, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { dirname, join } from 'node:path';
+import { localFolder, type ProjectDirectory } from '@cyberismo/data-handler';
 import {
   openTestWorkspace,
   directoryOf,
@@ -59,7 +60,9 @@ describe('GET /api/projects', () => {
   });
 
   test('returns empty array when no projects', async () => {
-    const emptyApp = createApp(new MockAuthProvider(), new ProjectRegistry());
+    const empty = await mkdtemp(join(tmpdir(), 'cyberismo-test-'));
+    const { directory } = await localFolder(empty);
+    const emptyApp = createApp(new MockAuthProvider(), directory);
 
     const response = await emptyApp.request('/api/projects');
 
@@ -69,17 +72,18 @@ describe('GET /api/projects', () => {
     expect(result.projects).toBeInstanceOf(Array);
     expect(result.projects.length).toBe(0);
     expect(result.canCreateProjects).toBe(false);
+    await rm(empty, { recursive: true, force: true });
   });
 });
 
 describe('POST /api/projects', () => {
   let tempDir: string;
-  let registry: ProjectRegistry;
+  let registry: ProjectDirectory;
 
   beforeEach(async () => {
     tempDir = await createTempTestData('decision-records');
-    const ws = await openTestWorkspace(tempDir);
-    registry = directoryOf(ws);
+    // The project's folder, which multiRoot names below.
+    ({ directory: registry } = await localFolder(dirname(tempDir)));
   });
 
   afterEach(async () => {
@@ -151,7 +155,7 @@ describe('POST /api/projects', () => {
     expect(result.prefix).toBe('newproj');
     expect(result.name).toBe('New Project');
     expect(result.category).toBe('Test');
-    expect(registry.has('newproj')).toBe(true);
+    expect((await registry.list()).map((p) => p.prefix)).toContain('newproj');
 
     // Cleanup created project
     await rm(join(multiRoot, 'newproj'), { recursive: true, force: true });
@@ -179,12 +183,12 @@ describe('POST /api/projects', () => {
 
 describe('POST /api/projects/clone', () => {
   let tempDir: string;
-  let registry: ProjectRegistry;
+  let registry: ProjectDirectory;
 
   beforeEach(async () => {
     tempDir = await createTempTestData('decision-records');
-    const ws = await openTestWorkspace(tempDir);
-    registry = directoryOf(ws);
+    // The project's folder, which multiRoot names below.
+    ({ directory: registry } = await localFolder(dirname(tempDir)));
   });
 
   afterEach(async () => {

@@ -26,11 +26,7 @@ import type { requestStatus } from './interfaces/request-status-interfaces.js';
 import { Create } from './commands/create.js';
 import { migrate as migrateProject } from './commands/migrate.js';
 import { Validate } from './commands/validate.js';
-import {
-  openCheckout,
-  Workspace,
-  type WorkspaceOptions,
-} from './workspace/workspace.js';
+import { Workspace, type WorkspaceOptions } from './workspace/workspace.js';
 import { Checkout } from './containers/project.js';
 import { SYSTEM_ACTOR } from './utils/tx-record.js';
 
@@ -95,7 +91,7 @@ const openAsSystem: WorkspaceOpener = async ({ projectPath, ...options }) => {
   if (systemCheckout?.basePath !== projectPath) {
     systemCheckout?.dispose();
     systemCheckout = undefined;
-    systemCheckout = await openCheckout(projectPath, options);
+    systemCheckout = await Checkout.open(projectPath, options);
   }
   return Workspace.over(systemCheckout, SYSTEM_ACTOR);
 };

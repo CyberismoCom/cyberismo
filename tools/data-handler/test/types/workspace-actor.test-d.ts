@@ -14,17 +14,26 @@
 // Type test: checked by `tsc -p tsconfig.types.json`, never run.
 
 import type { Checkout } from '../../src/containers/project.js';
+import { openProjectAt } from '../../src/directory/local-folder.js';
+import type { ProjectDirectory } from '../../src/directory/project-directory.js';
 import { Workspace } from '../../src/workspace/workspace.js';
 import { SYSTEM_ACTOR } from '../../src/utils/tx-record.js';
 
 type OverParameters = Parameters<typeof Workspace.over>;
+type OpenParameters = Parameters<ProjectDirectory['open']>;
+type OpenAtParameters = Parameters<typeof openProjectAt>;
 
 // No Workspace can be obtained without an actor.
-export const actorIsRequired: undefined extends OverParameters[1]
-  ? never
-  : true = true;
+export const actorIsRequired: [
+  undefined extends OverParameters[1] ? never : true,
+  undefined extends OpenParameters[1] ? never : true,
+  undefined extends OpenAtParameters[1] ? never : true,
+] = [true, true, true];
 
-export function noWorkspaceWithoutAnActor(checkout: Checkout): unknown[] {
+export function noWorkspaceWithoutAnActor(
+  checkout: Checkout,
+  directory: ProjectDirectory,
+): unknown[] {
   return [
     // @ts-expect-error handles come only from Workspace.over
     new Workspace(checkout, SYSTEM_ACTOR, undefined),
@@ -32,5 +41,9 @@ export function noWorkspaceWithoutAnActor(checkout: Checkout): unknown[] {
     Workspace.over(checkout),
     // @ts-expect-error no actor-less singleton
     Workspace.getInstance('path'),
+    // @ts-expect-error the directory opens a project for an actor
+    directory.open('prefix'),
+    // @ts-expect-error a project at a path is opened for an actor
+    openProjectAt('path'),
   ];
 }

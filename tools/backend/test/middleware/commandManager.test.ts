@@ -1,13 +1,16 @@
 import { describe, it, expect } from 'vitest';
 import { Hono } from 'hono';
+import type { ActorRef } from '@cyberismo/model';
 import {
-  attachCommandManager,
-  attachProjectRegistry,
-} from '../../src/middleware/commandManager.js';
-import type { Checkout } from '@cyberismo/data-handler';
+  ProjectNotFoundError,
+  type CommitIdentity,
+  type ProjectDirectory,
+  type Workspace,
+} from '@cyberismo/data-handler';
+import { attachProjectDirectory } from '../../src/middleware/commandManager.js';
+import { EventsByProject } from '../../src/domain/events/events-by-project.js';
 import { UserRole } from '../../src/types.js';
 import type { UserInfo } from '../../src/types.js';
-import { ProjectRegistry } from '../../src/project-registry.js';
 
 const testUser: UserInfo = {
   id: 'user-1',
@@ -16,50 +19,84 @@ const testUser: UserInfo = {
   role: UserRole.Editor,
 };
 
-function mockCheckout(basePath = '/tmp/test-project') {
-  // The registry subscribes to the checkout's changes.
-  const changeFeed = { subscribe: () => () => {} };
-  return { basePath, changeFeed } as unknown as Checkout;
+// A directory whose handles carry what open was given.
+function fakeDirectory(prefixes: string[]): ProjectDirectory {
+  const changes = { subscribe: () => () => {} };
+  return {
+    open: async (
+      prefix: string,
+      actor: ActorRef,
+      identity?: CommitIdentity,
+    ) => {
+      if (!prefixes.includes(prefix)) {
+        throw new ProjectNotFoundError(prefix);
+      }
+      return { path: `/tmp/${prefix}`, actor, identity, changes };
+    },
+  } as unknown as ProjectDirectory;
 }
 
 interface ContextBody {
-  sameCheckout: boolean;
   projectPath: string;
   actor: unknown;
   identity: unknown;
+  hasEvents: boolean;
 }
 
 // An app that exposes what the middleware put on the context.
-function contextApp(checkout: Checkout, user?: UserInfo) {
+function createApp(
+  directory: ProjectDirectory,
+  {
+    user = testUser,
+    fixedPrefix,
+  }: { user?: UserInfo | null; fixedPrefix?: string } = {},
+) {
   const app = new Hono();
   app.use('*', async (c, next) => {
     if (user) c.set('user', user);
     await next();
   });
-  app.use('*', attachCommandManager(checkout));
-  app.get('/test', (c) => {
-    const ws = c.get('ws');
-    return c.json({
-      sameCheckout: ws.checkout === checkout,
-      projectPath: c.get('projectPath'),
-      actor: ws.actor,
-      identity: ws.identity,
-    });
+  const events = new EventsByProject(directory);
+  const body = (ws: Workspace, hasEvents: boolean): ContextBody => ({
+    projectPath: ws.path,
+    actor: ws.actor,
+    identity: ws.identity,
+    hasEvents,
   });
+  app.use('/projects/:prefix/*', attachProjectDirectory(directory, events));
+  app.get('/projects/:prefix/test', (c) =>
+    c.json(body(c.get('ws'), !!c.get('events'))),
+  );
+  // Fixed prefix route (no :prefix param)
+  app.use('/static/*', attachProjectDirectory(directory, events, fixedPrefix));
+  app.get('/static/test', (c) => c.json({ ok: true }));
   return app;
 }
 
-describe('attachCommandManager', () => {
-  it('sets a handle over the checkout and projectPath on context', async () => {
-    const res = await contextApp(mockCheckout(), testUser).request('/test');
+describe('attachProjectDirectory', () => {
+  it('opens the project by prefix and sets the handle, its path and events', async () => {
+    const app = createApp(fakeDirectory(['decision']));
+
+    const res = await app.request('/projects/decision/test');
     expect(res.status).toBe(200);
     const body = (await res.json()) as ContextBody;
-    expect(body.sameCheckout).toBe(true);
-    expect(body.projectPath).toBe('/tmp/test-project');
+    expect(body.projectPath).toBe('/tmp/decision');
+    expect(body.hasEvents).toBe(true);
+  });
+
+  it('selects the correct project from multiple projects', async () => {
+    const app = createApp(fakeDirectory(['decision', 'other']));
+
+    const res = await app.request('/projects/other/test');
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as ContextBody;
+    expect(body.projectPath).toBe('/tmp/other');
   });
 
   it('acts as the authenticated user', async () => {
-    const res = await contextApp(mockCheckout(), testUser).request('/test');
+    const res = await createApp(fakeDirectory(['decision'])).request(
+      '/projects/decision/test',
+    );
     expect(res.status).toBe(200);
     const body = (await res.json()) as ContextBody;
     expect(body.actor).toEqual({
@@ -74,10 +111,9 @@ describe('attachCommandManager', () => {
   });
 
   it('records a connector account as a connector actor', async () => {
-    const res = await contextApp(mockCheckout(), {
-      ...testUser,
-      role: UserRole.Connector,
-    }).request('/test');
+    const res = await createApp(fakeDirectory(['decision']), {
+      user: { ...testUser, role: UserRole.Connector },
+    }).request('/projects/decision/test');
     expect(res.status).toBe(200);
     expect(((await res.json()) as ContextBody).actor).toEqual({
       kind: 'connector',
@@ -87,70 +123,14 @@ describe('attachCommandManager', () => {
   });
 
   it('throws when no user is present', async () => {
-    const res = await contextApp(mockCheckout()).request('/test');
+    const res = await createApp(fakeDirectory(['decision']), {
+      user: null,
+    }).request('/projects/decision/test');
     expect(res.status).toBe(500);
-  });
-});
-
-describe('attachProjectRegistry', () => {
-  function createRegistry(entries: { prefix: string }[]) {
-    return new ProjectRegistry(
-      entries.map(({ prefix }) => ({
-        prefix,
-        checkout: mockCheckout(`/tmp/${prefix}`),
-      })),
-    );
-  }
-
-  function createApp(registry: ProjectRegistry, fixedPrefix?: string) {
-    const app = new Hono();
-    app.use('*', async (c, next) => {
-      c.set('user', testUser);
-      await next();
-    });
-    app.use('/projects/:prefix/*', attachProjectRegistry(registry));
-    app.get('/projects/:prefix/test', (c) =>
-      c.json({
-        projectPath: c.get('projectPath'),
-        hasRegistry: !!c.get('registry'),
-      }),
-    );
-    // Fixed prefix route (no :prefix param)
-    app.use('/static/*', attachProjectRegistry(registry, fixedPrefix));
-    app.get('/static/test', (c) => c.json({ ok: true }));
-    return app;
-  }
-
-  it('resolves project by prefix and sets commands', async () => {
-    const registry = createRegistry([{ prefix: 'decision' }]);
-    const app = createApp(registry);
-
-    const res = await app.request('/projects/decision/test');
-    expect(res.status).toBe(200);
-    const body = (await res.json()) as {
-      projectPath: string;
-      hasRegistry: boolean;
-    };
-    expect(body.projectPath).toBe('/tmp/decision');
-    expect(body.hasRegistry).toBe(true);
-  });
-
-  it('selects the correct project from multiple registered projects', async () => {
-    const registry = createRegistry([
-      { prefix: 'decision' },
-      { prefix: 'other' },
-    ]);
-    const app = createApp(registry);
-
-    const res = await app.request('/projects/other/test');
-    expect(res.status).toBe(200);
-    const body = (await res.json()) as { projectPath: string };
-    expect(body.projectPath).toBe('/tmp/other');
   });
 
   it('returns 404 for unknown prefix', async () => {
-    const registry = createRegistry([{ prefix: 'decision' }]);
-    const app = createApp(registry);
+    const app = createApp(fakeDirectory(['decision']));
 
     const res = await app.request('/projects/unknown/test');
     expect(res.status).toBe(404);
@@ -159,8 +139,7 @@ describe('attachProjectRegistry', () => {
   });
 
   it('returns 400 when prefix is missing and no fixedPrefix', async () => {
-    const registry = createRegistry([{ prefix: 'decision' }]);
-    const app = createApp(registry);
+    const app = createApp(fakeDirectory(['decision']));
 
     const res = await app.request('/static/test');
     expect(res.status).toBe(400);
@@ -169,16 +148,16 @@ describe('attachProjectRegistry', () => {
   });
 
   it('uses fixedPrefix as fallback when no prefix param', async () => {
-    const registry = createRegistry([{ prefix: 'decision' }]);
-    const app = createApp(registry, 'decision');
+    const app = createApp(fakeDirectory(['decision']), {
+      fixedPrefix: 'decision',
+    });
 
     const res = await app.request('/static/test');
     expect(res.status).toBe(200);
   });
 
-  it('returns 404 when fixedPrefix is not in registry', async () => {
-    const registry = createRegistry([]);
-    const app = createApp(registry, 'nonexistent');
+  it('returns 404 when fixedPrefix is not in the directory', async () => {
+    const app = createApp(fakeDirectory([]), { fixedPrefix: 'nonexistent' });
 
     const res = await app.request('/static/test');
     expect(res.status).toBe(404);
