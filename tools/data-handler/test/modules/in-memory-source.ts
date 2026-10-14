@@ -7,10 +7,9 @@ import type {
   FetchTarget,
 } from '../../src/infra/module-source/source.js';
 import type { Source } from '@cyberismo/model';
-import type { Version } from '../../src/modules/types.js';
 import type { ProjectSettings } from '@cyberismo/model';
 import type { SealFile } from '../../src/infra/replay-log/seal-files.js';
-import { versionToTag } from '../../src/utils/version.js';
+import { versionToTag, type Version } from '../../src/utils/version.js';
 
 /** Minimal `cardsConfig.json` shape the resolver reads. */
 export interface FakeModuleConfig {

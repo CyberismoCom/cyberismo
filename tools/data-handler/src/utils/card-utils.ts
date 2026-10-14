@@ -19,8 +19,6 @@ import type {
   CardAttachment,
   CardWithChildrenCards,
 } from '@cyberismo/model';
-import type { Checkout } from '../infra/checkout.js';
-import { cardsByKeys } from '../cards/read.js';
 
 /**
  * Builds card hierarchy from flat card list with nested card objects.
@@ -73,38 +71,6 @@ export const buildCardHierarchy = (
 
   const rootCards = cards(flatCards);
   return rootCards.map(convert);
-};
-
-/**
- * Flattens card tree so that children are shown on same level regardless of nesting level.
- * @param array Card tree to flatten
- * @param checkout Project to use
- * @returns Flattened card tree.
- */
-export const flattenCardArray = (array: Card[], checkout: Checkout) => {
-  const result: Card[] = [];
-
-  array.forEach((item) => {
-    const { key, path, parent, children, attachments, metadata } = item;
-    const childCardIds = cardsByKeys(checkout, children).map(
-      (item) => item.key,
-    );
-
-    result.push({
-      key,
-      path,
-      parent,
-      children: [...childCardIds],
-      attachments,
-      metadata,
-    });
-    if (children) {
-      result.push(
-        ...flattenCardArray(cardsByKeys(checkout, children), checkout),
-      );
-    }
-  });
-  return result;
 };
 
 /**

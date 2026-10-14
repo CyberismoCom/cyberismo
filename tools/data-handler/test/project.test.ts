@@ -12,10 +12,7 @@ import { basename, join, resolve, sep } from 'node:path';
 import { copyDir } from '../src/utils/file-utils.js';
 import { CardLocation } from '@cyberismo/model';
 
-import {
-  buildCardHierarchy,
-  flattenCardArray,
-} from '../src/utils/card-utils.js';
+import { buildCardHierarchy } from '../src/utils/card-utils.js';
 import { Checkout } from '../src/infra/checkout.js';
 import { ProjectConfiguration } from '../src/project-settings.js';
 import { getTestProject } from './helpers/test-utils.js';
@@ -26,6 +23,7 @@ import {
   allTemplateCards as readAllTemplateCards,
   cardsByKeys,
   findCard,
+  flattenCardArray,
   hasCard,
   listCardIds,
   listCards,
