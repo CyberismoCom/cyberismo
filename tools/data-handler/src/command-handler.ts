@@ -14,25 +14,11 @@
 import { join, resolve } from 'node:path';
 import { readFileSync } from 'node:fs';
 
-import type {
-  Credentials,
-  HubSetting,
-  ModuleContent,
-  ModuleInfo,
-  ModuleInstallResult,
-  ModuleSettingFromHub,
-  ModuleUpdateResult,
-  ReplayedModule,
-  RemovableResourceTypes,
-  ResourceTypes,
-} from '@cyberismo/model';
+import type { RemovableResourceTypes } from '@cyberismo/model';
 import type {
   AllCommandOptions,
   CalcCommandOptions,
-  ShowCommandOptions,
-  RenameCommandOptions,
   StartCommandOptions,
-  UpdateModulesCommandOptions,
 } from './interfaces/command-options.js';
 
 import type { requestStatus } from './interfaces/request-status-interfaces.js';
@@ -54,10 +40,6 @@ import {
   resolveTilde,
 } from './utils/file-utils.js';
 import { ModuleRequestError } from './exceptions/index.js';
-import {
-  ModuleReplayFailedError,
-  ModuleValidationFailedError,
-} from './mutations/replay/replay.js';
 import { errorFunction } from './utils/error-utils.js';
 import { resourceName } from './utils/resource-utils.js';
 
@@ -152,7 +134,6 @@ export class Commands {
     command: CmdValue,
     args: string[],
     options: AllCommandOptions,
-    credentials?: Credentials,
   ): Promise<requestStatus> {
     // Set project path and validate it.
     const creatingNewProject = command === Cmd.create && args[0] === 'project';
@@ -174,7 +155,7 @@ export class Commands {
         return { statusCode: 400, message: errorFunction(error) };
       }
     }
-    return await this.doHandleCommand(command, args, options, credentials);
+    return await this.doHandleCommand(command, args, options);
   }
 
   // Returns command 'target'.
@@ -231,7 +212,6 @@ export class Commands {
     command: CmdValue,
     args: string[],
     options: AllCommandOptions,
-    credentials?: Credentials,
   ) {
     try {
       if (command === Cmd.calc) {
@@ -267,45 +247,6 @@ export class Commands {
         } else {
           throw new Error(`Unknown type to create: '${target}'`);
         }
-      } else if (command === Cmd.fetch) {
-        const [target] = args;
-        if (target !== 'hubs') {
-          throw new Error(`Unknown type to fetch: '${target}'`);
-        }
-        // An explicit fetch always contacts the hubs; the version-checked path
-        // is for callers that only need the cache to be current.
-        const failures = (await this.ws?.modules.fetchHubs(true)) ?? [];
-        if (failures.length > 0) {
-          return {
-            statusCode: 500,
-            message: [
-              ...failures.map(
-                (failure) => `${failure.location}: ${failure.message}`,
-              ),
-              'Modules from the hubs that could be read were refreshed.',
-            ].join('\n'),
-          };
-        }
-      } else if (command === Cmd.import) {
-        const target = args.splice(0, 1)[0];
-        if (target === 'module') {
-          const [source, useCredentials, version] = args;
-          const result = await this.import(
-            source,
-            useCredentials ? useCredentials === 'true' : undefined,
-            credentials,
-            version,
-          );
-          if (result) printModuleResult(result);
-          return {
-            statusCode: 200,
-            note: await this.cleanRecommendation(),
-          };
-        }
-        if (target === 'csv') {
-          const [csvFile, cardKey] = args;
-          return await this.importCsv(csvFile, cardKey);
-        }
       } else if (command === Cmd.migrate) {
         return await this.migrate();
       } else if (command === Cmd.publish) {
@@ -316,50 +257,6 @@ export class Commands {
         const [type, target] = args;
         const removed = this.commandType<RemovableResourceTypes>(type);
         await this.remove(removed, this.commandTarget(type, target));
-      } else if (command === Cmd.rename) {
-        const [to] = args;
-        const { force } = options as RenameCommandOptions;
-        const published = this.ws?.checkout.configuration.version;
-        await this.ws?.renameCmd.rename(to, force);
-        if (published) {
-          return {
-            statusCode: 200,
-            note:
-              `Version ${published} was published under the old prefix. The ` +
-              `next version you publish is a new module: consumers must ` +
-              `install it and remove the old one rather than update.`,
-          };
-        }
-      } else if (command === Cmd.show) {
-        const [type, detail] = args;
-        options.projectPath = this.projectPath;
-        return this.show(
-          this.commandType(type),
-          this.commandTarget(type, detail),
-          options,
-        );
-      } else if (command === Cmd.updateModules) {
-        const [module, targetVersion] = args;
-        if (!module && targetVersion) {
-          throw new ModuleRequestError(
-            'A target version can only be specified together with a module name',
-          );
-        }
-        const target = module
-          ? { module, version: targetVersion || undefined }
-          : {};
-        if ((options as UpdateModulesCommandOptions).dryRun) {
-          return {
-            statusCode: 200,
-            payload: await this.ws?.modules.planUpdate(target, credentials),
-          };
-        }
-        const result = await this.ws?.modules.update(target, credentials);
-        if (result) printModuleResult(result);
-        return {
-          statusCode: 200,
-          note: await this.cleanRecommendation(),
-        };
       } else if (command === Cmd.clean) {
         return this.clean(args);
       } else if (command === Cmd.validate) {
@@ -368,13 +265,6 @@ export class Commands {
         return { statusCode: 500, message: 'Unknown command' };
       }
     } catch (e) {
-      if (
-        (e instanceof ModuleReplayFailedError ||
-          e instanceof ModuleValidationFailedError) &&
-        e.result
-      ) {
-        printModuleResult(e.result);
-      }
       const detail = e instanceof ModuleRequestError ? e.detail : undefined;
       return {
         statusCode: 400,
@@ -428,23 +318,6 @@ export class Commands {
       statusCode: 200,
       message: `Bumped to v${result.newVersion}${previousInfo}`,
     };
-  }
-
-  // A recommendation when the project holds dormant field values, or undefined
-  // when there is nothing to clean. Never fails the parent operation.
-  //
-  // An operation that stranded nothing still reports whatever was dormant
-  // before it, so the note states what the project holds and never claims the
-  // operation caused it.
-  private async cleanRecommendation(): Promise<string | undefined> {
-    const dormant = await this.ws?.clean.dormantSummary();
-    if (!dormant) {
-      return undefined;
-    }
-    return (
-      `This project has ${dormant.valueCount} dormant field value(s) on ${dormant.cardCount} card(s) — ` +
-      `run 'cyberismo clean --dry-run' to list them, 'cyberismo clean' to remove them`
-    );
   }
 
   // Removes field values that are not used by card types.
@@ -511,33 +384,6 @@ export class Commands {
     };
   }
 
-  // Imports another project to the 'destination' project as a module.
-  private async import(
-    source: string,
-    useCredentials?: boolean,
-    credentials?: Credentials,
-    version?: string,
-  ) {
-    return this.ws?.modules.install(source, {
-      private: useCredentials,
-      credentials,
-      version,
-    });
-  }
-
-  // Imports cards from a CSV file to a project.
-  private async importCsv(
-    filePath: string,
-    parentCardKey: string,
-  ): Promise<requestStatus> {
-    const cards = await this.ws?.importCmd.importCsv(filePath, parentCardKey);
-    return {
-      statusCode: 200,
-      message: `Imported cards:`,
-      payload: cards,
-    };
-  }
-
   // Removes a resource, hub or module.
   private async remove(
     type: RemovableResourceTypes,
@@ -568,50 +414,6 @@ export class Commands {
     }
   }
 
-  // Shows wanted resources from a project / template.
-  private async show(
-    type: ResourceTypes,
-    typeDetail: string,
-    options: ShowCommandOptions,
-  ): Promise<requestStatus> {
-    const detail = typeDetail || '';
-    let promise: Promise<
-      | HubSetting[]
-      | ModuleContent
-      | ModuleInfo[]
-      | ModuleSettingFromHub[]
-      | undefined
-    >;
-
-    switch (type) {
-      case 'importableModules':
-        // The show commands read cached hub data; on the command line a stale
-        // listing is never what the user asked for, so refresh it first.
-        promise = this.ws!.modules.ensureModuleListUpToDate().then(() =>
-          this.ws!.modules.importable(options?.showAll, options?.details),
-        );
-        break;
-      case 'module':
-        promise = this.ws!.modules.show(detail);
-        break;
-      case 'hubs':
-        promise = this.ws!.modules.ensureModuleListUpToDate().then(() =>
-          this.ws!.modules.hubs(),
-        );
-        break;
-      case 'modules':
-        promise = this.ws!.modules.list();
-        break;
-      case 'attachment': // fallthrough - not implemented yet
-      case 'link': // fallthrough - not implemented yet
-      case 'links': // fallthrough - not implemented yet
-      case 'label':
-      default:
-        throw new Error(`Unknown or not yet handled type ${type}`);
-    }
-    return { statusCode: 200, payload: await Promise.resolve(promise) };
-  }
-
   // Run migrations to bring project schema to the tool's current version
   private async migrate(): Promise<requestStatus> {
     try {
@@ -636,46 +438,4 @@ export class Commands {
       message: result.length ? result : 'Project structure validated',
     };
   }
-}
-
-// Prints what a module install or update did besides installing the modules.
-function printModuleResult(result: ModuleUpdateResult | ModuleInstallResult) {
-  for (const step of result.skippedReplays) {
-    console.warn(
-      `Skipping migration replay for module '${step.modulePrefix}' ` +
-        `(${step.fromVersion} -> ${step.toVersion}): the module failed to apply.`,
-    );
-  }
-  for (const step of result.replayed) {
-    console.log(
-      `Replayed migrations for module '${step.modulePrefix}': ` +
-        `${step.fromVersion} -> ${step.toVersion} (${step.seals} seal(s))` +
-        describeSkipped(step),
-    );
-  }
-  if ('newValidationErrors' in result && result.newValidationErrors) {
-    console.error(
-      `There are new validations errors after importing the module. Check the project`,
-    );
-  }
-}
-
-// Retired entries are expected and no build will apply them; unknown ones
-// were most likely written by a newer build, so upgrading may apply them.
-function describeSkipped({ retired, unknown }: ReplayedModule): string {
-  const count = (n: number) => `${n} ${n === 1 ? 'entry' : 'entries'}`;
-  const ops = (list: string[]) => [...new Set(list)].join(', ');
-  let text = '';
-  if (retired.length > 0) {
-    text +=
-      `; ignored ${count(retired.length)} for retired operations ` +
-      `(${ops(retired)})`;
-  }
-  if (unknown.length > 0) {
-    text +=
-      `; skipped ${count(unknown.length)} this version does not recognise ` +
-      `(${ops(unknown)}) — upgrade cyberismo to apply ` +
-      `${unknown.length === 1 ? 'it' : 'them'}`;
-  }
-  return text;
 }
