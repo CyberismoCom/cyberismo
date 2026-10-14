@@ -11,7 +11,7 @@ import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { simpleGit } from 'simple-git';
 
-import { GitManager } from '../src/utils/git-manager.js';
+import { GitManager } from '../src/infra/git-manager.js';
 
 /** Create a simpleGit instance with a test identity so tests work without global git config. */
 function testGit(dir: string) {

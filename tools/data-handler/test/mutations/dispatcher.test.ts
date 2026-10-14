@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { dispatch } from '../../src/mutations/dispatcher.js';
 import { PlainHandler } from '../../src/mutations/handlers/plain-handler.js';
 import { resourceName } from '../../src/utils/resource-utils.js';
-import type { Checkout } from '../../src/containers/project.js';
+import type { Checkout } from '../../src/infra/checkout.js';
 
 // dispatcher does not touch the Project; pass a stand-in.
 const stubProject = undefined as unknown as Checkout;

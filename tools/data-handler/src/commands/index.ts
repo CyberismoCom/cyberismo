@@ -12,7 +12,7 @@
 */
 
 import { Create } from './create.js';
-import { Fetch } from './fetch.js';
+import { Fetch } from '../infra/hub-store.js';
 import { Import } from './import.js';
 import { Remove } from './remove.js';
 import { Rename } from './rename.js';

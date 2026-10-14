@@ -19,7 +19,7 @@ import semver from 'semver';
 
 import { getChildLogger } from '../utils/log-utils.js';
 import { readJsonFile } from '../utils/json.js';
-import { isGitLocation } from './location.js';
+import { isGitLocation } from '../utils/location.js';
 import {
   toVersion,
   toVersionRange,
@@ -30,7 +30,7 @@ import {
 } from './types.js';
 import { type Source, type VersionSource } from '@cyberismo/model';
 
-import type { Checkout } from '../containers/project.js';
+import type { Checkout } from '../infra/checkout.js';
 import type {
   ModuleInfo,
   ModuleSetting,

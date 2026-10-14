@@ -14,7 +14,7 @@
 
 import semver from 'semver';
 
-import { toVersion, type Version } from './types.js';
+import { toVersion, type Version } from '../modules/types.js';
 
 /** Pure semver helpers used by the module system. */
 

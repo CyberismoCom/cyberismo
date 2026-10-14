@@ -13,7 +13,7 @@
 
 // Type test: checked by `tsc -p tsconfig.types.json`, never run.
 
-import type { Checkout } from '../../src/containers/project.js';
+import type { Checkout } from '../../src/infra/checkout.js';
 import { openProjectAt } from '../../src/directory/local-folder.js';
 import type { ProjectDirectory } from '../../src/directory/project-directory.js';
 import { Workspace } from '../../src/workspace/workspace.js';

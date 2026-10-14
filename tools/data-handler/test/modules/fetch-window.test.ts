@@ -15,8 +15,8 @@ import { existsSync, readdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { Fetch } from '../../src/commands/fetch.js';
-import { FileSourceLayer } from '../../src/modules/source-file.js';
+import { Fetch } from '../../src/infra/hub-store.js';
+import { FileSourceLayer } from '../../src/infra/module-source/source-file.js';
 import { projects } from '../cards/fixture.js';
 import { readJson } from '../resources/fixture.js';
 
