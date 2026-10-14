@@ -13,11 +13,7 @@
 
 import { Argument, type Command } from 'commander';
 
-import {
-  ModuleRequestError,
-  type CommandOptions,
-  type Workspace,
-} from '@cyberismo/data-handler';
+import { ModuleRequestError, type Workspace } from '@cyberismo/data-handler';
 import {
   ModuleReplayFailedError,
   ModuleValidationFailedError,
@@ -35,7 +31,7 @@ import {
   CommandWithPath,
   parseSourceAtVersion,
 } from '../lib/args.js';
-import { credentials, program } from '../lib/dispatch.js';
+import { credentials, program } from '../lib/program.js';
 import { onProject } from '../lib/errors.js';
 import { openWorkspace } from '../lib/open.js';
 import {
@@ -47,9 +43,15 @@ import { select } from '../lib/prompts.js';
 import { renderUpdatePlan } from '../update-plan-lines.js';
 import { removeAction } from './remove.js';
 import { showAction } from './show.js';
+import type {
+  ImportCommandOptions,
+  RemoveCommandOptions,
+  ShowCommandOptions,
+  UpdateModulesCommandOptions,
+} from '../options.js';
 
 // Helper to get modules that have not been imported.
-export async function importableModules(options: CommandOptions<'show'>) {
+export async function importableModules(options: ShowCommandOptions) {
   const copyOptions = Object.assign({}, options);
   copyOptions.details = true;
   // A failed read counts as no modules.
@@ -147,7 +149,7 @@ export async function installModule(
 export async function moduleInstallAction(
   source: string,
   useCredentials: boolean,
-  options: CommandOptions<'import'>,
+  options: ImportCommandOptions,
 ) {
   const { source: parsedSource, version } = source
     ? parseSourceAtVersion(source)
@@ -204,7 +206,7 @@ const moduleUseCredentialsArg = new Argument(
 async function moduleUpdateAction(
   moduleName: string | undefined,
   version: string | undefined,
-  options: CommandOptions<'updateModules'>,
+  options: UpdateModulesCommandOptions,
 ) {
   const commandOptions = Object.assign({}, options, program.opts());
   const target = (): UpdateTarget => {
@@ -244,7 +246,7 @@ export function registerImportModule(importCmd: Command) {
       async (
         source: string,
         useCredentials: boolean,
-        options: CommandOptions<'import'>,
+        options: ImportCommandOptions,
       ) => {
         deprecationNote('import module', 'module install');
         await moduleInstallAction(source, useCredentials, options);
@@ -288,14 +290,14 @@ export function registerModule(program: Command) {
     .command('remove')
     .description('Removes an imported module from the project')
     .argument('<name>', 'Name of the module to remove')
-    .action(async (name: string, options: CommandOptions<'remove'>) => {
+    .action(async (name: string, options: RemoveCommandOptions) => {
       await removeAction('module', name, undefined, undefined, options);
     });
 
   moduleCmd
     .command('list')
     .description('Lists the modules imported to the project')
-    .action(async (options: CommandOptions<'show'>) => {
+    .action(async (options: ShowCommandOptions) => {
       await showAction('modules', undefined, options);
     });
 }
@@ -311,7 +313,7 @@ export function registerUpdateModules(program: Command) {
     );
   program.addCommand(updateModulesCmd, { hidden: true });
   updateModulesCmd.action(
-    async (moduleName, version, options: CommandOptions<'updateModules'>) => {
+    async (moduleName, version, options: UpdateModulesCommandOptions) => {
       deprecationNote('update-modules', 'module update');
       await moduleUpdateAction(moduleName, version, options);
     },
@@ -327,7 +329,7 @@ export function registerCheckUpdates(program: Command) {
   checkUpdatesCmd.action(
     async (
       moduleName: string | undefined,
-      options: CommandOptions<'updateModules'>,
+      options: UpdateModulesCommandOptions,
     ) => {
       deprecationNote('check-updates', 'module update --dry-run');
       await moduleUpdateAction(moduleName, undefined, {

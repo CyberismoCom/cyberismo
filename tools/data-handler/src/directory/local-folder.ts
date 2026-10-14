@@ -32,6 +32,7 @@ import { SYSTEM_ACTOR, type CommitIdentity } from '../utils/tx-record.js';
 import { Workspace, type WorkspaceOptions } from '../workspace/workspace.js';
 import { createAndOpen } from './create-project.js';
 import type { ProjectDirectory } from './project-directory.js';
+import { Rename } from '../commands/rename.js';
 
 /**
  * The actor's handle over the project at `path`, on a checkout of its own
@@ -241,7 +242,10 @@ class LocalFolder implements ProjectDirectory {
       if (newPrefix !== prefix && this.holds(newPrefix)) {
         throw new ProjectExistsError(newPrefix);
       }
-      await ws.renameCmd.rename(newPrefix, force);
+      await new Rename(ws.checkout, ws.actor, ws.identity).rename(
+        newPrefix,
+        force,
+      );
     });
   }
 

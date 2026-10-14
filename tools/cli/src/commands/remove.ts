@@ -13,12 +13,7 @@
 
 import { type Command } from 'commander';
 
-import {
-  Cmd,
-  removeResource,
-  type CommandOptions,
-  type Workspace,
-} from '@cyberismo/data-handler';
+import { Cmd, removeResource, type Workspace } from '@cyberismo/data-handler';
 
 import {
   CommandWithPath,
@@ -28,7 +23,7 @@ import {
   ResourceTypeParser as Parser,
   Resources,
 } from '../lib/args.js';
-import { commandHandler, program } from '../lib/dispatch.js';
+import { commandHandler, program } from '../lib/program.js';
 import { onProject } from '../lib/errors.js';
 import {
   cleanNote,
@@ -37,6 +32,7 @@ import {
   printResult,
   printResultWithNote,
 } from '../lib/output.js';
+import type { RemoveCommandOptions } from '../options.js';
 
 const additionalHelpForRemove = `Sub-command help:
   remove attachment <cardKey> <filename>, where
@@ -119,7 +115,7 @@ export async function removeAction(
   parameter1: string | undefined,
   parameter2: string | undefined,
   parameter3: string | undefined,
-  options: CommandOptions<'remove'>,
+  options: RemoveCommandOptions,
 ) {
   if (type) {
     if (!parameter1) {
@@ -225,7 +221,7 @@ export function registerRemove(program: Command) {
         parameter1: string,
         parameter2: string,
         parameter3: string,
-        options: CommandOptions<'remove'>,
+        options: RemoveCommandOptions,
       ) => {
         if (type === 'module') {
           deprecationNote('remove module', 'module remove');
