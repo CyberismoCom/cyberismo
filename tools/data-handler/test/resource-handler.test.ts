@@ -5,9 +5,9 @@ import { mkdirSync, rmSync } from 'node:fs';
 
 import { copyDir } from '../src/utils/file-utils.js';
 import { getTestProject } from './helpers/test-utils.js';
-import type { Checkout } from '../src/containers/project.js';
-import { ResourceHandler } from '../src/containers/project/resource-handler.js';
-import { ResourcesFrom } from '../src/containers/project/resources-from.js';
+import type { Checkout } from '../src/infra/checkout.js';
+import { ResourceHandler } from '../src/infra/resource-handler.js';
+import { ResourcesFrom } from '../src/infra/resources-from.js';
 
 describe('ResourceHandler', () => {
   const baseDir = import.meta.dirname;

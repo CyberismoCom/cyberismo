@@ -29,7 +29,10 @@ export type {
   Version,
   VersionRange,
 } from './types.js';
-export type { FetchTarget, SourceLayer } from './source.js';
+export type {
+  FetchTarget,
+  SourceLayer,
+} from '../infra/module-source/source.js';
 export type {
   Change,
   ConflictDemand,
@@ -48,13 +51,13 @@ export {
   isFileLocation,
   isGitLocation,
   stripFileProtocol,
-} from './location.js';
+} from '../utils/location.js';
 export {
   pickVersion,
   stripTagPrefix,
   validateVersionAgainstConstraints,
   versionToTag,
-} from './version.js';
+} from '../utils/version.js';
 export { buildRemoteUrl } from './remote-url.js';
 
 // Reading what a project declares and what it has installed.
@@ -67,7 +70,7 @@ export {
 } from './inventory.js';
 
 // Fetching, resolving and applying.
-export { createSourceLayer } from './source.js';
+export { createSourceLayer } from '../infra/module-source/source.js';
 export { resolve, resolveForApply, stageResolution } from './resolve/solver.js';
 export {
   checkUpdate,

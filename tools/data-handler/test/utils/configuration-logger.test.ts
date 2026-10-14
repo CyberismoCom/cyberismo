@@ -9,8 +9,8 @@ import {
   type ConfigurationOperation,
 } from '../../src/utils/configuration-logger.js';
 import { copyDir, deleteDir, pathExists } from '../../src/utils/file-utils.js';
-import { ProjectPaths } from '../../src/containers/project/project-paths.js';
-import { Checkout } from '../../src/containers/project.js';
+import { ProjectPaths } from '../../src/infra/project-paths.js';
+import { Checkout } from '../../src/infra/checkout.js';
 import { resourceName } from '../../src/utils/resource-utils.js';
 import { Workspace } from '../../src/workspace/workspace.js';
 import { SYSTEM_ACTOR } from '../../src/utils/tx-record.js';

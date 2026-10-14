@@ -12,7 +12,7 @@
 */
 
 import type { Card } from '@cyberismo/model';
-import type { Checkout } from '../containers/project.js';
+import type { Checkout } from '../infra/checkout.js';
 import { ActionGuard } from '../permissions/action-guard.js';
 import { getChildLogger } from '../utils/log-utils.js';
 import { updateCardMetadataKey } from './update.js';

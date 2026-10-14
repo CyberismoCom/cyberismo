@@ -33,8 +33,8 @@ import type {
 import { ClingoProgramBuilder } from './clingo-program-builder.js';
 import { isPredefinedField, ROOT } from './constants.js';
 import { getChildLogger } from './log-utils.js';
-import type { Checkout } from '../containers/project.js';
-import type { CardTreeKind } from '../containers/project/card-tree.js';
+import type { Checkout } from '../infra/checkout.js';
+import type { CardTreeKind } from '../infra/card-tree.js';
 
 const logger = getChildLogger({ module: 'clingo-facts' });
 

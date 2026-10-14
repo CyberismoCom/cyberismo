@@ -12,8 +12,8 @@
 */
 
 import type { PublishResult } from '@cyberismo/model';
-import type { Checkout } from '../containers/project.js';
-import { GitManager } from '../utils/git-manager.js';
+import type { Checkout } from '../infra/checkout.js';
+import { GitManager } from '../infra/git-manager.js';
 
 /**
  * Tags the current project version for publishing; pushing the tag is the

@@ -12,7 +12,7 @@ import { join, resolve as pathResolve } from 'node:path';
 import { copyDir } from '../src/utils/file-utils.js';
 import { createProject } from '../src/directory/create-project.js';
 import { SYSTEM_ACTOR } from '../src/utils/tx-record.js';
-import { GitManager } from '../src/utils/git-manager.js';
+import { GitManager } from '../src/infra/git-manager.js';
 import {
   makeFakeModuleFixture,
   rewriteFakeModuleFixture,
