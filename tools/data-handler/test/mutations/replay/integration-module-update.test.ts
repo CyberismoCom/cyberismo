@@ -28,8 +28,8 @@ import type { SealSpec } from '../../helpers/replay-fixtures.js';
 import type {
   InstallationRef,
   ModuleInstallation,
-} from '../../../src/modules/types.js';
-import type { ResolvedModule } from '../../../src/modules/resolve/types.js';
+  ResolvedModule,
+} from '../../../src/mutations/replay/module-types.js';
 import { SYSTEM_FRAME } from '../../../src/utils/tx-record.js';
 
 const baseDir = import.meta.dirname;

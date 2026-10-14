@@ -12,8 +12,8 @@
 */
 
 import type { Checkout } from '../infra/checkout.js';
-import { ActionGuard } from '../permissions/action-guard.js';
-import { applySideEffects, type SideEffects } from '../side-effects.js';
+import { assertAllowed } from './guard.js';
+import { applySideEffects, type SideEffects } from './side-effects.js';
 import { getChildLogger } from '../utils/log-utils.js';
 import { updateCardMetadata } from './update.js';
 import { findCard } from './read.js';
@@ -87,8 +87,7 @@ export async function performTransition(
     );
   }
 
-  const actionGuard = new ActionGuard(checkout.calculationEngine);
-  await actionGuard.checkPermission('transition', cardKey, transitionName);
+  await assertAllowed(checkout, 'transition', cardKey, transitionName);
 
   card.metadata.workflowState = found.toState;
   // lastUpdated is stamped by saveCardMetadata on every save; only
