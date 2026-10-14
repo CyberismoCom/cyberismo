@@ -2,9 +2,11 @@ import { expect, test, beforeAll } from 'vitest';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createApp } from '../src/app.js';
-import { ProjectRegistry } from '../src/project-registry.js';
 import { MockAuthProvider } from '../src/auth/mock.js';
-import { openTestWorkspace } from './helpers/open-test-workspace.js';
+import {
+  openTestWorkspace,
+  directoryOf,
+} from './helpers/open-test-workspace.js';
 
 const fileUrl = fileURLToPath(import.meta.url);
 const dirname = path.dirname(fileUrl);
@@ -18,10 +20,7 @@ beforeAll(async () => {
       '../../data-handler/test/test-data/valid/decision-records',
     ),
   );
-  app = createApp(
-    new MockAuthProvider(),
-    ProjectRegistry.fromCheckout(ws.checkout),
-  );
+  app = createApp(new MockAuthProvider(), directoryOf(ws));
 });
 
 test('/api/logicPrograms returns logic program for a valid card', async () => {

@@ -22,12 +22,8 @@ import {
   type GetPromptResult,
   type ListPromptsResult,
 } from '@modelcontextprotocol/sdk/types.js';
-
-import {
-  callerOf,
-  workspaceFor,
-  type ProjectProvider,
-} from '../lib/resolve-project.js';
+import type { ProjectDirectory } from '@cyberismo/data-handler';
+import { callerOf, workspaceFor } from '../lib/resolve-project.js';
 
 // Prompt arguments are untyped on the low-level handler; validate them.
 const promptArguments = z.object({ cardKey: z.string().optional() });
@@ -48,7 +44,7 @@ function textResult(text: string, description?: string): GetPromptResult {
  */
 export function registerPrompts(
   server: McpServer,
-  provider: ProjectProvider,
+  directory: ProjectDirectory,
 ): void {
   server.server.registerCapabilities({ prompts: {} });
 
@@ -57,8 +53,8 @@ export function registerPrompts(
     async (_request, extra): Promise<ListPromptsResult> => {
       callerOf(extra);
       const perProject = await Promise.all(
-        provider.list().map(({ prefix }) => {
-          const checkout = provider.get(prefix);
+        (await directory.list()).map(({ prefix }) => {
+          const checkout = directory.get(prefix);
           return checkout
             ? workspaceFor(checkout, extra, server).resources.skills()
             : [];
@@ -96,8 +92,8 @@ export function registerPrompts(
       // imported into as a module, whose prefix differs from the project's), so
       // resolve by asking each project rather than parsing the name's prefix.
       let anyDisabled = false;
-      for (const { prefix } of provider.list()) {
-        const checkout = provider.get(prefix);
+      for (const { prefix } of await directory.list()) {
+        const checkout = directory.get(prefix);
         if (!checkout) {
           continue;
         }

@@ -1,11 +1,13 @@
 import { expect, test, beforeEach, afterEach } from 'vitest';
 import { type Workspace } from '@cyberismo/data-handler';
 import { createApp } from '../src/app.js';
-import { ProjectRegistry } from '../src/project-registry.js';
 import { MockAuthProvider } from '../src/auth/mock.js';
 import { createTempTestData, cleanupTempTestData } from './test-utils.js';
 import { listWorkflowGraphParams } from '../src/domain/resources/service.js';
-import { openTestWorkspace } from './helpers/open-test-workspace.js';
+import {
+  openTestWorkspace,
+  directoryOf,
+} from './helpers/open-test-workspace.js';
 
 let app: ReturnType<typeof createApp>;
 let tempTestDataPath: string;
@@ -14,10 +16,7 @@ let ws: Workspace;
 beforeEach(async () => {
   tempTestDataPath = await createTempTestData('decision-records');
   ws = await openTestWorkspace(tempTestDataPath);
-  app = createApp(
-    new MockAuthProvider(),
-    ProjectRegistry.fromCheckout(ws.checkout),
-  );
+  app = createApp(new MockAuthProvider(), directoryOf(ws));
 });
 
 afterEach(async () => {

@@ -22,7 +22,10 @@ import type { Delivery } from '../src/domain/events/project-events.js';
 import { ProjectRegistry } from '../src/project-registry.js';
 import { UserRole } from '../src/types.js';
 import { createTempTestData, cleanupTempTestData } from './test-utils.js';
-import { openTestWorkspace } from './helpers/open-test-workspace.js';
+import {
+  openTestWorkspace,
+  directoryOf,
+} from './helpers/open-test-workspace.js';
 
 let app: ReturnType<typeof createApp>;
 let tempTestDataPath: string;
@@ -37,7 +40,7 @@ beforeAll(async () => {
   process.argv = [];
   tempTestDataPath = await createTempTestData('decision-records');
   ws = await openTestWorkspace(tempTestDataPath);
-  registry = ProjectRegistry.fromCheckout(ws.checkout);
+  registry = directoryOf(ws);
   app = createApp(new MockAuthProvider({ roster: true }), registry);
 });
 afterEach(async () => {
@@ -263,7 +266,7 @@ describe('project event stream over HTTP', () => {
   test('disposal closes subscriptions', async () => {
     // Needs an instance it can dispose without touching the shared app.
     const ownCommands = await openTestWorkspace(tempTestDataPath);
-    const ownRegistry = ProjectRegistry.fromCheckout(ownCommands.checkout);
+    const ownRegistry = directoryOf(ownCommands);
     const { reader } = await connect(
       'alice',
       createApp(new MockAuthProvider({ roster: true }), ownRegistry),
