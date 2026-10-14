@@ -39,6 +39,7 @@ export class CardTypeResource extends FileResource<CardType> {
    * Creates instance of CardTypeResource
    * @param checkout Project to use
    * @param name Resource name
+   * @internal
    */
   constructor(checkout: Checkout, name: ResourceName) {
     super(checkout, name, 'cardTypes');

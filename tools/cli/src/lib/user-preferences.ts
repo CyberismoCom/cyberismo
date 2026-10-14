@@ -12,9 +12,7 @@
 import { dirname } from 'node:path';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 
-import { hasCode } from './error-utils.js';
-import { formatJson } from './json.js';
-import { getChildLogger } from '../utils/log-utils.js';
+import { formatJson } from '@cyberismo/data-handler/utils/json';
 
 export interface UserPreferencesObject {
   editCommand: {
@@ -64,29 +62,17 @@ export class UserPreferences {
         flag: 'wx',
       });
     } catch (error) {
-      if (hasCode(error)) {
-        // If file already exists (EEXIST), that's fine - we'll use the existing file
-        if (error.code !== 'EEXIST') {
-          throw new Error(
-            `Error creating preferences file '${this.prefsFilePath}': ${error}`,
-            { cause: error },
-          );
-        } else {
-          this.logger.warn('Preferences file already exists');
-        }
-      } else {
+      // An existing file is kept.
+      if (
+        !(error instanceof Error && 'code' in error) ||
+        error.code !== 'EEXIST'
+      ) {
         throw new Error(
           `Error creating preferences file '${this.prefsFilePath}': ${error}`,
           { cause: error },
         );
       }
     }
-  }
-
-  private get logger() {
-    return getChildLogger({
-      module: 'userPreferences',
-    });
   }
 
   public getPreferences(): UserPreferencesObject {

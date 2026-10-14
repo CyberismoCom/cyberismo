@@ -40,6 +40,7 @@ export class TemplateResource extends FolderResource<TemplateMetadata, never> {
    * Creates an instance of TemplateResource
    * @param checkout Project to use
    * @param name Resource name
+   * @internal
    */
   constructor(checkout: Checkout, name: ResourceName) {
     super(checkout, name, 'templates');

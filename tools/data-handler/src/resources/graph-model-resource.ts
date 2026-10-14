@@ -39,6 +39,7 @@ export class GraphModelResource extends FolderResource<
    * Creates an instance of GraphModelResource
    * @param checkout Project to use
    * @param name Resource name
+   * @internal
    */
   constructor(checkout: Checkout, name: ResourceName) {
     super(checkout, name, 'graphModels');

@@ -26,6 +26,7 @@ export function macroErrorText(error: unknown, fallback: string): string {
  * Card content rendering of one handle. Holds no state of its own.
  */
 export class Render {
+  /** @internal */
   constructor(private readonly checkout: Checkout) {}
 
   /**
