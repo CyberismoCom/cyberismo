@@ -69,7 +69,12 @@ export {
 // Fetching, resolving and applying.
 export { createSourceLayer } from './source.js';
 export { resolve, resolveForApply, stageResolution } from './resolve/solver.js';
-export { requireDeclared, resolveUpdate, toUpdatePlan } from './update-plan.js';
+export {
+  checkUpdate,
+  requireDeclared,
+  resolveUpdate,
+  toUpdatePlan,
+} from './update-plan.js';
 export { conflictReason } from './resolve/format.js';
 export { ensureStagedSchemas } from './staged-migration.js';
 export { applyModules } from './applier.js';

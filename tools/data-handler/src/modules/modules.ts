@@ -11,12 +11,15 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
+import { mkdir, mkdtemp, rm } from 'node:fs/promises';
 import { join, resolve as pathResolve } from 'node:path';
 
 import {
+  ModuleConflictError,
   ModuleRequestError,
   redactUserinfo,
   unreachable,
+  WorkspaceDisposedError,
 } from '../exceptions/index.js';
 import { isValidFolderName, pathExists } from '../utils/file-utils.js';
 import { readJsonFile } from '../utils/json.js';
@@ -32,6 +35,7 @@ import {
 import {
   applyModules,
   buildRemoteUrl,
+  checkUpdate,
   requireDeclared,
   conflictReason,
   declaredModules,
@@ -54,6 +58,7 @@ import {
   toVersionRange,
 } from './index.js';
 import { readModuleConfig } from '../containers/project/cards-config.js';
+import { moduleFingerprint } from './fingerprint.js';
 import { cleanOrphans } from './orphans.js';
 import {
   executeModuleReplays,
@@ -86,6 +91,8 @@ import type {
 import type { Checkout } from '../containers/project.js';
 import type { CommitIdentity } from '../utils/tx-record.js';
 import type { ResolveConflict, ResolvedModule } from './resolve/types.js';
+import type { SourceLayer } from './source.js';
+import type { CheckedTarget } from './update-plan.js';
 
 /**
  * Coerce a caller-supplied source into the canonical form used by the
@@ -124,6 +131,16 @@ function resolutionConflictError(conflicts: ResolveConflict[]): Error {
   return new ModuleRequestError(`Cannot resolve modules:\n${lines.join('\n')}`);
 }
 
+/** What phase 2 of a module operation hands to its apply. */
+interface Staged {
+  /** {@link moduleFingerprint} as phase 1 saw it. */
+  fingerprint: string;
+  resolved: ResolvedModule[];
+  backfill: ModuleSetting[];
+  /** The operation's own staging directory. */
+  tempDir: string;
+}
+
 /**
  * The modules and hubs of one handle: install, update, remove and read.
  * Writes through it are the handle's actor's. Holds no state of its own.
@@ -143,9 +160,39 @@ export class Modules {
     this.fetchCmd = new Fetch(checkout);
   }
 
-  /** Temp directory shared between the resolver and the applier. */
+  /** Parent of the per-operation staging directories. */
   private get tempModulesDir(): string {
     return join(this.checkout.paths.tempFolder, 'modules');
+  }
+
+  // Network work stages into a directory of its own, so concurrent
+  // operations never clone over each other's trees.
+  private async inOperationDir<T>(fn: (dir: string) => Promise<T>) {
+    await mkdir(this.tempModulesDir, { recursive: true });
+    const dir = await mkdtemp(join(this.tempModulesDir, 'op-'));
+    try {
+      return await fn(dir);
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  }
+
+  private assertLive() {
+    if (this.checkout.disposed) throw new WorkspaceDisposedError();
+  }
+
+  // Phase 1: the module state the network work is based on.
+  private async fingerprint(): Promise<string> {
+    this.assertLive();
+    return moduleFingerprint(this.checkout);
+  }
+
+  // Phase 3: that state must still hold; no retry.
+  private async assertUnchanged(fingerprint: string) {
+    this.assertLive();
+    if ((await moduleFingerprint(this.checkout)) !== fingerprint) {
+      throw new ModuleConflictError();
+    }
   }
 
   /**
@@ -156,20 +203,17 @@ export class Modules {
    * and no-op updates produce no steps and skip both replay and the
    * post-replay validation.
    */
-  private async applyResolvedWithReplay(
-    resolved: ResolvedModule[],
-    backfill: ModuleSetting[] = [],
-  ): Promise<ModuleUpdateResult> {
+  private async applyResolvedWithReplay({
+    resolved,
+    backfill,
+    tempDir,
+  }: Staged): Promise<ModuleUpdateResult> {
     const result: ModuleUpdateResult = { replayed: [], skippedReplays: [] };
-    // Staged trees older than the tool are migrated in place (still in
-    // staging); a newer or unversioned tree aborts before any disk change.
-    await ensureStagedSchemas(resolved);
-
     const installedBefore = await installedModulesWithSources(this.checkout);
     const steps = await planModuleReplays(resolved, installedBefore);
 
     const appliedModules = await applyModules(this.checkout, resolved, {
-      tempDir: this.tempModulesDir,
+      tempDir,
       backfill,
     });
     const modules = this.checkout.lock.currentTx()?.touched.modules;
@@ -230,47 +274,67 @@ export class Modules {
    *        private: If true, uses credentials to clone the repository
    *        version: Semver version or range (e.g. '1.0.0', '^1.0.0')
    */
-  @write((source) => `Import module ${source}`)
   public async install(
     source: string,
     options?: ModuleSettingOptions,
   ): Promise<ModuleInstallResult> {
-    // A hub module's name wins over a path of the same name. It is looked up
-    // before the refresh, so a name the cached list lacks is taken as a path.
-    const hubModule = await this.hubModule(source);
-    const isPrivate = options?.private ?? hubModule?.private ?? false;
-    if (hubModule) {
-      source = hubModule.location;
-    }
+    const { location, isPrivate, fingerprint } = await this.checkout.lock.read(
+      async () => {
+        // A hub module's name wins over a path of the same name. It is looked
+        // up before the refresh, so a name the cached list lacks is a path.
+        const hubModule = await this.hubModule(source);
+        const isPrivate = options?.private ?? hubModule?.private ?? false;
+        const location = normaliseLocation(hubModule?.location ?? source);
 
-    // Ensure module list is up to date before installing.
-    await this.fetchCmd.ensureModuleListUpToDate();
-
-    const beforeImportValidateErrors = await Validate.getInstance().validate(
-      this.checkout.basePath,
-      () => this.checkout,
+        // Early precondition check for file sources: catch bad folder names
+        // and missing paths before we hand off to the resolver.
+        if (isFileLocation(location)) {
+          const folder = location.substring(FILE_PROTOCOL.length);
+          if (!isValidFolderName(folder)) {
+            throw new Error(
+              `Input validation error: folder name is invalid '${folder}'`,
+            );
+          }
+          if (!pathExists(folder)) {
+            throw new Error(
+              `Input validation error: cannot find project '${folder}'`,
+            );
+          }
+        }
+        return { location, isPrivate, fingerprint: await this.fingerprint() };
+      },
     );
 
-    const location = normaliseLocation(source);
+    return this.inOperationDir(async (tempDir) => {
+      // Ensure module list is up to date before installing.
+      await this.fetchCmd.ensureModuleListUpToDate();
 
-    // Early precondition check for file sources: catch bad folder names and
-    // missing paths before we hand off to the resolver.
-    if (isFileLocation(location)) {
-      const folder = location.substring(FILE_PROTOCOL.length);
-      if (!isValidFolderName(folder)) {
-        throw new Error(
-          `Input validation error: folder name is invalid '${folder}'`,
+      const sourceLayer = createSourceLayer();
+      let staged: Pick<Staged, 'resolved' | 'backfill'>;
+      try {
+        staged = await this.stageInstall(
+          sourceLayer,
+          location,
+          isPrivate,
+          tempDir,
+          options,
         );
+      } finally {
+        await sourceLayer.dispose?.();
       }
-      if (!pathExists(folder)) {
-        throw new Error(
-          `Input validation error: cannot find project '${folder}'`,
-        );
-      }
-    }
+      this.assertLive();
+      return this.applyInstall(source, { fingerprint, tempDir, ...staged });
+    });
+  }
 
-    const sourceLayer = createSourceLayer();
-
+  // Phase 2 of install: no lock.
+  private async stageInstall(
+    sourceLayer: SourceLayer,
+    location: string,
+    isPrivate: boolean,
+    tempDir: string,
+    options?: ModuleSettingOptions,
+  ): Promise<Pick<Staged, 'resolved' | 'backfill'>> {
     // Pre-fetch only to read `cardKeyPrefix`; the resolver does its own
     // fetch at the ref it picks. We don't hand this tree off as
     // `stagedPath` because it was cloned without a ref (default branch),
@@ -289,7 +353,7 @@ export class Modules {
       : await sourceLayer
           .fetch(
             { location, remoteUrl },
-            this.tempModulesDir,
+            tempDir,
             freshRootStagingName(location),
           )
           .catch((error) => {
@@ -327,10 +391,27 @@ export class Modules {
         source: { location, private: isPrivate },
         range: versionRange,
       },
-      { credentials: options?.credentials, tempDir: this.tempModulesDir },
+      { credentials: options?.credentials, tempDir },
     );
     if (!plan.ok) throw resolutionConflictError(plan.conflicts);
-    const result = await this.applyResolvedWithReplay(resolved, backfill);
+    // Staged trees older than the tool are migrated in place (still in
+    // staging); a newer or unversioned tree aborts before any disk change.
+    await ensureStagedSchemas(resolved);
+    return { resolved, backfill };
+  }
+
+  // Phase 3 of install, under the write the commit is named for.
+  @write((source: string) => `Import module ${source}`)
+  private async applyInstall(
+    source: string,
+    staged: Staged,
+  ): Promise<ModuleInstallResult> {
+    await this.assertUnchanged(staged.fingerprint);
+    const beforeImportValidateErrors = await Validate.getInstance().validate(
+      this.checkout.basePath,
+      () => this.checkout,
+    );
+    const result = await this.applyResolvedWithReplay(staged);
 
     // Validate the project after module has been installed.
     const afterImportValidateErrors = await Validate.getInstance().validate(
@@ -367,21 +448,32 @@ export class Modules {
    * @param target Module and optional version; no module means every root.
    * @param credentials Optional credentials for private modules.
    */
-  @read
   public async planUpdate(
     target: UpdateTarget,
     credentials?: Credentials,
   ): Promise<UpdatePlan> {
+    const { checked, fingerprint } = await this.checkUpdate(target);
     const source = createSourceLayer();
     try {
-      const resolution = await resolveUpdate(this.checkout, target, {
+      const resolution = await resolveUpdate(this.checkout, checked, {
         source,
         credentials,
       });
-      return await toUpdatePlan(this.checkout, resolution);
+      return await this.checkout.lock.read(async () => {
+        await this.assertUnchanged(fingerprint);
+        return toUpdatePlan(this.checkout, resolution);
+      });
     } finally {
       await source.dispose?.();
     }
+  }
+
+  // Phase 1 of update and its dry run.
+  private checkUpdate(target: UpdateTarget) {
+    return this.checkout.lock.read(async () => ({
+      checked: await checkUpdate(this.checkout, target),
+      fingerprint: await this.fingerprint(),
+    }));
   }
 
   /**
@@ -391,19 +483,29 @@ export class Modules {
    * @param credentials Optional credentials for private modules.
    * @throws if the module is not part of the project, or the update is blocked
    */
-  @write((target: UpdateTarget) =>
-    target.module ? `Update module ${target.module}` : 'Update all modules',
-  )
   public async update(
     target: UpdateTarget,
     credentials?: Credentials,
   ): Promise<ModuleUpdateResult> {
-    // Ensure module list is up to date before updating
-    await this.fetchCmd.ensureModuleListUpToDate();
+    const { checked, fingerprint } = await this.checkUpdate(target);
+    return this.inOperationDir(async (tempDir) => {
+      // Ensure module list is up to date before updating
+      await this.fetchCmd.ensureModuleListUpToDate();
+      const staged = await this.stageUpdate(checked, tempDir, credentials);
+      this.assertLive();
+      return this.applyUpdate(target, { fingerprint, tempDir, ...staged });
+    });
+  }
 
+  // Phase 2 of update: no lock.
+  private async stageUpdate(
+    checked: CheckedTarget,
+    tempDir: string,
+    credentials?: Credentials,
+  ): Promise<Pick<Staged, 'resolved' | 'backfill'>> {
     const source = createSourceLayer();
     try {
-      const resolution = await resolveUpdate(this.checkout, target, {
+      const resolution = await resolveUpdate(this.checkout, checked, {
         source,
         credentials,
       });
@@ -416,13 +518,26 @@ export class Modules {
         {
           source,
           credentials,
-          tempDir: this.tempModulesDir,
+          tempDir,
         },
       );
-      return await this.applyResolvedWithReplay(resolved, backfill);
+      await ensureStagedSchemas(resolved);
+      return { resolved, backfill };
     } finally {
       await source.dispose?.();
     }
+  }
+
+  // Phase 3 of update, under the write the commit is named for.
+  @write((target: UpdateTarget) =>
+    target.module ? `Update module ${target.module}` : 'Update all modules',
+  )
+  private async applyUpdate(
+    target: UpdateTarget,
+    staged: Staged,
+  ): Promise<ModuleUpdateResult> {
+    await this.assertUnchanged(staged.fingerprint);
+    return this.applyResolvedWithReplay(staged);
   }
 
   /**
@@ -431,11 +546,15 @@ export class Modules {
    * directly — their lifetime is controlled by the parent installation.
    * @param moduleName Name (prefix) of module to remove.
    */
-  @write((moduleName) => `Remove module ${moduleName}`)
   public async remove(moduleName: string) {
     // Ensure module list is up to date when removing modules
     await this.fetchCmd.ensureModuleListUpToDate();
+    await this.removeDeclared(moduleName);
+  }
 
+  @write((moduleName: string) => `Remove module ${moduleName}`)
+  private async removeDeclared(moduleName: string) {
+    this.assertLive();
     const declaration = declaredModules(this.checkout).find(
       (d) => d.name === moduleName,
     );
@@ -492,7 +611,6 @@ export class Modules {
    * @throws {ModuleRequestError} if the module is unknown or transitive, or
    * the source cannot be listed
    */
-  @read
   public async listVersions(
     target: { module: string } | { source: string },
     credentials?: Credentials,
@@ -501,7 +619,10 @@ export class Modules {
     if ('source' in target) {
       source = { location: normaliseLocation(target.source), private: false };
     } else {
-      source = (await requireDeclared(this.checkout, target.module)).source;
+      source = await this.checkout.lock.read(
+        async () =>
+          (await requireDeclared(this.checkout, target.module)).source,
+      );
     }
     const layer = createSourceLayer();
     try {
@@ -629,7 +750,6 @@ export class Modules {
    * version unless 'force' is set.
    * @returns the hubs that could not be read, in configuration order.
    */
-  @write(() => 'Fetch hubs')
   public async fetchHubs(force: boolean = false): Promise<HubFetchFailure[]> {
     return this.fetchCmd.fetchHubs(force);
   }
@@ -638,13 +758,11 @@ export class Modules {
    * Ensures the module list is up to date by fetching if needed.
    * @returns the hubs that could not be read.
    */
-  @write()
   public async ensureModuleListUpToDate(): Promise<HubFetchFailure[]> {
     return this.fetchCmd.ensureModuleListUpToDate();
   }
 
   /** Fetches hub data only when no local cache exists yet. */
-  @write()
   public async ensureModuleListExists(): Promise<void> {
     return this.fetchCmd.ensureModuleListExists();
   }
