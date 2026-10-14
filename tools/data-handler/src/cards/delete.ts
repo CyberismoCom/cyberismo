@@ -13,7 +13,7 @@
 
 import type { Card } from '@cyberismo/model';
 import type { Checkout } from '../infra/checkout.js';
-import { ActionGuard } from '../permissions/action-guard.js';
+import { assertAllowed } from './guard.js';
 import { getChildLogger } from '../utils/log-utils.js';
 import { updateCardMetadataKey } from './update.js';
 import { findCard } from './read.js';
@@ -129,8 +129,7 @@ export async function removeCard(checkout: Checkout, cardKey: string) {
 
   // Only a card in a workflow has a delete transition to permit.
   if (checkout.treeOf(cardKey).kind === 'project') {
-    const actionGuard = new ActionGuard(checkout.calculationEngine);
-    await actionGuard.checkPermission('delete', cardKey);
+    await assertAllowed(checkout, 'delete', cardKey);
   }
 
   // Descendant cascade and link cleanup live in the project-level primitive.

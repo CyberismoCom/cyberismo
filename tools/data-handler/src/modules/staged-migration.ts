@@ -16,7 +16,7 @@ import { runMigrationChain, SCHEMA_VERSION } from '@cyberismo/migrations';
 
 import { readModuleConfig } from '../infra/cards-config.js';
 
-import type { ResolvedModule } from './resolve/types.js';
+import type { ResolvedModule } from '../mutations/replay/module-types.js';
 
 /**
  * Enforce the schema-level invariant on staged module trees before any

@@ -15,7 +15,7 @@ import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { describe, expect, it } from 'vitest';
 
-import { ConfigurationLogger } from '../../src/utils/configuration-logger.js';
+import { ConfigurationLogger } from '../../src/infra/replay-log/configuration-logger.js';
 import { edit, projects, remove, rename, spec } from './fixture.js';
 
 const open = projects();

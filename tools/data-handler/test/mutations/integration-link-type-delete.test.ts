@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { join } from 'node:path';
 
 import type { Checkout } from '../../src/infra/checkout.js';
-import { ConfigurationLogger } from '../../src/utils/configuration-logger.js';
+import { ConfigurationLogger } from '../../src/infra/replay-log/configuration-logger.js';
 import { deleteDir } from '../../src/utils/file-utils.js';
 import { resourceName } from '../../src/utils/resource-utils.js';
 import { createLinkSeededProject } from './helpers.js';

@@ -15,7 +15,7 @@
 import type { Checkout } from '../infra/checkout.js';
 import { dispatch } from './dispatcher.js';
 import type { MutationContext, MutationOrigin } from './handler.js';
-import { ConfigurationLogger } from '../utils/configuration-logger.js';
+import { ConfigurationLogger } from '../infra/replay-log/configuration-logger.js';
 import { runWithDefaultCommitMessage } from '../infra/commit-context.js';
 import { resourceName, resourceNameToString } from '../utils/resource-utils.js';
 import type { ChangeOperation, MutationInput } from '@cyberismo/model';
