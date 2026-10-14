@@ -12,14 +12,12 @@
 
 import { Workspace } from './workspace/workspace.js';
 import { ExportFormats } from './export/export.js';
-import { Import } from './commands/import.js';
-import { Remove } from './commands/remove.js';
-import { Rename } from './commands/rename.js';
 import { Validate } from './commands/validate.js';
 export { SCHEMA_VERSION } from '@cyberismo/migrations';
 export * from './interfaces/macros.js';
 export { createProject } from './directory/create-project.js';
 export { localFolder, openProjectAt } from './directory/local-folder.js';
+export { renameProject } from './directory/rename-project.js';
 export { migrateProject } from './directory/migrate-project.js';
 export type { ProjectDirectory } from './directory/project-directory.js';
 import { evaluateMacros } from './macros/index.js';
@@ -32,17 +30,12 @@ import {
 } from './utils/resource-utils.js';
 import { moduleNameFromCardKey } from './utils/card-utils.js';
 import { scanForProjects } from './project-scanner.js';
-import { Create } from './commands/create.js';
 
 export {
   Workspace,
-  Create,
   ExportFormats,
-  Import,
   isResourceFolderType,
   moduleNameFromCardKey,
-  Remove,
-  Rename,
   resourceName,
   resourceNameToString,
   scanForProjects,
