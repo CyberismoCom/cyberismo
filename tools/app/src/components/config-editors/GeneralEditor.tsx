@@ -10,17 +10,7 @@
   details. You should have received a copy of the GNU Affero General Public
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
-import {
-  Stack,
-  Typography,
-  Card,
-  CardContent,
-  CardActions,
-  Button,
-  Textarea,
-  IconButton,
-  Tooltip,
-} from '@mui/joy';
+import { Stack, Typography, Textarea, IconButton, Tooltip } from '@mui/joy';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
@@ -30,14 +20,11 @@ import {
   useProjectSettingsMutations,
   usePublicKey,
 } from '@/lib/api';
-import { useEditableField, useAppDispatch } from '@/lib/hooks';
-import { useModals } from '@/lib/utils';
-import { ModuleDeleteModal, AddModuleModal } from '@/components/modals';
-import { addNotification } from '@/lib/slices/notifications';
+import { useEditableField } from '@/lib/hooks';
 import BaseEditor from './BaseEditor';
-import { useCleanPrompt } from './useCleanPrompt';
 import FieldRow from './fields/FieldRow';
 import HubsSection from './HubsSection';
+import ModulesSection from './ModulesSection';
 import TextInput from './fields/TextInput';
 import TextareaInput from './fields/TextareaInput';
 import { UserRole, useHasMinRole } from '@/lib/auth';
@@ -50,25 +37,8 @@ export function GeneralEditor({ node }: GeneralEditorProps) {
   const { t } = useTranslation();
   const { general, isLoading } = useProjectSettings(undefined);
   const { publicKey } = usePublicKey();
-  const {
-    updateModule,
-    deleteModule,
-    updateAllModules,
-    addModule,
-    isUpdating,
-    updateProject,
-  } = useProjectSettingsMutations();
-  const { modalOpen, openModal, closeModal } = useModals({
-    deleteModule: false,
-    addModule: false,
-  });
-  const [moduleToDelete, setModuleToDelete] = useState<{
-    name: string;
-    cardKeyPrefix: string;
-  } | null>(null);
-  const dispatch = useAppDispatch();
+  const { isUpdating, updateProject } = useProjectSettingsMutations();
   const isAdmin = useHasMinRole(UserRole.Admin);
-  const { maybePromptClean } = useCleanPrompt();
 
   const isDisabled = Boolean(node.readOnly) || !isAdmin;
 
@@ -129,32 +99,6 @@ export function GeneralEditor({ node }: GeneralEditorProps) {
       await navigator.clipboard.writeText(publicKey);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
-    }
-  };
-
-  const handleModuleDelete = async (moduleToDelete: {
-    name: string;
-    cardKeyPrefix: string;
-  }) => {
-    try {
-      await deleteModule(moduleToDelete.cardKeyPrefix);
-      dispatch(
-        addNotification({
-          message: t('deleteModuleModal.success', {
-            moduleName: moduleToDelete.name,
-          }),
-          type: 'success',
-        }),
-      );
-      setModuleToDelete(null);
-      closeModal('deleteModule')();
-    } catch (error) {
-      dispatch(
-        addNotification({
-          message: error instanceof Error ? error.message : t('failedToLoad'),
-          type: 'error',
-        }),
-      );
     }
   };
 
@@ -257,136 +201,10 @@ export function GeneralEditor({ node }: GeneralEditorProps) {
           </Stack>
         )}
 
-        <Stack spacing={1}>
-          <Stack direction="row" alignItems="center" spacing={1}>
-            <Typography level="title-lg" component="h2">
-              {t('general.modulesSection')}
-            </Typography>
-            <Button
-              size="sm"
-              variant="solid"
-              onClick={openModal('addModule')}
-              disabled={isUpdating() || isDisabled}
-            >
-              {t('general.addModule')}
-            </Button>
-            {general?.modules.length ? (
-              <Button
-                size="sm"
-                variant="outlined"
-                onClick={async () => {
-                  if (!general?.modules?.length) {
-                    return;
-                  }
-                  try {
-                    await updateAllModules();
-                    dispatch(
-                      addNotification({
-                        message: t('general.updateAllModulesSuccess'),
-                        type: 'success',
-                      }),
-                    );
-                    await maybePromptClean();
-                  } catch (error) {
-                    dispatch(
-                      addNotification({
-                        message:
-                          error instanceof Error
-                            ? error.message
-                            : t('failedToLoad'),
-                        type: 'error',
-                      }),
-                    );
-                  }
-                }}
-                loading={isUpdating('update-all-modules')}
-                disabled={isUpdating() || isDisabled}
-              >
-                {t('general.updateAllModules')}
-              </Button>
-            ) : null}
-          </Stack>
-          {!general?.modules ||
-            (general.modules.length === 0 && (
-              <Typography>{t('noModules')}</Typography>
-            ))}
-          {general?.modules?.map((mod) => (
-            <Card key={mod.cardKeyPrefix} size="sm" variant="outlined">
-              <CardContent>
-                <Typography level="title-sm">{mod.name}</Typography>
-                <Typography level="body-sm">
-                  {t('general.cardKeyPrefix')}: {mod.cardKeyPrefix}
-                </Typography>
-              </CardContent>
-              <CardActions>
-                <Button
-                  size="sm"
-                  variant="outlined"
-                  loading={isUpdating(`update-${mod.cardKeyPrefix}`)}
-                  disabled={
-                    isUpdating(`update-${mod.cardKeyPrefix}`) ||
-                    isUpdating() ||
-                    isDisabled
-                  }
-                  onClick={async () => {
-                    try {
-                      await updateModule(mod.cardKeyPrefix);
-                      await maybePromptClean();
-                    } catch (error) {
-                      dispatch(
-                        addNotification({
-                          message:
-                            error instanceof Error
-                              ? error.message
-                              : t('failedToLoad'),
-                          type: 'error',
-                        }),
-                      );
-                    }
-                  }}
-                >
-                  {t('update')}
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outlined"
-                  color="danger"
-                  loading={isUpdating(`delete-${mod.cardKeyPrefix}`)}
-                  disabled={
-                    isUpdating(`delete-${mod.cardKeyPrefix}`) || isDisabled
-                  }
-                  onClick={() => {
-                    setModuleToDelete(mod);
-                    openModal('deleteModule')();
-                  }}
-                >
-                  {t('delete')}
-                </Button>
-              </CardActions>
-            </Card>
-          ))}
-        </Stack>
+        <ModulesSection disabled={isDisabled} />
 
         <HubsSection disabled={isDisabled} />
       </Stack>
-      {moduleToDelete && (
-        <ModuleDeleteModal
-          open={modalOpen.deleteModule}
-          onClose={() => {
-            setModuleToDelete(null);
-            closeModal('deleteModule')();
-          }}
-          moduleName={moduleToDelete.name}
-          cardKeyPrefix={moduleToDelete.cardKeyPrefix}
-          onDelete={() => handleModuleDelete(moduleToDelete)}
-          isDeleting={isUpdating(`delete-${moduleToDelete.cardKeyPrefix}`)}
-        />
-      )}
-      <AddModuleModal
-        open={modalOpen.addModule}
-        onClose={closeModal('addModule')}
-        onAdd={addModule}
-      />
     </BaseEditor>
   );
 }

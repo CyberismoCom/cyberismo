@@ -1,0 +1,127 @@
+/**
+  Cyberismo
+  Copyright © Cyberismo Ltd and contributors 2026
+  This program is free software: you can redistribute it and/or modify it under
+  the terms of the GNU Affero General Public License version 3 as published by
+  the Free Software Foundation.
+  This program is distributed in the hope that it will be useful, but WITHOUT
+  ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+  FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more
+  details. You should have received a copy of the GNU Affero General Public
+  License along with this program. If not, see <https://www.gnu.org/licenses/>.
+*/
+
+import { describe, it, expect } from 'vitest';
+import type { UpdatePlan } from '@cyberismo/data-handler';
+import type { ProjectModule } from '@/lib/api/types';
+import { moduleRow, type ModuleRow } from '@/lib/modules';
+
+const mod = (over: Partial<ProjectModule>): ProjectModule => ({
+  name: 'Base',
+  cardKeyPrefix: 'base',
+  isRoot: true,
+  parents: [],
+  installedVersion: '1.0.0',
+  ...over,
+});
+const root: UpdatePlan['roots'][number] = {
+  module: 'base',
+  installed: '1.0.0',
+  range: '^1.0.0',
+  latest: '2.0.0',
+  heldBack: true,
+  versionSource: 'git',
+};
+const plan = (over: Partial<UpdatePlan> = {}): UpdatePlan => ({
+  ok: true,
+  changes: [],
+  removed: [],
+  conflicts: [],
+  rangeWrites: [],
+  roots: [root],
+  ...over,
+});
+const change = { module: 'base', from: '1.0.0', to: '1.3.0', breaking: false };
+
+describe('moduleRow', () => {
+  it('gives a transitive module no actions and names its parents', () => {
+    const core = mod({
+      cardKeyPrefix: 'core',
+      isRoot: false,
+      parents: ['ext'],
+    });
+    const ext = mod({ name: 'Extension', cardKeyPrefix: 'ext' });
+    const row = moduleRow(core, plan({ changes: [change] }), [core, ext]);
+    expect(row.actions).toEqual({ update: false, remove: false });
+    expect(row.managedBy).toEqual(['Extension']);
+  });
+
+  it.each<{
+    name: string;
+    changes: UpdatePlan['changes'];
+    root?: Partial<UpdatePlan['roots'][number]>;
+    module?: Partial<ProjectModule>;
+    expected: Partial<ModuleRow>;
+  }>([
+    {
+      name: 'an update is pending',
+      changes: [change],
+      expected: {
+        latestCompatible: '1.3.0',
+        latestAvailable: '2.0.0',
+        heldBack: true,
+        upToDate: false,
+      },
+    },
+    {
+      name: 'already current',
+      changes: [],
+      expected: { latestCompatible: '1.0.0', upToDate: true },
+    },
+    {
+      name: 'latest equals compatible',
+      changes: [change],
+      root: { latest: '1.3.0', heldBack: false },
+      expected: {
+        latestCompatible: '1.3.0',
+        latestAvailable: null,
+        heldBack: false,
+      },
+    },
+    {
+      name: 'range is assumed',
+      changes: [],
+      expected: { assumedRange: '^1.0.0' },
+    },
+    {
+      name: 'range is declared',
+      changes: [],
+      module: { declaredRange: '^1.0.0' },
+      expected: { assumedRange: null },
+    },
+  ])('reads versions from the plan: $name', (c) => {
+    const checked = plan({
+      changes: c.changes,
+      roots: [{ ...root, ...c.root }],
+    });
+    expect(moduleRow(mod(c.module ?? {}), checked, [])).toMatchObject(
+      c.expected,
+    );
+  });
+
+  it('explains a blocked plan instead of showing versions', () => {
+    const blocked = plan({
+      ok: false,
+      conflicts: [{ module: 'core', reason: 'x' }],
+    });
+    const row = moduleRow(mod({}), blocked, []);
+    expect(row.latestCompatible).toBeNull();
+    expect(row.latestAvailable).toBeNull();
+  });
+
+  it('claims nothing for a root the plan did not check', () => {
+    const row = moduleRow(mod({ cardKeyPrefix: 'added' }), plan(), []);
+    expect(row.latestCompatible).toBeNull();
+    expect(row.upToDate).toBe(false);
+  });
+});
