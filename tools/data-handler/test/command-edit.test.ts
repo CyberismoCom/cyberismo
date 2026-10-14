@@ -8,6 +8,7 @@ import { type Workspace } from '../src/workspace/workspace.js';
 import type { Card } from '@cyberismo/model';
 import { openTestWorkspace } from './helpers/open-test-workspace.js';
 import { findCard } from '../src/cards/read.js';
+import { checkoutOf } from '../src/infra/internal.js';
 
 describe('edit card', () => {
   const baseDir = import.meta.dirname;
@@ -26,7 +27,7 @@ describe('edit card', () => {
   });
 
   it('edit card content - no content', async () => {
-    const cards = ws.checkout.cardTree.cards();
+    const cards = checkoutOf(ws).cardTree.cards();
     const firstCard = cards.at(0) as Card;
     await expect(ws.cards.edit(firstCard.key, '')).resolves.not.toThrow();
   });
@@ -41,14 +42,14 @@ describe('edit card', () => {
       'valid/decision-records',
     );
     const freshCommands = await openTestWorkspace(freshDecisionRecordsPath, {});
-    const templateCards = freshCommands.checkout
+    const templateCards = checkoutOf(freshCommands)
       .templateTree('decision/templates/decision')
       .cards();
     const firstCard = templateCards.at(0) as Card;
 
     await freshCommands.cards.editField(firstCard.key, 'title', 'new name');
 
-    const changedCard = findCard(freshCommands.checkout, firstCard.key);
+    const changedCard = findCard(checkoutOf(freshCommands), firstCard.key);
     expect(changedCard.metadata?.title).to.equal('new name');
 
     rmSync(freshTestDir, { recursive: true, force: true });
@@ -132,7 +133,7 @@ describe('edit card', () => {
         ),
       ).resolves.not.toThrow();
 
-      const changed = findCard(freshCommands.checkout, 'decision_6');
+      const changed = findCard(checkoutOf(freshCommands), 'decision_6');
       expect(changed.metadata!['decision/fieldTypes/obsoletedBy']).toBe(
         'decision_999',
       );
@@ -146,7 +147,7 @@ describe('edit card', () => {
         ),
       ).resolves.not.toThrow();
 
-      const cleared = findCard(freshCommands.checkout, 'decision_6');
+      const cleared = findCard(checkoutOf(freshCommands), 'decision_6');
       expect(cleared.metadata!).not.toHaveProperty([
         'decision/fieldTypes/obsoletedBy',
       ]);
@@ -161,7 +162,7 @@ describe('edit card', () => {
   });
 
   it('editing a calculated field of a template card is rejected too', async () => {
-    const templateCards = ws.checkout
+    const templateCards = checkoutOf(ws)
       .templateTree('decision/templates/decision')
       .cards();
     const templateCard = templateCards.at(0) as Card;
@@ -180,7 +181,7 @@ describe('edit card', () => {
       'tmp-edit-override-template-test',
     );
     try {
-      const templateCard = freshCommands.checkout
+      const templateCard = checkoutOf(freshCommands)
         .templateTree('decision/templates/decision')
         .cards()
         .at(0) as Card;
@@ -220,7 +221,7 @@ describe('edit card', () => {
       'tmp-edit-override-noop-test',
     );
     try {
-      const card = findCard(freshCommands.checkout, 'decision_6');
+      const card = findCard(checkoutOf(freshCommands), 'decision_6');
       const metadataFile = join(card.path, 'index.json');
       const before = readFileSync(metadataFile, 'utf-8');
       expect(JSON.parse(before)).not.toHaveProperty([
@@ -270,7 +271,7 @@ describe('edit card', () => {
         RESPONSIBLE,
         'someone@example.com',
       );
-      const card = findCard(clearCommands.checkout, 'decision_6');
+      const card = findCard(checkoutOf(clearCommands), 'decision_6');
       expect(card.metadata![RESPONSIBLE]).toBeTruthy();
       return card;
     }
@@ -280,7 +281,7 @@ describe('edit card', () => {
 
       await clearCommands.cards.editField(card.key, RESPONSIBLE, undefined);
 
-      const changed = findCard(clearCommands.checkout, card.key);
+      const changed = findCard(checkoutOf(clearCommands), card.key);
       expect(changed.metadata!).not.toHaveProperty([RESPONSIBLE]);
       const onDisk = readFileSync(join(changed.path, 'index.json'), 'utf-8');
       expect(onDisk).not.toContain(RESPONSIBLE);
@@ -295,7 +296,7 @@ describe('edit card', () => {
 
       await clearCommands.cards.editField('decision_6', 'title', undefined);
 
-      const changed = findCard(clearCommands.checkout, 'decision_6');
+      const changed = findCard(checkoutOf(clearCommands), 'decision_6');
       expect('title' in changed.metadata!).toBe(true);
       expect(changed.metadata!.title).toBeNull();
       const onDisk = JSON.parse(

@@ -9,6 +9,7 @@ import { resourceName } from '../src/utils/resource-utils.js';
 import type { Operation, Skill } from '@cyberismo/model';
 import { openTestWorkspace } from './helpers/open-test-workspace.js';
 import { Validate } from '../src/commands/validate.js';
+import { checkoutOf } from '../src/infra/internal.js';
 
 const baseDir = import.meta.dirname;
 const testDir = join(baseDir, 'tmp-skill-edit-tests');
@@ -80,15 +81,14 @@ describe('edit skill', () => {
 
   it('keeps the project valid after editing relatedTools', async () => {
     await edit({ name: 'add', target: 'query_cards' });
-    const errors = await Validate.getInstance().validate(
-      projectPath,
-      () => ws.checkout,
+    const errors = await Validate.getInstance().validate(projectPath, () =>
+      checkoutOf(ws),
     );
     expect(errors).toBe('');
   });
 
   it('still rejects a property the skill does not own', async () => {
-    const skill = ws.checkout.resources.byType(SKILL, 'skills');
+    const skill = checkoutOf(ws).resources.byType(SKILL, 'skills');
     await expect(
       skill.update({ key: 'notASkillProperty' }, { name: 'add', target: 'x' }),
     ).rejects.toThrow(

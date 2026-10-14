@@ -11,6 +11,7 @@ import { resourceName } from '../src/utils/resource-utils.js';
 import { getTestBaseDir, getTestProject } from './helpers/test-utils.js';
 import { Cards } from '../src/cards/cards.js';
 import { SYSTEM_ACTOR } from '../src/utils/tx-record.js';
+import { checkoutOf } from '../src/infra/internal.js';
 import { CardNotFoundError } from '../src/exceptions/index.js';
 import { openTestWorkspace } from './helpers/open-test-workspace.js';
 
@@ -299,7 +300,7 @@ describe('show', () => {
         cardKey: 'decision_5',
       },
     };
-    await ws.checkout.calculationEngine.generate();
+    await checkoutOf(ws).calculationEngine.generate();
     const results = await ws.queries.runReport(
       parameters.name,
       parameters.parameters,
@@ -315,7 +316,7 @@ describe('show', () => {
         wrongKey: 'blaah',
       },
     };
-    await ws.checkout.calculationEngine.generate();
+    await checkoutOf(ws).calculationEngine.generate();
     await expect(
       ws.queries.runReport(parameters.name, { cardKey: 'wrong' }, 'localApp'),
     ).rejects.toThrow(`Report 'decision/reports/wrongReport' does not exist`);
@@ -324,7 +325,9 @@ describe('show', () => {
   it('show content template (success)', async () => {
     // TODO: should be moved to resource tests
     const name = 'decision/reports/anotherReport';
-    const result = await ws.checkout.resources.byType(name, 'reports').show();
+    const result = await checkoutOf(ws)
+      .resources.byType(name, 'reports')
+      .show();
     expect(result).not.toBeUndefined();
     const content = result.content.contentTemplate;
     expect(content).not.toBeUndefined();

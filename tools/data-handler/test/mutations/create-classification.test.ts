@@ -22,6 +22,7 @@ import { classify } from '../../src/mutations/dispatcher.js';
 import { resourceName } from '../../src/utils/resource-utils.js';
 import type { Workspace } from '../../src/workspace/workspace.js';
 import { openTestWorkspace } from '../helpers/open-test-workspace.js';
+import { checkoutOf } from '../../src/infra/internal.js';
 
 const creates: [string, CreateParams][] = [
   ['calculations', {}],
@@ -55,7 +56,7 @@ describe('resource create classification', () => {
         { recursive: true },
       );
       ws = await openTestWorkspace(dir, { autocommit: true });
-      await ws.checkout.configuration.setVersion('1.0.0');
+      await checkoutOf(ws).configuration.setVersion('1.0.0');
       await simpleGit(dir, {
         config: [
           'user.name=Test',
