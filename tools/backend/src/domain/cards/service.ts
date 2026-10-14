@@ -25,7 +25,7 @@ export async function getProjectInfo(ws: Workspace) {
   return ws.consistent(async () => {
     const projectResponse = await ws.settings.info();
 
-    const workflowsResponse = await ws.showCmd.showWorkflowsWithDetails();
+    const workflowsResponse = await ws.resources.contents('workflows');
     if (!workflowsResponse) {
       throw new Error('No workflows found');
     }
