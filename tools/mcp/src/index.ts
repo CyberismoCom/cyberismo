@@ -13,6 +13,6 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-export { createMcpServer, singleProjectProvider } from './server.js';
-export type { McpServerOptions, ProjectProvider } from './server.js';
+export { createMcpServer } from './server.js';
+export type { McpServerOptions } from './server.js';
 export type { McpUser } from './lib/resolve-project.js';

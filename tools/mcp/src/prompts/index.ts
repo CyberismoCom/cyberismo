@@ -22,8 +22,12 @@ import {
   type GetPromptResult,
   type ListPromptsResult,
 } from '@modelcontextprotocol/sdk/types.js';
-import type { ProjectDirectory } from '@cyberismo/data-handler';
-import { callerOf, workspaceFor } from '../lib/resolve-project.js';
+import {
+  ProjectNotFoundError,
+  type ProjectDirectory,
+  type Workspace,
+} from '@cyberismo/data-handler';
+import { actorOf, callerOf, type RequestAuth } from '../lib/resolve-project.js';
 
 // Prompt arguments are untyped on the low-level handler; validate them.
 const promptArguments = z.object({ cardKey: z.string().optional() });
@@ -35,6 +39,23 @@ function textResult(text: string, description?: string): GetPromptResult {
     description,
     messages: [{ role: 'user', content: { type: 'text', text } }],
   };
+}
+
+// The caller's handle over a listed project; none if it has gone since.
+async function listedWorkspace(
+  directory: ProjectDirectory,
+  prefix: string,
+  auth: RequestAuth,
+  server: McpServer,
+): Promise<Workspace | undefined> {
+  try {
+    return await directory.open(prefix, ...actorOf(auth, server));
+  } catch (error) {
+    if (error instanceof ProjectNotFoundError) {
+      return undefined;
+    }
+    throw error;
+  }
 }
 
 /**
@@ -53,11 +74,9 @@ export function registerPrompts(
     async (_request, extra): Promise<ListPromptsResult> => {
       callerOf(extra);
       const perProject = await Promise.all(
-        (await directory.list()).map(({ prefix }) => {
-          const checkout = directory.get(prefix);
-          return checkout
-            ? workspaceFor(checkout, extra, server).resources.skills()
-            : [];
+        (await directory.list()).map(async ({ prefix }) => {
+          const ws = await listedWorkspace(directory, prefix, extra, server);
+          return ws ? ws.resources.skills() : [];
         }),
       );
       const prompts: ListPromptsResult['prompts'] = perProject.flatMap(
@@ -93,11 +112,10 @@ export function registerPrompts(
       // resolve by asking each project rather than parsing the name's prefix.
       let anyDisabled = false;
       for (const { prefix } of await directory.list()) {
-        const checkout = directory.get(prefix);
-        if (!checkout) {
+        const ws = await listedWorkspace(directory, prefix, extra, server);
+        if (!ws) {
           continue;
         }
-        const ws = workspaceFor(checkout, extra, server);
         const result = await ws.resources.skill(name, { cardKey });
         if (result.status === 'ok') {
           const { skill } = result;

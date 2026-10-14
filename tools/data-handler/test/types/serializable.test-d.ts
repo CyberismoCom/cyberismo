@@ -19,6 +19,7 @@
 import type { ChangeEvent } from '@cyberismo/model';
 import type { Cards } from '../../src/cards/cards.js';
 import type { Clean } from '../../src/clean/clean.js';
+import type { ProjectDirectory } from '../../src/directory/project-directory.js';
 import type { Export } from '../../src/export/export.js';
 import type { Render } from '../../src/macros/render.js';
 import type { Modules } from '../../src/modules/modules.js';
@@ -212,4 +213,13 @@ export const modules: FacadeSerializable<Modules> &
   fetchHubs: true,
   ensureModuleListUpToDate: true,
   ensureModuleListExists: true,
+};
+
+// open and replace are lifecycle: open gives a handle, replace a checkout.
+export const directory: FacadeSerializable<
+  Omit<ProjectDirectory, 'open' | 'replace'>
+> = {
+  list: true,
+  create: true,
+  clone: true,
 };

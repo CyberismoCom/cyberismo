@@ -13,7 +13,7 @@
 
 import { Hono } from 'hono';
 import { zValidator } from '../../middleware/zvalidator.js';
-import type { ProjectRegistry } from '../../project-registry.js';
+import type { ProjectDirectory } from '@cyberismo/data-handler';
 import { requireRole, getCurrentUser } from '../../middleware/auth.js';
 import { isProjectReadOnly } from '../../overlay.js';
 import { UserRole } from '../../types.js';
@@ -21,7 +21,7 @@ import { createProjectSchema, cloneProjectSchema } from './schema.js';
 import * as projectsService from './service.js';
 
 export function createProjectsRouter(
-  registry: ProjectRegistry,
+  directory: ProjectDirectory,
   multiProjectRoot?: string,
 ) {
   const router = new Hono();
@@ -38,9 +38,9 @@ export function createProjectsRouter(
    *       401:
    *         description: Unauthorized
    */
-  router.get('/', requireRole(UserRole.Reader), (c) => {
+  router.get('/', requireRole(UserRole.Reader), async (c) => {
     return c.json({
-      projects: registry.list().map((project) => ({
+      projects: (await directory.list()).map((project) => ({
         ...project,
         readOnly: isProjectReadOnly(project.prefix),
       })),
@@ -69,7 +69,8 @@ export function createProjectsRouter(
 
       const params = c.req.valid('json');
 
-      if (registry.has(params.prefix)) {
+      const projects = await directory.list();
+      if (projects.some((p) => p.prefix === params.prefix)) {
         return c.json(
           { error: `Project with prefix '${params.prefix}' already exists` },
           409,
@@ -78,8 +79,7 @@ export function createProjectsRouter(
 
       try {
         const result = await projectsService.createProject(
-          registry,
-          multiProjectRoot,
+          directory,
           params,
           getCurrentUser(c),
         );
@@ -120,11 +120,7 @@ export function createProjectsRouter(
       const { url } = c.req.valid('json');
 
       try {
-        const result = await projectsService.cloneProject(
-          registry,
-          multiProjectRoot,
-          url,
-        );
+        const result = await directory.clone(url);
 
         if (result.projects.length === 0) {
           return c.json(

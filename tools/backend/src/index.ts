@@ -20,12 +20,11 @@ import { findFreePort } from './utils.js';
 import { startPolicyPolling } from './overlay.js';
 import { createApp } from './app.js';
 import type { AuthProvider } from './auth/types.js';
-import type { ProjectRegistry } from './project-registry.js';
+import type { ProjectDirectory } from '@cyberismo/data-handler';
 export { MockAuthProvider } from './auth/mock.js';
 export type { MockUserConfig } from './auth/mock.js';
 export type { AuthProvider } from './auth/types.js';
 export { exportSite, type ExportSiteOptions } from './export.js';
-export { ProjectRegistry } from './project-registry.js';
 
 const DEFAULT_PORT = 3000;
 const DEFAULT_MAX_PORT = DEFAULT_PORT + 100;
@@ -57,12 +56,12 @@ export async function previewSite(dir: string, findPort: boolean = true) {
 /**
  * Start the server
  * @param authProvider - Authentication provider
- * @param registry - ProjectRegistry holding all project CommandManagers
+ * @param directory - Directory the projects are opened from
  * @param findPort - If true, find a free port
  */
 export async function startServer(
   authProvider: AuthProvider,
-  registry: ProjectRegistry,
+  directory: ProjectDirectory,
   findPort: boolean = true,
   multiProjectRoot?: string,
 ) {
@@ -73,12 +72,14 @@ export async function startServer(
   if (findPort && !useOsAssigned) {
     port = await findFreePort(port, DEFAULT_MAX_PORT);
   }
-  startPolicyPolling(() => registry.list().map((p) => ({ prefix: p.prefix })));
+  startPolicyPolling(async () =>
+    (await directory.list()).map((p) => ({ prefix: p.prefix })),
+  );
   const app = createApp(
     authProvider,
-    registry,
+    directory,
     undefined,
-    false,
+    undefined,
     multiProjectRoot,
   );
   startApp(app, port);

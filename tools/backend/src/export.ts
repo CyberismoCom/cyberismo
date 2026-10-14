@@ -13,10 +13,13 @@
 
 import fs from 'node:fs/promises';
 
-import { SYSTEM_ACTOR, Workspace } from '@cyberismo/data-handler';
+import {
+  SYSTEM_ACTOR,
+  type ProjectDirectory,
+  type Workspace,
+} from '@cyberismo/data-handler';
 import { createApp } from './app.js';
 import { MockAuthProvider } from './auth/mock.js';
-import type { ProjectRegistry } from './project-registry.js';
 import { cp } from 'node:fs/promises';
 import { staticFrontendDirRelative } from './utils.js';
 import type { QueryResult, ProjectErrors } from '@cyberismo/model';
@@ -77,7 +80,7 @@ export async function getCardQueryResult(
 /**
  * Export the site to a given directory.
  * Note: Do not call this function in parallel.
- * @param registry - ProjectRegistry holding all project CommandManagers.
+ * @param directory - Directory the exported projects are opened from.
  * @param exportDir - Directory to export to.
  * @param options - Export options.
  * @param options.recursive - Whether to export cards recursively.
@@ -87,7 +90,7 @@ export async function getCardQueryResult(
  * @returns Errors that occurred during export, grouped by project.
  */
 export async function exportSite(
-  registry: ProjectRegistry,
+  directory: ProjectDirectory,
   exportDir?: string,
   options?: ExportSiteOptions,
   onProgress?: (current: number, total: number) => void,
@@ -99,12 +102,10 @@ export async function exportSite(
     ...treeOpts,
   };
 
-  if (defaultProject && !registry.has(defaultProject)) {
+  const prefixes = (await directory.list()).map((p) => p.prefix);
+  if (defaultProject && !prefixes.includes(defaultProject)) {
     throw new Error(
-      `Default project '${defaultProject}' is not in the registry. Available: ${registry
-        .list()
-        .map((p) => p.prefix)
-        .join(', ')}`,
+      `Default project '${defaultProject}' is not in the registry. Available: ${prefixes.join(', ')}`,
     );
   }
 
@@ -112,7 +113,7 @@ export async function exportSite(
     process.env.CYBERISMO_DEFAULT_PROJECT = defaultProject;
   }
 
-  const app = createApp(new MockAuthProvider(), registry, opts, true);
+  const app = createApp(new MockAuthProvider(), directory, opts, prefixes);
 
   // copy whole frontend to the same directory
   await cp(staticFrontendDirRelative, exportDir, { recursive: true });
@@ -121,8 +122,8 @@ export async function exportSite(
 
   // estimate total based on the number of cards to export across all projects
   let total = OVERHEAD_CALLS;
-  for (const checkout of registry.values()) {
-    const ws = Workspace.over(checkout, SYSTEM_ACTOR);
+  for (const prefix of prefixes) {
+    const ws = await directory.open(prefix, SYSTEM_ACTOR);
     const cards = await findAllCards(ws, opts);
     const attachments = await findRelevantAttachments(ws, opts);
     total += cards.length + attachments.length;
@@ -131,7 +132,6 @@ export async function exportSite(
   // One pass per project so an error is attributed to the project whose route
   // produced it (the response itself carries no project). Shared routes get
   // their own pass so each route is emitted exactly once.
-  const prefixes = registry.list().map((p) => p.prefix);
   const projectOf = (pathname: string) =>
     prefixes.find((p) => {
       const base = `/api/projects/${p}`;

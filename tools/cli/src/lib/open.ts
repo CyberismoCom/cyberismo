@@ -14,7 +14,7 @@
 import { join, resolve } from 'node:path';
 
 import {
-  openCheckout,
+  openProjectAt,
   SYSTEM_ACTOR,
   Validate,
   Workspace,
@@ -107,12 +107,19 @@ export async function openProject(
   options: WorkspaceOptions & { projectPath: string },
 ): Promise<Workspace> {
   const { projectPath, ...checkoutOptions } = options;
+  const { actor, identity } = await gitAuthor(projectPath);
   if (checkout?.basePath !== projectPath) {
     checkout?.dispose();
     checkout = undefined;
-    checkout = await openCheckout(projectPath, checkoutOptions);
+    const ws = await openProjectAt(
+      projectPath,
+      actor,
+      identity,
+      checkoutOptions,
+    );
+    checkout = ws.checkout;
+    return ws;
   }
-  const { actor, identity } = await gitAuthor(projectPath);
   return Workspace.over(checkout, actor, identity);
 }
 
