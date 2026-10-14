@@ -1,23 +1,10 @@
 import { nodeConfig } from '../../eslint.config.js';
 
-// Domain folders: infrastructure (src/infra/), utils (src/utils/) and the
-// root-level files may not import them. exceptions/ is shared by all.
-const DOMAIN = [
-  'workspace',
-  'project',
-  'directory',
-  'cards',
-  'mutations',
-  'resources',
-  'queries',
-  'export',
-  'clean',
-  'versions',
-  'modules',
-  'settings',
-  'macros',
-  'commands',
-];
+// Layers under src/: api/ (handles and façades) and domain/ sit above infra/
+// and shared/. infra/, shared/ and the root-level files may not import api/
+// or domain/. `*/**` (not `**`) leaves the folder under api/ or domain/
+// unmatched, so an allowlist negation can re-include a file in it.
+const UPPER = ['**/api/*/**', '**/domain/*/**'];
 
 // The infra boundary, minus the allowlisted import paths in `allow`.
 function infraBoundary(allow = []) {
@@ -27,11 +14,8 @@ function infraBoundary(allow = []) {
       {
         patterns: [
           {
-            group: [
-              ...DOMAIN.map((folder) => `**/${folder}/**`),
-              ...allow.map((path) => `!${path}`),
-            ],
-            message: 'src/infra/ may not import domain code.',
+            group: [...UPPER, ...allow.map((path) => `!${path}`)],
+            message: 'src/infra/ may not import api/ or domain/ code.',
           },
         ],
       },
@@ -39,9 +23,10 @@ function infraBoundary(allow = []) {
   };
 }
 
-// The utils boundary: no domain code, and infra only as types (utilities
-// take a Checkout parameter). `allow` lists allowlisted import paths.
-function utilsBoundary(allow = []) {
+// The shared boundary: no api/ or domain/ code, and infra only as types
+// (utilities take a Checkout parameter). `allow` lists allowlisted import
+// paths.
+function sharedBoundary(allow = []) {
   const allowed = allow.map((path) => `!${path}`);
   return {
     '@typescript-eslint/no-restricted-imports': [
@@ -49,15 +34,15 @@ function utilsBoundary(allow = []) {
       {
         patterns: [
           {
-            group: [...DOMAIN.map((folder) => `**/${folder}/**`), ...allowed],
+            group: [...UPPER, ...allowed],
             message:
-              'src/utils/ and root-level files may not import domain code.',
+              'src/shared/ and root-level files may not import api/ or domain/ code.',
           },
           {
             group: ['**/infra/**', ...allowed],
             allowTypeImports: true,
             message:
-              'src/utils/ and root-level files may import infra types only.',
+              'src/shared/ and root-level files may import infra types only.',
           },
         ],
       },
@@ -82,7 +67,7 @@ export default [
   // Ticket (to file): inject the report runner into the engine.
   {
     files: ['src/infra/calculation-engine.ts'],
-    rules: infraBoundary(['**/queries/report.js']),
+    rules: infraBoundary(['**/domain/queries/report.js']),
   },
   // Ticket (to file): resources-as-data or a resource factory; the cache
   // constructs the resource classes, which import the checkout back.
@@ -91,40 +76,41 @@ export default [
   {
     files: ['src/infra/checkout.ts'],
     rules: infraBoundary([
-      '**/resources/template-resource.js',
-      '**/commands/validate.js',
+      '**/domain/resources/template-resource.js',
+      '**/domain/commands/validate.js',
     ]),
   },
   // Ticket (to file, V-series): the prefix and project-name checks live on
   // Validate; move them out with the validation redesign.
   {
     files: ['src/infra/project-settings.ts'],
-    rules: infraBoundary(['**/commands/validate.js']),
+    rules: infraBoundary(['**/domain/commands/validate.js']),
   },
   {
     files: ['src/infra/resource-cache.ts'],
-    rules: infraBoundary(['**/resources/**']),
+    rules: infraBoundary(['**/domain/resources/**']),
   },
   // index.ts is the package's public surface and re-exports the domain.
   {
-    files: ['src/utils/**/*.ts', 'src/*.ts'],
+    files: ['src/shared/**/*.ts', 'src/*.ts'],
     ignores: ['src/index.ts'],
-    rules: utilsBoundary(),
+    rules: sharedBoundary(),
   },
-  // Allowlist: the remaining utils -> domain/infra edges, each with its ticket.
+  // Allowlist: the remaining shared -> domain/infra edges, each with its
+  // ticket.
   // Ticket (to file): xref resolution reads cards; move it next to the
   // xref macro or pass the card lookup in.
   {
-    files: ['src/utils/asciidoc-xref.ts'],
-    rules: utilsBoundary(['**/cards/read.js']),
+    files: ['src/shared/utils/asciidoc-xref.ts'],
+    rules: sharedBoundary(['**/domain/cards/read.js']),
   },
   // Ticket (to file): prefix rename rewrites cards and resources; it is a
   // domain operation, not a utility (move it out of utils/).
   {
-    files: ['src/utils/prefix-rename.ts'],
-    rules: utilsBoundary([
-      '**/cards/attachments.js',
-      '**/cards/update.js',
+    files: ['src/shared/utils/prefix-rename.ts'],
+    rules: sharedBoundary([
+      '**/domain/cards/attachments.js',
+      '**/domain/cards/update.js',
       '**/infra/resources-from.js',
     ]),
   },
