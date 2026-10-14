@@ -17,6 +17,7 @@ import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import { expectRefused, metadataOf, projects } from '../cards/fixture.js';
+import { Import } from '../../src/commands/import.js';
 
 const open = projects();
 
@@ -56,7 +57,11 @@ describe('importCmd.importCsv', () => {
   it('creates a card per row from the template, with the row values', async () => {
     const { ws } = await open(spec);
 
-    const [key1, key2] = await ws.importCmd.importCsv(rows());
+    const [key1, key2] = await new Import(
+      ws.checkout,
+      ws.actor,
+      ws.identity,
+    ).importCsv(rows());
 
     const [card1, card2] = await Promise.all(
       [key1, key2].map((key) => ws.cards.details(key)),
@@ -80,7 +85,11 @@ describe('importCmd.importCsv', () => {
   it('creates the cards under the given parent card', async () => {
     const { ws, keys } = await open(spec);
 
-    const created = await ws.importCmd.importCsv(rows(), keys[0]);
+    const created = await new Import(
+      ws.checkout,
+      ws.actor,
+      ws.identity,
+    ).importCsv(rows(), keys[0]);
 
     expect(created).toHaveLength(2);
     expect((await ws.cards.details(keys[0])).children).toEqual(
@@ -98,6 +107,10 @@ describe('importCmd.importCsv', () => {
   ])('refuses %s and changes nothing', async (_name, file, error) => {
     const { ws, path } = await open(spec);
 
-    await expectRefused(path, () => ws.importCmd.importCsv(file), error);
+    await expectRefused(
+      path,
+      () => new Import(ws.checkout, ws.actor, ws.identity).importCsv(file),
+      error,
+    );
   });
 });

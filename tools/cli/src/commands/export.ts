@@ -21,7 +21,6 @@ import { exportSite } from '@cyberismo/backend';
 import { formatProjectErrors } from '@cyberismo/model';
 import {
   AsciidoctorPdfError,
-  type CommandOptions,
   ExportFormats,
   localFolder,
   type Workspace,
@@ -31,13 +30,14 @@ import type { AdocFiles } from '@cyberismo/model';
 import { CommandWithPath } from '../lib/args.js';
 import { onProject } from '../lib/errors.js';
 import { handleResponse, printResult } from '../lib/output.js';
+import type { ExportCommandOptions } from '../options.js';
 
 // Writes the PDF of a card (or the project) to 'destination'.
 async function exportPdf(
   ws: Workspace,
   destination: string,
   cardKey: string | undefined,
-  options: CommandOptions<'export'>,
+  options: ExportCommandOptions,
 ): Promise<string> {
   let rendered;
   try {
@@ -144,7 +144,7 @@ export function registerExport(program: Command) {
         format: string,
         output: ExportFormats,
         cardKey: string,
-        options: CommandOptions<'export'>,
+        options: ExportCommandOptions,
       ) => {
         if (format === 'site') {
           const progress = new cliProgress.SingleBar(

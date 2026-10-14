@@ -13,7 +13,7 @@
 
 import { type Command } from 'commander';
 
-import { type CommandOptions, type Workspace } from '@cyberismo/data-handler';
+import { type Workspace } from '@cyberismo/data-handler';
 
 import {
   CommandWithPath,
@@ -22,9 +22,10 @@ import {
   ResourceTypeParser as Parser,
   Resources,
 } from '../lib/args.js';
-import { program } from '../lib/dispatch.js';
+import { program } from '../lib/program.js';
 import { onProject } from '../lib/errors.js';
 import { deprecationNote, printJson } from '../lib/output.js';
+import type { ShowCommandOptions } from '../options.js';
 
 // Card reads of 'show'; a resource name '<prefix>/cards/<x>' shows card <x>.
 const cardReads = new Map<string, (ws: Workspace, detail: string) => unknown>([
@@ -37,7 +38,7 @@ const cardReads = new Map<string, (ws: Workspace, detail: string) => unknown>([
 // Resource and project reads of 'show', by the type the argument names.
 function resourceRead(
   type: string,
-  options: CommandOptions<'show'>,
+  options: ShowCommandOptions,
 ): ((ws: Workspace, detail: string) => Promise<unknown>) | undefined {
   if (Resources.includes(type)) {
     return (ws, detail) =>
@@ -60,7 +61,7 @@ function resourceRead(
 // Module and hub reads of 'show'; listings of hub data refresh it first.
 function moduleRead(
   type: string,
-  options: CommandOptions<'show'>,
+  options: ShowCommandOptions,
 ): ((ws: Workspace, detail: string) => Promise<unknown>) | undefined {
   switch (type) {
     case 'importableModules':
@@ -84,7 +85,7 @@ function moduleRead(
 export async function showAction(
   type: string,
   typeDetail: string | undefined,
-  options: CommandOptions<'show'>,
+  options: ShowCommandOptions,
 ) {
   if (type === '') {
     return;
@@ -139,12 +140,10 @@ export function registerShow(program: Command) {
       '-u --show-use',
       'Show where resource is used. Only used with resources, otherwise will be ignored.',
     )
-    .action(
-      async (type: string, typeDetail, options: CommandOptions<'show'>) => {
-        if (type === 'modules') {
-          deprecationNote('show modules', 'module list');
-        }
-        await showAction(type, typeDetail, options);
-      },
-    );
+    .action(async (type: string, typeDetail, options: ShowCommandOptions) => {
+      if (type === 'modules') {
+        deprecationNote('show modules', 'module list');
+      }
+      await showAction(type, typeDetail, options);
+    });
 }

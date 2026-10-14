@@ -5,7 +5,7 @@ import { expect, it, describe, beforeEach, afterEach } from 'vitest';
 import { mkdirSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { type Workspace } from '../src/command-handler.js';
+import { type Workspace } from '../src/workspace/workspace.js';
 import { copyDir } from '../src/utils/file-utils.js';
 import { resourceName } from '../src/utils/resource-utils.js';
 import { getTestBaseDir, getTestProject } from './helpers/test-utils.js';

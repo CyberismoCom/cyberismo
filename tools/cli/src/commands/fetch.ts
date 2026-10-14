@@ -13,11 +13,12 @@
 
 import { type Command } from 'commander';
 
-import { type CommandOptions, type Workspace } from '@cyberismo/data-handler';
+import { type Workspace } from '@cyberismo/data-handler';
 
 import { CommandGroup } from '../lib/args.js';
 import { fail, onProject } from '../lib/errors.js';
 import { printResult } from '../lib/output.js';
+import type { FetchCommandOptions } from '../options.js';
 
 // Fetches every hub, even with a current cache; gives the failure text if
 // some hub could not be read.
@@ -41,7 +42,7 @@ export function registerFetch(program: Command) {
   fetchCmd
     .command('hubs')
     .description('Retrieves module lists from hubs')
-    .action(async (options: CommandOptions<'fetch'>) => {
+    .action(async (options: FetchCommandOptions) => {
       const failure = await onProject(
         Object.assign({}, options, program.opts()),
         fetchHubs,
