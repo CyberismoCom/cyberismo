@@ -13,13 +13,18 @@
 */
 
 import { execFile } from 'node:child_process';
+import { readFileSync } from 'node:fs';
 import { readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { promisify } from 'node:util';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
+import { Rename } from '../../src/commands/rename.js';
 import { localFolder } from '../../src/directory/local-folder.js';
-import { ProjectNotFoundError } from '../../src/exceptions/index.js';
+import {
+  ProjectExistsError,
+  ProjectNotFoundError,
+} from '../../src/exceptions/index.js';
 import { SYSTEM_ACTOR } from '../../src/utils/tx-record.js';
 import { folders } from './folder.js';
 
@@ -158,6 +163,151 @@ describe('directory.replace', () => {
     await expect(directory.replace('nope')).rejects.toThrow(
       ProjectNotFoundError,
     );
+  });
+});
+
+describe('directory.rename', () => {
+  const prefixOf = (root: string, project: string) =>
+    JSON.parse(
+      readFileSync(
+        join(root, project, '.cards', 'local', 'cardsConfig.json'),
+        'utf-8',
+      ),
+    ).cardKeyPrefix;
+
+  it('keeps the project under its new prefix', async () => {
+    const { root } = await folder({ prefix: 'one' }, { prefix: 'two' });
+    const { directory } = await localFolder(root);
+    const before = await directory.open('one', SYSTEM_ACTOR);
+
+    await directory.rename('one', 'uno', ann.actor);
+
+    expect((await directory.open('uno', SYSTEM_ACTOR)).checkout).toBe(
+      before.checkout,
+    );
+    await expect(directory.open('one', SYSTEM_ACTOR)).rejects.toThrow(
+      ProjectNotFoundError,
+    );
+    expect((await directory.list()).map((p) => p.prefix).sort()).toEqual([
+      'two',
+      'uno',
+    ]);
+    expect(prefixOf(root, 'one')).toBe('uno');
+  });
+
+  it('refuses a prefix another project has, renaming nothing', async () => {
+    const { root } = await folder({ prefix: 'one' }, { prefix: 'two' });
+    const { directory } = await localFolder(root);
+
+    await expect(directory.rename('one', 'two', ann.actor)).rejects.toThrow(
+      new ProjectExistsError('two'),
+    );
+    expect(prefixOf(root, 'one')).toBe('one');
+    expect((await directory.list()).map((p) => p.prefix).sort()).toEqual([
+      'one',
+      'two',
+    ]);
+  });
+
+  it("refuses the project's own prefix as the rename does, not as taken", async () => {
+    const { root } = await folder({ prefix: 'one' });
+    const { directory } = await localFolder(root);
+
+    await expect(directory.rename('one', 'one', ann.actor)).rejects.toThrow(
+      "Project prefix is already 'one'",
+    );
+  });
+
+  it('refuses a prefix an earlier rename is taking', async () => {
+    const { root } = await folder({ prefix: 'one' }, { prefix: 'two' });
+    const { directory } = await localFolder(root);
+    let reached!: () => void;
+    let release!: () => void;
+    const atRename = new Promise<void>((resolve) => (reached = resolve));
+    const released = new Promise<void>((resolve) => (release = resolve));
+    const original = Rename.prototype.rename;
+    const spy = vi
+      .spyOn(Rename.prototype, 'rename')
+      .mockImplementationOnce(async function (this: Rename, to, force) {
+        reached();
+        await released;
+        return original.call(this, to, force);
+      });
+    try {
+      const first = directory.rename('one', 'uno', ann.actor);
+      await atRename;
+      const second = directory.rename('two', 'uno', ann.actor);
+      release();
+
+      await first;
+      await expect(second).rejects.toThrow(new ProjectExistsError('uno'));
+      expect(prefixOf(root, 'two')).toBe('two');
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
+  it('refuses a prefix a rename inside a write still open has taken', async () => {
+    const { root } = await folder({ prefix: 'one' }, { prefix: 'two' });
+    const { directory } = await localFolder(root);
+    const ws = await directory.open('one', ann.actor);
+
+    await ws.atomic(async () => {
+      await directory.rename('one', 'uno', ann.actor);
+      await expect(directory.rename('two', 'uno', ann.actor)).rejects.toThrow(
+        new ProjectExistsError('uno'),
+      );
+    }, 'Update project settings');
+
+    expect(prefixOf(root, 'two')).toBe('two');
+    expect((await directory.list()).map((p) => p.prefix).sort()).toEqual([
+      'two',
+      'uno',
+    ]);
+  });
+
+  it('follows a rename of a reopened project', async () => {
+    const { root } = await folder({ prefix: 'one' });
+    const { directory } = await localFolder(root);
+    await directory.replace('one');
+    const reopened = await directory.open('one', SYSTEM_ACTOR);
+
+    await directory.rename('one', 'uno', ann.actor);
+
+    expect((await directory.open('uno', SYSTEM_ACTOR)).checkout).toBe(
+      reopened.checkout,
+    );
+    expect((await directory.list()).map((p) => p.prefix)).toEqual(['uno']);
+  });
+
+  it('refuses a published project unless forced', async () => {
+    const { root } = await folder({ prefix: 'one', version: '1.0.0' });
+    const { directory } = await localFolder(root);
+
+    await expect(directory.rename('one', 'uno', ann.actor)).rejects.toThrow(
+      'is this module',
+    );
+    await directory.rename('one', 'uno', ann.actor, undefined, {
+      force: true,
+    });
+
+    expect((await directory.list()).map((p) => p.prefix)).toEqual(['uno']);
+  });
+
+  it('keeps the old prefix when the write the rename is part of fails', async () => {
+    const { root } = await folder({ prefix: 'one', git: true });
+    const { directory } = await localFolder(root, { autocommit: true });
+    const ws = await directory.open('one', ann.actor, ann.identity);
+
+    await expect(
+      ws.atomic(async () => {
+        await directory.rename('one', 'uno', ann.actor, ann.identity);
+        throw new Error('a later step fails');
+      }, 'Update project settings'),
+    ).rejects.toThrow('a later step fails');
+
+    expect(prefixOf(root, 'one')).toBe('one');
+    expect((await directory.list()).map((p) => p.prefix)).toEqual(['one']);
   });
 });
 
