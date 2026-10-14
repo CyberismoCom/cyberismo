@@ -50,12 +50,12 @@ function overwrite(shown: unknown, path: (string | number)[]) {
 it.each([
   {
     read: 'showResource: a file resource',
-    get: () => ws.showCmd.showResource('decision/cardTypes/decision'),
+    get: () => ws.resources.show('decision/cardTypes/decision'),
     path: ['displayName'],
   },
   {
     read: 'showResource: a folder resource, nested content',
-    get: () => ws.showCmd.showResource('decision/reports/testReport'),
+    get: () => ws.resources.show('decision/reports/testReport'),
     path: ['content', 'contentTemplate'],
   },
   {
@@ -65,12 +65,12 @@ it.each([
   },
   {
     read: 'card types with details',
-    get: () => ws.showCmd.showCardTypesWithDetails(),
+    get: () => ws.resources.contents('cardTypes'),
     path: [0, 'displayName'],
   },
   {
     read: 'workflows with details',
-    get: () => ws.showCmd.showWorkflowsWithDetails(),
+    get: () => ws.resources.contents('workflows'),
     path: [0, 'displayName'],
   },
 ])('$read returns a copy', async ({ get, path }) => {
