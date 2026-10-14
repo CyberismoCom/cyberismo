@@ -22,6 +22,7 @@ import {
   rename,
   spec,
 } from './fixture.js';
+import { Validate } from '../../src/commands/validate.js';
 
 const open = projects();
 
@@ -214,9 +215,9 @@ describe('card types', () => {
       expect(await ws.resources.show(page)).toMatchObject({
         workflow: 'test/workflows/ghost',
       });
-      expect(await ws.validateCmd.validate(path, () => ws.checkout)).toContain(
-        'ghost',
-      );
+      expect(
+        await Validate.getInstance().validate(path, () => ws.checkout),
+      ).toContain('ghost');
     });
   });
 
