@@ -17,9 +17,12 @@ import { beforeAll, afterAll, describe, expect, test } from 'vitest';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
 import { type Workspace } from '@cyberismo/data-handler';
-import { createMcpServer, singleProjectProvider } from '../src/server.js';
+import { createMcpServer } from '../src/server.js';
 import { authenticated, testDataPath } from './test-utils.js';
-import { openTestWorkspace } from './helpers/open-test-workspace.js';
+import {
+  openTestWorkspace,
+  directoryOf,
+} from './helpers/open-test-workspace.js';
 
 let ws: Workspace;
 let client: Client;
@@ -29,7 +32,7 @@ beforeAll(async () => {
   process.argv = [];
   ws = await openTestWorkspace(testDataPath);
 
-  const server = createMcpServer(singleProjectProvider(ws.checkout));
+  const server = createMcpServer(directoryOf(ws));
   const [clientTransport, serverTransport] =
     InMemoryTransport.createLinkedPair();
 

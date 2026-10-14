@@ -15,9 +15,12 @@
 
 import { beforeAll, afterAll, describe, expect, test } from 'vitest';
 import { type Workspace } from '@cyberismo/data-handler';
-import { createMcpServer, singleProjectProvider } from '../src/server.js';
+import { createMcpServer } from '../src/server.js';
 import { testDataPath } from './test-utils.js';
-import { openTestWorkspace } from './helpers/open-test-workspace.js';
+import {
+  openTestWorkspace,
+  directoryOf,
+} from './helpers/open-test-workspace.js';
 
 let ws: Workspace;
 
@@ -33,12 +36,12 @@ afterAll(async () => {
 
 describe('createMcpServer', () => {
   test('creates an MCP server instance with default options', () => {
-    const server = createMcpServer(singleProjectProvider(ws.checkout));
+    const server = createMcpServer(directoryOf(ws));
     expect(server).toBeDefined();
   });
 
   test('creates server with custom name and version', () => {
-    const server = createMcpServer(singleProjectProvider(ws.checkout), {
+    const server = createMcpServer(directoryOf(ws), {
       name: 'test-server',
       version: '2.0.0',
     });

@@ -1,9 +1,11 @@
 import { expect, test, beforeAll, afterAll } from 'vitest';
 import { createApp } from '../src/app.js';
-import { ProjectRegistry } from '../src/project-registry.js';
 import { MockAuthProvider, MOCK_ROLE_COOKIE } from '../src/auth/mock.js';
 import { cleanupTempTestData, createTempTestData } from './test-utils.js';
-import { openTestWorkspace } from './helpers/open-test-workspace.js';
+import {
+  openTestWorkspace,
+  directoryOf,
+} from './helpers/open-test-workspace.js';
 
 let app: ReturnType<typeof createApp>;
 let tempTestDataPath: string;
@@ -17,10 +19,7 @@ interface CardTypeResponse {
 beforeAll(async () => {
   tempTestDataPath = await createTempTestData('decision-records');
   const ws = await openTestWorkspace(tempTestDataPath);
-  app = createApp(
-    new MockAuthProvider(),
-    ProjectRegistry.fromCheckout(ws.checkout),
-  );
+  app = createApp(new MockAuthProvider(), directoryOf(ws));
 });
 
 afterAll(async () => {

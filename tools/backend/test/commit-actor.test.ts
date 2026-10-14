@@ -18,13 +18,15 @@ import { promisify } from 'node:util';
 import { afterEach, beforeEach, expect, test } from 'vitest';
 import { type Workspace } from '@cyberismo/data-handler';
 import { createApp } from '../src/app.js';
-import { ProjectRegistry } from '../src/project-registry.js';
 import { UserRole, type UserInfo } from '../src/types.js';
 import {
   buildProject,
   type BuiltProject,
 } from '../../data-handler/test/helpers/project-builder.js';
-import { openTestWorkspace } from './helpers/open-test-workspace.js';
+import {
+  openTestWorkspace,
+  directoryOf,
+} from './helpers/open-test-workspace.js';
 
 const user: UserInfo = {
   id: 'dana-1',
@@ -47,10 +49,7 @@ afterEach(async () => {
 });
 
 test('a REST write is committed as the user and records the user as actor', async () => {
-  const app = createApp(
-    { authenticate: async () => user },
-    ProjectRegistry.fromCheckout(ws.checkout),
-  );
+  const app = createApp({ authenticate: async () => user }, directoryOf(ws));
   const response = await app.request(
     `/api/projects/test/cards/${project.keys[0]}`,
     {
