@@ -19,11 +19,11 @@ import { simpleGit } from 'simple-git';
 import {
   MockAuthProvider,
   type MockUserConfig,
-  ProjectRegistry,
   startServer,
 } from '@cyberismo/backend';
 import { formatProjectErrors, type ProjectErrors } from '@cyberismo/model';
 import {
+  localFolder,
   type StartCommandOptions,
   scanForProjects,
 } from '@cyberismo/data-handler';
@@ -129,10 +129,10 @@ export function registerApp(program: Command) {
       );
     }
 
-    // Create a CommandManager for each discovered project
+    // Open each discovered project
     const mergedOptions = Object.assign({}, options, program.opts());
     // Load failures were already reported by validateProjects above.
-    const { registry } = await ProjectRegistry.fromScannedProjects(projects, {
+    const { directory } = await localFolder(basePath, {
       autocommit: mergedOptions.autocommit,
       autopush: mergedOptions.autopush,
       watchResourceChanges: mergedOptions.watchResourceChanges,
@@ -141,7 +141,7 @@ export function registerApp(program: Command) {
     // Pass multiProjectRoot only in multi-project mode (enables project creation)
     await startServer(
       new MockAuthProvider(gitUser),
-      registry,
+      directory,
       true,
       isSingleProject ? undefined : basePath,
     );

@@ -18,7 +18,13 @@ import { cp, mkdir, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
-import { type Workspace } from '@cyberismo/data-handler';
+import {
+  ProjectNotFoundError,
+  Workspace,
+  type CommitIdentity,
+  type ProjectDirectory,
+} from '@cyberismo/data-handler';
+import type { ActorRef } from '@cyberismo/model';
 import { createMcpServer } from '../src/server.js';
 import { authenticated, testDataPath } from './test-utils.js';
 import {
@@ -230,7 +236,9 @@ const promptText = (result: { messages: { content: { text?: string } }[] }) =>
 
 describe('skill discovery MCP prompts', () => {
   test('listPrompts refuses an unauthenticated caller, even with no projects', async () => {
-    const server = createMcpServer({ get: () => undefined, list: () => [] });
+    const server = createMcpServer({
+      list: async () => [],
+    } as unknown as ProjectDirectory);
     const [clientTransport, serverTransport] =
       InMemoryTransport.createLinkedPair();
     await server.connect(serverTransport);
@@ -312,10 +320,20 @@ describe('skill discovery MCP prompts', () => {
   // by iterating projects, not by parsing the name's first segment.
   test('getPrompt resolves a skill whose name prefix differs from the provider key', async () => {
     const moduleLikeProvider = {
-      get: (prefix: string) =>
-        prefix === 'registeredUnderOtherKey' ? ws.checkout : undefined,
-      list: () => [{ prefix: 'registeredUnderOtherKey', name: 'decision' }],
-    };
+      open: async (
+        prefix: string,
+        actor: ActorRef,
+        identity?: CommitIdentity,
+      ) => {
+        if (prefix !== 'registeredUnderOtherKey') {
+          throw new ProjectNotFoundError(prefix);
+        }
+        return Workspace.over(ws.checkout, actor, identity);
+      },
+      list: async () => [
+        { prefix: 'registeredUnderOtherKey', name: 'decision' },
+      ],
+    } as unknown as ProjectDirectory;
     const server = createMcpServer(moduleLikeProvider);
     const [clientTransport, serverTransport] =
       InMemoryTransport.createLinkedPair();

@@ -3,8 +3,12 @@ import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { getCardQueryResult, reset, exportSite } from '../src/export.js';
-import { ProjectRegistry } from '../src/project-registry.js';
-import { type Workspace } from '@cyberismo/data-handler';
+import {
+  localFolder,
+  SYSTEM_ACTOR,
+  type ProjectDirectory,
+  type Workspace,
+} from '@cyberismo/data-handler';
 import type * as Utils from '../src/utils.js';
 
 // The built frontend does not exist when tests run from source.
@@ -15,11 +19,7 @@ vi.mock('../src/utils.js', async (importOriginal) => {
     staticFrontendDirRelative: mkdtempSync(join(tmpdir(), 'cyberismo-fe-')),
   };
 });
-import { cleanupTempTestData, createTempTestData } from './test-utils.js';
-import {
-  openTestWorkspace,
-  directoryOf,
-} from './helpers/open-test-workspace.js';
+import { createTempTestFolder } from './test-utils.js';
 
 describe('export module', () => {
   beforeEach(() => {
@@ -162,7 +162,9 @@ describe('export module', () => {
     });
 
     test('should throw when defaultProject is not in the registry', async () => {
-      const registry = new ProjectRegistry();
+      const registry = {
+        list: async () => [],
+      } as unknown as ProjectDirectory;
 
       await expect(
         exportSite(registry, tempDir, {
@@ -172,15 +174,9 @@ describe('export module', () => {
     });
 
     test('should throw with available prefixes in the error message', async () => {
-      const ws = {
-        queries: { runQuery: vi.fn().mockResolvedValue([]) },
-        checkout: {
-          basePath: '/tmp/proj',
-          configuration: { cardKeyPrefix: 'foo', name: 'Foo' },
-        },
-      } as unknown as Workspace;
-
-      const registry = directoryOf(ws);
+      const registry = {
+        list: async () => [{ prefix: 'foo', name: 'Foo' }],
+      } as unknown as ProjectDirectory;
 
       await expect(
         exportSite(registry, tempDir, {
@@ -192,28 +188,21 @@ describe('export module', () => {
 
   describe('exportSite error attribution', () => {
     let tempDir: string;
-    let decisionPath: string;
-    let minimalPath: string;
+    let folder: string;
 
     beforeEach(async () => {
       tempDir = await mkdtemp(join(tmpdir(), 'cyberismo-export-test-'));
-      decisionPath = await createTempTestData('decision-records');
-      minimalPath = await createTempTestData('minimal');
+      folder = await createTempTestFolder('decision-records', 'minimal');
     });
 
     afterEach(async () => {
       await rm(tempDir, { recursive: true, force: true });
-      await cleanupTempTestData(decisionPath);
-      await cleanupTempTestData(minimalPath);
+      await rm(folder, { recursive: true, force: true });
     });
 
     test('reports a failing card under its own project only', async () => {
-      const decision = await openTestWorkspace(decisionPath);
-      const minimal = await openTestWorkspace(minimalPath);
-      const registry = new ProjectRegistry([
-        { prefix: 'mini', checkout: minimal.checkout },
-        { prefix: 'decision', checkout: decision.checkout },
-      ]);
+      const { directory: registry } = await localFolder(folder);
+      const decision = await registry.open('decision', SYSTEM_ACTOR);
       vi.spyOn(decision.checkout, 'treeOf').mockImplementation(() => {
         throw new Error('boom');
       });

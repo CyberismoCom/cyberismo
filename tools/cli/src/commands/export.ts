@@ -17,13 +17,13 @@ import { dirname, join, resolve } from 'node:path';
 import cliProgress from 'cli-progress';
 import { Argument, type Command } from 'commander';
 
-import { exportSite, ProjectRegistry } from '@cyberismo/backend';
+import { exportSite } from '@cyberismo/backend';
 import { formatProjectErrors } from '@cyberismo/model';
 import {
   AsciidoctorPdfError,
   type CommandOptions,
   ExportFormats,
-  scanForProjects,
+  localFolder,
   type Workspace,
 } from '@cyberismo/data-handler';
 import type { AdocFiles } from '@cyberismo/model';
@@ -156,20 +156,19 @@ export function registerExport(program: Command) {
             const projectPath = options.projectPath
               ? resolve(options.projectPath)
               : process.cwd();
-            const projects = await scanForProjects(projectPath);
-            if (projects.length === 0) {
+            const { directory, failed } = await localFolder(projectPath);
+            const projects = await directory.list();
+            if (projects.length === 0 && failed.length === 0) {
               handleResponse({
                 statusCode: 400,
                 message: `No projects found in '${projectPath}'.`,
               });
               return;
             }
-            const { registry, failed } =
-              await ProjectRegistry.fromScannedProjects(projects);
             const defaultProjectFailed = failed.some(
               (f) => f.prefix === options.defaultProject,
             );
-            if (registry.list().length === 0 || defaultProjectFailed) {
+            if (projects.length === 0 || defaultProjectFailed) {
               handleResponse({
                 statusCode: 500,
                 message: `Export failed:\n${formatProjectErrors(failed)}`,
@@ -177,7 +176,7 @@ export function registerExport(program: Command) {
               return;
             }
             const { errors: exportErrors } = await exportSite(
-              registry,
+              directory,
               output,
               {
                 recursive: options.recursive,

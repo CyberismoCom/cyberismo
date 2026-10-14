@@ -14,6 +14,7 @@
 export * from './interfaces/actor.js';
 export * from './interfaces/change-event.js';
 export * from './interfaces/clean.js';
+export * from './interfaces/directory.js';
 export * from './interfaces/errors.js';
 export * from './interfaces/folder-content-interfaces.js';
 export * from './interfaces/macros.js';

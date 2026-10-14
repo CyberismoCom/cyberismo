@@ -13,7 +13,7 @@
 
 import { getSwrConfig, globalApiPaths } from './swr.js';
 
-// Mirrors ProjectListItem from @cyberismo/backend (project-registry.ts)
+// Mirrors ProjectSummary from @cyberismo/model
 export type AvailableProject = {
   prefix: string;
   name: string;

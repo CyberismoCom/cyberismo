@@ -2,7 +2,7 @@ import { describe, expect, it, beforeAll, afterAll } from 'vitest';
 import { cp, rm, writeFile, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { createApp } from '../src/app.js';
-import { ProjectRegistry } from '../src/project-registry.js';
+import type { ProjectDirectory, Workspace } from '@cyberismo/data-handler';
 import { MockAuthProvider } from '../src/auth/mock.js';
 import { createTempTestData, cleanupTempTestData } from './test-utils.js';
 import {
@@ -14,7 +14,8 @@ describe('POST /api/test/reset', () => {
   let projectPath: string;
   let goldenPath: string;
   let app: ReturnType<typeof createApp>;
-  let registry: ProjectRegistry;
+  let registry: ProjectDirectory;
+  let ws: Workspace;
 
   beforeAll(async () => {
     process.argv = []; // Fixes weird issue with asciidoctor (per api.test.ts)
@@ -26,13 +27,12 @@ describe('POST /api/test/reset', () => {
     process.env.npm_config_project_path = projectPath;
     process.env.CYBERISMO_GOLDEN_PATH = goldenPath;
 
-    const ws = await openTestWorkspace(projectPath);
+    ws = await openTestWorkspace(projectPath);
     registry = directoryOf(ws);
     app = createApp(new MockAuthProvider(), registry);
   }, 60_000);
 
   afterAll(async () => {
-    registry.dispose();
     await cleanupTempTestData(projectPath);
     await rm(goldenPath, { recursive: true, force: true });
     delete process.env.npm_config_project_path;
@@ -49,9 +49,10 @@ describe('POST /api/test/reset', () => {
     await expect(readFile(marker, 'utf8')).rejects.toThrow();
   });
 
-  it('keeps the registry usable after reset (project prefix still resolves)', async () => {
-    // decision-records uses prefix 'decision' per its existing usage in api.test.ts
-    expect(registry.get('decision')).toBeDefined();
+  it('reopens the project: the old checkout is disposed, the prefix still resolves', async () => {
+    expect(ws.checkout.disposed).toBe(true);
+    const res = await app.request('/api/projects/decision/cards');
+    expect(res.status).toBe(200);
   });
 
   it('returns 404 when NODE_ENV is not test', async () => {

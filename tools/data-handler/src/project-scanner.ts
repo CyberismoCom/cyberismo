@@ -25,7 +25,7 @@ export interface ProjectEntry {
 /**
  * Check whether a directory is a Cyberismo project (has `.cards/` and `cardRoot/`).
  */
-function isProjectDirectory(dirPath: string): boolean {
+export function isProjectDirectory(dirPath: string): boolean {
   return (
     pathExists(join(dirPath, '.cards')) && pathExists(join(dirPath, 'cardRoot'))
   );
