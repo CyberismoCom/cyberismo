@@ -13,9 +13,9 @@ name: Publish
 #       targeting registry.npmjs.org and Docker Hub, plus tag and
 #       gh release create.
 #
-# What can still fail post-merge despite a green PR run: NPM_TOKEN /
-# DOCKERHUB_TOKEN expiry, branch-protection on tag push, GitHub Release
-# API. Everything else (workflow logic, package contents, image build,
+# What can still fail post-merge despite a green PR run: npm trusted
+# publishing (OIDC) setup, DOCKERHUB_TOKEN expiry, branch-protection on
+# tag push, GitHub Release API. Everything else (workflow logic, package contents, image build,
 # smoke) is validated pre-merge against the same job structure.
 
 on:
@@ -141,16 +141,10 @@ jobs:
           node-version: ${{ vars.NODE_VERSION }}
           cache: 'pnpm'
 
-      - name: Configure registry credentials
-        env:
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: |
-          if [ "$DRYRUN" = "true" ]; then
-            npm config set //localhost:4873/:_authToken local-pack-test
-            pnpm config set //localhost:4873/:_authToken local-pack-test
-          else
-            pnpm config set "//registry.npmjs.org/:_authToken" "$NPM_TOKEN"
-          fi
+      # Real releases authenticate through npm trusted publishing (OIDC).
+      - name: Configure Verdaccio credentials (dry-run only)
+        if: env.DRYRUN == 'true'
+        run: pnpm config set //localhost:4873/:_authToken local-pack-test
 
       - name: Install dependencies
         run: pnpm install --ignore-scripts
@@ -158,16 +152,14 @@ jobs:
       - name: Build
         run: pnpm build
 
-      - name: Update npm
-        run: npm install -g npm@latest
-
       - name: Publish packages
         env:
-          # Three layers pinning the registry to whichever target the mode
-          # selects: env var, CLI flag, and (dry-run) no NPM_TOKEN in env.
+          # Two layers pinning the registry to whichever target the mode
+          # selects: env var and CLI flag.
           NPM_REGISTRY: ${{ env.DRYRUN == 'true' && 'http://localhost:4873/' || 'https://registry.npmjs.org/' }}
           pnpm_config_registry: ${{ env.DRYRUN == 'true' && 'http://localhost:4873/' || 'https://registry.npmjs.org/' }}
-        run: pnpm --filter '!app' --filter '!@cyberismo/node-clingo' publish --access public --no-git-checks --registry "$NPM_REGISTRY"
+          PROVENANCE: ${{ env.DRYRUN != 'true' && '--provenance' || '' }}
+        run: pnpm --filter '!app' --filter '!@cyberismo/node-clingo' publish --access public --no-git-checks --registry "$NPM_REGISTRY" $PROVENANCE
 
       - name: Smoke test installed cli (dry-run only)
         if: env.DRYRUN == 'true'

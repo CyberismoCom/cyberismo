@@ -1,5 +1,64 @@
 # Changelog
 
+## [1.2.0] — 2026-10-14
+
+### Highlights
+
+Module versions are now managed from the app: project settings show each module's installed version and declared range, admins can check for updates, and a new Install / Change version dialog replaces Add module. On the CLI, the module commands now live under `cyberismo module` (`install`, `update`, `list`, `remove`), and `cyberismo module update --dry-run` previews an update before you apply it. Collaboration is live as well: an open card now refreshes when someone else edits it, and presence comes over a single, authorization-bounded event stream per tab.
+
+### Breaking changes
+
+- The "Open in editor" attachment action, its backend route and the `attachmentEditors` user preference are gone because they allowed command injection through attachment filenames — use "Save copy" instead, and remove `attachmentEditors` from your preferences (#1631)
+- `cyberismo check-updates` no longer applies updates. It is now a hidden alias for `cyberismo module update --dry-run`, and a blocked plan exits 1 — run `cyberismo module update` to apply (#1606)
+- `fields/5` and `fields/7` now output through `resultField/3`: attributes are always shown, `select` no longer filters them, built-in names such as `progress` come back as `shortText` strings and sort lexicographically, and rules can no longer read them back as `field/3` — use `resultField/4` when you need typed values (#1617)
+- Queries should output computed attributes with the new `resultField/3` instead of writing `field/3` or `dataType/3`; the core queries have been migrated — update custom queries and reports that write knowledge-layer predicates (#1608, #1609, #1597)
+- `cyberismo rename` refuses to run once a project has a version unless you pass `--force`, and module consumers refuse an update whose card key prefix no longer matches the module name — treat a prefix change as publishing a new module (#1600)
+- `cyberismo export site` and `main.js --export` exit 1 when any project reports errors — adjust any scripts that relied on exit 0 (#1610)
+- `cyberismo create version` refuses a version bump that is too small for the changes in the configuration log (migratable changes need a minor bump, breaking ones need a major) — choose the bump it reports (#1572)
+- CLI `calc run` and `report` now run in the new `commandLine` execution context instead of an invalid `app` context — add `commandLine` rules where CLI output should match `localApp` (#1632)
+
+### Features
+
+- Module versions in project settings: installed version, declared range and Check for updates (#1613)
+- Install / Change version dialog for modules, with pin, minor and major bindings (#1614)
+- Backend endpoints for module versions, update plans and declared ranges (#1612, #1605)
+- `cyberismo module update --dry-run` prints the full update plan without applying it (#1606)
+- Module commands are grouped under `cyberismo module install|update|list|remove`; the old spellings still work but print a deprecation warning (#1571)
+- An open card refreshes when someone else writes to it, with a toast if you are editing it (#1587)
+- Read-only access when using an overlay (#1568)
+- Skills can be edited and previewed in the configuration editor (#1502)
+- The configuration editor picks up changes saved elsewhere unless you have unsaved edits (#1551)
+- Startup and site export errors are grouped by project, and one broken project no longer stops the others from loading (#1610)
+- PDF export is quieter and faster, and a card that leaves a block open no longer breaks the cards after it (#1601)
+- Card AsciiDoc is rendered in the browser in secure mode instead of on the backend (#1583)
+- Card view uses a single scroll container (#1525)
+- The release now ships an SBOM (#1596, #1616)
+
+### Fixes
+
+- Vega charts render under a Content Security Policy that does not allow `unsafe-eval` (#1602)
+- Validation works on Node 24.20+ (ajv replaces jsonschema); validation error messages are worded differently (#1579)
+- Instantiating a template no longer corrupts the template's card ranks, plus other card correctness fixes (#1563)
+- Moving cards and instantiating templates is atomic: a partial failure leaves nothing behind (#1570)
+- Version-conflict messages no longer suggest a module version that might not work (#1604)
+- Faster detection of conflicting field values (#1540)
+- Fixed HTTP requests after the Undici update (#1574)
+- The docs site serves the app shell as its 404 page instead of redirecting (#1547)
+
+### Dependencies
+
+- 15 dependency updates (#1554–#1561, #1620–#1626)
+
+### Internal
+
+- Card storage refactor: a CardTree per container, split card read API, cache indexes and lazy-loaded SVG rendering (#1562, #1564, #1565, #1567, #1569, #1581)
+- Calculation logic cleanups: `policyCheckFailure` widening moved into base.lp (#1598)
+- Opt-in mock-auth identity roster for development (#1585); presence feature flag removed (#1591)
+- Upgrade to pnpm 11, then pnpm 12 (#1548, #1629)
+- Documentation restructure and skills documentation (#1553, #1504)
+- PR template and secure coding guidelines (#1590)
+- e2e flake fixes (#1566, #1584)
+
 ## [1.1.2] — 2026-08-21
 
 ### Highlights

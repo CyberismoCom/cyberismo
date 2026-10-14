@@ -3,7 +3,7 @@ name: Release node-clingo
 # PRs run the build matrix; pushes to main that bump the umbrella version
 # also publish the natives + umbrella and smoke-test the result.
 #
-# Publish steps are idempotent (`npm view` skips versions already on the
+# Publish steps are idempotent (`pnpm view` skips versions already on the
 # registry), so partial failures are recovered by re-running failed jobs.
 
 on:
@@ -157,10 +157,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ vars.NODE_VERSION }}
-          registry-url: 'https://registry.npmjs.org'
           cache: 'pnpm'
       - run: pnpm install --frozen-lockfile --ignore-scripts
-      - run: npm install -g npm@latest
 
       - uses: actions/download-artifact@v4
         with:
@@ -169,8 +167,6 @@ jobs:
           merge-multiple: false
 
       - name: Publish native sub-packages
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: node tools/node-clingo/scripts/publish-natives.js --dir native-packages
 
   publish-umbrella:
@@ -184,27 +180,20 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ vars.NODE_VERSION }}
-          registry-url: 'https://registry.npmjs.org'
           cache: 'pnpm'
-      - run: pnpm config set '//registry.npmjs.org/:_authToken' "${NODE_AUTH_TOKEN}"
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
       - run: pnpm install --frozen-lockfile --ignore-scripts
       - run: pnpm build
-      - run: npm install -g npm@latest
 
       - name: Publish umbrella
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           set -euo pipefail
           VERSION="${{ needs.resolve.outputs.version }}"
-          published=$(npm view "@cyberismo/node-clingo@${VERSION}" version 2>/dev/null || true)
+          published=$(pnpm view "@cyberismo/node-clingo@${VERSION}" version 2>/dev/null || true)
           if [ "$published" = "$VERSION" ]; then
             echo "@cyberismo/node-clingo@${VERSION} already published; skipping."
             exit 0
           fi
-          pnpm --filter @cyberismo/node-clingo publish --no-git-checks --access public
+          pnpm --filter @cyberismo/node-clingo publish --no-git-checks --access public --provenance
 
   smoke:
     needs: [resolve, publish-umbrella]
