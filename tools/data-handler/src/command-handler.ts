@@ -23,8 +23,6 @@ import type {
 
 import type { requestStatus } from './interfaces/request-status-interfaces.js';
 
-import { Create } from './commands/create.js';
-import { migrate as migrateProject } from './commands/migrate.js';
 import { Validate } from './commands/validate.js';
 import { Workspace, type WorkspaceOptions } from './workspace/workspace.js';
 import { Checkout } from './containers/project.js';
@@ -132,24 +130,10 @@ export class Commands {
     options: AllCommandOptions,
   ): Promise<requestStatus> {
     // Set project path and validate it.
-    const creatingNewProject = command === Cmd.create && args[0] === 'project';
-    // migrate must not depend on loading the project it is about to migrate;
-    // it only needs a resolved project path.
-    const projectNotRequired = creatingNewProject || command === Cmd.migrate;
-    if (!projectNotRequired) {
-      try {
-        await this.doSetProject(options);
-      } catch (error) {
-        return { statusCode: 400, message: errorFunction(error) };
-      }
-    } else if (creatingNewProject) {
-      this.projectPath = options.projectPath || '';
-    } else if (command === Cmd.migrate) {
-      try {
-        await this.resolveProjectPath(options);
-      } catch (error) {
-        return { statusCode: 400, message: errorFunction(error) };
-      }
+    try {
+      await this.doSetProject(options);
+    } catch (error) {
+      return { statusCode: 400, message: errorFunction(error) };
     }
     return await this.doHandleCommand(command, args, options);
   }
@@ -223,28 +207,8 @@ export class Commands {
           );
         }
       } else if (command === Cmd.create) {
-        const [type, ...rest] = args;
-        const target = this.commandType(type);
-        // If 'type' was used to deduce 'target', put the parameter back into the args.
-        if (target !== type) {
-          rest.unshift(type);
-        }
-        if (target === 'project') {
-          // 3rd parameter - path - is skipped it is used in general command handling
-          // eslint-disable-next-line @typescript-eslint/no-unused-vars
-          const [name, prefix, _, category, description] = rest;
-          await Create.createProject(
-            resolveTilde(this.projectPath),
-            prefix,
-            name,
-            category || '',
-            description || '',
-          );
-        } else {
-          throw new Error(`Unknown type to create: '${target}'`);
-        }
-      } else if (command === Cmd.migrate) {
-        return await this.migrate();
+        const [type] = args;
+        throw new Error(`Unknown type to create: '${this.commandType(type)}'`);
       } else if (command === Cmd.publish) {
         return this.publish(args);
       } else if (command === Cmd.version) {
@@ -405,16 +369,6 @@ export class Commands {
         statusCode: 200,
         payload: res,
       };
-    } catch (e) {
-      return { statusCode: 500, message: errorFunction(e) };
-    }
-  }
-
-  // Run migrations to bring project schema to the tool's current version
-  private async migrate(): Promise<requestStatus> {
-    try {
-      const message = await migrateProject(this.projectPath);
-      return { statusCode: 200, message };
     } catch (e) {
       return { statusCode: 500, message: errorFunction(e) };
     }

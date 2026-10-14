@@ -10,7 +10,7 @@ import {
 } from 'node:fs';
 import { join, resolve as pathResolve } from 'node:path';
 import { copyDir } from '../src/utils/file-utils.js';
-import { Cmd, Commands } from '../src/command-handler.js';
+import { createProject } from '../src/directory/create-project.js';
 import { GitManager } from '../src/utils/git-manager.js';
 import {
   makeFakeModuleFixture,
@@ -54,13 +54,10 @@ describe('module update — spec behaviours', () => {
     });
 
     const projectDir = join(moduleTestDir, 'proj-new-transitive');
-    const commandHandler = new Commands();
-    const create = await commandHandler.command(
-      Cmd.create,
-      ['project', 'new-transitive-proj', 'ntrp'],
-      { projectPath: projectDir },
-    );
-    expect(create.statusCode).toBe(200);
+    await createProject(projectDir, {
+      name: 'new-transitive-proj',
+      prefix: 'ntrp',
+    });
 
     const ws = await openTestWorkspace(projectDir, {});
     await ws.modules.install(hostRoot);
@@ -91,13 +88,7 @@ describe('module update — spec behaviours', () => {
     // existed) is converted the next time any module operation runs, even
     // though this module has nowhere to move.
     const projectDir = join(moduleTestDir, 'proj-backfill');
-    const handler = new Commands();
-    const create = await handler.command(
-      Cmd.create,
-      ['project', 'backfill-proj', 'bkf'],
-      { projectPath: projectDir },
-    );
-    expect(create.statusCode).toBe(200);
+    await createProject(projectDir, { name: 'backfill-proj', prefix: 'bkf' });
 
     const depRoot = join(moduleTestDir, 'fake-backfill-mod');
     makeFakeModuleFixture(depRoot, { cardKeyPrefix: 'bkfmod' });
@@ -181,15 +172,7 @@ describe('module update — spec behaviours', () => {
   async function seedReplayHost(name: string, prefix: string) {
     const moduleSource = join(moduleTestDir, 'valid', 'decision-records');
     const projectDir = join(moduleTestDir, name);
-    const handler = new Commands();
-    const create = await handler.command(
-      Cmd.create,
-      ['project', name, prefix],
-      {
-        projectPath: projectDir,
-      },
-    );
-    expect(create.statusCode).toBe(200);
+    await createProject(projectDir, { name: name, prefix: prefix });
 
     const ws = await openTestWorkspace(projectDir, {});
     await ws.modules.install(moduleSource);

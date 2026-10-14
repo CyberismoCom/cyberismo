@@ -17,11 +17,13 @@ import { Argument, type Command } from 'commander';
 
 import {
   Cmd,
+  createProject,
   type CommandOptions,
   validBumps,
   type Workspace,
 } from '@cyberismo/data-handler';
 import { errorFunction } from '@cyberismo/data-handler/utils/error-utils';
+import { resolveTilde } from '@cyberismo/data-handler/utils/file-utils';
 import type { DataType } from '@cyberismo/model';
 
 import {
@@ -31,7 +33,7 @@ import {
   nameGuideline,
 } from '../lib/args.js';
 import { commandHandler, program } from '../lib/dispatch.js';
-import { errorMessage, onProject } from '../lib/errors.js';
+import { errorMessage, fail, onProject } from '../lib/errors.js';
 import { openWorkspace } from '../lib/open.js';
 import { handleResponse, printResult } from '../lib/output.js';
 import { checkbox } from '../lib/prompts.js';
@@ -73,6 +75,31 @@ function resourceTarget(type: string | undefined): string | undefined {
   } catch {
     // Not a name; the dispatcher reports it.
     return undefined;
+  }
+}
+
+// Whether a resource name names projects ('<prefix>/projects/<name>').
+function namesProjects(type: string): boolean {
+  try {
+    return commandType(type) === 'project';
+  } catch {
+    return false;
+  }
+}
+
+// Creates a project at 'path' from [name, prefix, category, description];
+// a failure exits.
+async function createProjectAt(path: string, args: (string | undefined)[]) {
+  const [name, prefix, category, description] = args;
+  try {
+    await createProject(resolveTilde(path), {
+      name: name!,
+      prefix: prefix!,
+      category: category || '',
+      description: description || '',
+    });
+  } catch (error) {
+    fail(errorFunction(error));
   }
 }
 
@@ -311,14 +338,15 @@ export function registerCreate(program: Command) {
         options.projectPath = path;
         const commandOptions = Object.assign({}, options, program.opts());
 
-        const result = await commandHandler.command(
-          Cmd.create,
-          ['project', name, prefix, path, category || '', description || ''],
-          commandOptions,
-        );
+        await createProjectAt(commandOptions.projectPath || '', [
+          name,
+          prefix,
+          category,
+          description,
+        ]);
 
         // Post-handling after creating a new project
-        if (!commandOptions.skipModuleImport && result.statusCode === 200) {
+        if (!commandOptions.skipModuleImport) {
           try {
             // add default hub
             const addHubError = await openWorkspace(commandOptions)
@@ -387,7 +415,7 @@ export function registerCreate(program: Command) {
           }
         }
 
-        handleResponse(result);
+        printResult();
       },
     );
 
@@ -487,7 +515,21 @@ export function registerCreate(program: Command) {
           );
           return;
         }
-        // Projects and unknown types.
+        if (args[0] === 'project') {
+          await createProjectAt(options.projectPath || '', args.slice(1));
+          printResult();
+          return;
+        }
+        if (namesProjects(args[0])) {
+          // At the open project's path, which already holds one.
+          const ws = await openWorkspace(
+            Object.assign({}, options, program.opts()),
+          ).catch((error: unknown) => fail(errorFunction(error)));
+          await createProjectAt(ws.checkout.basePath, args);
+          printResult();
+          return;
+        }
+        // Unknown types.
         const result = await commandHandler.command(
           Cmd.create,
           args,
