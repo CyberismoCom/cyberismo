@@ -122,7 +122,7 @@ describe('fieldOverride fact generation', () => {
   });
 
   // Mutates the fixture's calculation module further, so it runs last
-  // against a fresh CommandManager to avoid polluting the tests above.
+  // against a fresh checkout to avoid polluting the tests above.
   it('conflicting scalar values raise a notification', async () => {
     const calcPath = calculationPath(projectPath);
     writeFileSync(
@@ -368,7 +368,7 @@ describe('stored value on a calculated non-overridable field is dormant', () => 
 // Regression (INTDEV-1363): a card type may declare a custom field whose
 // fieldTypes resource is gone - deleted, renamed or misspelled. Resolving it
 // throws, and an unguarded lookup let a single such declaration abort fact
-// generation for the whole project, so CommandManager.initialize() failed with
+// generation for the whole project, so loading the project failed with
 // a bare "Must define resource name to query its details" and 'validate' never
 // got to report the dangling reference.
 describe('a declared field whose field type resource is missing', () => {

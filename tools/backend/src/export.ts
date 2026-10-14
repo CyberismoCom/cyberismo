@@ -50,7 +50,7 @@ export function reset() {
 /**
  * Get the card query result for a given card key. Should only be called during
  * static site generation
- * @param ws - CommandManager instance for the project.
+ * @param ws - Handle of the project.
  * @param cardKey - Key of the card to get the query result for.
  * @returns The card query result for the given card key.
  */
