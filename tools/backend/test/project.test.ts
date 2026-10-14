@@ -127,6 +127,27 @@ describe('Project endpoints', () => {
     expect(result.cardKeyPrefix).toBe('projtest');
   });
 
+  test('a renamed project is served under its new prefix only', async () => {
+    const response = await app.request('/api/projects/test/project', {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ cardKeyPrefix: 'projtest' }),
+    });
+    expect(response.status).toBe(200);
+
+    expect((await app.request('/api/projects/projtest/project')).status).toBe(
+      200,
+    );
+    const old = await app.request('/api/projects/test/project');
+    expect(old.status).toBe(404);
+    expect(await old.json()).toEqual({
+      error: "Project 'test' not found",
+      code: 'not-found',
+      message: "Project 'test' not found",
+      details: { prefix: 'test' },
+    });
+  });
+
   test('PATCH /api/projects/:projectPrefix/project updates description and category', async () => {
     const response = await app.request('/api/projects/test/project', {
       method: 'PATCH',

@@ -8,6 +8,7 @@ import {
   type Workspace,
 } from '@cyberismo/data-handler';
 import { attachProjectDirectory } from '../../src/middleware/commandManager.js';
+import { errorResponse } from '../../src/common/errors.js';
 import { EventsByProject } from '../../src/domain/events/events-by-project.js';
 import { UserRole } from '../../src/types.js';
 import type { UserInfo } from '../../src/types.js';
@@ -70,6 +71,10 @@ function createApp(
   // Fixed prefix route (no :prefix param)
   app.use('/static/*', attachProjectDirectory(directory, events, fixedPrefix));
   app.get('/static/test', (c) => c.json({ ok: true }));
+  app.onError((error, c) => {
+    const { status, body } = errorResponse(error);
+    return c.json(body, status);
+  });
   return app;
 }
 
@@ -134,8 +139,12 @@ describe('attachProjectDirectory', () => {
 
     const res = await app.request('/projects/unknown/test');
     expect(res.status).toBe(404);
-    const body = (await res.json()) as { error: string };
-    expect(body.error).toBe("Project 'unknown' not found");
+    expect(await res.json()).toEqual({
+      error: "Project 'unknown' not found",
+      code: 'not-found',
+      message: "Project 'unknown' not found",
+      details: { prefix: 'unknown' },
+    });
   });
 
   it('returns 400 when prefix is missing and no fixedPrefix', async () => {
