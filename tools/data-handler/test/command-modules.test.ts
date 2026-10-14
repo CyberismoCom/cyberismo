@@ -1,6 +1,7 @@
 import { expect, it, describe, beforeEach, afterEach, vi } from 'vitest';
 
 import {
+  chmodSync,
   existsSync,
   mkdirSync,
   readFileSync,
@@ -19,9 +20,13 @@ import { mockEnsureModuleListUpToDate } from './helpers/test-utils.js';
 import { readJsonFileSync } from '../src/utils/json.js';
 import { SCHEMA_VERSION } from '@cyberismo/migrations';
 import { toVersionRange } from '../src/modules/types.js';
-import { ModuleValidationFailedError } from '../src/mutations/replay/replay.js';
+import {
+  ModuleReplayFailedError,
+  ModuleValidationFailedError,
+} from '../src/mutations/replay/replay.js';
 import { logLine, writeSeals } from './helpers/replay-fixtures.js';
 import { openTestWorkspace } from './helpers/open-test-workspace.js';
+import type { Workspace } from '../src/workspace/workspace.js';
 
 // Create test artifacts in a temp folder.
 const baseDir = import.meta.dirname;
@@ -828,10 +833,35 @@ describe('module update — spec behaviours', () => {
           to: 'decision/workflows/resolution',
         },
       }),
+      // Entries the replay cannot act on are reported, not applied.
+      JSON.stringify({
+        timestamp: '2026-01-01T00:00:00.000Z',
+        operation: 'project_rename',
+        target: 'newprefix',
+      }),
+      JSON.stringify({
+        timestamp: '2026-01-01T00:00:00.000Z',
+        operation: 'resource_frobnicate',
+        target: 'decision/workflows/resolution',
+      }),
     ]);
 
     // plan -> applyModules -> replay -> final validation; must not throw.
-    await ws.modules.update({ module: 'decision', version: '2.0.0' });
+    expect(
+      await ws.modules.update({ module: 'decision', version: '2.0.0' }),
+    ).toEqual({
+      replayed: [
+        {
+          modulePrefix: 'decision',
+          fromVersion: '1.0.0',
+          toVersion: '2.0.0',
+          seals: 1,
+          retired: ['project_rename'],
+          unknown: ['resource_frobnicate'],
+        },
+      ],
+      skippedReplays: [],
+    });
 
     // Module files landed: new version, renamed workflow file.
     const afterConfig = JSON.parse(readFileSync(installedConfigPath, 'utf-8'));
@@ -854,6 +884,35 @@ describe('module update — spec behaviours', () => {
       ),
     );
     expect(consumer.workflow).toBe('decision/workflows/resolution');
+  }, 30000);
+
+  it('update reports the replays of a module that failed to apply as skipped', async () => {
+    const { moduleSource, projectDir, ws, installedConfigPath } =
+      await seedReplayHost('replay-skipped-proj', 'rskp');
+    sealSourceRelease(moduleSource, []);
+
+    // The installed module cannot be swapped out of a read-only folder.
+    const modulesFolder = join(projectDir, '.cards', 'modules');
+    chmodSync(modulesFolder, 0o555);
+    try {
+      expect(
+        await ws.modules.update({ module: 'decision', version: '2.0.0' }),
+      ).toEqual({
+        replayed: [],
+        skippedReplays: [
+          {
+            modulePrefix: 'decision',
+            fromVersion: '1.0.0',
+            toVersion: '2.0.0',
+          },
+        ],
+      });
+    } finally {
+      chmodSync(modulesFolder, 0o755);
+    }
+    expect(JSON.parse(readFileSync(installedConfigPath, 'utf-8')).version).toBe(
+      '1.0.0',
+    );
   }, 30000);
 
   it('update replays a sealed workflow delete: dependent local card types and their cards are removed', async () => {
@@ -912,6 +971,27 @@ describe('module update — spec behaviours', () => {
     ).toBe(false);
   }, 30000);
 
+  it('update surfaces ModuleReplayFailedError with what ran before it', async () => {
+    const { moduleSource, ws } = await seedReplayHost(
+      'replay-failed-proj',
+      'rfai',
+    );
+    // A rename without its target name passes planning but fails to convert.
+    sealSourceRelease(moduleSource, [
+      logLine('resource_rename', 'decision/workflows/decision', {
+        type: 'workflows',
+        operation: { name: 'change', target: 'decision/workflows/decision' },
+      }),
+    ]);
+
+    const error = await ws.modules
+      .update({ module: 'decision', version: '2.0.0' })
+      .catch((e) => e);
+
+    expect(error).toBeInstanceOf(ModuleReplayFailedError);
+    expect(error.result).toEqual({ replayed: [], skippedReplays: [] });
+  }, 30000);
+
   it('update surfaces ModuleValidationFailedError when the update leaves a dangling workflow reference', async () => {
     const { moduleSource, projectDir, ws, installedConfigPath } =
       await seedReplayHost('replay-invalid-proj', 'rinv');
@@ -940,6 +1020,19 @@ describe('module update — spec behaviours', () => {
     expect(error.steps).toEqual([
       { modulePrefix: 'decision', fromVersion: '1.0.0', toVersion: '2.0.0' },
     ]);
+    expect(error.result).toEqual({
+      replayed: [
+        {
+          modulePrefix: 'decision',
+          fromVersion: '1.0.0',
+          toVersion: '2.0.0',
+          seals: 1,
+          retired: [],
+          unknown: [],
+        },
+      ],
+      skippedReplays: [],
+    });
     expect(error.message).toContain('decision/workflows/decision');
 
     // Best-effort semantics: the module files DID update before validation
@@ -1033,4 +1126,155 @@ describe('module schema version enforcement on import', () => {
     );
     ws.checkout.dispose();
   });
+});
+
+describe('printing module results', () => {
+  const projectPath = join(baseDir, 'test-data', 'valid', 'minimal');
+  const replayed = {
+    modulePrefix: 'm',
+    fromVersion: '1.0.0',
+    toVersion: '2.0.0',
+    seals: 2,
+    retired: ['a', 'a'],
+    unknown: ['b'],
+  };
+  const skipped = {
+    modulePrefix: 's',
+    fromVersion: '1.0.0',
+    toVersion: '1.1.0',
+  };
+
+  // A dispatcher over a handle whose module operations return `result`.
+  function dispatcher(result: object) {
+    const modules = {
+      install: vi.fn().mockResolvedValue(result),
+      update: vi.fn().mockResolvedValue(result),
+    };
+    const ws = {
+      modules,
+      clean: { dormantSummary: vi.fn().mockResolvedValue(undefined) },
+    } as unknown as Workspace;
+    return { handler: new Commands(async () => ws), modules };
+  }
+
+  function streams() {
+    const spy = (name: 'log' | 'warn' | 'error') =>
+      vi.spyOn(console, name).mockImplementation(() => {});
+    return { log: spy('log'), warn: spy('warn'), error: spy('error') };
+  }
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it.each([
+    [Cmd.import, ['module', 'x'], true],
+    [Cmd.updateModules, ['m'], false],
+  ])(
+    '%s prints skipped and replayed migrations',
+    async (cmd, args, install) => {
+      const { handler } = dispatcher({
+        replayed: [replayed],
+        skippedReplays: [skipped],
+        ...(install ? { newValidationErrors: true } : {}),
+      });
+      const { log, warn, error } = streams();
+
+      const status = await handler.command(cmd, args, { projectPath });
+
+      expect(status.statusCode).toBe(200);
+      expect(warn.mock.calls).toEqual([
+        [
+          "Skipping migration replay for module 's' (1.0.0 -> 1.1.0): the module failed to apply.",
+        ],
+      ]);
+      expect(log.mock.calls).toEqual([
+        [
+          "Replayed migrations for module 'm': 1.0.0 -> 2.0.0 (2 seal(s)); " +
+            'ignored 2 entries for retired operations (a); skipped 1 entry ' +
+            'this version does not recognise (b) — upgrade cyberismo to apply it',
+        ],
+      ]);
+      expect(error.mock.calls).toEqual(
+        install
+          ? [
+              [
+                'There are new validations errors after importing the module. Check the project',
+              ],
+            ]
+          : [],
+      );
+    },
+  );
+
+  it.each([
+    [Cmd.import, ['module', 'x']],
+    [Cmd.updateModules, ['m']],
+  ])(
+    '%s prints what ran before a module error, then fails',
+    async (cmd, args) => {
+      const result = { replayed: [replayed], skippedReplays: [skipped] };
+      const { handler, modules } = dispatcher({});
+      const failure = new ModuleValidationFailedError('invalid', [], result);
+      modules.install.mockRejectedValue(failure);
+      modules.update.mockRejectedValue(failure);
+      const { log, warn } = streams();
+
+      const status = await handler.command(cmd, args, { projectPath });
+
+      expect(status.statusCode).toBe(400);
+      expect(status.message).toContain('failed validation afterwards');
+      expect(warn.mock.calls).toEqual([
+        [
+          "Skipping migration replay for module 's' (1.0.0 -> 1.1.0): the module failed to apply.",
+        ],
+      ]);
+      expect(log.mock.calls).toHaveLength(1);
+      expect(log.mock.calls[0][0]).toMatch(
+        /^Replayed migrations for module 'm'/,
+      );
+    },
+  );
+
+  it('prints the skipped replays of an update whose replay failed', async () => {
+    const { handler, modules } = dispatcher({});
+    const failure = new ModuleReplayFailedError('m', 'seal', 1, 'boom');
+    failure.result = { replayed: [], skippedReplays: [skipped] };
+    modules.update.mockRejectedValue(failure);
+    const { log, warn } = streams();
+
+    const status = await handler.command(Cmd.updateModules, ['m'], {
+      projectPath,
+    });
+
+    expect(status.statusCode).toBe(400);
+    expect(warn.mock.calls).toHaveLength(1);
+    expect(log.mock.calls).toEqual([]);
+  });
+
+  it.each([
+    [[], undefined],
+    [[''], undefined],
+    [['true'], true],
+    [['false'], false],
+  ])(
+    'import module %j passes the private flag %s',
+    async (useCredentials, expected) => {
+      const { handler, modules } = dispatcher({
+        replayed: [],
+        skippedReplays: [],
+        newValidationErrors: false,
+      });
+
+      await handler.command(Cmd.import, ['module', 'x', ...useCredentials], {
+        projectPath,
+      });
+
+      expect(modules.install).toHaveBeenCalledWith('x', {
+        private: expected,
+        credentials: undefined,
+        version: undefined,
+      });
+    },
+  );
 });

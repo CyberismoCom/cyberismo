@@ -258,6 +258,37 @@ export interface ModuleSettingOptions {
   version?: string;
 }
 
+// A module whose migration replays ran during an install or update.
+export interface ReplayedModule {
+  modulePrefix: string;
+  fromVersion: string;
+  toVersion: string;
+  seals: number;
+  // Log entries of retired operations, by operation name; ignored.
+  retired: string[];
+  // Log entries this version does not recognise, by operation name; skipped.
+  unknown: string[];
+}
+
+// A module whose migration replays did not run: it failed to apply.
+export interface SkippedReplay {
+  modulePrefix: string;
+  fromVersion: string;
+  toVersion: string;
+}
+
+// What a module update did besides installing the modules.
+export interface ModuleUpdateResult {
+  replayed: ReplayedModule[];
+  skippedReplays: SkippedReplay[];
+}
+
+// What a module install did besides installing the modules.
+export interface ModuleInstallResult extends ModuleUpdateResult {
+  // The project has more validation errors than before the install.
+  newValidationErrors: boolean;
+}
+
 // What a module update asks for: every declared root, one root, one root at
 // an exact version (within its declared range), or one root re-declared with
 // a new range.
