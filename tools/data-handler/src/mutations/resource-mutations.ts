@@ -12,11 +12,11 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import type { Checkout } from '../containers/project.js';
+import type { Checkout } from '../infra/checkout.js';
 import { dispatch } from './dispatcher.js';
 import type { MutationContext, MutationOrigin } from './handler.js';
 import { ConfigurationLogger } from '../utils/configuration-logger.js';
-import { runWithDefaultCommitMessage } from '../utils/commit-context.js';
+import { runWithDefaultCommitMessage } from '../infra/commit-context.js';
 import { resourceName, resourceNameToString } from '../utils/resource-utils.js';
 import type { ChangeOperation, MutationInput } from '@cyberismo/model';
 

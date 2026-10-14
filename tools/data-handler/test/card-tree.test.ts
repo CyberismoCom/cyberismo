@@ -28,9 +28,9 @@ import { readFile } from 'node:fs/promises';
 import { join, sep } from 'node:path';
 
 import { copyDir } from '../src/utils/file-utils.js';
-import { CardKeyRegistry } from '../src/containers/project/card-keys.js';
-import { CardTree } from '../src/containers/project/card-tree.js';
-import type { NewCard } from '../src/containers/project/card-tree.js';
+import { CardKeyRegistry } from '../src/infra/card-keys.js';
+import { CardTree } from '../src/infra/card-tree.js';
+import type { NewCard } from '../src/infra/card-tree.js';
 import type { Card, CardMetadata } from '@cyberismo/model';
 import { type Workspace } from '../src/workspace/workspace.js';
 import { ROOT } from '../src/utils/constants.js';

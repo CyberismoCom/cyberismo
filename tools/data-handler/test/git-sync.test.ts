@@ -1,8 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import { sleep } from '../src/utils/common-utils.js';
-import { GitSync } from '../src/utils/git-sync.js';
-import type { GitManager } from '../src/utils/git-manager.js';
+import { GitSync } from '../src/infra/git-sync.js';
+import type { GitManager } from '../src/infra/git-manager.js';
 
 type FakeManager = GitManager & {
   push: ReturnType<typeof vi.fn>;

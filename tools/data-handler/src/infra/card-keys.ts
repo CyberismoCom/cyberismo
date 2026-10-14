@@ -11,8 +11,8 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { DuplicateCardKeyError } from '../../exceptions/index.js';
-import { generateRandomString } from '../../utils/random.js';
+import { DuplicateCardKeyError } from '../exceptions/index.js';
+import { generateRandomString } from '../utils/random.js';
 
 import type { CardTree } from './card-tree.js';
 

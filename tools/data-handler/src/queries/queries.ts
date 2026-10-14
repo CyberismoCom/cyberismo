@@ -22,13 +22,13 @@ import type {
   ReportParameters,
   ResourceName,
 } from '@cyberismo/model';
-import type { Checkout } from '../containers/project.js';
+import type { Checkout } from '../infra/checkout.js';
 import { DHValidationError } from '../exceptions/index.js';
 import ReportMacro from '../macros/report/index.js';
 import TaskQueue from '../macros/task-queue.js';
 import { evaluateMacros } from '../macros/index.js';
 import { registerClingoHelpers } from '../utils/handlebars-helpers.js';
-import { read } from '../utils/rw-lock.js';
+import { read } from '../infra/rw-lock.js';
 
 const workflowGraphHandlebars = Handlebars.create();
 registerClingoHelpers(workflowGraphHandlebars);

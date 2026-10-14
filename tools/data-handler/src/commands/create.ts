@@ -16,7 +16,7 @@ import { basename, join } from 'node:path';
 import { mkdir, mkdtemp, rename, rm } from 'node:fs/promises';
 
 import { scanForProjects } from '../project-scanner.js';
-import { createGit, gitTimeout } from '../utils/git-config.js';
+import { createGit, gitTimeout } from '../infra/git-config.js';
 import { pathExists } from '../utils/file-utils.js';
 import { getChildLogger } from '../utils/log-utils.js';
 

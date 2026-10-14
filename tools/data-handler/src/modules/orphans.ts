@@ -16,7 +16,7 @@ import { deleteDir } from '../utils/file-utils.js';
 import { getChildLogger } from '../utils/log-utils.js';
 import { declaredModules, installedModules } from './inventory.js';
 
-import type { Checkout } from '../containers/project.js';
+import type { Checkout } from '../infra/checkout.js';
 import type { ModuleInstallation } from './types.js';
 
 /**

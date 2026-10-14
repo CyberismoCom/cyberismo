@@ -24,7 +24,7 @@ import {
 } from '../../infra/replay-log/seal-files.js';
 import { installedModulesWithSources, declaredModules } from '../inventory.js';
 import { buildRemoteUrl } from '../remote-url.js';
-import { versionToTag } from '../version.js';
+import { versionToTag } from '../../utils/version.js';
 import {
   DEFAULT_VERSION_RANGE,
   toVersion,
@@ -32,8 +32,11 @@ import {
   type Version,
   type VersionRange,
 } from '../types.js';
-import { createSourceLayer, type SourceLayer } from '../source.js';
-import type { Checkout } from '../../containers/project.js';
+import {
+  createSourceLayer,
+  type SourceLayer,
+} from '../../infra/module-source/source.js';
+import type { Checkout } from '../../infra/checkout.js';
 import type { Credentials, ModuleSetting, Source } from '@cyberismo/model';
 import type {
   Change,

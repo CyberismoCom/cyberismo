@@ -10,7 +10,7 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import type { CalculationEngine } from '../containers/project/calculation-engine.js';
+import type { CalculationEngine } from '../infra/calculation-engine.js';
 import type { DeniedOperationCollection } from '@cyberismo/model';
 import { PermissionDeniedError } from '../exceptions/index.js';
 

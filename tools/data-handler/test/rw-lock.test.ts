@@ -1,7 +1,7 @@
 import { expect, describe, it } from 'vitest';
 
-import { RWLock, read, write } from '../src/utils/rw-lock.js';
-import { runWithCommitContext } from '../src/utils/commit-context.js';
+import { RWLock, read, write } from '../src/infra/rw-lock.js';
+import { runWithCommitContext } from '../src/infra/commit-context.js';
 import { MissingActorError } from '../src/exceptions/index.js';
 import type { TxRecord } from '../src/utils/tx-record.js';
 import { deferred } from './test-utils.js';

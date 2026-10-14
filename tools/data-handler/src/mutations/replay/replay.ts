@@ -17,7 +17,7 @@ import { join } from 'node:path';
 
 import semver from 'semver';
 
-import { ProjectPaths } from '../../containers/project/project-paths.js';
+import { ProjectPaths } from '../../infra/project-paths.js';
 import { DomainError } from '../../exceptions/index.js';
 import { ResourceMutations } from '../resource-mutations.js';
 import { checkLinearity, computeChain } from '../../infra/replay-log/chain.js';
@@ -33,7 +33,7 @@ import {
 import type { ConfigurationLogEntry } from '../../utils/configuration-logger.js';
 import type { ModuleInstallation } from '../../modules/types.js';
 import type { ModuleUpdateResult, MutationInput } from '@cyberismo/model';
-import type { Checkout } from '../../containers/project.js';
+import type { Checkout } from '../../infra/checkout.js';
 import type { ResolvedModule } from '../../modules/resolve/types.js';
 import type { SealFile } from '../../infra/replay-log/seal-files.js';
 
