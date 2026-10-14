@@ -56,16 +56,35 @@ export async function requireDeclared(
   throw new ModuleRequestError(`Module '${module}' is not part of the project`);
 }
 
+/** A version the project accepts for `module`, still to be found at its source. */
+interface PendingVersion {
+  module: string;
+  declaration: ModuleDeclaration;
+  version: string;
+}
+
+/** A target checked against the project; {@link resolveUpdate} takes it to the network. */
+export interface CheckedTarget {
+  target: UpdateTarget;
+  request: UpdateRequest | PendingVersion;
+}
+
 /**
  * The solver request `target` stands for; both a dry run and an update build
  * it here. Refuses a target the project cannot take before anything is solved.
+ * Reads the project only: a pinned version is looked up at its source later.
  */
+export async function checkUpdate(
+  checkout: Checkout,
+  target: UpdateTarget,
+): Promise<CheckedTarget> {
+  return { target, request: await buildUpdateRequest(checkout, target) };
+}
+
 async function buildUpdateRequest(
   checkout: Checkout,
-  source: SourceLayer,
   target: UpdateTarget,
-  credentials?: Credentials,
-): Promise<UpdateRequest> {
+): Promise<UpdateRequest | PendingVersion> {
   const { module } = target;
   if (module === undefined) {
     if (declaredModules(checkout).length === 0) {
@@ -102,6 +121,14 @@ async function buildUpdateRequest(
       { range: declared, source: 'project' },
     ]);
   }
+  return { module, declaration, version };
+}
+
+async function confirmVersion(
+  source: SourceLayer,
+  { module, declaration, version }: PendingVersion,
+  credentials?: Credentials,
+): Promise<UpdateRequest> {
   const remote = await source
     .listRemoteVersions(
       declaration.source.location,
@@ -128,18 +155,16 @@ export interface Resolution extends SolveOutcome {
   target: UpdateTarget;
 }
 
-/** Builds the request `target` stands for and solves it. The caller owns `source`. */
+/** Solves a checked target. The caller owns `source`. */
 export async function resolveUpdate(
   checkout: Checkout,
-  target: UpdateTarget,
+  { target, request }: CheckedTarget,
   opts: { source: SourceLayer; credentials?: Credentials },
 ): Promise<Resolution> {
-  const req = await buildUpdateRequest(
-    checkout,
-    opts.source,
-    target,
-    opts.credentials,
-  );
+  const req =
+    'kind' in request
+      ? request
+      : await confirmVersion(opts.source, request, opts.credentials);
   const outcome = await solve(checkout, req, opts.source, opts.credentials);
   return { ...outcome, target };
 }
