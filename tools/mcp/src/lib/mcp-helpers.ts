@@ -14,6 +14,7 @@
 */
 
 import type { ResourceType } from '@cyberismo/data-handler';
+import { MAX_ATTACHMENT_BYTES } from '@cyberismo/data-handler/utils/constants';
 
 /**
  * Create a successful MCP tool result with JSON content.
@@ -27,6 +28,32 @@ export function toolResult(data: Record<string, unknown>) {
       },
     ],
   };
+}
+
+/**
+ * Decodes base64-encoded attachment content.
+ * Buffer.from() silently skips invalid characters, so the format is checked first.
+ * @param content Base64-encoded content.
+ * @returns decoded content
+ * @throws if content is not valid base64, or is larger than MAX_ATTACHMENT_BYTES when decoded
+ */
+export function decodeAttachment(content: string): Buffer {
+  const tooLarge = () =>
+    new Error(
+      `Attachment is too large, maximum is ${MAX_ATTACHMENT_BYTES} bytes`,
+    );
+  // Cheap check before decoding; the exact size is checked after decoding.
+  if (content.length > Math.ceil(MAX_ATTACHMENT_BYTES / 3) * 4) {
+    throw tooLarge();
+  }
+  if (content.length % 4 !== 0 || !/^[A-Za-z0-9+/]*={0,2}$/.test(content)) {
+    throw new Error('Attachment content is not valid base64');
+  }
+  const buffer = Buffer.from(content, 'base64');
+  if (buffer.length > MAX_ATTACHMENT_BYTES) {
+    throw tooLarge();
+  }
+  return buffer;
 }
 
 /**

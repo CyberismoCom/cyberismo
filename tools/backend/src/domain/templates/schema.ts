@@ -19,7 +19,7 @@ export const createTemplateSchema = z.object({
 });
 
 export const addTemplateCardSchema = z.object({
-  template: z.string(),
+  template: z.string().min(1, 'template is required'),
   cardType: z.string().min(1, 'cardType is required'),
   parentKey: z.string().optional(),
   count: z.number().int().positive().optional(),

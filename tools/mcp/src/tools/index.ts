@@ -16,7 +16,7 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { resourceName } from '@cyberismo/data-handler';
 import { z } from 'zod';
-import { toolResult, toolError } from '../lib/mcp-helpers.js';
+import { decodeAttachment, toolResult, toolError } from '../lib/mcp-helpers.js';
 import { renderCard, getCardTree } from '../lib/render.js';
 import {
   resolveCommands,
@@ -264,13 +264,15 @@ export function registerTools(
         projectPrefix: projectPrefixParam,
         cardKey: z.string().describe('Card key'),
         filename: z.string().describe('Attachment filename'),
-        content: z.string().describe('Base64-encoded file content (max 10MB)'),
+        content: z
+          .string()
+          .describe('Base64-encoded file content (max 50 MB decoded)'),
       },
     },
     async ({ projectPrefix, cardKey, filename, content }) => {
       try {
         const commands = resolveCommands(provider, projectPrefix);
-        const buffer = Buffer.from(content, 'base64');
+        const buffer = decodeAttachment(content);
         await commands.createCmd.createAttachment(cardKey, filename, buffer);
         return toolResult({ cardKey, filename });
       } catch (error) {

@@ -13,9 +13,8 @@
 
 import type { DataType } from '../interfaces/resource-interfaces.js';
 import { isBigInt } from '../utils/common-utils.js';
+import { SHORT_TEXT_MAX_LENGTH } from './constants.js';
 import * as EmailValidator from 'email-validator';
-
-const SHORT_TEXT_MAX_LENGTH = 80;
 
 /**
  * Checks if conversion 'from' 'to' can be done.

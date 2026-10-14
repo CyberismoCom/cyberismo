@@ -14,6 +14,7 @@
 import { Hono } from 'hono';
 import * as fieldTypeService from './service.js';
 import { createFieldTypeSchema } from './schema.js';
+import { errorStatus } from '../../common/errors.js';
 import { zValidator } from '../../middleware/zvalidator.js';
 import { UserRole } from '../../types.js';
 import { requireRole } from '../../middleware/auth.js';
@@ -95,7 +96,7 @@ router.post(
         {
           error: `${error instanceof Error ? error.message : 'Unknown error'}`,
         },
-        500,
+        errorStatus(error),
       );
     }
   },

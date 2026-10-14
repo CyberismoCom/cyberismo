@@ -23,7 +23,7 @@ import {
 } from '../interfaces/folder-content-interfaces.js';
 import { formatJson } from '../utils/json.js';
 import { VALID_FOLDER_RESOURCE_FILES } from '../utils/constants.js';
-import { writeFileSafe } from '../utils/file-utils.js';
+import { isPathWithin, writeFileSafe } from '../utils/file-utils.js';
 import { ResourceObject } from './resource-object.js';
 import { resourceName } from '../utils/resource-utils.js';
 
@@ -81,6 +81,21 @@ export abstract class FolderResource<
     );
   }
 
+  // Checks that 'name' is a single folder name directly inside the resource folder.
+  private isDirectChild(name: string): boolean {
+    return basename(name) === name && isPathWithin(this.resourceFolder, name);
+  }
+
+  // Prevents file system operations outside the resource's own folder,
+  // for example with identifier '..' that would point to the parent folder.
+  private assertInternalFolder() {
+    if (!this.isDirectChild(this.resourceName.identifier)) {
+      throw new Error(
+        `Resource identifier '${this.resourceName.identifier}' is not a valid folder name`,
+      );
+    }
+  }
+
   /**
    * Set content files. Should not be called by others than resource cache.
    */
@@ -120,6 +135,7 @@ export abstract class FolderResource<
    * @param changedContent The new content for the file.
    */
   public async updateFile(fileName: string, changedContent: string) {
+    this.assertInternalFolder();
     const filePath = join(this.internalFolder, fileName);
 
     // Do not allow updating file in other directories
@@ -175,6 +191,12 @@ export abstract class FolderResource<
     // Check if "name" has changed. Changing "name" means renaming the file.
     const nameInContent = resourceName(this.content.name).identifier;
     if (folderName !== nameInContent) {
+      this.assertInternalFolder();
+      if (!this.isDirectChild(nameInContent)) {
+        throw new Error(
+          `Resource identifier '${nameInContent}' is not a valid folder name`,
+        );
+      }
       const newFolderName = join(this.resourceFolder, nameInContent);
       await rename(this.internalFolder, newFolderName);
       this.internalFolder = newFolderName;
@@ -197,6 +219,7 @@ export abstract class FolderResource<
    * Deletes file and content folder from disk and clears out the memory resident object.
    */
   public async delete() {
+    this.assertInternalFolder();
     await super.delete();
     await rm(this.internalFolder, { recursive: true, force: true });
   }

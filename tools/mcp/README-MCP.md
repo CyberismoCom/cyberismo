@@ -136,7 +136,7 @@ The MCP server exposes the following tools:
 
 | Tool                | Description                                 |
 | ------------------- | ------------------------------------------- |
-| `create_attachment` | Add an attachment to a card (max 10MB)      |
+| `create_attachment` | Add an attachment to a card (max 50 MB)     |
 | `list_templates`    | List available templates for creating cards |
 
 ---

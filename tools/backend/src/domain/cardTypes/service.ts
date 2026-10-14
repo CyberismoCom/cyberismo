@@ -11,7 +11,11 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { resourceName, type CommandManager } from '@cyberismo/data-handler';
+import {
+  resourceName,
+  ResourceNotFoundError,
+  type CommandManager,
+} from '@cyberismo/data-handler';
 import type { VisibilityGroup, FieldVisibilityBody } from './schema.js';
 
 export async function getCardTypes(commands: CommandManager) {
@@ -62,7 +66,7 @@ export async function updateFieldVisibility(
       'cardTypes',
     );
     if (!cardType) {
-      throw new Error(`Card type '${cardTypeName}' not found`);
+      throw new ResourceNotFoundError(`Card type '${cardTypeName}' not found`);
     }
 
     const customFields = cardType.customFields || [];
@@ -74,7 +78,7 @@ export async function updateFieldVisibility(
       (f: { name: string }) => f.name === fieldName,
     );
     if (!fieldExists) {
-      throw new Error(
+      throw new ResourceNotFoundError(
         `Field '${fieldName}' does not exist in card type '${cardTypeName}'. `,
       );
     }

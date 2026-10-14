@@ -11,6 +11,7 @@ import {
   resourceFilePath,
 } from '../../src/utils/resource-utils.js';
 import { getTestProject } from '../helpers/test-utils.js';
+import { InvalidResourceNameError } from '../../src/exceptions/index.js';
 
 describe('resource utils', () => {
   describe('resourceName', () => {
@@ -42,6 +43,26 @@ describe('resource utils', () => {
         expect(() => resourceName(invalidName)).toThrow();
       },
     );
+    it('accepts a valid full name in strict mode', () => {
+      expect(resourceName('decision/templates/my-template_1', true)).toEqual({
+        prefix: 'decision',
+        type: 'templates',
+        identifier: 'my-template_1',
+      });
+    });
+    it.each([
+      'decision/templates/a.b',
+      'decision/templates/..',
+      'decision/templates/.hidden',
+      '../templates/decision',
+      'DECISION/templates/decision',
+      'de/templates/decision',
+      'decision/templates/con',
+    ])('throws InvalidResourceNameError in strict mode - %s', (invalidName) => {
+      expect(() => resourceName(invalidName, true)).toThrow(
+        InvalidResourceNameError,
+      );
+    });
   });
   describe('resourceNameToString', () => {
     it('returns the resource name when provided a valid ResourceName', () => {

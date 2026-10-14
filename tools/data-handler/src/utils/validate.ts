@@ -21,6 +21,34 @@ const addFormats =
 
 let validator: Ajv | null = null;
 
+// Characters that are invalid in file names, and names reserved on Windows (also with an extension)
+export const invalidNames =
+  /[<>:"/\\|?*\x00-\x1F]|^(?:aux|con|clock\$|nul|prn|com[1-9]|lpt[1-9])(?:\..*)?$/i; // eslint-disable-line no-control-regex
+
+/**
+ * Checks that 'prefix' can be used as a project prefix.
+ * @param prefix Prefix to check.
+ * @returns true if prefix is 3-10 lowercase letters, otherwise false
+ */
+export function isValidPrefix(prefix: string): boolean {
+  return /^[a-z]{3,10}$/.test(prefix);
+}
+
+/**
+ * Checks that 'identifier' can be used as a resource identifier.
+ * Identifiers become file and folder names, so the first character cannot be
+ * a dot; this rejects '.', '..' and hidden names.
+ * @param identifier Identifier to check.
+ * @returns true if identifier is valid, otherwise false
+ */
+export function isValidIdentifier(identifier: string): boolean {
+  return (
+    /^[A-Za-z0-9_-][A-Za-z0-9._-]*$/.test(identifier) &&
+    identifier.length < 256 &&
+    !invalidNames.test(identifier)
+  );
+}
+
 /**
  * The shared validator, with every asset schema registered under its own
  * `$id` so that cross-schema `$ref`s resolve.
