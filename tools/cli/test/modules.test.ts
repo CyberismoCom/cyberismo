@@ -22,7 +22,6 @@ import { join } from 'node:path';
 import { CommanderError } from 'commander';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { DEFAULT_HUB } from '@cyberismo/assets';
 import { ModuleRequestError } from '@cyberismo/data-handler';
 import { ModuleValidationFailedError } from '@cyberismo/data-handler/mutations/replay/replay';
 import type { UpdatePlan } from '@cyberismo/model';
@@ -40,6 +39,11 @@ const ws = vi.hoisted(() => ({
 vi.mock('../src/lib/open.js', async (importOriginal) => ({
   ...(await importOriginal<object>()),
   openWorkspace: async () => ws,
+}));
+const createProject = vi.hoisted(() => vi.fn());
+vi.mock('@cyberismo/data-handler', async (importOriginal) => ({
+  ...(await importOriginal<object>()),
+  createProject,
 }));
 const prompts = vi.hoisted(() => ({ select: vi.fn(), checkbox: vi.fn() }));
 vi.mock('../src/lib/prompts.js', async (importOriginal) => ({
@@ -424,13 +428,15 @@ describe('module results', () => {
 });
 
 describe('create project', () => {
-  it('adds the default hub, fetches it and installs the picked modules', async () => {
+  it('creates the project with the default hub, prints its warnings and installs the picked modules', async () => {
     const dir = mkdtempSync(join(tmpdir(), 'cyberismo-cli-'));
     try {
-      const fetch = stub(
-        'fetchHubs',
-        vi.fn(async () => [{ location: 'h', message: 'down' }]),
-      );
+      createProject.mockResolvedValue({
+        path: join(dir, 'p'),
+        prefix: 'proj',
+        failures: [],
+        warnings: ['Could not fetch hub data - h: down'],
+      });
       stub(
         'importable',
         vi.fn(async () => [
@@ -448,11 +454,18 @@ describe('create project', () => {
           return installed;
         }),
       );
-      ws.settings.hubs.add = vi.fn(async () => undefined);
 
       expect(await cli(`create project n proj ${join(dir, 'p')}`)).toBe(0);
-      expect(ws.settings.hubs.add).toHaveBeenCalledExactlyOnceWith(DEFAULT_HUB);
-      expect(fetch).toHaveBeenCalledExactlyOnceWith(true);
+      expect(createProject.mock.calls[0].slice(0, 2)).toEqual([
+        join(dir, 'p'),
+        {
+          name: 'n',
+          prefix: 'proj',
+          category: '',
+          description: '',
+          skipDefaultHub: false,
+        },
+      ]);
       expect(install.mock.calls).toEqual([
         ['git:a', { private: true }],
         ['git:b', { private: false }],
@@ -461,7 +474,6 @@ describe('create project', () => {
         stdout: 'Done\n',
         stderr:
           'Could not fetch hub data - h: down\n' +
-          'Modules from the hubs that could be read were refreshed.\n' +
           "Failed to import module 'b': broken\n" +
           '\nSome modules failed to import: b\n',
       });

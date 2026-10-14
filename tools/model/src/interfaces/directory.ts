@@ -24,6 +24,19 @@ export interface CreateProjectParams {
   prefix: string;
   category?: string;
   description?: string;
+  skipDefaultHub?: boolean;
+}
+
+/**
+ * A created project. `failures` are steps after its files were written that
+ * did not happen (the default hub not added); `warnings` did not stop
+ * anything (a hub not fetched).
+ */
+export interface CreateProjectResult {
+  path: string;
+  prefix: string;
+  failures: string[];
+  warnings: string[];
 }
 
 /** The projects a clone added, and the prefixes it skipped as present. */

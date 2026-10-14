@@ -11,7 +11,7 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { join, resolve } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 
 import {
   openProjectAt,
@@ -67,7 +67,7 @@ export function projectRoot(options: { projectPath?: string }): string {
 // The caller's git author, resolved as git does: GIT_AUTHOR_*, then author.*,
 // then user.*. Read with a client of its own: the checkout's forces the Bot.
 // The system acts when the name or email is unset.
-async function gitAuthor(
+export async function gitAuthor(
   path: string,
 ): Promise<{ actor: ActorRef; identity?: CommitIdentity }> {
   try {
@@ -92,6 +92,12 @@ async function gitAuthor(
     // No usable git: the system acts.
   }
   return { actor: SYSTEM_ACTOR };
+}
+
+// 'path', or its nearest ancestor that exists.
+export function existingAncestor(path: string): string {
+  const parent = dirname(path);
+  return pathExists(path) || parent === path ? path : existingAncestor(parent);
 }
 
 // The process's one checkout; replaced when a command chain moves to another

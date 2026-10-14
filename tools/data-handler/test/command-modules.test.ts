@@ -11,6 +11,7 @@ import {
 import { join, resolve as pathResolve } from 'node:path';
 import { copyDir } from '../src/utils/file-utils.js';
 import { createProject } from '../src/directory/create-project.js';
+import { SYSTEM_ACTOR } from '../src/utils/tx-record.js';
 import { GitManager } from '../src/utils/git-manager.js';
 import {
   makeFakeModuleFixture,
@@ -54,10 +55,15 @@ describe('module update — spec behaviours', () => {
     });
 
     const projectDir = join(moduleTestDir, 'proj-new-transitive');
-    await createProject(projectDir, {
-      name: 'new-transitive-proj',
-      prefix: 'ntrp',
-    });
+    await createProject(
+      projectDir,
+      {
+        name: 'new-transitive-proj',
+        prefix: 'ntrp',
+        skipDefaultHub: true,
+      },
+      SYSTEM_ACTOR,
+    );
 
     const ws = await openTestWorkspace(projectDir, {});
     await ws.modules.install(hostRoot);
@@ -88,7 +94,11 @@ describe('module update — spec behaviours', () => {
     // existed) is converted the next time any module operation runs, even
     // though this module has nowhere to move.
     const projectDir = join(moduleTestDir, 'proj-backfill');
-    await createProject(projectDir, { name: 'backfill-proj', prefix: 'bkf' });
+    await createProject(
+      projectDir,
+      { name: 'backfill-proj', prefix: 'bkf', skipDefaultHub: true },
+      SYSTEM_ACTOR,
+    );
 
     const depRoot = join(moduleTestDir, 'fake-backfill-mod');
     makeFakeModuleFixture(depRoot, { cardKeyPrefix: 'bkfmod' });
@@ -172,7 +182,11 @@ describe('module update — spec behaviours', () => {
   async function seedReplayHost(name: string, prefix: string) {
     const moduleSource = join(moduleTestDir, 'valid', 'decision-records');
     const projectDir = join(moduleTestDir, name);
-    await createProject(projectDir, { name: name, prefix: prefix });
+    await createProject(
+      projectDir,
+      { name: name, prefix: prefix, skipDefaultHub: true },
+      SYSTEM_ACTOR,
+    );
 
     const ws = await openTestWorkspace(projectDir, {});
     await ws.modules.install(moduleSource);
