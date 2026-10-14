@@ -14,11 +14,8 @@
 import { Hono } from 'hono';
 import { randomUUID } from 'node:crypto';
 import { WebStandardStreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js';
-import {
-  createMcpServer,
-  type McpUser,
-  type ProjectProvider,
-} from '@cyberismo/mcp';
+import { createMcpServer, type McpUser } from '@cyberismo/mcp';
+import type { ProjectDirectory } from '@cyberismo/data-handler';
 import type { AuthInfo } from '@modelcontextprotocol/sdk/server/auth/types.js';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { requireRole } from '../../middleware/auth.js';
@@ -90,10 +87,10 @@ function authInfoOf(user: UserInfo): AuthInfo {
 }
 
 /**
- * Create an MCP HTTP router that serves all projects via the given provider.
+ * Create an MCP HTTP router that serves all projects of the given directory.
  */
 export function createMcpRouter(
-  provider: ProjectProvider,
+  directory: ProjectDirectory,
 ): Hono<{ Variables: AppVars }> {
   const router = new Hono<{ Variables: AppVars }>();
 
@@ -173,7 +170,7 @@ export function createMcpRouter(
       }
     };
 
-    const server = createMcpServer(provider);
+    const server = createMcpServer(directory);
     await server.connect(transport);
 
     const response = await transport.handleRequest(c.req.raw, {

@@ -14,6 +14,11 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { createServer, type Server } from 'node:http';
 import {
+  ProjectNotFoundError,
+  SYSTEM_ACTOR,
+  type ProjectDirectory,
+} from '@cyberismo/data-handler';
+import {
   isReadOnly,
   setPolicy,
   startPolicyPolling,
@@ -144,33 +149,37 @@ describe('startPolicyPolling', () => {
 });
 
 describe('writableProjects', () => {
-  const provider = {
-    get: (prefix: string) => ({ prefix }) as never,
-    list: () => [
+  const directory = {
+    open: async (prefix: string) => ({ prefix }),
+    list: async () => [
       { prefix: 'open', name: 'Open' },
       { prefix: 'frozen', name: 'Frozen' },
     ],
-  };
+  } as unknown as ProjectDirectory;
+  const open = (wrapped: ProjectDirectory, prefix: string) =>
+    wrapped.open(prefix, SYSTEM_ACTOR);
+  const prefixes = async (wrapped: ProjectDirectory) =>
+    (await wrapped.list()).map((p) => p.prefix);
 
-  it('passes everything through when nothing is read-only', () => {
+  it('passes everything through when nothing is read-only', async () => {
     setPolicy({ readOnly: false, projects: {} });
-    const wrapped = writableProjects(provider);
-    expect(wrapped.get('frozen')).toBeDefined();
-    expect(wrapped.list().map((p) => p.prefix)).toEqual(['open', 'frozen']);
+    const wrapped = writableProjects(directory);
+    await expect(open(wrapped, 'frozen')).resolves.toBeDefined();
+    expect(await prefixes(wrapped)).toEqual(['open', 'frozen']);
   });
 
-  it('hides a read-only project', () => {
+  it('hides a read-only project', async () => {
     setPolicy({ readOnly: false, projects: { frozen: { readOnly: true } } });
-    const wrapped = writableProjects(provider);
-    expect(wrapped.get('frozen')).toBeUndefined();
-    expect(wrapped.get('open')).toBeDefined();
-    expect(wrapped.list().map((p) => p.prefix)).toEqual(['open']);
+    const wrapped = writableProjects(directory);
+    await expect(open(wrapped, 'frozen')).rejects.toThrow(ProjectNotFoundError);
+    await expect(open(wrapped, 'open')).resolves.toBeDefined();
+    expect(await prefixes(wrapped)).toEqual(['open']);
   });
 
-  it('hides everything when the whole instance is read-only', () => {
+  it('hides everything when the whole instance is read-only', async () => {
     setPolicy({ readOnly: true, projects: {} });
-    const wrapped = writableProjects(provider);
-    expect(wrapped.get('open')).toBeUndefined();
-    expect(wrapped.list()).toEqual([]);
+    const wrapped = writableProjects(directory);
+    await expect(open(wrapped, 'open')).rejects.toThrow(ProjectNotFoundError);
+    expect(await prefixes(wrapped)).toEqual([]);
   });
 });

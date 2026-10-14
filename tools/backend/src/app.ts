@@ -11,9 +11,9 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 import { Hono, type MiddlewareHandler } from 'hono';
-import { gitOptionsFromEnv, staticFrontendDirRelative } from './utils.js';
+import { staticFrontendDirRelative } from './utils.js';
 import { serveStatic } from '@hono/node-server/serve-static';
-import { attachProjectRegistry } from './middleware/commandManager.js';
+import { attachProjectDirectory } from './middleware/commandManager.js';
 import { errorResponse } from './common/errors.js';
 import calculationsRouter from './domain/calculations/index.js';
 import cardsRouter from './domain/cards/index.js';
@@ -46,8 +46,11 @@ import { createAuthRouter } from './domain/auth/index.js';
 import { createAuthMiddleware } from './middleware/auth.js';
 import type { AuthProvider } from './auth/types.js';
 import { MockAuthProvider } from './auth/mock.js';
-import type { ProjectRegistry } from './project-registry.js';
-import { openCheckout, scanForProjects } from '@cyberismo/data-handler';
+import {
+  scanForProjects,
+  type ProjectDirectory,
+} from '@cyberismo/data-handler';
+import { EventsByProject } from './domain/events/events-by-project.js';
 import { createProjectsRouter } from './domain/projects/index.js';
 import { simpleMcpAuthRouter } from '@hono/mcp';
 
@@ -83,16 +86,20 @@ function createProjectScopedRoutes(
 /**
  * Create the Hono app for the backend
  * @param authProvider - Authentication provider
- * @param registry - ProjectRegistry holding all project CommandManagers
+ * @param directory - Directory the projects are opened from
+ * @param exportPrefixes - The projects a static export serves; set only in
+ *   export mode
  */
 export function createApp(
   authProvider: AuthProvider,
-  registry: ProjectRegistry,
+  directory: ProjectDirectory,
   opts?: TreeOptions,
-  exportMode = false,
+  exportPrefixes?: string[],
   multiProjectRoot?: string,
 ) {
   const app = new Hono<{ Variables: AppVars }>();
+  const exportMode = exportPrefixes !== undefined;
+  const events = new EventsByProject(directory);
 
   // Public — no auth middleware (MCP clients call this before they have a token)
   // RFC 9728 resource metadata & OAuth authorization server metadata via @hono/mcp
@@ -133,10 +140,10 @@ export function createApp(
 
   // Global routes (no project-specific CommandManager needed)
   app.route('/api/auth', createAuthRouter());
-  app.route('/api/projects', createProjectsRouter(registry, multiProjectRoot));
+  app.route('/api/projects', createProjectsRouter(directory, multiProjectRoot));
 
   // Test-mode reset endpoint: wipes the project dir, restores it from the
-  // golden snapshot, and rebuilds the registry in place. Used by the
+  // golden snapshot, and reopens its projects in place. Used by the
   // Playwright e2e harness to restore the project between spec files.
   // Gated by NODE_ENV so it never ships in production.
   if (process.env.NODE_ENV === 'test') {
@@ -186,12 +193,10 @@ export function createApp(
           500,
         );
       }
-      const entries = [];
       for (const project of projects) {
-        const checkout = await openCheckout(project.path, gitOptionsFromEnv());
-        entries.push({ prefix: project.prefix, checkout });
+        await directory.replace(project.prefix);
+        events.drop(project.prefix);
       }
-      await registry.replace(entries);
       return c.body(null, 204);
     });
   }
@@ -209,23 +214,25 @@ export function createApp(
     }
   });
 
-  if (exportMode) {
+  if (exportPrefixes) {
     // Export mode: mount at each concrete prefix so SSG sees
     // static routes instead of dynamic :prefix patterns it would skip.
-    for (const { prefix } of registry.list()) {
+    for (const prefix of exportPrefixes) {
       const scoped = createProjectScopedRoutes(
-        attachProjectRegistry(registry, prefix),
+        attachProjectDirectory(directory, events, prefix),
       );
       app.route(`/api/projects/${prefix}`, scoped);
     }
   } else {
     // Normal mode: dynamic :prefix param
-    const scoped = createProjectScopedRoutes(attachProjectRegistry(registry));
+    const scoped = createProjectScopedRoutes(
+      attachProjectDirectory(directory, events),
+    );
     app.route('/api/projects/:prefix', scoped);
   }
 
   // MCP endpoint for AI assistant integration
-  app.route('/mcp', createMcpRouter(writableProjects(registry)));
+  app.route('/mcp', createMcpRouter(writableProjects(directory)));
 
   app.use(
     '*',
