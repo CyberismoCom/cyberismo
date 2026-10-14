@@ -14,7 +14,7 @@
 import { z } from 'zod';
 
 import { existsSync } from 'node:fs';
-import { mkdir } from 'node:fs/promises';
+import { mkdir, rename, rm } from 'node:fs/promises';
 import { resolve, sep } from 'node:path';
 
 import {
@@ -68,6 +68,10 @@ const HUB_SCHEMA = 'hubSchema';
 const TEMP_FOLDER = `.temp`;
 
 export const MODULE_LIST_FULL_PATH = `${TEMP_FOLDER}/${MODULE_LIST_FILE}`;
+
+let moduleListWrites = 0;
+// The last queued write of each module list, by path.
+const moduleListQueue = new Map<string, Promise<void>>();
 
 export class Fetch {
   private moduleListPath;
@@ -246,7 +250,6 @@ export class Fetch {
    * Ensures the module list is up to date by fetching if needed.
    * @returns the hubs that could not be read.
    */
-  @write()
   public async ensureModuleListUpToDate(): Promise<HubFetchFailure[]> {
     return this.fetchHubs();
   }
@@ -258,7 +261,6 @@ export class Fetch {
    * is present, so callers that only display cached data (and offer an explicit
    * refresh) can populate it once without paying a version check per read.
    */
-  @write()
   public async ensureModuleListExists() {
     if (existsSync(this.moduleListPath)) {
       return;
@@ -316,10 +318,7 @@ export class Fetch {
       return;
     }
 
-    await writeJsonFile(this.moduleListPath, {
-      modules: Fetch.mergedModules(hubs),
-      hubs,
-    });
+    await this.writeModuleList(hubs);
     this.logger.info(
       `Pruned data of unconfigured hubs from: ${this.moduleListPath}`,
     );
@@ -357,7 +356,6 @@ export class Fetch {
    * @param force Fetch hubs even if the cached data is up to date.
    * @returns the hubs that could not be read, in configuration order.
    */
-  @write(() => 'Fetch hubs')
   public async fetchHubs(force: boolean = false): Promise<HubFetchFailure[]> {
     if (!force) {
       const needsFetch = await this.fetchModuleList();
@@ -407,10 +405,7 @@ export class Fetch {
       await mkdir(resolve(this.checkout.basePath, TEMP_FOLDER), {
         recursive: true,
       });
-      await writeJsonFile(this.moduleListPath, {
-        modules: Fetch.mergedModules(cachedHubs),
-        hubs: cachedHubs,
-      });
+      await this.writeModuleList(cachedHubs);
       this.logger.info(`Module list written to: ${this.moduleListPath}`);
     } catch (error) {
       this.logger.error(error, `Failed to write module list to local file`);
@@ -418,5 +413,47 @@ export class Fetch {
     }
 
     return failures;
+  }
+
+  // Writes to one list run one at a time, each keeping only the hubs
+  // configured when it runs, so that a hub removed meanwhile stays removed.
+  // It takes no workspace lock: the list is a cache, not content.
+  private writeModuleList(hubs: CachedHub[]): Promise<void> {
+    const path = this.moduleListPath;
+    const written = (moduleListQueue.get(path) ?? Promise.resolve())
+      .catch(() => undefined)
+      .then(() => this.storeModuleList(hubs));
+    moduleListQueue.set(path, written);
+    // The caller sees the write's own error; this chain only cleans up.
+    written
+      .finally(() => {
+        if (moduleListQueue.get(path) === written) moduleListQueue.delete(path);
+      })
+      .catch(() => undefined);
+    return written;
+  }
+
+  // Written aside and renamed into place, so that a reader never sees half a
+  // list.
+  private async storeModuleList(hubs: CachedHub[]) {
+    const configured = new Set(
+      this.checkout.configuration.hubs.map((hub) =>
+        canonicalHubLocation(hub.location),
+      ),
+    );
+    const kept = hubs.filter((hub) =>
+      configured.has(canonicalHubLocation(hub.location)),
+    );
+    const staged = `${this.moduleListPath}.${process.pid}-${++moduleListWrites}`;
+    try {
+      await writeJsonFile(staged, {
+        modules: Fetch.mergedModules(kept),
+        hubs: kept,
+      });
+      await rename(staged, this.moduleListPath);
+    } catch (error) {
+      await rm(staged, { force: true });
+      throw error;
+    }
   }
 }

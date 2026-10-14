@@ -70,6 +70,8 @@ export class Checkout {
   public basePath: string;
   public readonly lock = new RWLock();
   public readonly changeFeed = new ChangeFeed();
+  /** Set once the holder has let go of this checkout; nothing may apply into it. */
+  public disposed = false;
   public calculationEngine: CalculationEngine;
   private projectCardTree: CardTree;
   // Kept here because a TemplateResource does not survive resources.changed().
@@ -166,6 +168,9 @@ export class Checkout {
 
       // Rollback on failed writes
       this.lock.onWriteError(async () => {
+        // The directory may already belong to the checkout that replaced
+        // this one; rolling back would undo its changes.
+        if (this.disposed) return;
         await this.gitManager.rollback();
         await this.repopulate();
       });
@@ -478,6 +483,7 @@ export class Checkout {
    * Cleanups project when it is being closed.
    */
   public dispose() {
+    this.disposed = true;
     if (this.resourceWatcher) {
       this.resourceWatcher.close();
       this.resourceWatcher = undefined;
