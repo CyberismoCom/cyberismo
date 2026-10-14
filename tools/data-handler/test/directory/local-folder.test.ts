@@ -34,6 +34,7 @@ import {
   OFFLINE_EGRESS_PROXY,
 } from '../helpers/project-snapshot.js';
 import { folders } from './folder.js';
+import { checkoutOf } from '../../src/infra/internal.js';
 
 const folder = folders();
 
@@ -130,8 +131,8 @@ describe('directory.open', () => {
       directory.open('one', ann.actor),
       directory.open('two', SYSTEM_ACTOR),
     ]);
-    expect(a.checkout).toBe(b.checkout);
-    expect(other.checkout).not.toBe(a.checkout);
+    expect(checkoutOf(a)).toBe(checkoutOf(b));
+    expect(checkoutOf(other)).not.toBe(checkoutOf(a));
   });
 
   it('refuses a prefix the directory does not have', async () => {
@@ -161,7 +162,7 @@ describe('directory.replace', () => {
     await expect(
       before.modules.install(`file:${join(root, 'one')}`),
     ).rejects.toMatchObject({ code: 'workspace-disposed' });
-    expect(after.checkout).not.toBe(before.checkout);
+    expect(checkoutOf(after)).not.toBe(checkoutOf(before));
     expect(after.settings.name).toBe('After');
   });
 
@@ -191,8 +192,8 @@ describe('directory.rename', () => {
 
     await directory.rename('one', 'uno', ann.actor);
 
-    expect((await directory.open('uno', SYSTEM_ACTOR)).checkout).toBe(
-      before.checkout,
+    expect(checkoutOf(await directory.open('uno', SYSTEM_ACTOR))).toBe(
+      checkoutOf(before),
     );
     await expect(directory.open('one', SYSTEM_ACTOR)).rejects.toThrow(
       ProjectNotFoundError,
@@ -303,8 +304,8 @@ describe('directory.rename', () => {
 
     await directory.rename('one', 'uno', ann.actor);
 
-    expect((await directory.open('uno', SYSTEM_ACTOR)).checkout).toBe(
-      reopened.checkout,
+    expect(checkoutOf(await directory.open('uno', SYSTEM_ACTOR))).toBe(
+      checkoutOf(reopened),
     );
     expect((await directory.list()).map((p) => p.prefix)).toEqual(['uno']);
   });
@@ -362,9 +363,9 @@ describe('directory.create', () => {
 
     const ws = await directory.open('newp', SYSTEM_ACTOR);
     expect(ws.path).toBe(join(root, 'newp'));
-    expect(ws.checkout.configuration.hubs.map((hub) => hub.location)).toEqual([
-      DEFAULT_HUB,
-    ]);
+    expect(
+      checkoutOf(ws).configuration.hubs.map((hub) => hub.location),
+    ).toEqual([DEFAULT_HUB]);
     expect(await directory.list()).toEqual([
       { prefix: 'newp', name: 'New', category: 'Test', description: 'A test' },
     ]);

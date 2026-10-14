@@ -9,6 +9,7 @@ import semver from 'semver';
 import { copyDir } from '../src/utils/file-utils.js';
 import { type Workspace } from '../src/workspace/workspace.js';
 import { openTestWorkspace } from './helpers/open-test-workspace.js';
+import { checkoutOf } from '../src/infra/internal.js';
 
 const { satisfies } = semver;
 
@@ -42,7 +43,7 @@ describe('import command — live git', () => {
     // expansion covering the installed version.
     const gitModule = 'https://github.com/CyberismoCom/module-base.git';
     await ws.modules.install(gitModule);
-    const persisted = ws.checkout.configuration.modules.find(
+    const persisted = checkoutOf(ws).configuration.modules.find(
       (m) => m.name === 'base',
     );
     expect(persisted).toBeDefined();

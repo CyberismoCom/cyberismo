@@ -23,6 +23,7 @@ import { resourceName } from '../src/utils/resource-utils.js';
 import { openTestWorkspace } from './helpers/open-test-workspace.js';
 import { mockEnsureModuleListUpToDate } from './helpers/test-utils.js';
 import { renameProject } from '../src/directory/rename-project.js';
+import { checkoutOf } from '../src/infra/internal.js';
 
 const testData = join(import.meta.dirname, 'test-data/valid');
 const writer: ActorRef = { kind: 'user', id: 'writer', name: 'Writer' };
@@ -198,7 +199,7 @@ describe('change feed', () => {
 
   it('gives a subscriber that writes its own event and commit', async () => {
     await open(true);
-    const bot = Workspace.over(ws.checkout, {
+    const bot = Workspace.over(checkoutOf(ws), {
       kind: 'connector',
       id: 'bot',
       name: 'Bot',
@@ -263,7 +264,7 @@ describe('change feed', () => {
     mockEnsureModuleListUpToDate();
     await open(true);
     await ws.modules.install(join(testData, 'minimal'));
-    const modules = structuredClone(ws.checkout.configuration.modules);
+    const modules = structuredClone(checkoutOf(ws).configuration.modules);
 
     const failed = ws.atomic(async () => {
       await ws.modules.remove('mini');
@@ -271,7 +272,7 @@ describe('change feed', () => {
     }, 'Remove module');
     await expect(failed).rejects.toThrow('boom');
 
-    expect(ws.checkout.configuration.modules).toEqual(modules);
-    expect(ws.checkout.allModulePrefixes()).toContain('mini');
+    expect(checkoutOf(ws).configuration.modules).toEqual(modules);
+    expect(checkoutOf(ws).allModulePrefixes()).toContain('mini');
   });
 });

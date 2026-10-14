@@ -23,6 +23,7 @@ import {
   spec,
 } from './fixture.js';
 import { Validate } from '../../src/commands/validate.js';
+import { checkoutOf } from '../../src/infra/internal.js';
 
 const open = projects();
 
@@ -216,7 +217,7 @@ describe('card types', () => {
         workflow: 'test/workflows/ghost',
       });
       expect(
-        await Validate.getInstance().validate(path, () => ws.checkout),
+        await Validate.getInstance().validate(path, () => checkoutOf(ws)),
       ).toContain('ghost');
     });
   });
