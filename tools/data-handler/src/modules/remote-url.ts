@@ -12,8 +12,7 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import type { Credentials } from '@cyberismo/model';
-import type { Source } from './types.js';
+import type { Credentials, Source } from '@cyberismo/model';
 
 const HTTPS_PROTOCOL = 'https:';
 

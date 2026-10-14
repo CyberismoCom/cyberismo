@@ -11,8 +11,6 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import type { Fetch } from './fetch.js';
-import type { Modules } from './modules.js';
 import type { Checkout } from '../containers/project.js';
 import type { RemovableResourceTypes } from '@cyberismo/model';
 import { write } from '../utils/rw-lock.js';
@@ -25,22 +23,14 @@ export class Remove {
    * Creates a new instance of Remove command.
    * @param project Project instance to use
    */
-  constructor(
-    private checkout: Checkout,
-    private fetchCmd: Fetch,
-    private modulesCmd: Modules,
-  ) {}
+  constructor(private checkout: Checkout) {}
 
   /**
-   * Removes an imported module from project.
+   * Refuses a type no remove handles; modules go through the modules façade.
    */
   @write((type, targetName) => `Remove ${type} ${targetName}`)
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- named in the commit subject
   public async remove(type: RemovableResourceTypes, targetName: string) {
-    if (type === 'module') {
-      // Ensure module list is up to date when removing modules
-      await this.fetchCmd.ensureModuleListUpToDate();
-      return this.modulesCmd.remove(targetName);
-    }
     throw new Error(`Unknown resource type '${type}'`);
   }
 }

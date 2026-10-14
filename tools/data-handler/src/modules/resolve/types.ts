@@ -12,13 +12,9 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
+import type { Source } from '@cyberismo/model';
 import type { SealFile } from '../../infra/replay-log/seal-files.js';
-import type {
-  ModuleDeclaration,
-  Source,
-  Version,
-  VersionRange,
-} from '../types.js';
+import type { ModuleDeclaration, Version, VersionRange } from '../types.js';
 
 export type UpdateRequest =
   | { kind: 'verify' }
