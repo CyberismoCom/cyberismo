@@ -3,11 +3,13 @@ import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { beforeEach, afterEach, describe, expect, test, vi } from 'vitest';
 import { createApp } from '../src/app.js';
-import { ProjectRegistry } from '../src/project-registry.js';
 import { MockAuthProvider, MOCK_ROLE_COOKIE } from '../src/auth/mock.js';
 import type { CleanResult } from '@cyberismo/model';
 import { cleanupTempTestData, createTempTestData } from './test-utils.js';
-import { openTestWorkspace } from './helpers/open-test-workspace.js';
+import {
+  openTestWorkspace,
+  directoryOf,
+} from './helpers/open-test-workspace.js';
 
 type ProjectResponse = {
   name: string;
@@ -91,10 +93,7 @@ afterEach(() => {
 beforeEach(async () => {
   tempTestDataPath = await createTempTestData('module-test');
   const ws = await openTestWorkspace(tempTestDataPath);
-  app = createApp(
-    new MockAuthProvider(),
-    ProjectRegistry.fromCheckout(ws.checkout),
-  );
+  app = createApp(new MockAuthProvider(), directoryOf(ws));
 });
 
 afterEach(async () => {
