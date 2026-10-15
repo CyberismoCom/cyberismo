@@ -17,16 +17,16 @@ import { join } from 'node:path';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import type { RenderOptions } from '@cyberismo/model';
-import type * as macros from '../../src/macros/index.js';
-import type { Workspace } from '../../src/workspace/workspace.js';
-import { copyDir } from '../../src/utils/file-utils.js';
+import type * as macros from '../../src/domain/macros/index.js';
+import type { Workspace } from '../../src/api/workspace/workspace.js';
+import { copyDir } from '../../src/shared/utils/file-utils.js';
 import { openTestWorkspace } from '../helpers/open-test-workspace.js';
 import { getTestBaseDir } from '../helpers/test-utils.js';
 
 // Macro evaluation reports a failing macro inline; a failure that escapes it
 // is simulated here.
 const failure = vi.hoisted(() => ({ error: undefined as Error | undefined }));
-vi.mock('../../src/macros/index.js', async (importOriginal) => {
+vi.mock('../../src/domain/macros/index.js', async (importOriginal) => {
   const original = await importOriginal<typeof macros>();
   return {
     ...original,

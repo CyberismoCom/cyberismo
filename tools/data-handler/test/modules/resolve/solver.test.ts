@@ -4,15 +4,18 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import { existsSync, mkdirSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { copyDir } from '../../../src/utils/file-utils.js';
+import { copyDir } from '../../../src/shared/utils/file-utils.js';
 import { getTestProject } from '../../helpers/test-utils.js';
 import { InMemorySource, type FakeModuleConfig } from '../in-memory-source.js';
 import {
   resolve,
   resolveForApply,
-} from '../../../src/modules/resolve/solver.js';
-import { conflictReason } from '../../../src/modules/resolve/format.js';
-import type { Version, VersionRange } from '../../../src/utils/version.js';
+} from '../../../src/domain/modules/resolve/solver.js';
+import { conflictReason } from '../../../src/domain/modules/resolve/format.js';
+import type {
+  Version,
+  VersionRange,
+} from '../../../src/shared/utils/version.js';
 import type { ModuleSetting } from '@cyberismo/model';
 
 const baseDir = import.meta.dirname;

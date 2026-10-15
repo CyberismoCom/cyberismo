@@ -2,7 +2,7 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
 import { Checkout } from '../../src/infra/checkout.js';
-import { copyDir } from '../../src/utils/file-utils.js';
+import { copyDir } from '../../src/shared/utils/file-utils.js';
 
 // Reuse the existing decision-records fixture.
 const FIXTURE_PATH = join(

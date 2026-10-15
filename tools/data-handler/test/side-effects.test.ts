@@ -5,8 +5,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   applySideEffects,
   type SideEffects,
-} from '../src/cards/side-effects.js';
-import { CardMetadataUpdater } from '../src/cards/card-metadata-updater.js';
+} from '../src/domain/cards/side-effects.js';
+import { CardMetadataUpdater } from '../src/domain/cards/card-metadata-updater.js';
 import type { Checkout } from '../src/infra/checkout.js';
 
 const checkout = {} as Checkout;

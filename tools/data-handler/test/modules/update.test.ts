@@ -14,7 +14,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { SCHEMA_VERSION } from '@cyberismo/migrations';
-import { ModuleRequestError } from '../../src/exceptions/index.js';
+import { ModuleRequestError } from '../../src/shared/exceptions/index.js';
 import type * as SourceModule from '../../src/infra/module-source/source.js';
 import type { SourceLayer } from '../../src/infra/module-source/source.js';
 import { InMemorySource, type FakeModuleConfig } from './in-memory-source.js';

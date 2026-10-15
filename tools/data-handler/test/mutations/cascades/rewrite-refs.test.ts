@@ -6,8 +6,8 @@ import { Checkout } from '../../../src/infra/checkout.js';
 import {
   rewriteCardContentRefs,
   rewriteContentFileRefs,
-} from '../../../src/mutations/cascades/rewrite-refs.js';
-import { copyDir, deleteDir } from '../../../src/utils/file-utils.js';
+} from '../../../src/domain/mutations/cascades/rewrite-refs.js';
+import { copyDir, deleteDir } from '../../../src/shared/utils/file-utils.js';
 
 const testDir = join(import.meta.dirname, 'tmp-rewrite-refs');
 const fixturePath = join(testDir, 'valid', 'decision-records');
