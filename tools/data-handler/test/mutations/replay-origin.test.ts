@@ -1,9 +1,9 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { ResourceMutations } from '../../src/mutations/resource-mutations.js';
-import { dispatch } from '../../src/mutations/dispatcher.js';
+import { ResourceMutations } from '../../src/domain/mutations/resource-mutations.js';
+import { dispatch } from '../../src/domain/mutations/dispatcher.js';
 import type { MutationInput } from '@cyberismo/model';
 import { ConfigurationLogger } from '../../src/infra/replay-log/configuration-logger.js';
-import { resourceName } from '../../src/utils/resource-utils.js';
+import { resourceName } from '../../src/shared/utils/resource-utils.js';
 import type { Checkout } from '../../src/infra/checkout.js';
 
 describe('ResourceMutations replay origin', () => {

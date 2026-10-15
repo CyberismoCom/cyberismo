@@ -16,11 +16,14 @@ import { mkdtemp, mkdir, rm } from 'node:fs/promises';
 import { basename, join } from 'node:path';
 import { tmpdir } from 'node:os';
 
-import { ModuleRequestError, redactUserinfo } from '../../exceptions/index.js';
+import {
+  ModuleRequestError,
+  redactUserinfo,
+} from '../../shared/exceptions/index.js';
 import { createGit, gitTimeout } from '../git-config.js';
 import { GitManager } from '../git-manager.js';
 import { parseSealFileName, type SealFile } from '../replay-log/seal-files.js';
-import { versionToTag, type Version } from '../../utils/version.js';
+import { versionToTag, type Version } from '../../shared/utils/version.js';
 import type { FetchTarget, SourceLayer } from './source.js';
 import type { Source } from '@cyberismo/model';
 import type { ProjectSettings } from '@cyberismo/model';

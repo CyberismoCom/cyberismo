@@ -18,7 +18,7 @@ import { describe, expect, it } from 'vitest';
 import {
   ModuleReplayFailedError,
   ModuleValidationFailedError,
-} from '../../src/mutations/replay/replay.js';
+} from '../../src/domain/mutations/replay/replay.js';
 import { logLine, writeSeals } from '../helpers/replay-fixtures.js';
 import {
   editConfig,

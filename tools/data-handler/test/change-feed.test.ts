@@ -18,11 +18,11 @@ import { join } from 'node:path';
 import { simpleGit } from 'simple-git';
 
 import type { ActorRef, ChangeEvent } from '@cyberismo/model';
-import { Workspace } from '../src/workspace/workspace.js';
-import { resourceName } from '../src/utils/resource-utils.js';
+import { Workspace } from '../src/api/workspace/workspace.js';
+import { resourceName } from '../src/shared/utils/resource-utils.js';
 import { openTestWorkspace } from './helpers/open-test-workspace.js';
 import { mockEnsureModuleListUpToDate } from './helpers/test-utils.js';
-import { renameProject } from '../src/directory/rename-project.js';
+import { renameProject } from '../src/api/directory/rename-project.js';
 import { checkoutOf } from '../src/infra/internal.js';
 
 const testData = join(import.meta.dirname, 'test-data/valid');

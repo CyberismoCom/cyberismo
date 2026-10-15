@@ -17,7 +17,7 @@ import { tmpdir } from 'node:os';
 import { delimiter, join } from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { AsciidoctorPdfError } from '../../src/export/export.js';
+import { AsciidoctorPdfError } from '../../src/domain/export/export.js';
 import { projects } from '../cards/fixture.js';
 
 const open = projects();

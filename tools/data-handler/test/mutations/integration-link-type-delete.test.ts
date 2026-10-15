@@ -3,11 +3,11 @@ import { join } from 'node:path';
 
 import type { Checkout } from '../../src/infra/checkout.js';
 import { ConfigurationLogger } from '../../src/infra/replay-log/configuration-logger.js';
-import { deleteDir } from '../../src/utils/file-utils.js';
-import { resourceName } from '../../src/utils/resource-utils.js';
+import { deleteDir } from '../../src/shared/utils/file-utils.js';
+import { resourceName } from '../../src/shared/utils/resource-utils.js';
 import { createLinkSeededProject } from './helpers.js';
-import { Workspace } from '../../src/workspace/workspace.js';
-import { SYSTEM_ACTOR } from '../../src/utils/tx-record.js';
+import { Workspace } from '../../src/api/workspace/workspace.js';
+import { SYSTEM_ACTOR } from '../../src/shared/utils/tx-record.js';
 
 const tmpDir = join(import.meta.dirname, 'tmp-integration-link-type-delete');
 

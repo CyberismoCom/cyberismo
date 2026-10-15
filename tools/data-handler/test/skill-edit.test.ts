@@ -2,13 +2,13 @@ import { expect, it, describe, beforeEach, afterEach } from 'vitest';
 import { join } from 'node:path';
 import { mkdirSync, rmSync } from 'node:fs';
 
-import { type Workspace } from '../src/workspace/workspace.js';
-import { copyDir } from '../src/utils/file-utils.js';
-import { resourceName } from '../src/utils/resource-utils.js';
+import { type Workspace } from '../src/api/workspace/workspace.js';
+import { copyDir } from '../src/shared/utils/file-utils.js';
+import { resourceName } from '../src/shared/utils/resource-utils.js';
 
 import type { Operation, Skill } from '@cyberismo/model';
 import { openTestWorkspace } from './helpers/open-test-workspace.js';
-import { Validate } from '../src/commands/validate.js';
+import { Validate } from '../src/domain/commands/validate.js';
 import { checkoutOf } from '../src/infra/internal.js';
 
 const baseDir = import.meta.dirname;

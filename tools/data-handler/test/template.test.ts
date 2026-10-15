@@ -6,18 +6,18 @@ import { mkdirSync, rmSync } from 'node:fs';
 import { join, sep } from 'node:path';
 
 import type { Card } from '@cyberismo/model';
-import { copyDir } from '../src/utils/file-utils.js';
+import { copyDir } from '../src/shared/utils/file-utils.js';
 import { getTestProject } from './helpers/test-utils.js';
 import type { Checkout } from '../src/infra/checkout.js';
-import { resourceName } from '../src/utils/resource-utils.js';
-import { TemplateResource } from '../src/resources/template-resource.js';
+import { resourceName } from '../src/shared/utils/resource-utils.js';
+import { TemplateResource } from '../src/domain/resources/template-resource.js';
 import {
   addTemplateCards,
   instantiateTemplate,
-} from '../src/cards/instantiate.js';
-import { findCard } from '../src/cards/read.js';
-import { CardNotFoundError } from '../src/exceptions/index.js';
-import { ROOT } from '../src/utils/constants.js';
+} from '../src/domain/cards/instantiate.js';
+import { findCard } from '../src/domain/cards/read.js';
+import { CardNotFoundError } from '../src/shared/exceptions/index.js';
+import { ROOT } from '../src/shared/utils/constants.js';
 
 // Create test artifacts in a temp directory.
 const baseDir = import.meta.dirname;
