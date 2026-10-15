@@ -19,8 +19,8 @@ import {
   ConfigurationLogger,
   type ConfigurationOperation,
 } from '../../src/infra/replay-log/configuration-logger.js';
-import type { Workspace } from '../../src/workspace/workspace.js';
-import type { BumpType } from '../../src/versions/version.js';
+import type { Workspace } from '../../src/api/workspace/workspace.js';
+import type { BumpType } from '../../src/domain/versions/version.js';
 import { expectRefused, projects } from '../cards/fixture.js';
 import { commitAll, gitLog, publishedVersion } from './fixture.js';
 import { remove, rename } from '../resources/fixture.js';

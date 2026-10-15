@@ -36,17 +36,17 @@ import {
   CardNotFoundError,
   CycleError,
   ReadOnlyContainerError,
-} from '../exceptions/index.js';
-import { copyDir, deleteDir, pathExists } from '../utils/file-utils.js';
-import { getChildLogger } from '../utils/log-utils.js';
-import { writeJsonFile } from '../utils/json.js';
-import { isPredefinedField, ROOT } from '../utils/constants.js';
+} from '../shared/exceptions/index.js';
+import { copyDir, deleteDir, pathExists } from '../shared/utils/file-utils.js';
+import { getChildLogger } from '../shared/utils/log-utils.js';
+import { writeJsonFile } from '../shared/utils/json.js';
+import { isPredefinedField, ROOT } from '../shared/utils/constants.js';
 import {
   EMPTY_RANK,
   FIRST_RANK,
   getRankAfter,
   sortItems,
-} from '../utils/lexorank.js';
+} from '../shared/utils/lexorank.js';
 import {
   ATTACHMENT_FOLDER,
   CARD_CONTENT_FILE,
@@ -64,7 +64,7 @@ import {
 
 import type { StoredAttachment, StoredCard } from './card-tree-scan.js';
 import type { RankChange, RankedCard } from './rank-plan.js';
-import type { CardFactContext } from '../utils/clingo-facts.js';
+import type { CardFactContext } from '../shared/utils/clingo-facts.js';
 import type { CardKeyRegistry } from './card-keys.js';
 
 /**

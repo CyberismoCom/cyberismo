@@ -1,0 +1,326 @@
+/**
+  Cyberismo
+  Copyright © Cyberismo Ltd and contributors 2026
+
+  This program is free software: you can redistribute it and/or modify it under
+  the terms of the GNU Affero General Public License version 3 as published by
+  the Free Software Foundation. This program is distributed in the hope that it
+  will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty
+  of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+  See the GNU Affero General Public License for more details.
+  You should have received a copy of the GNU Affero General Public
+  License along with this program. If not, see <https://www.gnu.org/licenses/>.
+*/
+
+import { randomBytes } from 'node:crypto';
+import { mkdir, rename } from 'node:fs/promises';
+import { join } from 'node:path';
+
+import { ProjectPaths } from '../../infra/project-paths.js';
+import { readModuleConfig } from '../../infra/cards-config.js';
+import { deleteDir, pathExists } from '../../shared/utils/file-utils.js';
+import { getChildLogger } from '../../shared/utils/log-utils.js';
+
+import type { ResolvedModule } from '../mutations/replay/module-types.js';
+import type { ModuleSetting } from '@cyberismo/model';
+import type { Checkout } from '../../infra/checkout.js';
+
+const logger = getChildLogger({ module: 'applier' });
+
+/**
+ * Options consumed by {@link applyModules}.
+ */
+export interface ApplyOptions {
+  /** Directory holding each entry's `stagedPath` tree. */
+  tempDir: string;
+  /**
+   * Declarations to rewrite for modules this apply does not install —
+   * roots that stayed at their installed version but never wrote down a
+   * version range. Persisted verbatim, no files touched.
+   */
+  backfill?: ModuleSetting[];
+}
+
+interface StagedModule {
+  name: string;
+  /** Absolute path whose contents become the new `.cards/modules/<name>/`. */
+  resourcesFolder: string;
+  resolved: ResolvedModule;
+}
+
+/**
+ * Copy each entry's staged tree into `.cards/modules/<name>/` and
+ * persist top-level declarations.
+ *
+ * Every `stagedPath` is rooted in `options.tempDir` (the source layer
+ * is responsible for staging there). The applier is therefore source-
+ * agnostic: it owns the staging tree and may delete from it freely.
+ *
+ * @returns names of the modules that actually landed on disk. Per-module
+ *   apply failures are logged and skipped, so callers that act on the
+ *   installed modules afterwards (e.g. migration replays) must restrict
+ *   themselves to this set.
+ */
+export async function applyModules(
+  checkout: Checkout,
+  resolved: ResolvedModule[],
+  options: ApplyOptions,
+): Promise<string[]> {
+  const selfPrefix = checkout.projectPrefix;
+
+  // Skip transitive entries whose prefix matches the host project;
+  // a top-level entry with the same collision is caught by
+  // `validatePrefix` below.
+  const targets: ResolvedModule[] = [];
+  for (const entry of resolved) {
+    if (
+      entry.declaration.name === selfPrefix &&
+      entry.declaration.parent !== undefined
+    ) {
+      logger.debug(
+        { module: entry.declaration.name, selfPrefix },
+        'skipping transitive installation whose prefix matches the host project',
+      );
+      continue;
+    }
+    targets.push(entry);
+  }
+
+  // Validate prefixes at plan level so all failures surface before any
+  // filesystem mutation. Existing top-level modules skip the uniqueness
+  // check (re-imports / updates).
+  const existingDeclaredNames = new Set(
+    checkout.configuration.modules.map((m) => m.name),
+  );
+  for (const entry of targets) {
+    const name = entry.declaration.name;
+    await validateIdentity(entry, name);
+    validatePrefix(
+      checkout,
+      name,
+      /* skipIfExists */ existingDeclaredNames.has(name),
+    );
+  }
+
+  const staged: StagedModule[] = targets.map(toStagedModule);
+
+  // Apply each staged module. Partial-failure rollback is out of
+  // scope: log and continue so later modules still get a chance.
+  const applied: StagedModule[] = [];
+  for (const stage of staged) {
+    try {
+      await applyOne(checkout, stage);
+      applied.push(stage);
+    } catch (error) {
+      logger.error(
+        {
+          module: stage.name,
+          err: error instanceof Error ? error.message : String(error),
+        },
+        'failed to apply staged module; project is temporarily inconsistent for this module',
+      );
+    }
+  }
+
+  // Persist top-level declarations for modules that actually landed on
+  // disk. Only the declared range is stored; transitive declarations
+  // are re-derived from each installation's own cardsConfig.json at
+  // read time.
+  for (const stage of applied) {
+    const entry = stage.resolved;
+    if (entry.declaration.parent !== undefined) {
+      continue;
+    }
+    await checkout.configuration.upsertModule(toPersistedSetting(entry));
+  }
+
+  // Declaration-only rewrites: these modules keep the files they already
+  // have, so they are persisted regardless of what landed above.
+  for (const setting of options.backfill ?? []) {
+    await checkout.configuration.upsertModule(setting);
+  }
+
+  await Promise.all(
+    applied.map((stage) => cleanupStage(stage, options.tempDir)),
+  );
+
+  const appliedNames = applied.map((stage) => stage.name);
+  await checkout.refreshAfterModuleChange(appliedNames);
+
+  return appliedNames;
+}
+
+function toStagedModule(entry: ResolvedModule): StagedModule {
+  return {
+    name: entry.declaration.name,
+    resourcesFolder: new ProjectPaths(entry.stagedPath).resourcesFolder,
+    resolved: entry,
+  };
+}
+
+/**
+ * Install a staged module at `.cards/modules/<name>/`, replacing any
+ * existing installation via a move-aside + rename swap.
+ *
+ * Both `stage.resourcesFolder` (under the resolver's tempDir) and the
+ * destination live on the project's filesystem, so `rename` is the
+ * commit point. If anything goes wrong before the swap, the prior
+ * installation is restored; the destination is never observed in a
+ * half-built state.
+ */
+async function applyOne(
+  checkout: Checkout,
+  stage: StagedModule,
+): Promise<void> {
+  const destinationPath = join(checkout.paths.modulesFolder, stage.name);
+  await mkdir(checkout.paths.modulesFolder, { recursive: true });
+
+  const trashPath = `${destinationPath}.removing-${randomBytes(4).toString('hex')}`;
+  const hadPrior = pathExists(destinationPath);
+  if (hadPrior) {
+    await rename(destinationPath, trashPath);
+  }
+
+  try {
+    await rename(stage.resourcesFolder, destinationPath);
+  } catch (error) {
+    if (hadPrior) {
+      try {
+        await rename(trashPath, destinationPath);
+      } catch (restoreError) {
+        logger.error(
+          {
+            module: stage.name,
+            path: trashPath,
+            err:
+              restoreError instanceof Error
+                ? restoreError.message
+                : String(restoreError),
+          },
+          'failed to restore prior installation after a failed rename swap; manual recovery may be required',
+        );
+      }
+    }
+    throw error;
+  }
+
+  if (hadPrior) {
+    // Awaited so concurrent readers of `.cards/modules/` (orphan
+    // sweeps, prefix caches) never observe the displaced directory.
+    try {
+      await deleteDir(trashPath);
+    } catch (error) {
+      logger.debug(
+        {
+          module: stage.name,
+          path: trashPath,
+          err: error instanceof Error ? error.message : String(error),
+        },
+        'failed to remove displaced previous installation; safe to delete manually',
+      );
+    }
+  }
+
+  logger.debug(
+    {
+      module: stage.name,
+      from: stage.resourcesFolder,
+      to: destinationPath,
+    },
+    'applied staged module',
+  );
+}
+
+/**
+ * Reshape a {@link ResolvedModule} into the `ModuleSetting` persisted
+ * in `cardsConfig.json`. The stored `version` is the declared range,
+ * never the resolved tag.
+ */
+function toPersistedSetting(entry: ResolvedModule): ModuleSetting {
+  const setting: ModuleSetting = {
+    name: entry.declaration.name,
+    location: entry.declaration.source.location,
+  };
+  if (entry.declaration.source.private !== undefined) {
+    setting.private = entry.declaration.source.private;
+  }
+  if (entry.declaration.versionRange !== undefined) {
+    setting.version = entry.declaration.versionRange;
+  }
+  return setting;
+}
+
+/**
+ * Rejects a staged tree whose own `cardKeyPrefix` disagrees with the name the
+ * project declares it under. A module's prefix is its identity: everything
+ * that references the module — the installation directory, every
+ * `<prefix>/<type>/<id>` resource name, every `<prefix>_*` card key — is
+ * derived from it, so a module that changed its prefix is a different module
+ * and no update can carry one into the other. Also catches pinning a version
+ * whose tagged tree predates the prefix the declaration was written from.
+ */
+async function validateIdentity(
+  entry: ResolvedModule,
+  declared: string,
+): Promise<void> {
+  let staged: string;
+  try {
+    staged = (await readModuleConfig(entry.stagedPath)).cardKeyPrefix;
+  } catch {
+    // A staged tree with no readable config never reaches here in practice —
+    // the resolver read the same file to pick a version. If one does, it is
+    // a broken tree rather than a renamed module, and `applyOne` reports it.
+    return;
+  }
+  if (staged === declared) {
+    return;
+  }
+  throw new Error(
+    `Module '${declared}' now declares the prefix '${staged}'. A module's ` +
+      `prefix is its identity, so this is a different module, not an update. ` +
+      `Install it with 'cyberismo module install ` +
+      `${entry.declaration.source.location}' and remove the old one with ` +
+      `'cyberismo module remove ${declared}'.`,
+  );
+}
+
+/**
+ * Rejects a new module whose prefix collides with a project-level
+ * prefix already in use. Skipped for already-installed modules.
+ */
+function validatePrefix(
+  checkout: Checkout,
+  modulePrefix: string,
+  skipIfExists: boolean,
+): void {
+  const currentlyUsedPrefixes = checkout.projectPrefixes();
+  if (!currentlyUsedPrefixes.includes(modulePrefix)) {
+    return;
+  }
+  if (skipIfExists) {
+    return;
+  }
+  throw new Error(
+    `Imported project has a prefix '${modulePrefix}' that is already used in the project. Cannot import from module.`,
+  );
+}
+
+async function cleanupStage(
+  stage: StagedModule,
+  tempDir: string,
+): Promise<void> {
+  const stagedRoot = join(tempDir, stage.name);
+  try {
+    await deleteDir(stagedRoot);
+  } catch (error) {
+    // Staging cleanup is best-effort.
+    logger.debug(
+      {
+        module: stage.name,
+        path: stagedRoot,
+        err: error instanceof Error ? error.message : String(error),
+      },
+      'failed to remove staging directory after successful apply',
+    );
+  }
+}

@@ -3,7 +3,7 @@ import Handlebars from 'handlebars';
 import {
   registerClingoHelpers,
   registerMathHelpers,
-} from '../../src/utils/handlebars-helpers.js';
+} from '../../src/shared/utils/handlebars-helpers.js';
 
 describe('registerClingoHelpers', () => {
   let handlebars: typeof Handlebars;

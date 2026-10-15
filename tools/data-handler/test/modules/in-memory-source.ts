@@ -1,7 +1,7 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
-import { isGitLocation } from '../../src/utils/location.js';
+import { isGitLocation } from '../../src/shared/utils/location.js';
 import type {
   SourceLayer,
   FetchTarget,
@@ -9,7 +9,7 @@ import type {
 import type { Source } from '@cyberismo/model';
 import type { ProjectSettings } from '@cyberismo/model';
 import type { SealFile } from '../../src/infra/replay-log/seal-files.js';
-import { versionToTag, type Version } from '../../src/utils/version.js';
+import { versionToTag, type Version } from '../../src/shared/utils/version.js';
 
 /** Minimal `cardsConfig.json` shape the resolver reads. */
 export interface FakeModuleConfig {

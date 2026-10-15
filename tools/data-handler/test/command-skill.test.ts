@@ -6,8 +6,8 @@ import { mkdirSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 
 // cyberismo
-import { copyDir } from '../src/utils/file-utils.js';
-import { generateReportContent } from '../src/queries/report.js';
+import { copyDir } from '../src/shared/utils/file-utils.js';
+import { generateReportContent } from '../src/domain/queries/report.js';
 
 // Create test artifacts in a temp folder.
 const baseDir = import.meta.dirname;

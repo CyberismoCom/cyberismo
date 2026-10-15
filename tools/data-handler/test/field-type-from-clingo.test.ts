@@ -16,7 +16,7 @@
 
 import { expect, it, describe } from 'vitest';
 
-import { FieldTypeResource as FT } from '../src/resources/field-type-resource.js';
+import { FieldTypeResource as FT } from '../src/domain/resources/field-type-resource.js';
 
 describe('clingo results to fieldType dataType', () => {
   it('convert to boolean', () => {

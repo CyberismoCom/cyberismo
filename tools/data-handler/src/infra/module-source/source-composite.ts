@@ -14,7 +14,7 @@
 
 import type { FetchTarget, SourceLayer } from './source.js';
 import type { Source } from '@cyberismo/model';
-import type { Version } from '../../utils/version.js';
+import type { Version } from '../../shared/utils/version.js';
 import type { SealFile } from '../replay-log/seal-files.js';
 import type { ProjectSettings } from '@cyberismo/model';
 

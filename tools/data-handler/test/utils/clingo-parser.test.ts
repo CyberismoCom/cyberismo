@@ -1,8 +1,8 @@
 import { expect, describe, it } from 'vitest';
 import ClingoParser, {
   decodeClingoValue,
-} from '../../src/utils/clingo-parser.js';
-import { encodeClingoValue } from '../../src/utils/clingo-fact-builder.js';
+} from '../../src/shared/utils/clingo-parser.js';
+import { encodeClingoValue } from '../../src/shared/utils/clingo-fact-builder.js';
 
 const encodingTests = [
   ['\n', '\\n'],

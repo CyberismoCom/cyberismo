@@ -23,7 +23,7 @@ const served = vi.hoisted(() => ({
   hubs: new Map<string, { version: number; modules: string[] } | Error>(),
   requests: [] as string[],
 }));
-vi.mock('../../src/utils/egress.js', () => ({
+vi.mock('../../src/shared/utils/egress.js', () => ({
   egressFetch: async (url: string) => {
     served.requests.push(url);
     const hub = served.hubs.get(url);

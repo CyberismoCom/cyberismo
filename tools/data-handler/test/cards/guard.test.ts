@@ -14,12 +14,12 @@
 
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { PermissionDeniedError } from '../../src/exceptions/index.js';
-import { assertAllowed, type Action } from '../../src/cards/guard.js';
-import type { Workspace } from '../../src/workspace/workspace.js';
+import { PermissionDeniedError } from '../../src/shared/exceptions/index.js';
+import { assertAllowed, type Action } from '../../src/domain/cards/guard.js';
+import type { Workspace } from '../../src/api/workspace/workspace.js';
 import { openTestWorkspace } from '../helpers/open-test-workspace.js';
 import { buildProject, type BuiltProject } from '../helpers/project-builder.js';
-import { findCard } from '../../src/cards/read.js';
+import { findCard } from '../../src/domain/cards/read.js';
 import { checkoutOf } from '../../src/infra/internal.js';
 import type { Checkout } from '../../src/infra/checkout.js';
 

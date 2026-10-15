@@ -20,8 +20,8 @@ import { readFileSync } from 'node:fs';
 // Importing the registry (and, transitively, the dispatcher) runs the
 // duplicate-route guard in dispatcher.ts at module load. If two ROUTES rows
 // resolved to the same key string, this import would throw.
-import { ROUTES } from '../../src/mutations/registry.js';
-import '../../src/mutations/dispatcher.js';
+import { ROUTES } from '../../src/domain/mutations/registry.js';
+import '../../src/domain/mutations/dispatcher.js';
 
 // Resource types whose schema-backed editable keys must each be routable.
 // Maps the routing `type` (plural, as used in resource names) to the schema

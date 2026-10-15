@@ -11,8 +11,8 @@ import {
   readJsonFileSync,
   writeJsonFile,
   writeJsonFileIfAbsent,
-} from '../../src/utils/json.js';
-import { formatJson } from '../../src/utils/json.js';
+} from '../../src/shared/utils/json.js';
+import { formatJson } from '../../src/shared/utils/json.js';
 
 describe('Json', () => {
   it('should read JSON file', () => {

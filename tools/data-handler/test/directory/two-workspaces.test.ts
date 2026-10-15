@@ -21,7 +21,7 @@ import { promisify } from 'node:util';
 import { expect, it } from 'vitest';
 
 import type { ChangeEvent } from '@cyberismo/model';
-import { localFolder } from '../../src/directory/local-folder.js';
+import { localFolder } from '../../src/api/directory/local-folder.js';
 import { folders } from './folder.js';
 
 const folder = folders();

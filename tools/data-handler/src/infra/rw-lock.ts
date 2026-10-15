@@ -17,13 +17,13 @@ import {
   outsideCommitContext,
   runWithDefaultCommitMessage,
 } from './commit-context.js';
-import { MissingActorError } from '../exceptions/index.js';
-import { getChildLogger } from '../utils/log-utils.js';
+import { MissingActorError } from '../shared/exceptions/index.js';
+import { getChildLogger } from '../shared/utils/log-utils.js';
 import {
   createTxRecord,
   type TxRecord,
   type WriteFrame,
-} from '../utils/tx-record.js';
+} from '../shared/utils/tx-record.js';
 
 interface LockContext {
   mode: 'read' | 'write';
