@@ -12,7 +12,7 @@
 */
 
 // Type test: checked by `tsc -p tsconfig.types.json`, never run.
-// Every façade method takes and returns only JSON-serialisable data
+// Every API method takes and returns only JSON-serialisable data
 // (Uint8Array allowed for bytes): no functions, class instances or Dates.
 // `unknown` is trusted as an untyped JSON payload (an edit's value); `any` is not.
 
@@ -60,7 +60,7 @@ type MethodKeys<F> = {
 }[keyof F];
 
 // Per method: its parameters and awaited result are serialisable.
-type FacadeSerializable<F> = {
+type ApiSerializable<F> = {
   [K in MethodKeys<F>]: F[K] extends (...args: infer P) => infer R
     ? Serializable<P> extends true
       ? Serializable<Awaited<R>>
@@ -82,7 +82,7 @@ export const rejects: [
   Serializable<any>,
 ] = [false, false, false, false];
 
-export const cards: FacadeSerializable<Cards> = {
+export const cards: ApiSerializable<Cards> = {
   move: true,
   rank: true,
   rankFirst: true,
@@ -114,8 +114,8 @@ export const cards: FacadeSerializable<Cards> = {
   logicProgram: true,
 };
 
-// hubs is a façade of its own, checked below.
-export const settings: FacadeSerializable<Settings> &
+// hubs is an API of its own, checked below.
+export const settings: ApiSerializable<Settings> &
   PropertiesSerializable<Omit<Settings, 'hubs'>> = {
   actor: true,
   identity: true,
@@ -131,7 +131,7 @@ export const settings: FacadeSerializable<Settings> &
   setGitRemoteUrl: true,
 };
 
-export const hubs: FacadeSerializable<Hubs> & PropertiesSerializable<Hubs> = {
+export const hubs: ApiSerializable<Hubs> & PropertiesSerializable<Hubs> = {
   actor: true,
   identity: true,
   add: true,
@@ -140,7 +140,7 @@ export const hubs: FacadeSerializable<Hubs> & PropertiesSerializable<Hubs> = {
 
 // subscribe is exempt: a listener is a function (remote, it is SSE); the
 // event it receives is checked instead.
-export const changes: FacadeSerializable<Omit<Changes, 'subscribe'>> &
+export const changes: ApiSerializable<Omit<Changes, 'subscribe'>> &
   PropertiesSerializable<Changes> = {
   actor: true,
   identity: true,
@@ -149,7 +149,7 @@ export const changes: FacadeSerializable<Omit<Changes, 'subscribe'>> &
 
 export const changeEvent: Serializable<ChangeEvent> = true;
 
-export const resources: FacadeSerializable<Resources> &
+export const resources: ApiSerializable<Resources> &
   PropertiesSerializable<Resources> = {
   actor: true,
   identity: true,
@@ -165,7 +165,7 @@ export const resources: FacadeSerializable<Resources> &
   skillPreview: true,
 };
 
-export const queries: FacadeSerializable<Queries> = {
+export const queries: ApiSerializable<Queries> = {
   program: true,
   runGraph: true,
   runWorkflowGraph: true,
@@ -175,15 +175,14 @@ export const queries: FacadeSerializable<Queries> = {
   runReport: true,
 };
 
-export const clean: FacadeSerializable<Clean> & PropertiesSerializable<Clean> =
-  {
-    actor: true,
-    identity: true,
-    run: true,
-    dormantSummary: true,
-  };
+export const clean: ApiSerializable<Clean> & PropertiesSerializable<Clean> = {
+  actor: true,
+  identity: true,
+  run: true,
+  dormantSummary: true,
+};
 
-export const versions: FacadeSerializable<Versions> &
+export const versions: ApiSerializable<Versions> &
   PropertiesSerializable<Versions> = {
   actor: true,
   identity: true,
@@ -191,17 +190,17 @@ export const versions: FacadeSerializable<Versions> &
   publish: true,
 };
 
-export const render: FacadeSerializable<Render> = {
+export const render: ApiSerializable<Render> = {
   macros: true,
   xrefs: true,
 };
 
-export const exports: FacadeSerializable<Export> = {
+export const exports: ApiSerializable<Export> = {
   pdf: true,
   adoc: true,
 };
 
-export const modules: FacadeSerializable<Modules> &
+export const modules: ApiSerializable<Modules> &
   PropertiesSerializable<Modules> = {
   actor: true,
   identity: true,
@@ -222,7 +221,7 @@ export const modules: FacadeSerializable<Modules> &
 };
 
 // open and replace are lifecycle: open gives a handle, replace a checkout.
-export const directory: FacadeSerializable<
+export const directory: ApiSerializable<
   Omit<ProjectDirectory, 'open' | 'replace'>
 > = {
   list: true,
@@ -232,7 +231,7 @@ export const directory: FacadeSerializable<
 };
 
 // The directory's create at a path of the caller's.
-export const creation: FacadeSerializable<{
+export const creation: ApiSerializable<{
   createProject: typeof createProject;
 }> = {
   createProject: true,
