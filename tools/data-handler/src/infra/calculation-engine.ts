@@ -33,7 +33,7 @@ import type {
   Workflow,
   ResourceName,
 } from '@cyberismo/model';
-import ClingoParser from '../shared/utils/clingo-parser.js';
+import ClingoParser from './engine/clingo-parser.js';
 
 import Handlebars from 'handlebars';
 import type { Checkout } from './checkout.js';

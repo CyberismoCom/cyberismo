@@ -20,7 +20,7 @@ import type {
 import {
   SYSTEM_ACTOR,
   type CommitIdentity,
-} from '../../src/shared/utils/tx-record.js';
+} from '../../src/infra/tx/tx-record.js';
 
 /**
  * Opens a fresh checkout at `path` and returns a handle over it. The system

@@ -41,7 +41,7 @@ import {
 import {
   createSourceLayer,
   type SourceLayer,
-} from '../../../infra/module-source/source.js';
+} from '../../../infra/modules/source.js';
 import type { Checkout } from '../../../infra/checkout.js';
 import type { Credentials, ModuleSetting, Source } from '@cyberismo/model';
 import type {
@@ -51,7 +51,7 @@ import type {
   ResolveResult,
   UpdateRequest,
 } from './types.js';
-import type { ResolvedModule } from '../../mutations/replay/module-types.js';
+import type { ResolvedModule } from '../../resources/changes/replay/module-types.js';
 
 export interface Edge {
   name: string;

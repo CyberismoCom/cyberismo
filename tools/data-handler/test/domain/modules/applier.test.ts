@@ -5,8 +5,8 @@ import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 
 import { applyModules } from '../../../src/domain/modules/applier.js';
-import type { ResolvedModule } from '../../../src/domain/mutations/replay/module-types.js';
-import { ProjectPaths } from '../../../src/infra/project-paths.js';
+import type { ResolvedModule } from '../../../src/domain/resources/changes/replay/module-types.js';
+import { ProjectPaths } from '../../../src/infra/paths/project-paths.js';
 import {
   toVersion,
   toVersionRange,
