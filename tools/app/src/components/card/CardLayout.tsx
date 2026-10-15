@@ -171,9 +171,15 @@ export const CardLayout = forwardRef<CardLayoutHandle, CardLayoutProps>(
 
     const attachmentPanel = (
       <AttachmentPanel
+        key={editingBody ? 'edit' : 'view'}
         cardKey={card.key}
         attachments={card.attachments ?? []}
-        onInsert={(attachment) => bodyRef.current?.insertAttachment(attachment)}
+        initialExpanded={editingBody && !isNarrow}
+        onInsert={
+          editingBody
+            ? (attachment) => bodyRef.current?.insertAttachment(attachment)
+            : undefined
+        }
       />
     );
 
@@ -190,6 +196,7 @@ export const CardLayout = forwardRef<CardLayoutHandle, CardLayoutProps>(
           policyChecks={card.policyChecks}
           onGoToField={onMetadataUpdate ? setFocusFieldKey : undefined}
         />
+        {attachmentPanel}
       </>
     );
 
@@ -298,6 +305,7 @@ export const CardLayout = forwardRef<CardLayoutHandle, CardLayoutProps>(
                 />
               </SidebarPanelAccordion>
             )}
+            {isNarrow && !editingBody && attachmentPanel}
             <CardBody
               key={`body-${card.key}`}
               ref={bodyRef}
