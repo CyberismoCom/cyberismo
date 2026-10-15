@@ -32,6 +32,28 @@ async function addPngAttachment(page: Page) {
   await expect(toast).toHaveCount(0);
 }
 
+// Upload cyberismo.png to the open card through the API.
+async function uploadPngViaApi(page: Page) {
+  const urlMatch = page.url().match(/\/projects\/([^/]+)\/cards\/([^/?#]+)/);
+  if (!urlMatch) {
+    throw new Error(`expected /projects/<prefix>/cards/<key>: ${page.url()}`);
+  }
+  const [, prefix, cardKey] = urlMatch;
+  const response = await page.request.post(
+    `/api/projects/${prefix}/cards/${cardKey}/attachments`,
+    {
+      multipart: {
+        files: {
+          name: 'cyberismo.png',
+          mimeType: 'image/png',
+          buffer: readFileSync('./e2e/assets/cyberismo.png'),
+        },
+      },
+    },
+  );
+  expect(response.ok()).toBeTruthy();
+}
+
 test.describe('Attachments', () => {
   test.beforeEach(async ({ page, resetProject }) => {
     await resetProject();
@@ -43,7 +65,7 @@ test.describe('Attachments', () => {
     await openRootCard(page);
 
     await page.getByTestId('contextMenuButton').click();
-    await page.getByTestId('addAttachmentButton').click();
+    await page.getByRole('menuitem', { name: t.addAttachment }).click();
 
     // Verify add attachment dialog contents
     await expect(
@@ -84,24 +106,7 @@ test.describe('Attachments', () => {
   test('removes the attachment', async ({ page }) => {
     await openRootCard(page);
 
-    const urlMatch = page.url().match(/\/projects\/([^/]+)\/cards\/([^/?#]+)/);
-    if (!urlMatch) {
-      throw new Error(`expected /projects/<prefix>/cards/<key>: ${page.url()}`);
-    }
-    const [, prefix, cardKey] = urlMatch;
-    const response = await page.request.post(
-      `/api/projects/${prefix}/cards/${cardKey}/attachments`,
-      {
-        multipart: {
-          files: {
-            name: 'cyberismo.png',
-            mimeType: 'image/png',
-            buffer: readFileSync('./e2e/assets/cyberismo.png'),
-          },
-        },
-      },
-    );
-    expect(response.ok()).toBeTruthy();
+    await uploadPngViaApi(page);
     await page.reload();
 
     // Enter inline edit mode so the AttachmentPanel is rendered
@@ -155,5 +160,43 @@ test.describe('Attachments', () => {
 
     // Both attachments ended up on the card
     await expect(page.getByTestId('attachmentCountBadge')).toHaveText('2');
+  });
+
+  test('shows attachments collapsed in the view mode sidebar', async ({
+    page,
+  }) => {
+    await openRootCard(page);
+    await uploadPngViaApi(page);
+    await page.reload();
+
+    const panel = page
+      .getByTestId('cardSidebar')
+      .getByTestId('cardAttachmentsPanel');
+    await expect(page.getByTestId('attachmentCountBadge')).toHaveText('1');
+    const toggle = panel.getByRole('button', { name: t.attachments });
+    await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+
+    await toggle.click();
+    await expect(toggle).toHaveAttribute('aria-expanded', 'true');
+    await expect(panel.locator('a[download]')).toHaveAttribute(
+      'href',
+      /cyberismo\.png$/,
+    );
+  });
+
+  test('starts collapsed when editing on a narrow screen', async ({ page }) => {
+    await page.setViewportSize({ width: 1000, height: 800 });
+    await openRootCard(page);
+    await uploadPngViaApi(page);
+    await page.reload();
+
+    await editPage(page);
+    await expect(page.locator('.cm-editor')).toBeVisible();
+    await expect(page.getByTestId('cardSidebar')).toHaveCount(0);
+    await expect(
+      page
+        .getByTestId('cardAttachmentsPanel')
+        .getByRole('button', { name: t.attachments }),
+    ).toHaveAttribute('aria-expanded', 'false');
   });
 });
