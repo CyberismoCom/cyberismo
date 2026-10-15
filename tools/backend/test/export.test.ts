@@ -1,5 +1,13 @@
 import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
-import { mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promises';
+import {
+  mkdir,
+  mkdtemp,
+  readdir,
+  readFile,
+  rm,
+  symlink,
+  writeFile,
+} from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { getCardQueryResult, reset, exportSite } from '../src/export.js';
@@ -244,6 +252,50 @@ describe('export module', () => {
         await readFile(join(card, 'a', 'games.jpg')),
       );
       expect(await readFile(join(exported, 'notes.docx'))).toEqual(docx);
+    });
+
+    // Only regular files are exported; links and folders are skipped silently.
+    test.each([
+      {
+        name: 'a symlink',
+        add: async (a: string, secret: string) => {
+          await symlink(secret, join(a, 'link.txt'));
+        },
+      },
+      {
+        name: 'a subfolder',
+        add: async (a: string) => {
+          await mkdir(join(a, 'sub'));
+          await writeFile(join(a, 'sub', 'inner.txt'), 'inner');
+        },
+      },
+    ])('skips $name in a/', async ({ add }) => {
+      const card = join(folder, 'decision-records', 'cardRoot', 'decision_5');
+      const secret = join(folder, 'secret.txt');
+      await writeFile(secret, 'secret');
+      await add(join(card, 'a'), secret);
+      const { directory: registry } = await localFolder(folder);
+
+      const { errors } = await exportSite(registry, tempDir);
+
+      expect(errors).toEqual([]);
+      expect(
+        await readdir(
+          join(tempDir, 'api/projects/decision/cards/decision_5/a'),
+        ),
+      ).toEqual(['games.jpg']);
+    });
+
+    test('names the card and file when an attachment fails to export', async () => {
+      const card = join(folder, 'decision-records', 'cardRoot', 'decision_5');
+      const { directory: registry } = await localFolder(folder);
+      // Loaded, then lost on disk: its route fails at export.
+      await rm(join(card, 'a', 'games.jpg'));
+
+      const { errors } = await exportSite(registry, tempDir);
+
+      expect(errors).toHaveLength(1);
+      expect(errors[0].errors[0]).toMatch(/^decision_5\/games\.jpg: /);
     });
   });
 });

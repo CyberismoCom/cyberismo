@@ -214,9 +214,7 @@ export async function exportSite(
           onProgress?.(done, total);
         } catch (error) {
           scopeErrors.push(
-            error instanceof Error
-              ? error.message
-              : `Could not export attachment ${attachment} of card ${key}`,
+            `${key}/${attachment}: ${error instanceof Error ? error.message : String(error)}`,
           );
         }
       }

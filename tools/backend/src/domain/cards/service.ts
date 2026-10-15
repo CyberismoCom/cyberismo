@@ -16,6 +16,8 @@ import type {
   ExportPdfOptions,
   MetadataContent,
 } from '@cyberismo/model';
+import { lstat } from 'node:fs/promises';
+import { basename, dirname, join } from 'node:path';
 import { AsciidoctorPdfError, type Workspace } from '@cyberismo/data-handler';
 import { preprocessMermaidBlocksForHtml } from './mermaid.js';
 import { allCards } from './lib.js';
@@ -258,8 +260,26 @@ export async function findRelevantAttachments(
     (await allCards(ws, options)).map((c) => c.key),
   );
   const attachments = await ws.cards.attachments();
-  return attachments
-    .filter((attachment) => cards.has(attachment.card))
+  // Only regular files directly in the card's a/ folder are exported: lstat
+  // does not follow links, so a symlink cannot pull in files from outside the
+  // card, and files of subfolders would collide under one flat name.
+  const exportable = async (attachment: (typeof attachments)[number]) => {
+    if (
+      basename(attachment.path) !== 'a' ||
+      basename(dirname(attachment.path)) !== attachment.card
+    ) {
+      return false;
+    }
+    try {
+      return (await lstat(join(attachment.path, attachment.fileName))).isFile();
+    } catch {
+      return true; // unreadable: left to fail at export, where it is reported
+    }
+  };
+  const wanted = attachments.filter((attachment) => cards.has(attachment.card));
+  const keep = await Promise.all(wanted.map(exportable));
+  return wanted
+    .filter((_, i) => keep[i])
     .map((attachment) => ({
       key: attachment.card,
       attachment: attachment.fileName,
