@@ -12,7 +12,7 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import type { Checkout } from '../../../infra/checkout.js';
+import type { Checkout } from '../../../state/checkout/checkout.js';
 import { dispatch } from './dispatcher.js';
 import type { MutationContext, MutationOrigin } from './handler.js';
 import { ConfigurationLogger } from '../../../infra/replay-log/configuration-logger.js';

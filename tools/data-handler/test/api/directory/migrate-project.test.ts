@@ -21,7 +21,7 @@ import { openProjectAt } from '../../../src/api/directory/local-folder.js';
 import { migrateProject } from '../../../src/api/directory/migrate-project.js';
 import { SYSTEM_ACTOR } from '../../../src/infra/tx/tx-record.js';
 import { folders } from './folder.js';
-import { checkoutOf } from '../../../src/infra/internal.js';
+import { checkoutOf } from '../../../src/state/checkout/internal.js';
 
 const folder = folders();
 

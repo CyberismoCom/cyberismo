@@ -27,7 +27,7 @@ import { CardNotFoundError } from '../../../src/shared/exceptions/index.js';
 import type { TemplateResource } from '../../../src/domain/resources/template-resource.js';
 import { instantiateTemplate } from '../../../src/domain/cards/instantiate.js';
 import { findCard } from '../../../src/domain/cards/read.js';
-import type { Checkout } from '../../../src/infra/checkout.js';
+import type { Checkout } from '../../../src/state/checkout/checkout.js';
 
 const baseDir = import.meta.dirname;
 const testDir = join(baseDir, 'tmp-template-create-cards-tests');

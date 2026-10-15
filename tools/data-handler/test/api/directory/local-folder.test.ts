@@ -42,7 +42,7 @@ import {
   OFFLINE_EGRESS_PROXY,
 } from '../../helpers/project-snapshot.js';
 import { folders } from './folder.js';
-import { checkoutOf } from '../../../src/infra/internal.js';
+import { checkoutOf } from '../../../src/state/checkout/internal.js';
 
 const folder = folders();
 

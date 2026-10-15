@@ -9,16 +9,16 @@ import {
 } from 'node:fs';
 import { basename, join, resolve, sep } from 'node:path';
 
-import { copyDir } from '../../src/shared/utils/file-utils.js';
+import { copyDir } from '../../../src/shared/utils/file-utils.js';
 import { CardLocation } from '@cyberismo/model';
 
-import { buildCardHierarchy } from '../../src/shared/utils/card-utils.js';
-import { Checkout } from '../../src/infra/checkout.js';
-import { ProjectConfiguration } from '../../src/infra/project-settings.js';
-import { getTestProject } from '../helpers/test-utils.js';
-import { CardNotFoundError } from '../../src/shared/exceptions/index.js';
-import { updateCardMetadataKey } from '../../src/domain/cards/update.js';
-import { removeCardAttachment } from '../../src/domain/cards/attachments.js';
+import { buildCardHierarchy } from '../../../src/shared/utils/card-utils.js';
+import { Checkout } from '../../../src/state/checkout/checkout.js';
+import { ProjectConfiguration } from '../../../src/state/checkout/project-settings.js';
+import { getTestProject } from '../../helpers/test-utils.js';
+import { CardNotFoundError } from '../../../src/shared/exceptions/index.js';
+import { updateCardMetadataKey } from '../../../src/domain/cards/update.js';
+import { removeCardAttachment } from '../../../src/domain/cards/attachments.js';
 import {
   allTemplateCards as readAllTemplateCards,
   cardsByKeys,
@@ -27,7 +27,7 @@ import {
   hasCard,
   listCardIds,
   listCards,
-} from '../../src/domain/cards/read.js';
+} from '../../../src/domain/cards/read.js';
 
 describe('project', () => {
   // Create test artifacts in a temp folder.

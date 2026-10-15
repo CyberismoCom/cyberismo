@@ -11,7 +11,7 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import type { Checkout } from '../../infra/checkout.js';
+import type { Checkout } from '../../state/checkout/checkout.js';
 import type { Mode } from '../../shared/interfaces/macros.js';
 import { moduleNameFromCardKey } from '../../shared/utils/card-utils.js';
 import { cardNode } from '../cards/read.js';

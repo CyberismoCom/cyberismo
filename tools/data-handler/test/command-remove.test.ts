@@ -12,7 +12,7 @@ import { copyDir } from '../src/shared/utils/file-utils.js';
 import {
   MODULE_LIST_FULL_PATH,
   type ModuleListFile,
-} from '../src/infra/hub-store.js';
+} from '../src/state/checkout/hub-store.js';
 import { getTestBaseDir, getTestProject } from './helpers/test-utils.js';
 import { makeFakeModuleFixture } from './helpers/module-fixtures.js';
 
@@ -20,7 +20,7 @@ import type * as Undici from 'undici';
 
 // Hub requests go out through egressFetch, which uses undici's fetch rather
 import { findCard } from '../src/domain/cards/read.js';
-import { checkoutOf } from '../src/infra/internal.js';
+import { checkoutOf } from '../src/state/checkout/internal.js';
 
 // than the global one, so the stub belongs here.
 const undiciFetch = vi.hoisted(() => vi.fn());

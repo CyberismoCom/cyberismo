@@ -18,7 +18,7 @@ import { join, relative } from 'node:path';
 
 import { installedModulesWithSources } from './inventory.js';
 
-import type { Checkout } from '../../infra/checkout.js';
+import type { Checkout } from '../../state/checkout/checkout.js';
 
 /**
  * What a module operation's network work is based on: the prefix, the

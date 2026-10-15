@@ -21,10 +21,10 @@ import type {
   ModuleSetting,
   ProjectSettings,
 } from '@cyberismo/model';
-import { canonicalHubLocation } from './modules/hub-utils.js';
-import { getChildLogger } from '../shared/utils/log-utils.js';
-import { readCardsConfigSync } from './paths/cards-config.js';
-import { Validate } from '../domain/validation/validate.js';
+import { canonicalHubLocation } from '../../infra/modules/hub-utils.js';
+import { getChildLogger } from '../../shared/utils/log-utils.js';
+import { readCardsConfigSync } from '../../infra/paths/cards-config.js';
+import { Validate } from '../../domain/validation/validate.js';
 import { SCHEMA_VERSION } from '@cyberismo/migrations';
 
 /**

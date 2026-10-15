@@ -11,8 +11,8 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { type Checkout } from '../../infra/checkout.js';
-import { checkoutOf } from '../../infra/internal.js';
+import { type Checkout } from '../../state/checkout/checkout.js';
+import { checkoutOf } from '../../state/checkout/internal.js';
 import type { Workspace } from '../workspace/workspace.js';
 import { renameProjectPrefix } from './prefix-rename.js';
 import { write } from '../../infra/tx/rw-lock.js';

@@ -16,12 +16,12 @@ import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 
 import { copyDir } from '../../../src/shared/utils/file-utils.js';
 import { type Workspace } from '../../../src/api/workspace/workspace.js';
-import { createCardFacts } from '../../../src/shared/utils/clingo-facts.js';
+import { createCardFacts } from '../../../src/state/engine/clingo-facts.js';
 import { resourceName } from '../../../src/shared/utils/resource-utils.js';
 import type { Card, CardType } from '@cyberismo/model';
 import { openTestWorkspace } from '../../helpers/open-test-workspace.js';
 import { findCard } from '../../../src/domain/cards/read.js';
-import { checkoutOf } from '../../../src/infra/internal.js';
+import { checkoutOf } from '../../../src/state/checkout/internal.js';
 
 const FIELD = 'decision/fieldTypes/obsoletedBy';
 const RESPONSIBLE_FIELD = 'decision/fieldTypes/responsible';

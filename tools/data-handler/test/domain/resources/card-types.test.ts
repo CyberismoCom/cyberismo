@@ -23,7 +23,7 @@ import {
   spec,
 } from './fixture.js';
 import { Validate } from '../../../src/domain/validation/validate.js';
-import { checkoutOf } from '../../../src/infra/internal.js';
+import { checkoutOf } from '../../../src/state/checkout/internal.js';
 
 const open = projects();
 
