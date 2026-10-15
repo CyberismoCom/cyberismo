@@ -20,10 +20,10 @@ import {
   writeFile,
 } from 'node:fs/promises';
 
-import type { Checkout } from '../../infra/checkout.js';
+import type { Checkout } from '../../state/checkout/checkout.js';
 import type { Card } from '@cyberismo/model';
 import { resourceName } from '../../shared/utils/resource-utils.js';
-import { ResourcesFrom } from '../../infra/resources-from.js';
+import { ResourcesFrom } from '../../state/resources/resources-from.js';
 import { renameCardAttachment } from '../../domain/cards/attachments.js';
 import { updateCardMetadata as saveCardMetadata } from '../../domain/cards/update.js';
 

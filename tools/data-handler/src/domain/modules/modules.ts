@@ -33,7 +33,7 @@ import {
   Fetch,
   MODULE_LIST_FULL_PATH,
   type ModuleListFile,
-} from '../../infra/hub-store.js';
+} from '../../state/checkout/hub-store.js';
 
 import {
   applyModules,
@@ -91,7 +91,7 @@ import type {
   UpdatePlan,
   UpdateTarget,
 } from '@cyberismo/model';
-import type { Checkout } from '../../infra/checkout.js';
+import type { Checkout } from '../../state/checkout/checkout.js';
 import type { CommitIdentity } from '../../infra/tx/tx-record.js';
 import type { ResolveConflict } from './resolve/types.js';
 import type { ResolvedModule } from '../resources/changes/replay/module-types.js';

@@ -5,7 +5,7 @@ import { mkdirSync, rmSync } from 'node:fs';
 
 import type { CardType } from '@cyberismo/model';
 import { copyDir } from '../src/shared/utils/file-utils.js';
-import type { Checkout } from '../src/infra/checkout.js';
+import type { Checkout } from '../src/state/checkout/checkout.js';
 import type { Changes } from '../src/api/workspace/changes.js';
 import { getTestProject } from './helpers/test-utils.js';
 import { resourceName } from '../src/shared/utils/resource-utils.js';

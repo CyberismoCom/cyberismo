@@ -14,7 +14,7 @@
 import semver from 'semver';
 import type { ActorRef, PublishResult, VersionBump } from '@cyberismo/model';
 import { Validate } from '../validation/validate.js';
-import type { Checkout } from '../../infra/checkout.js';
+import type { Checkout } from '../../state/checkout/checkout.js';
 import type { ConfigurationLogEntry } from '../../infra/replay-log/configuration-logger.js';
 import {
   ConfigurationLogger,

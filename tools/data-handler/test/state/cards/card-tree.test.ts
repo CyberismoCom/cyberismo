@@ -27,28 +27,28 @@ import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { join, sep } from 'node:path';
 
-import { copyDir } from '../../src/shared/utils/file-utils.js';
-import { CardKeyRegistry } from '../../src/infra/card-keys.js';
-import { CardTree } from '../../src/infra/card-tree.js';
-import type { NewCard } from '../../src/infra/card-tree.js';
+import { copyDir } from '../../../src/shared/utils/file-utils.js';
+import { CardKeyRegistry } from '../../../src/state/cards/card-keys.js';
+import { CardTree } from '../../../src/state/cards/card-tree.js';
+import type { NewCard } from '../../../src/state/cards/card-tree.js';
 import type { Card, CardMetadata } from '@cyberismo/model';
-import { type Workspace } from '../../src/api/workspace/workspace.js';
-import { ROOT } from '../../src/shared/utils/constants.js';
+import { type Workspace } from '../../../src/api/workspace/workspace.js';
+import { ROOT } from '../../../src/shared/utils/constants.js';
 import {
   CardNotFoundError,
   CycleError,
   DuplicateCardKeyError,
   ReadOnlyContainerError,
-} from '../../src/shared/exceptions/index.js';
-import { getTestProject } from '../helpers/test-utils.js';
+} from '../../../src/shared/exceptions/index.js';
+import { getTestProject } from '../../helpers/test-utils.js';
 import {
   allTemplateCards as readAllTemplateCards,
   findCard,
   hasCard,
-} from '../../src/domain/cards/read.js';
-import { resourceName } from '../../src/shared/utils/resource-utils.js';
-import { checkoutOf } from '../../src/infra/internal.js';
-import { openTestWorkspace } from '../helpers/open-test-workspace.js';
+} from '../../../src/domain/cards/read.js';
+import { resourceName } from '../../../src/shared/utils/resource-utils.js';
+import { checkoutOf } from '../../../src/state/checkout/internal.js';
+import { openTestWorkspace } from '../../helpers/open-test-workspace.js';
 
 const baseDir = import.meta.dirname;
 const testDir = join(baseDir, 'tmp-card-tree-tests');

@@ -4,7 +4,7 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
 import { copyDir } from '../../../../../src/shared/utils/file-utils.js';
-import type { Checkout } from '../../../../../src/infra/checkout.js';
+import type { Checkout } from '../../../../../src/state/checkout/checkout.js';
 import { getTestProject } from '../../../../helpers/test-utils.js';
 import { resourceName } from '../../../../../src/shared/utils/resource-utils.js';
 import { Workspace } from '../../../../../src/api/workspace/workspace.js';

@@ -13,7 +13,7 @@
 
 import { CardMetadataUpdater } from './card-metadata-updater.js';
 import { getChildLogger } from '../../shared/utils/log-utils.js';
-import type { Checkout } from '../../infra/checkout.js';
+import type { Checkout } from '../../state/checkout/checkout.js';
 import type { ExecuteTransition, UpdateField } from '@cyberismo/model';
 
 const logger = getChildLogger({ module: 'sideEffects' });

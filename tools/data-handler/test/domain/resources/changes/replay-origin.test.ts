@@ -4,7 +4,7 @@ import { dispatch } from '../../../../src/domain/resources/changes/dispatcher.js
 import type { MutationInput } from '@cyberismo/model';
 import { ConfigurationLogger } from '../../../../src/infra/replay-log/configuration-logger.js';
 import { resourceName } from '../../../../src/shared/utils/resource-utils.js';
-import type { Checkout } from '../../../../src/infra/checkout.js';
+import type { Checkout } from '../../../../src/state/checkout/checkout.js';
 
 describe('ResourceMutations replay origin', () => {
   afterEach(() => {

@@ -23,7 +23,7 @@ import { resourceName } from '../../../src/shared/utils/resource-utils.js';
 import { openTestWorkspace } from '../../helpers/open-test-workspace.js';
 import { mockEnsureModuleListUpToDate } from '../../helpers/test-utils.js';
 import { renameProject } from '../../../src/api/directory/rename-project.js';
-import { checkoutOf } from '../../../src/infra/internal.js';
+import { checkoutOf } from '../../../src/state/checkout/internal.js';
 
 const testData = join(import.meta.dirname, '../../test-data/valid');
 const writer: ActorRef = { kind: 'user', id: 'writer', name: 'Writer' };
