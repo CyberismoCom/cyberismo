@@ -30,11 +30,8 @@ import {
 import {
   configuredFolders,
   isProjectFolder,
-} from '../../infra/project-folders.js';
-import {
-  SYSTEM_ACTOR,
-  type CommitIdentity,
-} from '../../shared/utils/tx-record.js';
+} from '../../infra/paths/project-folders.js';
+import { SYSTEM_ACTOR, type CommitIdentity } from '../../infra/tx/tx-record.js';
 import { Workspace, type WorkspaceOptions } from '../workspace/workspace.js';
 import { createAndOpen } from './create-project.js';
 import type { ProjectDirectory } from './project-directory.js';

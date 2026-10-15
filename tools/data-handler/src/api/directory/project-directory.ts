@@ -19,7 +19,7 @@ import type {
   CreateProjectResult,
   ProjectSummary,
 } from '@cyberismo/model';
-import type { CommitIdentity } from '../../shared/utils/tx-record.js';
+import type { CommitIdentity } from '../../infra/tx/tx-record.js';
 import type { Workspace } from '../workspace/workspace.js';
 
 /**

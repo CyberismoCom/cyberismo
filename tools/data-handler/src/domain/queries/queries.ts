@@ -27,8 +27,8 @@ import { DHValidationError } from '../../shared/exceptions/index.js';
 import ReportMacro from '../macros/report/index.js';
 import TaskQueue from '../macros/task-queue.js';
 import { evaluateMacros } from '../macros/index.js';
-import { registerClingoHelpers } from '../../shared/utils/handlebars-helpers.js';
-import { read } from '../../infra/rw-lock.js';
+import { registerClingoHelpers } from './handlebars-helpers.js';
+import { read } from '../../infra/tx/rw-lock.js';
 
 const workflowGraphHandlebars = Handlebars.create();
 registerClingoHelpers(workflowGraphHandlebars);

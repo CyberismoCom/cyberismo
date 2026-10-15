@@ -17,7 +17,7 @@ import { join } from 'node:path';
 import { promisify } from 'node:util';
 import { describe, expect, it } from 'vitest';
 
-import { expectRefused, metadataOf, projects } from '../cards/fixture.js';
+import { expectRefused, metadataOf, projects } from './fixture.js';
 
 const open = projects();
 

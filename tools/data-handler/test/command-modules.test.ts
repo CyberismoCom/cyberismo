@@ -11,8 +11,8 @@ import {
 import { join, resolve as pathResolve } from 'node:path';
 import { copyDir } from '../src/shared/utils/file-utils.js';
 import { createProject } from '../src/api/directory/create-project.js';
-import { SYSTEM_ACTOR } from '../src/shared/utils/tx-record.js';
-import { GitManager } from '../src/infra/git-manager.js';
+import { SYSTEM_ACTOR } from '../src/infra/tx/tx-record.js';
+import { GitManager } from '../src/infra/git/git-manager.js';
 import {
   makeFakeModuleFixture,
   rewriteFakeModuleFixture,

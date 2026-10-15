@@ -23,13 +23,13 @@ import type {
   CreateProjectResult,
   ProjectFile,
 } from '@cyberismo/model';
-import { Validate } from '../../domain/commands/validate.js';
+import { Validate } from '../../domain/validation/validate.js';
 import { Checkout, type OpenOptions } from '../../infra/checkout.js';
 import { errorFunction } from '../../shared/utils/error-utils.js';
 import { isValidFolderName } from '../../shared/utils/file-utils.js';
-import { GitManager } from '../../infra/git-manager.js';
+import { GitManager } from '../../infra/git/git-manager.js';
 import { writeJsonFile } from '../../shared/utils/json.js';
-import type { CommitIdentity } from '../../shared/utils/tx-record.js';
+import type { CommitIdentity } from '../../infra/tx/tx-record.js';
 import { Workspace } from '../workspace/workspace.js';
 
 // todo: Is there a easy to way to make JSON schema into a TypeScript interface/type?

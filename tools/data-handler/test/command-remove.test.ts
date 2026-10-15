@@ -29,7 +29,7 @@ vi.mock('undici', async (importOriginal) => {
   return { ...actual, fetch: undiciFetch };
 });
 import { CardNotFoundError } from '../src/shared/exceptions/index.js';
-import { SYSTEM_ACTOR } from '../src/shared/utils/tx-record.js';
+import { SYSTEM_ACTOR } from '../src/infra/tx/tx-record.js';
 import { openTestWorkspace } from './helpers/open-test-workspace.js';
 
 // Create test artifacts in a temp folder.

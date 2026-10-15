@@ -8,7 +8,7 @@ import { resourceName } from '../src/shared/utils/resource-utils.js';
 
 import type { Operation, Skill } from '@cyberismo/model';
 import { openTestWorkspace } from './helpers/open-test-workspace.js';
-import { Validate } from '../src/domain/commands/validate.js';
+import { Validate } from '../src/domain/validation/validate.js';
 import { checkoutOf } from '../src/infra/internal.js';
 
 const baseDir = import.meta.dirname;

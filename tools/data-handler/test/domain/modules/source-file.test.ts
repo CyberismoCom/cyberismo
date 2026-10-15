@@ -4,9 +4,9 @@ import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 
-import { FileSourceLayer } from '../../../src/infra/module-source/source-file.js';
-import type { SourceLayer } from '../../../src/infra/module-source/source.js';
-import { ProjectPaths } from '../../../src/infra/project-paths.js';
+import { FileSourceLayer } from '../../../src/infra/modules/source-file.js';
+import type { SourceLayer } from '../../../src/infra/modules/source.js';
+import { ProjectPaths } from '../../../src/infra/paths/project-paths.js';
 
 /**
  * Create a project layout at `root` whose resources folder contains
