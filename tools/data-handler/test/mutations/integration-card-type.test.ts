@@ -2,13 +2,13 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { copyDir } from '../../src/utils/file-utils.js';
+import { copyDir } from '../../src/shared/utils/file-utils.js';
 import type { Checkout } from '../../src/infra/checkout.js';
 import { getTestProject } from '../helpers/test-utils.js';
 import { ConfigurationLogger } from '../../src/infra/replay-log/configuration-logger.js';
-import { resourceName } from '../../src/utils/resource-utils.js';
-import { Workspace } from '../../src/workspace/workspace.js';
-import { SYSTEM_ACTOR } from '../../src/utils/tx-record.js';
+import { resourceName } from '../../src/shared/utils/resource-utils.js';
+import { Workspace } from '../../src/api/workspace/workspace.js';
+import { SYSTEM_ACTOR } from '../../src/shared/utils/tx-record.js';
 
 const baseDir = import.meta.dirname;
 const testDir = join(baseDir, 'tmp-card-type-integration');

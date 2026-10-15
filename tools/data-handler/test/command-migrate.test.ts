@@ -18,7 +18,7 @@ import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 
 import { runMigrationChain, SCHEMA_VERSION } from '@cyberismo/migrations';
-import { migrateProject } from '../src/directory/migrate-project.js';
+import { migrateProject } from '../src/api/directory/migrate-project.js';
 
 import type * as migrations from '@cyberismo/migrations';
 

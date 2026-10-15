@@ -9,16 +9,16 @@ import {
   writeFileSync,
 } from 'node:fs';
 import { join, resolve as pathResolve } from 'node:path';
-import { copyDir } from '../src/utils/file-utils.js';
-import { createProject } from '../src/directory/create-project.js';
-import { SYSTEM_ACTOR } from '../src/utils/tx-record.js';
+import { copyDir } from '../src/shared/utils/file-utils.js';
+import { createProject } from '../src/api/directory/create-project.js';
+import { SYSTEM_ACTOR } from '../src/shared/utils/tx-record.js';
 import { GitManager } from '../src/infra/git-manager.js';
 import {
   makeFakeModuleFixture,
   rewriteFakeModuleFixture,
 } from './helpers/module-fixtures.js';
 import { mockEnsureModuleListUpToDate } from './helpers/test-utils.js';
-import { readJsonFileSync } from '../src/utils/json.js';
+import { readJsonFileSync } from '../src/shared/utils/json.js';
 import { SCHEMA_VERSION } from '@cyberismo/migrations';
 import { writeSeals } from './helpers/replay-fixtures.js';
 import { openTestWorkspace } from './helpers/open-test-workspace.js';

@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 
 import { expect, describe, it } from 'vitest';
 
-import { escapeCsvField, parseCsv } from '../../src/utils/csv.js';
+import { escapeCsvField, parseCsv } from '../../src/shared/utils/csv.js';
 
 const parseFile = (file: string) => parseCsv(readFileSync(file, 'utf-8'));
 

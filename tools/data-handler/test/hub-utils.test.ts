@@ -16,7 +16,7 @@ import { describe, expect, it } from 'vitest';
 import {
   canonicalHubLocation,
   hubModuleListUrl,
-} from '../src/utils/hub-utils.js';
+} from '../src/shared/utils/hub-utils.js';
 
 describe('canonicalHubLocation', () => {
   it.each([

@@ -13,7 +13,7 @@
 */
 
 import { describe, it, expect } from 'vitest';
-import { entryToMutationInput } from '../../../src/mutations/replay/convert.js';
+import { entryToMutationInput } from '../../../src/domain/mutations/replay/convert.js';
 import type { ConfigurationLogEntry } from '../../../src/infra/replay-log/configuration-logger.js';
 
 describe('entryToMutationInput', () => {

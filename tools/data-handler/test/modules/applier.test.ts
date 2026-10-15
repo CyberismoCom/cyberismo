@@ -4,10 +4,10 @@ import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 
-import { applyModules } from '../../src/modules/applier.js';
-import type { ResolvedModule } from '../../src/mutations/replay/module-types.js';
+import { applyModules } from '../../src/domain/modules/applier.js';
+import type { ResolvedModule } from '../../src/domain/mutations/replay/module-types.js';
 import { ProjectPaths } from '../../src/infra/project-paths.js';
-import { toVersion, toVersionRange } from '../../src/utils/version.js';
+import { toVersion, toVersionRange } from '../../src/shared/utils/version.js';
 import { makeProjectStub } from '../helpers/module-fixtures.js';
 
 /**

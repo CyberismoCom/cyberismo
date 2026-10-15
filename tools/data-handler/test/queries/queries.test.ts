@@ -13,8 +13,8 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { DHValidationError } from '../../src/exceptions/index.js';
-import { resourceName } from '../../src/utils/resource-utils.js';
+import { DHValidationError } from '../../src/shared/exceptions/index.js';
+import { resourceName } from '../../src/shared/utils/resource-utils.js';
 import { projects } from '../cards/fixture.js';
 
 const open = projects();
