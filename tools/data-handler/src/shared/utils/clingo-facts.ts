@@ -14,7 +14,7 @@ import {
   type AllowedClingoType,
   ClingoFactBuilder,
   encodeClingoValue,
-} from './clingo-fact-builder.js';
+} from '../../infra/engine/clingo-fact-builder.js';
 import type {
   CardNode,
   Context,
@@ -30,7 +30,7 @@ import type {
   TemplateMetadata,
   Workflow,
 } from '@cyberismo/model';
-import { ClingoProgramBuilder } from './clingo-program-builder.js';
+import { ClingoProgramBuilder } from '../../infra/engine/clingo-program-builder.js';
 import { isPredefinedField, ROOT } from './constants.js';
 import { getChildLogger } from './log-utils.js';
 import type { Checkout } from '../../infra/checkout.js';

@@ -22,11 +22,8 @@ import { Resources } from './resources.js';
 import { Settings } from './settings.js';
 import type { Checkout, OpenOptions } from '../../infra/checkout.js';
 import type { ActorRef } from '@cyberismo/model';
-import { runWithCommitContext } from '../../infra/commit-context.js';
-import type {
-  CommitIdentity,
-  WriteFrame,
-} from '../../shared/utils/tx-record.js';
+import { runWithCommitContext } from '../../infra/tx/commit-context.js';
+import type { CommitIdentity, WriteFrame } from '../../infra/tx/tx-record.js';
 import { setCheckout } from '../../infra/internal.js';
 
 /** How a workspace's checkout is opened. */

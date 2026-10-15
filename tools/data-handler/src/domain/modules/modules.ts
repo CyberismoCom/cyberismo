@@ -27,8 +27,8 @@ import {
 } from '../../shared/utils/file-utils.js';
 import { readJsonFile } from '../../shared/utils/json.js';
 import { getChildLogger } from '../../shared/utils/log-utils.js';
-import { read, write } from '../../infra/rw-lock.js';
-import { Validate } from '../commands/validate.js';
+import { read, write } from '../../infra/tx/rw-lock.js';
+import { Validate } from '../validation/validate.js';
 import {
   Fetch,
   MODULE_LIST_FULL_PATH,
@@ -60,7 +60,7 @@ import {
   toDeclaredRange,
   toVersionRange,
 } from './index.js';
-import { readModuleConfig } from '../../infra/cards-config.js';
+import { readModuleConfig } from '../../infra/paths/cards-config.js';
 import { moduleFingerprint } from './fingerprint.js';
 import { cleanOrphans } from './orphans.js';
 import {
@@ -70,7 +70,7 @@ import {
   ModuleValidationFailedError,
   planModuleReplays,
   type ReplayStep,
-} from '../mutations/replay/replay.js';
+} from '../resources/changes/replay/replay.js';
 
 import type {
   ActorRef,
@@ -92,10 +92,10 @@ import type {
   UpdateTarget,
 } from '@cyberismo/model';
 import type { Checkout } from '../../infra/checkout.js';
-import type { CommitIdentity } from '../../shared/utils/tx-record.js';
+import type { CommitIdentity } from '../../infra/tx/tx-record.js';
 import type { ResolveConflict } from './resolve/types.js';
-import type { ResolvedModule } from '../mutations/replay/module-types.js';
-import type { SourceLayer } from '../../infra/module-source/source.js';
+import type { ResolvedModule } from '../resources/changes/replay/module-types.js';
+import type { SourceLayer } from '../../infra/modules/source.js';
 import type { CheckedTarget } from './update-plan.js';
 
 /**

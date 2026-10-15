@@ -23,7 +23,7 @@ import { isGitLocation } from '../../shared/utils/location.js';
 import {
   type ModuleDeclaration,
   type ModuleInstallation,
-} from '../mutations/replay/module-types.js';
+} from '../resources/changes/replay/module-types.js';
 import {
   toVersion,
   toVersionRange,

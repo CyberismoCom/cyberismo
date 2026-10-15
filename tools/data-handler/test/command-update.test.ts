@@ -10,7 +10,7 @@ import type { Changes } from '../src/api/workspace/changes.js';
 import { getTestProject } from './helpers/test-utils.js';
 import { resourceName } from '../src/shared/utils/resource-utils.js';
 import { Workspace } from '../src/api/workspace/workspace.js';
-import { SYSTEM_ACTOR } from '../src/shared/utils/tx-record.js';
+import { SYSTEM_ACTOR } from '../src/infra/tx/tx-record.js';
 
 const baseDir = import.meta.dirname;
 const testDir = join(baseDir, 'tmp-update-tests');

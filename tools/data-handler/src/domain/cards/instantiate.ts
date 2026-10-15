@@ -13,7 +13,7 @@
 
 import { join } from 'node:path';
 
-import { Validate } from '../commands/validate.js';
+import { Validate } from '../validation/validate.js';
 import { DefaultContent } from '../resources/create-defaults.js';
 import { isValidFolderName } from '../../shared/utils/file-utils.js';
 import {

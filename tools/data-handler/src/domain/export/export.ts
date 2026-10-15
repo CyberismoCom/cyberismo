@@ -28,11 +28,11 @@ import type {
 import { evaluateMacros } from '../macros/index.js';
 import { generateReportContent } from '../queries/report.js';
 import { preprocessMermaidBlocksForPdf } from '../../shared/utils/mermaid-renderer.js';
-import { rewriteAsciidocCardXrefs } from '../../shared/utils/asciidoc-xref.js';
+import { rewriteAsciidocCardXrefs } from '../macros/asciidoc-xref.js';
 import { getStaticDirectoryPath, pdfReport } from '@cyberismo/assets';
 import { Checkout } from '../../infra/checkout.js';
 import { ROOT } from '../../shared/utils/constants.js';
-import { read } from '../../infra/rw-lock.js';
+import { read } from '../../infra/tx/rw-lock.js';
 import { sortItems } from '../../shared/utils/lexorank.js';
 import { findCard, cardsByKeys } from '../cards/read.js';
 

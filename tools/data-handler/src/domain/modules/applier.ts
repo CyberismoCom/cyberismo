@@ -16,12 +16,12 @@ import { randomBytes } from 'node:crypto';
 import { mkdir, rename } from 'node:fs/promises';
 import { join } from 'node:path';
 
-import { ProjectPaths } from '../../infra/project-paths.js';
-import { readModuleConfig } from '../../infra/cards-config.js';
+import { ProjectPaths } from '../../infra/paths/project-paths.js';
+import { readModuleConfig } from '../../infra/paths/cards-config.js';
 import { deleteDir, pathExists } from '../../shared/utils/file-utils.js';
 import { getChildLogger } from '../../shared/utils/log-utils.js';
 
-import type { ResolvedModule } from '../mutations/replay/module-types.js';
+import type { ResolvedModule } from '../resources/changes/replay/module-types.js';
 import type { ModuleSetting } from '@cyberismo/model';
 import type { Checkout } from '../../infra/checkout.js';
 

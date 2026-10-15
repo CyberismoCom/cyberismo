@@ -13,19 +13,19 @@
 
 import semver from 'semver';
 import type { ActorRef, PublishResult, VersionBump } from '@cyberismo/model';
-import { Validate } from '../commands/validate.js';
+import { Validate } from '../validation/validate.js';
 import type { Checkout } from '../../infra/checkout.js';
 import type { ConfigurationLogEntry } from '../../infra/replay-log/configuration-logger.js';
 import {
   ConfigurationLogger,
   RETIRED_OPERATIONS,
 } from '../../infra/replay-log/configuration-logger.js';
-import type { ChangeClassification } from '../mutations/registry.js';
-import { classify } from '../mutations/dispatcher.js';
-import { entryToMutationInput } from '../mutations/replay/convert.js';
-import { recordSettingsChange } from '../../infra/change-feed.js';
-import { write } from '../../infra/rw-lock.js';
-import type { CommitIdentity } from '../../shared/utils/tx-record.js';
+import type { ChangeClassification } from '../resources/changes/registry.js';
+import { classify } from '../resources/changes/dispatcher.js';
+import { entryToMutationInput } from '../resources/changes/replay/convert.js';
+import { recordSettingsChange } from '../../infra/tx/change-feed.js';
+import { write } from '../../infra/tx/rw-lock.js';
+import type { CommitIdentity } from '../../infra/tx/tx-record.js';
 import { tagVersion } from './publish.js';
 import { errorFunction } from '../../shared/utils/error-utils.js';
 
