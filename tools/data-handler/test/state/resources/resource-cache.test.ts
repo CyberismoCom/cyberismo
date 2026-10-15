@@ -3,15 +3,15 @@ import { expect, describe, it, beforeEach, afterEach } from 'vitest';
 import { join } from 'node:path';
 import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
 
-import { type Workspace } from '../../src/api/workspace/workspace.js';
-import { copyDir, pathExists } from '../../src/shared/utils/file-utils.js';
-import type { Checkout } from '../../src/infra/checkout.js';
-import { ResourceCache } from '../../src/infra/resource-cache.js';
-import { getTestProject } from '../helpers/test-utils.js';
+import { type Workspace } from '../../../src/api/workspace/workspace.js';
+import { copyDir, pathExists } from '../../../src/shared/utils/file-utils.js';
+import type { Checkout } from '../../../src/state/checkout/checkout.js';
+import { ResourceCache } from '../../../src/state/resources/resource-cache.js';
+import { getTestProject } from '../../helpers/test-utils.js';
 import { WorkflowCategory } from '@cyberismo/model';
-import { ResourcesFrom } from '../../src/infra/resources-from.js';
-import { openTestWorkspace } from '../helpers/open-test-workspace.js';
-import { checkoutOf } from '../../src/infra/internal.js';
+import { ResourcesFrom } from '../../../src/state/resources/resources-from.js';
+import { openTestWorkspace } from '../../helpers/open-test-workspace.js';
+import { checkoutOf } from '../../../src/state/checkout/internal.js';
 
 describe('Resource cache', () => {
   const baseDir = import.meta.dirname;

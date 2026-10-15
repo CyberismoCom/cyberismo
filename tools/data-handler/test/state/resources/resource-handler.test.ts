@@ -3,11 +3,11 @@ import { expect, describe, it, beforeAll, afterAll } from 'vitest';
 import { join } from 'node:path';
 import { mkdirSync, rmSync } from 'node:fs';
 
-import { copyDir } from '../../src/shared/utils/file-utils.js';
-import { getTestProject } from '../helpers/test-utils.js';
-import type { Checkout } from '../../src/infra/checkout.js';
-import { ResourceHandler } from '../../src/infra/resource-handler.js';
-import { ResourcesFrom } from '../../src/infra/resources-from.js';
+import { copyDir } from '../../../src/shared/utils/file-utils.js';
+import { getTestProject } from '../../helpers/test-utils.js';
+import type { Checkout } from '../../../src/state/checkout/checkout.js';
+import { ResourceHandler } from '../../../src/state/resources/resource-handler.js';
+import { ResourcesFrom } from '../../../src/state/resources/resources-from.js';
 
 describe('ResourceHandler', () => {
   const baseDir = import.meta.dirname;

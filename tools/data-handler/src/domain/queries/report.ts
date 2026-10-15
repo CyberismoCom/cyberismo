@@ -10,7 +10,7 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 import Handlebars from 'handlebars';
-import type { CalculationEngine } from '../../infra/calculation-engine.js';
+import type { CalculationEngine } from '../../state/engine/calculation-engine.js';
 import { registerEmptyMacros } from '../macros/index.js';
 import type { Context } from '@cyberismo/model';
 import {

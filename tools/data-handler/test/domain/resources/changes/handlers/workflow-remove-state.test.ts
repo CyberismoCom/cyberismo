@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
-import { Checkout } from '../../../../../src/infra/checkout.js';
+import { Checkout } from '../../../../../src/state/checkout/checkout.js';
 import { resourceName } from '../../../../../src/shared/utils/resource-utils.js';
 import { copyDir } from '../../../../../src/shared/utils/file-utils.js';
 import { ResourceMutations } from '../../../../../src/domain/resources/changes/resource-mutations.js';

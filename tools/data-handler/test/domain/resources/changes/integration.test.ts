@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { join } from 'node:path';
 
-import type { Checkout } from '../../../../src/infra/checkout.js';
+import type { Checkout } from '../../../../src/state/checkout/checkout.js';
 import { ConfigurationLogger } from '../../../../src/infra/replay-log/configuration-logger.js';
 import { resourceName } from '../../../../src/shared/utils/resource-utils.js';
 import { deleteDir } from '../../../../src/shared/utils/file-utils.js';

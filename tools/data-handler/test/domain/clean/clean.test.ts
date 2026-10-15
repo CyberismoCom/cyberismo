@@ -21,7 +21,7 @@ import type * as CardUpdate from '../../../src/domain/cards/update.js';
 import { sortCards } from '../../../src/shared/utils/card-utils.js';
 import { openTestWorkspace } from '../../helpers/open-test-workspace.js';
 import { metadataOf, projects, snapshot } from '../cards/fixture.js';
-import { checkoutOf } from '../../../src/infra/internal.js';
+import { checkoutOf } from '../../../src/state/checkout/internal.js';
 
 // The card keys whose metadata write is to fail; see 'failedCards'.
 const failing = vi.hoisted(() => new Set<string>());

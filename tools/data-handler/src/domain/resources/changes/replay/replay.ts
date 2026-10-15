@@ -36,7 +36,7 @@ import {
 import type { ConfigurationLogEntry } from '../../../../infra/replay-log/configuration-logger.js';
 import type { ModuleInstallation, ResolvedModule } from './module-types.js';
 import type { ModuleUpdateResult, MutationInput } from '@cyberismo/model';
-import type { Checkout } from '../../../../infra/checkout.js';
+import type { Checkout } from '../../../../state/checkout/checkout.js';
 import type { SealFile } from '../../../../infra/replay-log/seal-files.js';
 
 /** A reason one module's update cannot be replayed safely. */

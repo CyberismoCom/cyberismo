@@ -5,8 +5,8 @@
 import { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { vi } from 'vitest';
-import { Checkout } from '../../src/infra/checkout.js';
-import { Fetch } from '../../src/infra/hub-store.js';
+import { Checkout } from '../../src/state/checkout/checkout.js';
+import { Fetch } from '../../src/state/checkout/hub-store.js';
 import { SCHEMA_VERSION } from '@cyberismo/migrations';
 
 /**

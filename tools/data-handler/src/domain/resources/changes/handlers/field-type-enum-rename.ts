@@ -15,7 +15,7 @@
 import type { Handler, MutationContext } from '../handler.js';
 import type { EditInput } from '../types.js';
 import { resourceNameToString } from '../../../../shared/utils/resource-utils.js';
-import { ResourcesFrom } from '../../../../infra/resources-from.js';
+import { ResourcesFrom } from '../../../../state/resources/resources-from.js';
 import type { Card, ChangeOperation, EnumDefinition } from '@cyberismo/model';
 import { updateCardMetadataKey } from '../../../cards/update.js';
 

@@ -22,7 +22,7 @@ import { readJsonFileSync } from '../src/shared/utils/json.js';
 import { SCHEMA_VERSION } from '@cyberismo/migrations';
 import { writeSeals } from './helpers/replay-fixtures.js';
 import { openTestWorkspace } from './helpers/open-test-workspace.js';
-import { checkoutOf } from '../src/infra/internal.js';
+import { checkoutOf } from '../src/state/checkout/internal.js';
 
 // Create test artifacts in a temp folder.
 const baseDir = import.meta.dirname;

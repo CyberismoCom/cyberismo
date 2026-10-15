@@ -2,13 +2,13 @@ import { expect, it, describe, beforeAll, afterAll } from 'vitest';
 
 import { join } from 'node:path';
 import { appendFileSync, mkdirSync, rmSync } from 'node:fs';
-import { copyDir } from '../../src/shared/utils/file-utils.js';
-import type { Checkout } from '../../src/infra/checkout.js';
+import { copyDir } from '../../../src/shared/utils/file-utils.js';
+import type { Checkout } from '../../../src/state/checkout/checkout.js';
 import type { QueryResult } from '@cyberismo/model';
 import Handlebars from 'handlebars';
 import { lpFiles, pdfReport } from '@cyberismo/assets';
-import { Queries } from '../../src/domain/queries/queries.js';
-import { getTestProject } from '../helpers/test-utils.js';
+import { Queries } from '../../../src/domain/queries/queries.js';
+import { getTestProject } from '../../helpers/test-utils.js';
 
 const expectedTree: QueryResult<'tree'>[] = [
   {

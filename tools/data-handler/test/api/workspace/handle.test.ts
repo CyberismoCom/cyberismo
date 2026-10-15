@@ -15,13 +15,13 @@ import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { afterEach, beforeEach, expect, it } from 'vitest';
 
-import { Checkout } from '../../../src/infra/checkout.js';
+import { Checkout } from '../../../src/state/checkout/checkout.js';
 import { Workspace } from '../../../src/api/workspace/workspace.js';
 import {
   buildProject,
   type BuiltProject,
 } from '../../helpers/project-builder.js';
-import { checkoutOf } from '../../../src/infra/internal.js';
+import { checkoutOf } from '../../../src/state/checkout/internal.js';
 
 const ann = {
   actor: { kind: 'user', id: 'ann', name: 'Ann' },
