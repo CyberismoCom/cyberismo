@@ -605,8 +605,9 @@
 .doc ol.lowergreek {
   list-style-type: lower-greek;
 }
+/* A checklist has no marker, so start the checkbox where a bullet would be */
 .doc ul.checklist {
-  padding-left: 1.75rem;
+  padding-left: calc(2rem - 1.25em);
 }
 .doc .dlist .dlist,
 .doc .dlist .olist,
