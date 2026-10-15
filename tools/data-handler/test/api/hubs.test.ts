@@ -21,7 +21,7 @@ import {
   expectRefused,
   projects,
   readJson,
-} from '../../../domain/resources/fixture.js';
+} from '../domain/resources/fixture.js';
 
 const open = projects();
 

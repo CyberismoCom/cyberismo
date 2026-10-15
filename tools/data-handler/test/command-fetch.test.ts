@@ -14,7 +14,7 @@ import { mkdirSync, rmSync } from 'node:fs';
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
 
-import { Workspace } from '../src/api/workspace/workspace.js';
+import { Workspace } from '../src/api/workspace.js';
 import { copyDir } from '../src/shared/utils/file-utils.js';
 import {
   Fetch,

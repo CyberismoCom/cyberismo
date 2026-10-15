@@ -5,11 +5,11 @@ import { expect, it, describe, beforeEach, afterEach } from 'vitest';
 import { mkdirSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { type Workspace } from '../src/api/workspace/workspace.js';
+import { type Workspace } from '../src/api/workspace.js';
 import { copyDir } from '../src/shared/utils/file-utils.js';
 import { resourceName } from '../src/shared/utils/resource-utils.js';
 import { getTestBaseDir, getTestProject } from './helpers/test-utils.js';
-import { Cards } from '../src/domain/cards/cards.js';
+import { Cards } from '../src/api/cards.js';
 import { SYSTEM_ACTOR } from '../src/infra/tx/tx-record.js';
 import { checkoutOf } from '../src/state/checkout/internal.js';
 import { CardNotFoundError } from '../src/shared/exceptions/index.js';

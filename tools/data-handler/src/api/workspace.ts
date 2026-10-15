@@ -10,21 +10,21 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Clean } from '../../domain/clean/clean.js';
-import { Export } from '../../domain/export/export.js';
-import { Modules } from '../../domain/modules/modules.js';
-import { Versions } from '../../domain/versions/version.js';
-import { Cards } from '../../domain/cards/cards.js';
-import { Render } from '../../domain/macros/render.js';
-import { Queries } from '../../domain/queries/queries.js';
+import { Clean } from './clean.js';
+import { Export } from './export.js';
+import { Modules } from './modules.js';
+import { Versions } from './versions.js';
+import { Cards } from './cards.js';
+import { Render } from './render.js';
+import { Queries } from './queries.js';
 import { Changes } from './changes.js';
 import { Resources } from './resources.js';
 import { Settings } from './settings.js';
-import type { Checkout, OpenOptions } from '../../state/checkout/checkout.js';
+import type { Checkout, OpenOptions } from '../state/checkout/checkout.js';
 import type { ActorRef } from '@cyberismo/model';
-import { runWithCommitContext } from '../../infra/tx/commit-context.js';
-import type { CommitIdentity, WriteFrame } from '../../infra/tx/tx-record.js';
-import { setCheckout } from '../../state/checkout/internal.js';
+import { runWithCommitContext } from '../infra/tx/commit-context.js';
+import type { CommitIdentity, WriteFrame } from '../infra/tx/tx-record.js';
+import { setCheckout } from '../state/checkout/internal.js';
 
 /** How a workspace's checkout is opened. */
 export type WorkspaceOptions = OpenOptions;

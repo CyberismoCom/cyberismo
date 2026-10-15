@@ -16,7 +16,7 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 import { ReadOnlyContainerError } from '../../../src/shared/exceptions/index.js';
-import type { Workspace } from '../../../src/api/workspace/workspace.js';
+import type { Workspace } from '../../../src/api/workspace.js';
 import { expectRefused, projects, readOnlyModule } from './fixture.js';
 
 const open = projects();

@@ -7,7 +7,7 @@ import type { Checkout } from '../../../../src/state/checkout/checkout.js';
 import { getTestProject } from '../../../helpers/test-utils.js';
 import { ConfigurationLogger } from '../../../../src/infra/replay-log/configuration-logger.js';
 import { resourceName } from '../../../../src/shared/utils/resource-utils.js';
-import { Workspace } from '../../../../src/api/workspace/workspace.js';
+import { Workspace } from '../../../../src/api/workspace.js';
 import { SYSTEM_ACTOR } from '../../../../src/infra/tx/tx-record.js';
 
 const baseDir = import.meta.dirname;

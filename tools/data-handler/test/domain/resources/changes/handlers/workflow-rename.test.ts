@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import { Checkout } from '../../../../../src/state/checkout/checkout.js';
 import { resourceName } from '../../../../../src/shared/utils/resource-utils.js';
 import { copyDir } from '../../../../../src/shared/utils/file-utils.js';
-import { Workspace } from '../../../../../src/api/workspace/workspace.js';
+import { Workspace } from '../../../../../src/api/workspace.js';
 import { SYSTEM_ACTOR } from '../../../../../src/infra/tx/tx-record.js';
 
 const FIXTURE_PATH = join(

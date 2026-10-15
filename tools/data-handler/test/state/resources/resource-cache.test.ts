@@ -3,7 +3,7 @@ import { expect, describe, it, beforeEach, afterEach } from 'vitest';
 import { join } from 'node:path';
 import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
 
-import { type Workspace } from '../../../src/api/workspace/workspace.js';
+import { type Workspace } from '../../../src/api/workspace.js';
 import { copyDir, pathExists } from '../../../src/shared/utils/file-utils.js';
 import type { Checkout } from '../../../src/state/checkout/checkout.js';
 import { ResourceCache } from '../../../src/state/resources/resource-cache.js';

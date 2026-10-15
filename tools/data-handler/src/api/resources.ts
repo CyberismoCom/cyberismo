@@ -23,22 +23,22 @@ import type {
   SkillLookupResult,
   SkillSummary,
 } from '@cyberismo/model';
-import { findCard } from '../../domain/cards/read.js';
-import { Validate } from '../../domain/validation/validate.js';
-import type { Checkout } from '../../state/checkout/checkout.js';
-import type { ResourceMap } from '../../state/resources/resource-cache.js';
-import { pluralResourceType } from '../../state/resources/resource-handler.js';
-import type { ResourcesFrom } from '../../state/resources/resources-from.js';
-import { createSubject } from '../../domain/resources/changes/resource-mutations.js';
+import { findCard } from '../domain/cards/index.js';
+import { Validate } from '../domain/validation/index.js';
+import type { Checkout } from '../state/checkout/checkout.js';
+import type { ResourceMap } from '../state/resources/resource-cache.js';
+import { pluralResourceType } from '../state/resources/resource-handler.js';
+import type { ResourcesFrom } from '../state/resources/resources-from.js';
+import { createSubject } from '../domain/resources/index.js';
 import {
   getSkill,
   listSkills,
   renderSkillTemplates,
-} from '../../domain/queries/skills.js';
-import { runWithDefaultCommitMessage } from '../../infra/tx/commit-context.js';
-import { resourceName } from '../../shared/utils/resource-utils.js';
-import { read, write } from '../../infra/tx/rw-lock.js';
-import type { CommitIdentity } from '../../infra/tx/tx-record.js';
+} from '../domain/queries/index.js';
+import { runWithDefaultCommitMessage } from '../infra/tx/commit-context.js';
+import { resourceName } from '../shared/utils/resource-utils.js';
+import { read, write } from '../infra/tx/rw-lock.js';
+import type { CommitIdentity } from '../infra/tx/tx-record.js';
 import type { Changes } from './changes.js';
 
 /**

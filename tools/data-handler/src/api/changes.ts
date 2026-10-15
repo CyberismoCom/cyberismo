@@ -13,10 +13,10 @@
 */
 
 import type { ActorRef, ChangeEvent, MutationInput } from '@cyberismo/model';
-import type { Checkout } from '../../state/checkout/checkout.js';
-import { ResourceMutations } from '../../domain/resources/changes/resource-mutations.js';
-import { write } from '../../infra/tx/rw-lock.js';
-import type { CommitIdentity } from '../../infra/tx/tx-record.js';
+import type { Checkout } from '../state/checkout/checkout.js';
+import { ResourceMutations } from '../domain/resources/index.js';
+import { write } from '../infra/tx/rw-lock.js';
+import type { CommitIdentity } from '../infra/tx/tx-record.js';
 
 /**
  * Resource changes of one handle. Writes through it are the handle's

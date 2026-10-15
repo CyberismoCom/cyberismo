@@ -25,16 +25,16 @@ import type {
   ExportPdfOptions,
   QueryResult,
 } from '@cyberismo/model';
-import { evaluateMacros } from '../macros/index.js';
-import { generateReportContent } from '../queries/report.js';
-import { preprocessMermaidBlocksForPdf } from '../../shared/utils/mermaid-renderer.js';
-import { rewriteAsciidocCardXrefs } from '../macros/asciidoc-xref.js';
+import { evaluateMacros } from '../domain/macros/index.js';
+import { generateReportContent } from '../domain/queries/index.js';
+import { preprocessMermaidBlocksForPdf } from '../shared/utils/mermaid-renderer.js';
+import { rewriteAsciidocCardXrefs } from '../domain/macros/index.js';
 import { getStaticDirectoryPath, pdfReport } from '@cyberismo/assets';
-import { Checkout } from '../../state/checkout/checkout.js';
-import { ROOT } from '../../shared/utils/constants.js';
-import { read } from '../../infra/tx/rw-lock.js';
-import { sortItems } from '../../shared/utils/lexorank.js';
-import { findCard, cardsByKeys } from '../cards/read.js';
+import { Checkout } from '../state/checkout/checkout.js';
+import { ROOT } from '../shared/utils/constants.js';
+import { read } from '../infra/tx/rw-lock.js';
+import { sortItems } from '../shared/utils/lexorank.js';
+import { findCard, cardsByKeys } from '../domain/cards/index.js';
 
 // The document the PDF is rendered from.
 type PdfDocument = Omit<ExportPdfOptions, 'date'> & { date?: Date };
@@ -354,7 +354,7 @@ export class Export {
     let asciiDocContent = '';
     const checkout = this.checkout;
     try {
-      const { evaluateMacros } = await import('../macros/index.js');
+      const { evaluateMacros } = await import('../domain/macros/index.js');
       asciiDocContent = await evaluateMacros(
         cardDetailsResponse.content || '',
         {

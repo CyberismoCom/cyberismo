@@ -6,7 +6,7 @@ import { readFile } from 'node:fs/promises';
 import { join, resolve as pathResolve } from 'node:path';
 
 // cyberismo
-import { Workspace } from '../src/api/workspace/workspace.js';
+import { Workspace } from '../src/api/workspace.js';
 import { createProject } from '../src/api/directory/create-project.js';
 import { copyDir } from '../src/shared/utils/file-utils.js';
 import {
