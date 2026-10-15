@@ -245,7 +245,7 @@ export async function findAllCards(
   return allCards(ws, options);
 }
 /**
- * Gets all attachments that are required for rendering the wanted cards
+ * Gets all attachments of the wanted cards, for copying into the static site
  * @param ws the command manager used for the query
  * @param options optional tree query options
  * @returns all attachments for cards returned by the tree query
@@ -259,10 +259,7 @@ export async function findRelevantAttachments(
   );
   const attachments = await ws.cards.attachments();
   return attachments
-    .filter(
-      (attachment) =>
-        cards.has(attachment.card) && attachment.mimeType?.startsWith('image/'),
-    )
+    .filter((attachment) => cards.has(attachment.card))
     .map((attachment) => ({
       key: attachment.card,
       attachment: attachment.fileName,

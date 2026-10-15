@@ -12,6 +12,7 @@
 */
 
 import fs from 'node:fs/promises';
+import { dirname, join } from 'node:path';
 
 import {
   SYSTEM_ACTOR,
@@ -28,6 +29,7 @@ import type { TreeOptions } from './types.js';
 import {
   findAllCards,
   findRelevantAttachments,
+  getAttachment,
 } from './domain/cards/service.js';
 
 export interface ExportSiteOptions extends TreeOptions {
@@ -122,10 +124,15 @@ export async function exportSite(
 
   // estimate total based on the number of cards to export across all projects
   let total = OVERHEAD_CALLS;
+  const attachmentsByPrefix = new Map<
+    string,
+    Awaited<ReturnType<typeof findRelevantAttachments>>
+  >();
   for (const prefix of prefixes) {
     const ws = await directory.open(prefix, SYSTEM_ACTOR);
     const cards = await findAllCards(ws, opts);
     const attachments = await findRelevantAttachments(ws, opts);
+    attachmentsByPrefix.set(prefix, attachments);
     total += cards.length + attachments.length;
   }
 
@@ -183,6 +190,37 @@ export async function exportSite(
         },
       ],
     });
+    // Written directly: toSSG would append an extension derived from the
+    // Content-Type, so the files would not land under their own names.
+    if (scope !== undefined) {
+      const ws = await directory.open(scope, SYSTEM_ACTOR);
+      for (const { key, attachment } of attachmentsByPrefix.get(scope) ?? []) {
+        try {
+          const { fileBuffer } = await getAttachment(ws, key, attachment);
+          const target = join(
+            exportDir,
+            'api',
+            'projects',
+            scope,
+            'cards',
+            key,
+            'a',
+            attachment,
+          );
+          await fs.mkdir(dirname(target), { recursive: true });
+          await fs.writeFile(target, fileBuffer);
+          done++;
+          if (done > total) total = done;
+          onProgress?.(done, total);
+        } catch (error) {
+          scopeErrors.push(
+            error instanceof Error
+              ? error.message
+              : `Could not export attachment ${attachment} of card ${key}`,
+          );
+        }
+      }
+    }
     if (scopeErrors.length > 0) {
       errors.push({ prefix: scope ?? SHARED_ROUTES, errors: scopeErrors });
     }
