@@ -14,13 +14,13 @@ import { expect, it, describe, beforeAll, afterAll } from 'vitest';
 import { join } from 'node:path';
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 
-import { copyDir } from '../../src/utils/file-utils.js';
-import { type Workspace } from '../../src/workspace/workspace.js';
-import { createCardFacts } from '../../src/utils/clingo-facts.js';
-import { resourceName } from '../../src/utils/resource-utils.js';
+import { copyDir } from '../../src/shared/utils/file-utils.js';
+import { type Workspace } from '../../src/api/workspace/workspace.js';
+import { createCardFacts } from '../../src/shared/utils/clingo-facts.js';
+import { resourceName } from '../../src/shared/utils/resource-utils.js';
 import type { Card, CardType } from '@cyberismo/model';
 import { openTestWorkspace } from '../helpers/open-test-workspace.js';
-import { findCard } from '../../src/cards/read.js';
+import { findCard } from '../../src/domain/cards/read.js';
 import { checkoutOf } from '../../src/infra/internal.js';
 
 const FIELD = 'decision/fieldTypes/obsoletedBy';

@@ -9,13 +9,13 @@ import {
 } from 'node:fs';
 import { join, relative } from 'node:path';
 
-import { copyDir } from '../../../src/utils/file-utils.js';
+import { copyDir } from '../../../src/shared/utils/file-utils.js';
 import { getTestProject } from '../../helpers/test-utils.js';
 import {
   ModuleReplayFailedError,
   executeModuleReplays,
   planModuleReplays,
-} from '../../../src/mutations/replay/replay.js';
+} from '../../../src/domain/mutations/replay/replay.js';
 import { formatSealFileName } from '../../../src/infra/replay-log/seal-files.js';
 import {
   installedModule,
@@ -29,8 +29,8 @@ import type {
   InstallationRef,
   ModuleInstallation,
   ResolvedModule,
-} from '../../../src/mutations/replay/module-types.js';
-import { SYSTEM_FRAME } from '../../../src/utils/tx-record.js';
+} from '../../../src/domain/mutations/replay/module-types.js';
+import { SYSTEM_FRAME } from '../../../src/shared/utils/tx-record.js';
 
 const baseDir = import.meta.dirname;
 const testDir = join(baseDir, 'tmp-replay-integration');

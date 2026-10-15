@@ -14,8 +14,8 @@
 import { describe, expect, it } from 'vitest';
 
 import { CardLocation } from '@cyberismo/model';
-import type { Workspace } from '../../src/workspace/workspace.js';
-import { CardNotFoundError } from '../../src/exceptions/index.js';
+import type { Workspace } from '../../src/api/workspace/workspace.js';
+import { CardNotFoundError } from '../../src/shared/exceptions/index.js';
 import {
   childKeys,
   expectRefused,

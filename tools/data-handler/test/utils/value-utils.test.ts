@@ -5,7 +5,7 @@ import {
   fromDate,
   fromNumber,
   fromString,
-} from '../../src/utils/value-utils.js';
+} from '../../src/shared/utils/value-utils.js';
 import type { DataType } from '@cyberismo/model';
 
 describe('data type conversions', () => {

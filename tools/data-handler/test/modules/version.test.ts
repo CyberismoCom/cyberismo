@@ -6,7 +6,7 @@ import {
   stripTagPrefix,
   validateVersionAgainstConstraints,
   versionToTag,
-} from '../../src/utils/version.js';
+} from '../../src/shared/utils/version.js';
 
 describe('modules/version', () => {
   describe('tag helpers', () => {
