@@ -162,41 +162,65 @@ test.describe('Attachments', () => {
     await expect(page.getByTestId('attachmentCountBadge')).toHaveText('2');
   });
 
-  test('shows attachments collapsed in the view mode sidebar', async ({
+  // Either side of the 1200px (lg) breakpoint.
+  const WIDE = { width: 1400, height: 800 };
+  const NARROW = { width: 1000, height: 800 };
+
+  const defaultCases = [
+    { name: 'wide view', viewport: WIDE, edit: false, expanded: false },
+    { name: 'wide edit', viewport: WIDE, edit: true, expanded: true },
+    { name: 'narrow view', viewport: NARROW, edit: false, expanded: false },
+    { name: 'narrow edit', viewport: NARROW, edit: true, expanded: false },
+  ];
+
+  for (const { name, viewport, edit, expanded } of defaultCases) {
+    test(`panel starts ${expanded ? 'expanded' : 'collapsed'}: ${name}`, async ({
+      page,
+    }) => {
+      await page.setViewportSize(viewport);
+      await openRootCard(page);
+      await uploadPngViaApi(page);
+      await page.reload();
+      if (edit) {
+        await editPage(page);
+        await expect(page.locator('.cm-editor')).toBeVisible();
+      }
+
+      const panel = page.getByTestId('cardAttachmentsPanel');
+      await expect(page.getByTestId('attachmentCountBadge')).toHaveText('1');
+      const toggle = panel.getByRole('button', { name: t.attachments });
+      await expect(toggle).toHaveAttribute('aria-expanded', String(expanded));
+
+      // Toggling works from either default.
+      await toggle.click();
+      await expect(toggle).toHaveAttribute('aria-expanded', String(!expanded));
+      if (expanded === false) {
+        await expect(panel.locator('a[download]')).toHaveAttribute(
+          'href',
+          /cyberismo\.png$/,
+        );
+      }
+    });
+  }
+
+  test('returning from edit to view collapses the panel again', async ({
     page,
   }) => {
+    await page.setViewportSize(WIDE);
     await openRootCard(page);
     await uploadPngViaApi(page);
     await page.reload();
 
-    const panel = page
-      .getByTestId('cardSidebar')
-      .getByTestId('cardAttachmentsPanel');
-    await expect(page.getByTestId('attachmentCountBadge')).toHaveText('1');
-    const toggle = panel.getByRole('button', { name: t.attachments });
-    await expect(toggle).toHaveAttribute('aria-expanded', 'false');
-
+    const toggle = page
+      .getByTestId('cardAttachmentsPanel')
+      .getByRole('button', { name: t.attachments });
     await toggle.click();
     await expect(toggle).toHaveAttribute('aria-expanded', 'true');
-    await expect(panel.locator('a[download]')).toHaveAttribute(
-      'href',
-      /cyberismo\.png$/,
-    );
-  });
-
-  test('starts collapsed when editing on a narrow screen', async ({ page }) => {
-    await page.setViewportSize({ width: 1000, height: 800 });
-    await openRootCard(page);
-    await uploadPngViaApi(page);
-    await page.reload();
 
     await editPage(page);
     await expect(page.locator('.cm-editor')).toBeVisible();
-    await expect(page.getByTestId('cardSidebar')).toHaveCount(0);
-    await expect(
-      page
-        .getByTestId('cardAttachmentsPanel')
-        .getByRole('button', { name: t.attachments }),
-    ).toHaveAttribute('aria-expanded', 'false');
+    await page.getByTestId('contentCancelButton').click();
+    await expect(page.locator('.cm-editor')).toHaveCount(0);
+    await expect(toggle).toHaveAttribute('aria-expanded', 'false');
   });
 });
