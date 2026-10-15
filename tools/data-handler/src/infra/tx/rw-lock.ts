@@ -305,7 +305,7 @@ export function read<This extends object, Args extends unknown[], Return>(
   };
 }
 
-// A façade, or a command made for a handle, carries its actor and identity.
+// An API class, or a command made for a handle, carries its actor and identity.
 function handleFrame(instance: object): WriteFrame | undefined {
   const { actor, identity } = instance as Partial<WriteFrame>;
   return actor ? { actor, identity } : undefined;
