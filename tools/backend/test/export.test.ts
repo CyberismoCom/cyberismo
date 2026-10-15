@@ -1,5 +1,5 @@
 import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
-import { mkdtemp, rm } from 'node:fs/promises';
+import { mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { getCardQueryResult, reset, exportSite } from '../src/export.js';
@@ -209,6 +209,41 @@ describe('export module', () => {
 
       expect(errors.map((e) => e.prefix)).toEqual(['decision']);
       expect(errors[0].errors.length).toBeGreaterThan(0);
+    });
+  });
+
+  describe('exportSite attachments', () => {
+    let tempDir: string;
+    let folder: string;
+
+    beforeEach(async () => {
+      tempDir = await mkdtemp(join(tmpdir(), 'cyberismo-export-test-'));
+      folder = await createTempTestFolder('decision-records', 'minimal');
+    });
+
+    afterEach(async () => {
+      await rm(tempDir, { recursive: true, force: true });
+      await rm(folder, { recursive: true, force: true });
+    });
+
+    test('writes every attachment of an exported card under its own name', async () => {
+      const card = join(folder, 'decision-records', 'cardRoot', 'decision_5');
+      const docx = Buffer.from([0x50, 0x4b, 0x03, 0x04, 0x00, 0xff]);
+      await writeFile(join(card, 'a', 'notes.docx'), docx);
+      const { directory: registry } = await localFolder(folder);
+
+      const { errors } = await exportSite(registry, tempDir);
+
+      expect(errors).toEqual([]);
+      const exported = join(
+        tempDir,
+        'api/projects/decision/cards/decision_5/a',
+      );
+      expect(await readdir(exported)).toEqual(['games.jpg', 'notes.docx']);
+      expect(await readFile(join(exported, 'games.jpg'))).toEqual(
+        await readFile(join(card, 'a', 'games.jpg')),
+      );
+      expect(await readFile(join(exported, 'notes.docx'))).toEqual(docx);
     });
   });
 });
