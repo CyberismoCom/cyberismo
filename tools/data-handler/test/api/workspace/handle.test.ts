@@ -52,13 +52,13 @@ it('shares the checkout and lock between handles; only the actor differs', () =>
   expect(checkoutOf(a).lock).toBe(checkoutOf(b).lock);
   expect([a.actor, b.actor]).toEqual([ann.actor, bob.actor]);
 
-  // Façades are the handle's own: one per handle, with its actor.
+  // APIs are the handle's own: one per handle, with its actor.
   expect(a.cards).toBe(a.cards);
   expect(a.cards).not.toBe(b.cards);
   expect([a.cards.actor, b.cards.actor]).toEqual([ann.actor, bob.actor]);
 });
 
-it('commits a façade write as the actor of its handle', async () => {
+it('commits an API write as the actor of its handle', async () => {
   const built = await buildProject({
     git: true,
     cards: [{ title: 'Parent' }, { title: 'Child' }],
