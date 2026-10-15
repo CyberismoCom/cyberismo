@@ -13,7 +13,7 @@
 
 import { type Checkout } from '../../state/checkout/checkout.js';
 import { checkoutOf } from '../../state/checkout/internal.js';
-import type { Workspace } from '../workspace/workspace.js';
+import type { Workspace } from '../workspace.js';
 import { renameProjectPrefix } from './prefix-rename.js';
 import { write } from '../../infra/tx/rw-lock.js';
 import type { CommitIdentity } from '../../infra/tx/tx-record.js';

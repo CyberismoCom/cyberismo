@@ -19,7 +19,7 @@ import {
   createHtmlPlaceholder,
   createImage,
   validateMacroContent,
-} from '../index.js';
+} from '../registry.js';
 import { sanitizeSvgBase64 } from '../../../shared/utils/sanitize-svg.js';
 import type { VegaMacroInput } from '@cyberismo/model';
 

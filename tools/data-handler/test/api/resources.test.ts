@@ -16,10 +16,10 @@ import { mkdirSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { afterEach, beforeEach, expect, it } from 'vitest';
 
-import type { Workspace } from '../../../src/api/workspace/workspace.js';
-import { copyDir } from '../../../src/shared/utils/file-utils.js';
-import { openTestWorkspace } from '../../helpers/open-test-workspace.js';
-import { getTestBaseDir } from '../../helpers/test-utils.js';
+import type { Workspace } from '../../src/api/workspace.js';
+import { copyDir } from '../../src/shared/utils/file-utils.js';
+import { openTestWorkspace } from '../helpers/open-test-workspace.js';
+import { getTestBaseDir } from '../helpers/test-utils.js';
 
 const baseDir = getTestBaseDir(import.meta.dirname, import.meta.url);
 const testDir = join(baseDir, 'tmp-workspace-resources-tests');

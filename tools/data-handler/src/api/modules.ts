@@ -20,20 +20,17 @@ import {
   redactUserinfo,
   unreachable,
   WorkspaceDisposedError,
-} from '../../shared/exceptions/index.js';
-import {
-  isValidFolderName,
-  pathExists,
-} from '../../shared/utils/file-utils.js';
-import { readJsonFile } from '../../shared/utils/json.js';
-import { getChildLogger } from '../../shared/utils/log-utils.js';
-import { read, write } from '../../infra/tx/rw-lock.js';
-import { Validate } from '../validation/validate.js';
+} from '../shared/exceptions/index.js';
+import { isValidFolderName, pathExists } from '../shared/utils/file-utils.js';
+import { readJsonFile } from '../shared/utils/json.js';
+import { getChildLogger } from '../shared/utils/log-utils.js';
+import { read, write } from '../infra/tx/rw-lock.js';
+import { Validate } from '../domain/validation/index.js';
 import {
   Fetch,
   MODULE_LIST_FULL_PATH,
   type ModuleListFile,
-} from '../../state/checkout/hub-store.js';
+} from '../state/checkout/hub-store.js';
 
 import {
   applyModules,
@@ -59,10 +56,10 @@ import {
   pickVersion,
   toDeclaredRange,
   toVersionRange,
-} from './index.js';
-import { readModuleConfig } from '../../infra/paths/cards-config.js';
-import { moduleFingerprint } from './fingerprint.js';
-import { cleanOrphans } from './orphans.js';
+} from '../domain/modules/index.js';
+import { readModuleConfig } from '../infra/paths/cards-config.js';
+import { moduleFingerprint } from '../domain/modules/index.js';
+import { cleanOrphans } from '../domain/modules/index.js';
 import {
   executeModuleReplays,
   filterStepsToApplied,
@@ -70,7 +67,7 @@ import {
   ModuleValidationFailedError,
   planModuleReplays,
   type ReplayStep,
-} from '../resources/changes/replay/replay.js';
+} from '../domain/resources/index.js';
 
 import type {
   ActorRef,
@@ -91,12 +88,12 @@ import type {
   UpdatePlan,
   UpdateTarget,
 } from '@cyberismo/model';
-import type { Checkout } from '../../state/checkout/checkout.js';
-import type { CommitIdentity } from '../../infra/tx/tx-record.js';
-import type { ResolveConflict } from './resolve/types.js';
-import type { ResolvedModule } from '../resources/changes/replay/module-types.js';
-import type { SourceLayer } from '../../infra/modules/source.js';
-import type { CheckedTarget } from './update-plan.js';
+import type { Checkout } from '../state/checkout/checkout.js';
+import type { CommitIdentity } from '../infra/tx/tx-record.js';
+import type { ResolveConflict } from '../domain/modules/index.js';
+import type { ResolvedModule } from '../domain/resources/index.js';
+import type { SourceLayer } from '../infra/modules/source.js';
+import type { CheckedTarget } from '../domain/modules/index.js';
 
 /**
  * Coerce a caller-supplied source into the canonical form used by the

@@ -26,7 +26,7 @@ import { readJson } from '../resources/fixture.js';
 import type {
   Workspace,
   WorkspaceOptions,
-} from '../../../src/api/workspace/workspace.js';
+} from '../../../src/api/workspace.js';
 import { checkoutOf } from '../../../src/state/checkout/internal.js';
 
 // A module operation fetches outside the workspace lock; these run something

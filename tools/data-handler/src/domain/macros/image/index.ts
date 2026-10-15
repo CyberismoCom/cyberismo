@@ -16,7 +16,7 @@ import { join } from 'node:path';
 
 import BaseMacro from '../base-macro.js';
 import macroMetadata from '@cyberismo/model/macros/image/metadata';
-import { validateMacroContent } from '../index.js';
+import { validateMacroContent } from '../registry.js';
 
 import type { ImageMacroOptions } from '@cyberismo/model';
 import type { MacroGenerationContext } from '../../../shared/interfaces/macros.js';

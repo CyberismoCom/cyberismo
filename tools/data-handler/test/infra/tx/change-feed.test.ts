@@ -18,7 +18,7 @@ import { join } from 'node:path';
 import { simpleGit } from 'simple-git';
 
 import type { ActorRef, ChangeEvent } from '@cyberismo/model';
-import { Workspace } from '../../../src/api/workspace/workspace.js';
+import { Workspace } from '../../../src/api/workspace.js';
 import { resourceName } from '../../../src/shared/utils/resource-utils.js';
 import { openTestWorkspace } from '../../helpers/open-test-workspace.js';
 import { mockEnsureModuleListUpToDate } from '../../helpers/test-utils.js';

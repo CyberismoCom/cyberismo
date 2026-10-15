@@ -18,13 +18,17 @@ import { describe, expect, it } from 'vitest';
 import {
   ConfigurationLogger,
   type ConfigurationOperation,
-} from '../../../src/infra/replay-log/configuration-logger.js';
-import type { Workspace } from '../../../src/api/workspace/workspace.js';
-import type { BumpType } from '../../../src/domain/versions/version.js';
-import { expectRefused, projects } from '../cards/fixture.js';
-import { commitAll, gitLog, publishedVersion } from './fixture.js';
-import { remove, rename } from '../resources/fixture.js';
-import { checkoutOf } from '../../../src/state/checkout/internal.js';
+} from '../../src/infra/replay-log/configuration-logger.js';
+import type { Workspace } from '../../src/api/workspace.js';
+import type { BumpType } from '../../src/api/versions.js';
+import { expectRefused, projects } from '../domain/cards/fixture.js';
+import {
+  commitAll,
+  gitLog,
+  publishedVersion,
+} from '../domain/versions/fixture.js';
+import { remove, rename } from '../domain/resources/fixture.js';
+import { checkoutOf } from '../../src/state/checkout/internal.js';
 
 const open = projects();
 const autocommit = { autocommit: true };

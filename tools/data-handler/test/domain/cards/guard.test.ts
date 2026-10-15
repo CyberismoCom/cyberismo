@@ -16,7 +16,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 
 import { PermissionDeniedError } from '../../../src/shared/exceptions/index.js';
 import { assertAllowed, type Action } from '../../../src/domain/cards/guard.js';
-import type { Workspace } from '../../../src/api/workspace/workspace.js';
+import type { Workspace } from '../../../src/api/workspace.js';
 import { openTestWorkspace } from '../../helpers/open-test-workspace.js';
 import {
   buildProject,

@@ -22,7 +22,7 @@ import {
   evaluateMacros,
   registerMacros,
   validateMacroContent,
-} from '../../../src/domain/macros/index.js';
+} from '../../../src/domain/macros/registry.js';
 import type { Checkout } from '../../../src/state/checkout/checkout.js';
 import TaskQueue from '../../../src/domain/macros/task-queue.js';
 

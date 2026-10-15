@@ -20,7 +20,7 @@ import type { CreateParams } from '@cyberismo/model';
 
 import { classify } from '../../../../src/domain/resources/changes/dispatcher.js';
 import { resourceName } from '../../../../src/shared/utils/resource-utils.js';
-import type { Workspace } from '../../../../src/api/workspace/workspace.js';
+import type { Workspace } from '../../../../src/api/workspace.js';
 import { openTestWorkspace } from '../../../helpers/open-test-workspace.js';
 import { checkoutOf } from '../../../../src/state/checkout/internal.js';
 
