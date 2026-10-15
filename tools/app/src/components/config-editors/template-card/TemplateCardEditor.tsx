@@ -229,6 +229,7 @@ export function TemplateCardEditor({
                   <AttachmentPanel
                     cardKey={card.key}
                     attachments={card.attachments ?? []}
+                    initialExpanded={!isNarrow}
                     onInsert={(attachment) =>
                       contentRef.current?.insertAttachment(attachment)
                     }
@@ -263,6 +264,7 @@ export function TemplateCardEditor({
                 <AttachmentPanel
                   cardKey={card.key}
                   attachments={card.attachments ?? []}
+                  initialExpanded
                   onInsert={(attachment) =>
                     contentRef.current?.insertAttachment(attachment)
                   }

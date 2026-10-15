@@ -20,7 +20,6 @@ import {
   CardOverflow,
   Grid,
   IconButton,
-  Link,
   Stack,
   Tooltip,
   Typography,
@@ -34,6 +33,9 @@ import InsertDriveFile from '@mui/icons-material/InsertDriveFile';
 
 import { useAttachments } from '@/lib/api/attachments';
 import { projectApiPaths } from '@/lib/swr';
+import { UserRole, useHasMinRole } from '@/lib/auth';
+import { LeadingSlot } from '@/components/CountBadge';
+import { SidebarPanelAccordion } from './SidebarPanelAccordion';
 import { AddAttachmentModal } from '@/components/modals';
 import type { CardAttachment } from '@cyberismo/model';
 
@@ -41,11 +43,13 @@ function AttachmentPreviewCard({
   name,
   children,
   cardKey,
+  canDelete,
   onInsert,
 }: {
   name: string;
   children?: React.ReactNode;
   cardKey: string;
+  canDelete: boolean;
   onInsert?: () => void;
 }) {
   const { removeAttachment } = useAttachments(cardKey);
@@ -72,49 +76,51 @@ function AttachmentPreviewCard({
           zIndex={1}
           sx={{ transition: 'top 0.3s' }}
         >
-          <Tooltip title={t('delete')}>
-            <IconButton
-              color="danger"
-              variant="solid"
-              loading={isUpdating}
-              sx={{ marginRight: '3px' }}
-              onClick={async () => {
-                const confirmed = confirm(t('confirmDeleteAttachment'));
-                if (confirmed) {
-                  setIsUpdating(true);
-                  await removeAttachment(name);
-                  setIsUpdating(false);
-                }
-              }}
-            >
-              <Delete />
-            </IconButton>
-          </Tooltip>
+          {canDelete && (
+            <Tooltip title={t('delete')}>
+              <IconButton
+                color="danger"
+                variant="solid"
+                loading={isUpdating}
+                sx={{ marginRight: '3px' }}
+                onClick={async () => {
+                  const confirmed = confirm(t('confirmDeleteAttachment'));
+                  if (confirmed) {
+                    setIsUpdating(true);
+                    await removeAttachment(name);
+                    setIsUpdating(false);
+                  }
+                }}
+              >
+                <Delete />
+              </IconButton>
+            </Tooltip>
+          )}
           <Tooltip title={t('saveCopy')}>
             <IconButton
+              component="a"
               variant="solid"
               color="primary"
               sx={{ marginRight: '3px' }}
+              href={apiPaths.attachment(cardKey, name)}
+              download
             >
-              <Link
-                endDecorator={<Download />}
-                href={apiPaths.attachment(cardKey, name)}
-                download
+              <Download />
+            </IconButton>
+          </Tooltip>
+          {onInsert && (
+            <Tooltip title={t('insertToContent')}>
+              <IconButton
+                data-cy="insertToContentButton"
                 variant="solid"
-              />
-            </IconButton>
-          </Tooltip>
-          <Tooltip title={t('insertToContent')}>
-            <IconButton
-              data-cy="insertToContentButton"
-              variant="solid"
-              color="primary"
-              sx={{ marginRight: '2px' }}
-              onClick={() => onInsert?.()}
-            >
-              <AddLink />
-            </IconButton>
-          </Tooltip>
+                color="primary"
+                sx={{ marginRight: '2px' }}
+                onClick={() => onInsert()}
+              >
+                <AddLink />
+              </IconButton>
+            </Tooltip>
+          )}
         </Box>
         <AspectRatio
           ratio="1"
@@ -135,114 +141,127 @@ function AttachmentPreviewCard({
 type AttachmentPanelProps = {
   cardKey: string;
   attachments: CardAttachment[];
-  onInsert: (attachment: CardAttachment) => void;
+  /** Offered only while a content editor is open. */
+  onInsert?: (attachment: CardAttachment) => void;
+  initialExpanded?: boolean;
 };
 
 export const AttachmentPanel: React.FC<AttachmentPanelProps> = ({
   cardKey,
   attachments,
   onInsert,
+  initialExpanded = false,
 }) => {
   const { t } = useTranslation();
   const [modalOpen, setModalOpen] = useState(false);
+  const [expanded, setExpanded] = useState(initialExpanded);
+  const canEdit = useHasMinRole(UserRole.Editor);
   const apiPaths = projectApiPaths();
+
+  if (attachments.length === 0 && !canEdit) return null;
 
   return (
     <>
-      <Stack spacing={1}>
-        <Stack direction="row" alignItems="center" spacing={1}>
-          <Typography
-            data-cy="attachmentCountBadge"
-            level="body-xs"
-            color="warning"
-            variant="soft"
-            width={24}
-            height={24}
-            alignContent="center"
-            borderRadius={40}
-            paddingX={1.1}
-          >
-            {attachments.length}
-          </Typography>
-          <Typography level="body-xs">
-            {attachments.length === 1 ? t('attachment') : t('attachments')}
-          </Typography>
-          <Tooltip title={t('addAttachment')}>
-            <IconButton
-              data-cy="addAttachmentButton"
-              onClick={() => setModalOpen(true)}
+      <SidebarPanelAccordion
+        expanded={expanded}
+        onToggle={() => setExpanded(!expanded)}
+        leading={
+          <LeadingSlot>
+            <Typography
+              data-cy="attachmentCountBadge"
+              level="body-xs"
+              sx={{ color: 'inherit', lineHeight: 1 }}
             >
-              <img
-                alt="Add attachment"
-                width={24}
-                height={24}
-                src="/images/attach_file_add.svg"
-              />
-            </IconButton>
-          </Tooltip>
-        </Stack>
-        <Grid container gap={1.5}>
-          {attachments.map((attachment) => (
-            <Grid
-              key={attachment.fileName}
-              display="flex"
-              justifyContent="center"
-              width={120}
-              draggable
-              onDragStart={(e) => {
-                e.dataTransfer.effectAllowed = 'copy';
-                e.dataTransfer.setData(
-                  'text/uri-list',
-                  apiPaths.attachment(cardKey, attachment.fileName),
-                );
-                const preview = e.currentTarget.querySelector<HTMLElement>(
-                  '[data-attachment-preview]',
-                );
-                if (preview) {
-                  const rect = preview.getBoundingClientRect();
-                  e.dataTransfer.setDragImage(
-                    preview,
-                    rect.width / 2,
-                    rect.height / 2,
-                  );
-                }
-              }}
-            >
-              <AttachmentPreviewCard
-                name={attachment.fileName}
-                cardKey={cardKey}
-                onInsert={() => onInsert(attachment)}
+              {attachments.length}
+            </Typography>
+          </LeadingSlot>
+        }
+        title={t('attachments')}
+        dataCy="cardAttachmentsPanel"
+      >
+        <Stack spacing={1}>
+          {canEdit && (
+            <Tooltip title={t('addAttachment')}>
+              <IconButton
+                data-cy="addAttachmentButton"
+                sx={{ alignSelf: 'flex-start' }}
+                onClick={() => setModalOpen(true)}
               >
-                <Box
-                  data-attachment-preview
-                  sx={{
-                    width: '100%',
-                    height: '100%',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}
+                <img
+                  alt="Add attachment"
+                  width={24}
+                  height={24}
+                  src="/images/attach_file_add.svg"
+                />
+              </IconButton>
+            </Tooltip>
+          )}
+          <Grid container gap={1.5}>
+            {attachments.map((attachment) => (
+              <Grid
+                key={attachment.fileName}
+                display="flex"
+                justifyContent="center"
+                width={120}
+                draggable={!!onInsert}
+                onDragStart={(e) => {
+                  e.dataTransfer.effectAllowed = 'copy';
+                  e.dataTransfer.setData(
+                    'text/uri-list',
+                    apiPaths.attachment(cardKey, attachment.fileName),
+                  );
+                  const preview = e.currentTarget.querySelector<HTMLElement>(
+                    '[data-attachment-preview]',
+                  );
+                  if (preview) {
+                    const rect = preview.getBoundingClientRect();
+                    e.dataTransfer.setDragImage(
+                      preview,
+                      rect.width / 2,
+                      rect.height / 2,
+                    );
+                  }
+                }}
+              >
+                <AttachmentPreviewCard
+                  name={attachment.fileName}
+                  cardKey={cardKey}
+                  canDelete={canEdit}
+                  onInsert={onInsert && (() => onInsert(attachment))}
                 >
-                  {attachment.mimeType?.startsWith('image') ? (
-                    <img
-                      src={apiPaths.attachment(cardKey, attachment.fileName)}
-                      alt=""
-                      draggable={false}
-                    />
-                  ) : (
-                    <InsertDriveFile />
-                  )}
-                </Box>
-              </AttachmentPreviewCard>
-            </Grid>
-          ))}
-        </Grid>
-      </Stack>
-      <AddAttachmentModal
-        open={modalOpen}
-        onClose={() => setModalOpen(false)}
-        cardKey={cardKey}
-      />
+                  <Box
+                    data-attachment-preview
+                    sx={{
+                      width: '100%',
+                      height: '100%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    {attachment.mimeType?.startsWith('image') ? (
+                      <img
+                        src={apiPaths.attachment(cardKey, attachment.fileName)}
+                        alt=""
+                        draggable={false}
+                      />
+                    ) : (
+                      <InsertDriveFile />
+                    )}
+                  </Box>
+                </AttachmentPreviewCard>
+              </Grid>
+            ))}
+          </Grid>
+        </Stack>
+      </SidebarPanelAccordion>
+      {canEdit && (
+        <AddAttachmentModal
+          open={modalOpen}
+          onClose={() => setModalOpen(false)}
+          cardKey={cardKey}
+        />
+      )}
     </>
   );
 };
