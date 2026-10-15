@@ -1,0 +1,217 @@
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
+
+import { copyDir } from '../../../src/shared/utils/file-utils.js';
+import type { Checkout } from '../../../src/infra/checkout.js';
+import { getTestProject } from '../../helpers/test-utils.js';
+import { ConfigurationLogger } from '../../../src/infra/replay-log/configuration-logger.js';
+import { resourceName } from '../../../src/shared/utils/resource-utils.js';
+import { Workspace } from '../../../src/api/workspace/workspace.js';
+import { SYSTEM_ACTOR } from '../../../src/shared/utils/tx-record.js';
+import { updateCardMetadata } from '../../../src/domain/cards/update.js';
+
+const baseDir = import.meta.dirname;
+const testDir = join(baseDir, 'tmp-field-type-integration');
+const decisionRecordsPath = join(testDir, 'valid/decision-records');
+let checkout: Checkout;
+
+describe('FieldType mutation engine end-to-end', () => {
+  beforeEach(async () => {
+    mkdirSync(testDir, { recursive: true });
+    await copyDir(join(baseDir, '..', '..', 'test-data'), testDir);
+    checkout = getTestProject(decisionRecordsPath);
+    await checkout.populateCaches();
+  });
+  afterEach(() => {
+    rmSync(testDir, { recursive: true, force: true });
+  });
+
+  it('apply → log entry for a FieldType delete (unused field)', async () => {
+    const name = `${checkout.projectPrefix}/fieldTypes/unusedField`;
+    await checkout.resources
+      .byType(name, 'fieldTypes')
+      .createFieldType('shortText');
+    await Workspace.over(checkout, SYSTEM_ACTOR).changes.apply({
+      kind: 'delete',
+      target: resourceName(name),
+    });
+
+    expect(checkout.resources.exists(name)).toBe(false);
+    const entries = await ConfigurationLogger.entries(checkout.basePath);
+    expect(
+      entries.some(
+        (e) => e.operation === 'resource_delete' && e.target === name,
+      ),
+    ).toBe(true);
+  });
+
+  it('apply → log entry for a FieldType rename (unused field)', async () => {
+    // Renaming a field still referenced by a card type is rejected, so rename
+    // an unused field.
+    const name = `${checkout.projectPrefix}/fieldTypes/spare`;
+    await checkout.resources
+      .byType(name, 'fieldTypes')
+      .createFieldType('shortText');
+    const target = resourceName(name);
+    await Workspace.over(checkout, SYSTEM_ACTOR).changes.apply({
+      kind: 'rename',
+      target,
+      newIdentifier: 'spareRenamed',
+    });
+
+    const entries = await ConfigurationLogger.entries(checkout.basePath);
+    expect(
+      entries.some(
+        (e) => e.operation === 'resource_rename' && e.target === name,
+      ),
+    ).toBe(true);
+  });
+
+  it('apply → log entry for a FieldType dataType change', async () => {
+    const target = resourceName(
+      `${checkout.projectPrefix}/fieldTypes/finished`,
+    );
+    await Workspace.over(checkout, SYSTEM_ACTOR).changes.apply({
+      kind: 'edit',
+      target,
+      updateKey: { key: 'dataType' },
+      operation: { name: 'change', target: 'boolean', to: 'shortText' },
+    });
+
+    const entries = await ConfigurationLogger.entries(checkout.basePath);
+    expect(
+      entries.some(
+        (e) =>
+          e.operation === 'resource_update' &&
+          e.target === `${checkout.projectPrefix}/fieldTypes/finished`,
+      ),
+    ).toBe(true);
+  });
+
+  it('apply → in-use FieldType delete cascades and logs', async () => {
+    // 'finished' is referenced by the decision card type's customFields.
+    const name = `${checkout.projectPrefix}/fieldTypes/finished`;
+    const cardTypeName = `${checkout.projectPrefix}/cardTypes/decision`;
+    await Workspace.over(checkout, SYSTEM_ACTOR).changes.apply({
+      kind: 'delete',
+      target: resourceName(name),
+    });
+
+    expect(checkout.resources.exists(name)).toBe(false);
+    expect(
+      checkout.resources
+        .byType(cardTypeName, 'cardTypes')
+        .data?.customFields?.some((f) => f.name === name),
+    ).toBe(false);
+    const entries = await ConfigurationLogger.entries(checkout.basePath);
+    expect(
+      entries.some(
+        (e) => e.operation === 'resource_delete' && e.target === name,
+      ),
+    ).toBe(true);
+  });
+
+  it('apply → enum rename-member migrates cards and logs', async () => {
+    const enumFieldPath = join(
+      decisionRecordsPath,
+      '.cards',
+      'local',
+      'fieldTypes',
+      'testEnum.json',
+    );
+    writeFileSync(
+      enumFieldPath,
+      JSON.stringify({
+        name: 'decision/fieldTypes/testEnum',
+        displayName: 'Test Enum',
+        dataType: 'enum',
+        enumValues: [{ enumValue: 'low' }, { enumValue: 'high' }],
+      }),
+    );
+    const freshProject = getTestProject(decisionRecordsPath);
+    await freshProject.populateCaches();
+
+    // Register the field on the decision card type and set 'low' on its cards.
+    const fieldName = `${freshProject.projectPrefix}/fieldTypes/testEnum`;
+    const cardTypeName = `${freshProject.projectPrefix}/cardTypes/decision`;
+    await freshProject.resources
+      .byType(cardTypeName, 'cardTypes')
+      .update(
+        { key: 'customFields' },
+        { name: 'add', target: { name: fieldName } },
+      );
+    for (const card of freshProject.cardTree
+      .cards()
+      .filter((c) => c.metadata?.cardType === cardTypeName)) {
+      card.metadata![fieldName] = 'low';
+      await updateCardMetadata(freshProject, card, card.metadata!);
+    }
+    await Workspace.over(freshProject, SYSTEM_ACTOR).changes.apply({
+      kind: 'edit',
+      target: resourceName(fieldName),
+      updateKey: { key: 'enumValues' },
+      operation: {
+        name: 'change',
+        target: { enumValue: 'low' },
+        to: { enumValue: 'minor' },
+      },
+    });
+
+    // Cards migrated to the new value.
+    const anyStillLow = freshProject.cardTree
+      .cards()
+      .some((c) => c.metadata?.[fieldName] === 'low');
+    expect(anyStillLow).toBe(false);
+
+    // The edit records a log entry.
+    const entries = await ConfigurationLogger.entries(freshProject.basePath);
+    expect(
+      entries.some(
+        (e) => e.operation === 'resource_update' && e.target === fieldName,
+      ),
+    ).toBe(true);
+  });
+
+  it('adding an enum value records no log entry', async () => {
+    const enumFieldPath = join(
+      decisionRecordsPath,
+      '.cards',
+      'local',
+      'fieldTypes',
+      'testEnum.json',
+    );
+    writeFileSync(
+      enumFieldPath,
+      JSON.stringify({
+        name: 'decision/fieldTypes/testEnum',
+        displayName: 'Test Enum',
+        dataType: 'enum',
+        enumValues: [{ enumValue: 'low' }, { enumValue: 'high' }],
+      }),
+    );
+    const freshProject = getTestProject(decisionRecordsPath);
+    await freshProject.populateCaches();
+    await Workspace.over(freshProject, SYSTEM_ACTOR).changes.apply({
+      kind: 'edit',
+      target: resourceName(`${freshProject.projectPrefix}/fieldTypes/testEnum`),
+      updateKey: { key: 'enumValues' },
+      operation: { name: 'add', target: { enumValue: 'medium' } },
+    });
+
+    const entries = await ConfigurationLogger.entries(freshProject.basePath);
+    expect(entries).toHaveLength(0);
+  });
+
+  it('display-only changes route to the plain handler (no log entry)', async () => {
+    await Workspace.over(checkout, SYSTEM_ACTOR).changes.apply({
+      kind: 'edit',
+      target: resourceName(`${checkout.projectPrefix}/fieldTypes/finished`),
+      updateKey: { key: 'displayName' },
+      operation: { name: 'change', target: 'Finished', to: 'Done' },
+    });
+
+    const entries = await ConfigurationLogger.entries(checkout.basePath);
+    expect(entries).toHaveLength(0);
+  });
+});
