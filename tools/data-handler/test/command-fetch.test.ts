@@ -16,12 +16,15 @@ import { join } from 'node:path';
 
 import { Workspace } from '../src/api/workspace/workspace.js';
 import { copyDir } from '../src/shared/utils/file-utils.js';
-import { Fetch, MODULE_LIST_FULL_PATH } from '../src/infra/hub-store.js';
-import { Checkout } from '../src/infra/checkout.js';
+import {
+  Fetch,
+  MODULE_LIST_FULL_PATH,
+} from '../src/infra/modules/hub-store.js';
+import { Checkout } from '../src/infra/checkout/checkout.js';
 
 import type { HubSetting } from '@cyberismo/model';
 import type * as Undici from 'undici';
-import { SYSTEM_ACTOR } from '../src/shared/utils/tx-record.js';
+import { SYSTEM_ACTOR } from '../src/infra/tx/tx-record.js';
 
 // Hub requests go out through egressFetch, which uses undici's fetch rather
 // than the global one, so the stub belongs here.

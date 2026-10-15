@@ -16,9 +16,9 @@ import { join } from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { localFolder } from '../../../src/api/directory/local-folder.js';
-import { Fetch } from '../../../src/infra/hub-store.js';
-import { FileSourceLayer } from '../../../src/infra/module-source/source-file.js';
-import { SYSTEM_ACTOR } from '../../../src/shared/utils/tx-record.js';
+import { Fetch } from '../../../src/infra/modules/hub-store.js';
+import { FileSourceLayer } from '../../../src/infra/modules/source-file.js';
+import { SYSTEM_ACTOR } from '../../../src/infra/tx/tx-record.js';
 import { projects } from '../cards/fixture.js';
 import { buildProject } from '../../helpers/project-builder.js';
 import { readJson } from '../resources/fixture.js';
@@ -27,7 +27,7 @@ import type {
   Workspace,
   WorkspaceOptions,
 } from '../../../src/api/workspace/workspace.js';
-import { checkoutOf } from '../../../src/infra/internal.js';
+import { checkoutOf } from '../../../src/infra/checkout/internal.js';
 
 // A module operation fetches outside the workspace lock; these run something
 // else in that window, at the hub refresh that opens it.

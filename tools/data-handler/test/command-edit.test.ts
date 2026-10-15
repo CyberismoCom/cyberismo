@@ -8,7 +8,7 @@ import { type Workspace } from '../src/api/workspace/workspace.js';
 import type { Card } from '@cyberismo/model';
 import { openTestWorkspace } from './helpers/open-test-workspace.js';
 import { findCard } from '../src/domain/cards/read.js';
-import { checkoutOf } from '../src/infra/internal.js';
+import { checkoutOf } from '../src/infra/checkout/internal.js';
 
 describe('edit card', () => {
   const baseDir = import.meta.dirname;

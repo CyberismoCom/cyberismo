@@ -21,7 +21,7 @@ import { ensureStagedSchemas } from '../../../src/domain/modules/staged-migratio
 import { copyDir } from '../../../src/shared/utils/file-utils.js';
 import { readJsonFileSync } from '../../../src/shared/utils/json.js';
 
-import type { ResolvedModule } from '../../../src/domain/mutations/replay/module-types.js';
+import type { ResolvedModule } from '../../../src/domain/resources/changes/replay/module-types.js';
 
 const testDir = join(import.meta.dirname, 'tmp-staged-migration-tests');
 const stagedPath = join(testDir, 'staged');

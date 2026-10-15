@@ -27,12 +27,9 @@ export type {
   ModuleDeclaration,
   ModuleInstallation,
   ResolvedModule,
-} from '../mutations/replay/module-types.js';
+} from '../resources/changes/replay/module-types.js';
 export type { Version, VersionRange } from '../../shared/utils/version.js';
-export type {
-  FetchTarget,
-  SourceLayer,
-} from '../../infra/module-source/source.js';
+export type { FetchTarget, SourceLayer } from '../../infra/modules/source.js';
 export type {
   Change,
   ConflictDemand,
@@ -73,7 +70,7 @@ export {
 } from './inventory.js';
 
 // Fetching, resolving and applying.
-export { createSourceLayer } from '../../infra/module-source/source.js';
+export { createSourceLayer } from '../../infra/modules/source.js';
 export { resolve, resolveForApply, stageResolution } from './resolve/solver.js';
 export {
   checkUpdate,

@@ -23,8 +23,8 @@ import {
   type BuiltProject,
 } from '../../helpers/project-builder.js';
 import { findCard } from '../../../src/domain/cards/read.js';
-import { checkoutOf } from '../../../src/infra/internal.js';
-import type { Checkout } from '../../../src/infra/checkout.js';
+import { checkoutOf } from '../../../src/infra/checkout/internal.js';
+import type { Checkout } from '../../../src/infra/checkout/checkout.js';
 
 // Denies every guarded action on the card titled "Locked", with one
 // reason each, except that only "To Closed" is a denied transition.

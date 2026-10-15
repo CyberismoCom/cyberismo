@@ -14,7 +14,7 @@ import type { MacroGenerationContext } from '../../../shared/interfaces/macros.j
 import BaseMacro from '../base-macro.js';
 import macroMetadata from '@cyberismo/model/macros/vegalite/metadata';
 import type TaskQueue from '../task-queue.js';
-import { createMacro, validateMacroContent } from '../index.js';
+import { createMacro, validateMacroContent } from '../registry.js';
 import type { VegaLiteMacroInput } from '@cyberismo/model';
 
 class VegaLiteMacro extends BaseMacro {

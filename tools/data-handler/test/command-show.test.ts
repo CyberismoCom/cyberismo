@@ -10,8 +10,8 @@ import { copyDir } from '../src/shared/utils/file-utils.js';
 import { resourceName } from '../src/shared/utils/resource-utils.js';
 import { getTestBaseDir, getTestProject } from './helpers/test-utils.js';
 import { Cards } from '../src/domain/cards/cards.js';
-import { SYSTEM_ACTOR } from '../src/shared/utils/tx-record.js';
-import { checkoutOf } from '../src/infra/internal.js';
+import { SYSTEM_ACTOR } from '../src/infra/tx/tx-record.js';
+import { checkoutOf } from '../src/infra/checkout/internal.js';
 import { CardNotFoundError } from '../src/shared/exceptions/index.js';
 import { openTestWorkspace } from './helpers/open-test-workspace.js';
 

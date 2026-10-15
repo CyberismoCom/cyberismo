@@ -20,8 +20,8 @@ import { tmpdir } from 'node:os';
 import { join, relative, sep } from 'node:path';
 import { simpleGit } from 'simple-git';
 
-import { Checkout } from '../../src/infra/checkout.js';
-import { Validate } from '../../src/domain/commands/validate.js';
+import { Checkout } from '../../src/infra/checkout/checkout.js';
+import { Validate } from '../../src/domain/validation/validate.js';
 import {
   buildProject,
   type BuiltProject,

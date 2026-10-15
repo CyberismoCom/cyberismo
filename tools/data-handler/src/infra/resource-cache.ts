@@ -35,7 +35,7 @@ import { SkillResource } from '../domain/resources/skill-resource.js';
 import { TemplateResource } from '../domain/resources/template-resource.js';
 import { WorkflowResource } from '../domain/resources/workflow-resource.js';
 
-import type { Checkout } from './checkout.js';
+import type { Checkout } from './checkout/checkout.js';
 import type { ResourceFolderType, ResourceName } from '@cyberismo/model';
 import { ResourcesFrom } from './resources-from.js';
 

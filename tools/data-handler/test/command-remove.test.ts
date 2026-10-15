@@ -12,7 +12,7 @@ import { copyDir } from '../src/shared/utils/file-utils.js';
 import {
   MODULE_LIST_FULL_PATH,
   type ModuleListFile,
-} from '../src/infra/hub-store.js';
+} from '../src/infra/modules/hub-store.js';
 import { getTestBaseDir, getTestProject } from './helpers/test-utils.js';
 import { makeFakeModuleFixture } from './helpers/module-fixtures.js';
 
@@ -20,7 +20,7 @@ import type * as Undici from 'undici';
 
 // Hub requests go out through egressFetch, which uses undici's fetch rather
 import { findCard } from '../src/domain/cards/read.js';
-import { checkoutOf } from '../src/infra/internal.js';
+import { checkoutOf } from '../src/infra/checkout/internal.js';
 
 // than the global one, so the stub belongs here.
 const undiciFetch = vi.hoisted(() => vi.fn());
@@ -29,7 +29,7 @@ vi.mock('undici', async (importOriginal) => {
   return { ...actual, fetch: undiciFetch };
 });
 import { CardNotFoundError } from '../src/shared/exceptions/index.js';
-import { SYSTEM_ACTOR } from '../src/shared/utils/tx-record.js';
+import { SYSTEM_ACTOR } from '../src/infra/tx/tx-record.js';
 import { openTestWorkspace } from './helpers/open-test-workspace.js';
 
 // Create test artifacts in a temp folder.

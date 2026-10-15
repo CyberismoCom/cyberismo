@@ -14,7 +14,7 @@
 
 import { ResourceCache, type ResourceMap } from './resource-cache.js';
 import { resourceName } from '../shared/utils/resource-utils.js';
-import type { Checkout } from './checkout.js';
+import type { Checkout } from './checkout/checkout.js';
 import type { ResourceFolderType, ResourceName } from '@cyberismo/model';
 import { ResourcesFrom } from './resources-from.js';
 

@@ -10,14 +10,14 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 import Handlebars from 'handlebars';
-import type { CalculationEngine } from '../../infra/calculation-engine.js';
-import { registerEmptyMacros } from '../macros/index.js';
+import type { CalculationEngine } from '../../infra/engine/calculation-engine.js';
+import { registerEmptyMacros } from '../macros/registry.js';
 import type { Context } from '@cyberismo/model';
 import {
   registerComparisonHelpers,
   registerMathHelpers,
   registerReportHelpers,
-} from '../../shared/utils/handlebars-helpers.js';
+} from './handlebars-helpers.js';
 
 /**
  * Parameters for the core generation function

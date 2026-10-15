@@ -12,7 +12,7 @@
 */
 
 import type { DataType } from '@cyberismo/model';
-import { isBigInt } from '../utils/common-utils.js';
+import { isBigInt } from './common-utils.js';
 import * as EmailValidator from 'email-validator';
 
 const SHORT_TEXT_MAX_LENGTH = 80;
