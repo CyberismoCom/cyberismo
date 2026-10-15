@@ -13,7 +13,7 @@ import {
 
 // cyberismo
 import { copyDir } from '../src/shared/utils/file-utils.js';
-import { Validate } from '../src/domain/commands/validate.js';
+import { Validate } from '../src/domain/validation/validate.js';
 import { Checkout } from '../src/infra/checkout.js';
 
 // The project's validation errors; '' when it is valid.

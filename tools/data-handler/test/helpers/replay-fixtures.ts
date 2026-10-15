@@ -23,7 +23,7 @@ import type {
   InstallationRef,
   ModuleInstallation,
   ResolvedModule,
-} from '../../src/domain/mutations/replay/module-types.js';
+} from '../../src/domain/resources/changes/replay/module-types.js';
 
 // ---------------------------------------------------------------------------
 // Released-format migration log lines and on-disk seal / module fixtures

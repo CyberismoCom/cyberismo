@@ -18,13 +18,13 @@ import { join } from 'node:path';
 import { vi } from 'vitest';
 
 import { SCHEMA_VERSION } from '@cyberismo/migrations';
-import { ProjectPaths } from '../../src/infra/project-paths.js';
+import { ProjectPaths } from '../../src/infra/paths/project-paths.js';
 import type { Checkout } from '../../src/infra/checkout.js';
 import { isGitLocation } from '../../src/shared/utils/location.js';
 import type {
   FetchTarget,
   SourceLayer,
-} from '../../src/infra/module-source/source.js';
+} from '../../src/infra/modules/source.js';
 import type { ModuleSetting } from '@cyberismo/model';
 
 // ---------------------------------------------------------------------------
