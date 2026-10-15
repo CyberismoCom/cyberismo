@@ -3,5 +3,5 @@
     "noEmit": true
   },
   "extends": "./tsconfig.json",
-  "include": ["src/shared/types/**/*.d.ts", "test/types/**/*.ts"]
+  "include": ["src/shared/types/**/*.d.ts", "test/shared/types/**/*.ts"]
 }
