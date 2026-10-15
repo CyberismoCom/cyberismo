@@ -11,7 +11,7 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import type { Checkout } from '../../infra/checkout.js';
+import type { Checkout } from '../../infra/checkout/checkout.js';
 import { assertAllowed } from './guard.js';
 import { applySideEffects, type SideEffects } from './side-effects.js';
 import { getChildLogger } from '../../shared/utils/log-utils.js';

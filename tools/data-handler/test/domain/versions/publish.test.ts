@@ -18,7 +18,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { expectRefused, projects } from '../cards/fixture.js';
 import { git } from './fixture.js';
-import { checkoutOf } from '../../../src/infra/internal.js';
+import { checkoutOf } from '../../../src/infra/checkout/internal.js';
 
 const open = projects();
 const spec = { version: '1.2.3', git: true };

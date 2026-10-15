@@ -26,9 +26,9 @@ import type { Render } from '../../../src/domain/macros/render.js';
 import type { Modules } from '../../../src/domain/modules/modules.js';
 import type { Queries } from '../../../src/domain/queries/queries.js';
 import type { Versions } from '../../../src/domain/versions/version.js';
-import type { Changes } from '../../../src/api/workspace/changes.js';
-import type { Resources } from '../../../src/api/workspace/resources.js';
-import type { Hubs, Settings } from '../../../src/api/workspace/settings.js';
+import type { Changes } from '../../../src/domain/resources/changes.js';
+import type { Resources } from '../../../src/domain/resources/resources.js';
+import type { Hubs, Settings } from '../../../src/domain/settings/settings.js';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnyFunction = (...args: any[]) => unknown;

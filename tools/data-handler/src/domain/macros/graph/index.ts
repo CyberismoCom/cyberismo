@@ -12,8 +12,8 @@
 */
 
 import BaseMacro from '../base-macro.js';
-import { createImage, validateMacroContent } from '../index.js';
-import { registerComparisonHelpers } from '../../../shared/utils/handlebars-helpers.js';
+import { createImage, validateMacroContent } from '../registry.js';
+import { registerComparisonHelpers } from '../../queries/handlebars-helpers.js';
 import Handlebars from 'handlebars';
 import macroMetadata from '@cyberismo/model/macros/graph/metadata';
 import { ClingoError } from '@cyberismo/node-clingo';

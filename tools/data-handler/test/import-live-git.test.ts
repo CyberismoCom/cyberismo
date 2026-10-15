@@ -9,7 +9,7 @@ import semver from 'semver';
 import { copyDir } from '../src/shared/utils/file-utils.js';
 import { type Workspace } from '../src/api/workspace/workspace.js';
 import { openTestWorkspace } from './helpers/open-test-workspace.js';
-import { checkoutOf } from '../src/infra/internal.js';
+import { checkoutOf } from '../src/infra/checkout/internal.js';
 
 const { satisfies } = semver;
 

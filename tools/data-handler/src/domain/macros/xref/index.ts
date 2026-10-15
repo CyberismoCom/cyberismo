@@ -11,7 +11,7 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { validateMacroContent } from '../index.js';
+import { validateMacroContent } from '../registry.js';
 
 import type { MacroGenerationContext } from '../../../shared/interfaces/macros.js';
 import macroMetadata from '@cyberismo/model/macros/xref/metadata';

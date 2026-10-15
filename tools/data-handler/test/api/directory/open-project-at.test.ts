@@ -19,7 +19,7 @@ import { describe, expect, it } from 'vitest';
 import { SCHEMA_VERSION } from '@cyberismo/migrations';
 import { openProjectAt } from '../../../src/api/directory/local-folder.js';
 import { folders } from './folder.js';
-import { checkoutOf } from '../../../src/infra/internal.js';
+import { checkoutOf } from '../../../src/infra/checkout/internal.js';
 
 const folder = folders();
 

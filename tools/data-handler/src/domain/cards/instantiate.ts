@@ -13,7 +13,7 @@
 
 import { join } from 'node:path';
 
-import { Validate } from '../commands/validate.js';
+import { Validate } from '../validation/validate.js';
 import { DefaultContent } from '../resources/create-defaults.js';
 import { isValidFolderName } from '../../shared/utils/file-utils.js';
 import {
@@ -28,8 +28,8 @@ import { findCard } from './read.js';
 import { runCreationSideEffects } from './transition.js';
 
 import type { Card, CardAttachment, CardMetadata } from '@cyberismo/model';
-import type { CardTree, NewCard } from '../../infra/card-tree.js';
-import type { Checkout } from '../../infra/checkout.js';
+import type { CardTree, NewCard } from '../../infra/cards/card-tree.js';
+import type { Checkout } from '../../infra/checkout/checkout.js';
 
 const logger = getChildLogger({ module: 'template' });
 

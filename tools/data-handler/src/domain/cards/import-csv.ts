@@ -12,8 +12,8 @@
 */
 
 import { parseCsv } from '../../shared/utils/csv.js';
-import { Validate } from '../commands/validate.js';
-import type { Checkout } from '../../infra/checkout.js';
+import { Validate } from '../validation/validate.js';
+import type { Checkout } from '../../infra/checkout/checkout.js';
 import {
   addLabel,
   updateCardContent,

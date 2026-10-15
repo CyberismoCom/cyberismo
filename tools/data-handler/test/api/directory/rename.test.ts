@@ -19,8 +19,8 @@ import { ConfigurationLogger } from '../../../src/infra/replay-log/configuration
 import { expectRefused, projects } from '../../domain/cards/fixture.js';
 import { openTestWorkspace } from '../../helpers/open-test-workspace.js';
 import { renameProject } from '../../../src/api/directory/rename-project.js';
-import { Validate } from '../../../src/domain/commands/validate.js';
-import { checkoutOf } from '../../../src/infra/internal.js';
+import { Validate } from '../../../src/domain/validation/validate.js';
+import { checkoutOf } from '../../../src/infra/checkout/internal.js';
 
 const open = projects();
 

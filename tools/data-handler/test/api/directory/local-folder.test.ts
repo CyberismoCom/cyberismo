@@ -35,14 +35,14 @@ import {
   ProjectNotFoundError,
 } from '../../../src/shared/exceptions/index.js';
 import { resetEgressDispatcherForTest } from '../../../src/shared/utils/egress.js';
-import { GitManager } from '../../../src/infra/git-manager.js';
-import { SYSTEM_ACTOR } from '../../../src/shared/utils/tx-record.js';
+import { GitManager } from '../../../src/infra/git/git-manager.js';
+import { SYSTEM_ACTOR } from '../../../src/infra/tx/tx-record.js';
 import {
   isolatedGitEnv,
   OFFLINE_EGRESS_PROXY,
 } from '../../helpers/project-snapshot.js';
 import { folders } from './folder.js';
-import { checkoutOf } from '../../../src/infra/internal.js';
+import { checkoutOf } from '../../../src/infra/checkout/internal.js';
 
 const folder = folders();
 

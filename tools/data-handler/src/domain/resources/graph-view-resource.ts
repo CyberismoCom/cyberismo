@@ -27,7 +27,7 @@ import type {
   GraphViewMetadata,
   ResourceName,
 } from '@cyberismo/model';
-import type { Checkout } from '../../infra/checkout.js';
+import type { Checkout } from '../../infra/checkout/checkout.js';
 
 /**
  * Graph view resource class.

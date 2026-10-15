@@ -19,9 +19,9 @@ import { describe, expect, it } from 'vitest';
 import { SCHEMA_VERSION } from '@cyberismo/migrations';
 import { openProjectAt } from '../../../src/api/directory/local-folder.js';
 import { migrateProject } from '../../../src/api/directory/migrate-project.js';
-import { SYSTEM_ACTOR } from '../../../src/shared/utils/tx-record.js';
+import { SYSTEM_ACTOR } from '../../../src/infra/tx/tx-record.js';
 import { folders } from './folder.js';
-import { checkoutOf } from '../../../src/infra/internal.js';
+import { checkoutOf } from '../../../src/infra/checkout/internal.js';
 
 const folder = folders();
 

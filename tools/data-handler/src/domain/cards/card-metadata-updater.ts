@@ -15,7 +15,7 @@
 import type { CardMetadata, UpdateField } from '@cyberismo/model';
 import { FieldTypeResource } from '../resources/field-type-resource.js';
 import { getChildLogger } from '../../shared/utils/log-utils.js';
-import type { Checkout } from '../../infra/checkout.js';
+import type { Checkout } from '../../infra/checkout/checkout.js';
 import { updateCardMetadata } from './update.js';
 import { findCard } from './read.js';
 

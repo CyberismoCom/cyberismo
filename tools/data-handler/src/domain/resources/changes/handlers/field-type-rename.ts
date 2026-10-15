@@ -1,0 +1,114 @@
+/**
+  Cyberismo
+  Copyright © Cyberismo Ltd and contributors 2026
+
+  This program is free software: you can redistribute it and/or modify it under
+  the terms of the GNU Affero General Public License version 3 as published by
+  the Free Software Foundation. This program is distributed in the hope that it
+  will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty
+  of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+  See the GNU Affero General Public License for more details.
+  You should have received a copy of the GNU Affero General Public
+  License along with this program. If not, see <https://www.gnu.org/licenses/>.
+*/
+
+import type { Handler, MutationContext } from '../handler.js';
+import type { RenameInput } from '../types.js';
+import { resourceNameToString } from '../../../../shared/utils/resource-utils.js';
+import { ResourcesFrom } from '../../../../infra/resources-from.js';
+import {
+  rewriteCardContentRefs,
+  rewriteContentFileRefs,
+} from '../cascades/rewrite-refs.js';
+import { updateCardMetadata } from '../../../cards/update.js';
+
+/**
+ * Renaming a field type rewrites card-content references, calculations,
+ * report handlebars, the customFields[].name entries on every referencing
+ * local card type, and the metadata keys of every local card holding a value
+ * under the old name.
+ */
+export class FieldTypeRenameHandler implements Handler<RenameInput> {
+  async apply(ctx: MutationContext<RenameInput>): Promise<void> {
+    const oldName = resourceNameToString(ctx.input.target);
+
+    const resource = ctx.checkout.resources.byType(oldName, 'fieldTypes');
+    if (!resource) {
+      throw new Error(`Field type '${oldName}' not found`);
+    }
+
+    // Authoring guard: renaming a field type that a local card type still
+    // references is refused. Replay never hits this — applyCascade is called
+    // directly there and rewrites the references instead.
+    const referencing = ctx.checkout.resources
+      .cardTypes(ResourcesFrom.localOnly)
+      .find((cardType) =>
+        cardType.data?.customFields?.some((field) => field.name === oldName),
+      );
+    if (referencing) {
+      throw new Error(
+        `Cannot rename field type '${oldName}': it is referenced by card type '${referencing.data!.name}'`,
+      );
+    }
+
+    // Rename the resource before the cascade: cascade legs regenerate clingo
+    // facts, which resolve custom-field metadata keys against the project, so
+    // the new name must already exist.
+    await resource.rename(ctx.input.newIdentifier);
+
+    await this.applyCascade(ctx);
+  }
+
+  async applyCascade(ctx: MutationContext<RenameInput>): Promise<void> {
+    const oldName = resourceNameToString(ctx.input.target);
+    const newName = `${ctx.input.target.prefix}/fieldTypes/${ctx.input.newIdentifier}`;
+
+    // Strict sequencing, not Promise.all: card-type references and card
+    // metadata keys must already hold the NEW name when
+    // rewriteCardContentRefs regenerates clingo facts — fact generation
+    // resolves every non-null custom metadata key as a field type, and only
+    // the new name exists (in the module tree during replay, on the renamed
+    // resource during authoring).
+    await this.updateCardTypes(ctx, oldName, newName);
+    await this.renameCardMetadataKeys(ctx, oldName, newName);
+    await rewriteContentFileRefs(ctx.checkout, oldName, newName);
+    await rewriteCardContentRefs(ctx.checkout, oldName, newName);
+  }
+
+  // Rewrite every LOCAL card type's references to the renamed field type.
+  // Module-owned card types are immutable from the consumer side; their
+  // references are the owning module's responsibility.
+  private async updateCardTypes(
+    ctx: MutationContext,
+    oldName: string,
+    newName: string,
+  ): Promise<void> {
+    const cardTypes = ctx.checkout.resources.cardTypes(ResourcesFrom.localOnly);
+    for (const cardType of cardTypes) {
+      await cardType.renameFieldTypeReferences(oldName, newName);
+    }
+  }
+
+  // Rename the metadata key on every local card (project cards and local
+  // template cards; module cards excluded) holding a value under the old
+  // field name, preserving the value.
+  private async renameCardMetadataKeys(
+    ctx: MutationContext,
+    oldName: string,
+    newName: string,
+  ): Promise<void> {
+    const cards = [
+      ...ctx.checkout.cardTree.cards(),
+      ...ctx.checkout.resources
+        .templates(ResourcesFrom.localOnly)
+        .flatMap((template) => template.cardTree.cards()),
+    ];
+    for (const card of cards) {
+      const metadata = card.metadata;
+      if (!metadata || !(oldName in metadata)) continue;
+      metadata[newName] = metadata[oldName];
+      delete metadata[oldName];
+      await updateCardMetadata(ctx.checkout, card, metadata);
+    }
+  }
+}
