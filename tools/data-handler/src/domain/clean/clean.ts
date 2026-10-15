@@ -11,8 +11,8 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import type { Checkout } from '../../infra/checkout.js';
-import { ResourcesFrom } from '../../infra/resources-from.js';
+import type { Checkout } from '../../state/checkout/checkout.js';
+import { ResourcesFrom } from '../../state/resources/resources-from.js';
 import { isPredefinedField } from '../../shared/utils/constants.js';
 import { getChildLogger } from '../../shared/utils/log-utils.js';
 import { sortCards } from '../../shared/utils/card-utils.js';

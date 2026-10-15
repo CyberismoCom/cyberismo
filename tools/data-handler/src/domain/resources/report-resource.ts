@@ -28,7 +28,7 @@ import type {
   ReportMetadata,
   ResourceName,
 } from '@cyberismo/model';
-import type { Checkout } from '../../infra/checkout.js';
+import type { Checkout } from '../../state/checkout/checkout.js';
 
 const PARAMETER_SCHEMA_ID = 'jsonSchema';
 

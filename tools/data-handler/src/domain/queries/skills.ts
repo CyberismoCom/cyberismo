@@ -19,7 +19,7 @@ import type {
   SkillSummary,
 } from '@cyberismo/model';
 
-import type { Checkout } from '../../infra/checkout.js';
+import type { Checkout } from '../../state/checkout/checkout.js';
 import { findCard } from '../cards/read.js';
 import { CardNotFoundError } from '../../shared/exceptions/index.js';
 import { generateReportContent } from './report.js';

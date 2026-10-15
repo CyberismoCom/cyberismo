@@ -1,7 +1,7 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
-import { Checkout } from '../../../../src/infra/checkout.js';
+import { Checkout } from '../../../../src/state/checkout/checkout.js';
 import { copyDir } from '../../../../src/shared/utils/file-utils.js';
 
 // Reuse the existing decision-records fixture.

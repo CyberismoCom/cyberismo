@@ -28,8 +28,8 @@ import { findCard } from './read.js';
 import { runCreationSideEffects } from './transition.js';
 
 import type { Card, CardAttachment, CardMetadata } from '@cyberismo/model';
-import type { CardTree, NewCard } from '../../infra/card-tree.js';
-import type { Checkout } from '../../infra/checkout.js';
+import type { CardTree, NewCard } from '../../state/cards/card-tree.js';
+import type { Checkout } from '../../state/checkout/checkout.js';
 
 const logger = getChildLogger({ module: 'template' });
 

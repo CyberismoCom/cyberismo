@@ -38,7 +38,7 @@ import {
   validateVersionAgainstConstraints,
 } from '../../shared/utils/version.js';
 
-import type { Checkout } from '../../infra/checkout.js';
+import type { Checkout } from '../../state/checkout/checkout.js';
 import type { Credentials, UpdatePlan, UpdateTarget } from '@cyberismo/model';
 import type { UpdateRequest } from './resolve/types.js';
 

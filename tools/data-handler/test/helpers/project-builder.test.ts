@@ -20,7 +20,7 @@ import { tmpdir } from 'node:os';
 import { join, relative, sep } from 'node:path';
 import { simpleGit } from 'simple-git';
 
-import { Checkout } from '../../src/infra/checkout.js';
+import { Checkout } from '../../src/state/checkout/checkout.js';
 import { Validate } from '../../src/domain/validation/validate.js';
 import {
   buildProject,

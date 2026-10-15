@@ -10,7 +10,7 @@
 // node
 import { join, parse, sep } from 'node:path';
 
-import type { Checkout } from '../../infra/checkout.js';
+import type { Checkout } from '../../state/checkout/checkout.js';
 import type { WorkflowTransition, ResourceName } from '@cyberismo/model';
 import { stripExtension } from './file-utils.js';
 

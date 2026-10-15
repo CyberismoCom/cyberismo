@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 import { rewriteAsciidocCardXrefs } from '../../../src/domain/macros/asciidoc-xref.js';
-import type { Checkout } from '../../../src/infra/checkout.js';
+import type { Checkout } from '../../../src/state/checkout/checkout.js';
 import type { CardNode } from '@cyberismo/model';
 import type { Mode } from '../../../src/shared/interfaces/macros.js';
 import { ROOT } from '../../../src/shared/utils/constants.js';

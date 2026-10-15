@@ -12,7 +12,7 @@
 */
 
 import type { PublishResult } from '@cyberismo/model';
-import type { Checkout } from '../../infra/checkout.js';
+import type { Checkout } from '../../state/checkout/checkout.js';
 import { GitManager } from '../../infra/git/git-manager.js';
 
 /**

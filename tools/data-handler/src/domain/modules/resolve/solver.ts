@@ -42,7 +42,7 @@ import {
   createSourceLayer,
   type SourceLayer,
 } from '../../../infra/modules/source.js';
-import type { Checkout } from '../../../infra/checkout.js';
+import type { Checkout } from '../../../state/checkout/checkout.js';
 import type { Credentials, ModuleSetting, Source } from '@cyberismo/model';
 import type {
   Change,

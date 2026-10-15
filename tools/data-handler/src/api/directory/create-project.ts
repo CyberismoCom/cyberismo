@@ -24,7 +24,7 @@ import type {
   ProjectFile,
 } from '@cyberismo/model';
 import { Validate } from '../../domain/validation/validate.js';
-import { Checkout, type OpenOptions } from '../../infra/checkout.js';
+import { Checkout, type OpenOptions } from '../../state/checkout/checkout.js';
 import { errorFunction } from '../../shared/utils/error-utils.js';
 import { isValidFolderName } from '../../shared/utils/file-utils.js';
 import { GitManager } from '../../infra/git/git-manager.js';

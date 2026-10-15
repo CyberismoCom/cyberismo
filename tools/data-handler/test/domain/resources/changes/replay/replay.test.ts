@@ -24,7 +24,7 @@ import type {
   ModuleInstallation,
   ResolvedModule,
 } from '../../../../../src/domain/resources/changes/replay/module-types.js';
-import type { Checkout } from '../../../../../src/infra/checkout.js';
+import type { Checkout } from '../../../../../src/state/checkout/checkout.js';
 import type { ReplayStep } from '../../../../../src/domain/resources/changes/replay/replay.js';
 
 const tmpDir = join(import.meta.dirname, 'tmp-replay-test');

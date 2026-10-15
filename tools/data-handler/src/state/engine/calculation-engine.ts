@@ -13,7 +13,7 @@
 
 // node
 
-import { sanitizeSvgBase64 } from '../shared/utils/sanitize-svg.js';
+import { sanitizeSvgBase64 } from '../../shared/utils/sanitize-svg.js';
 import { instance } from '@viz-js/viz';
 
 import type {
@@ -33,11 +33,11 @@ import type {
   Workflow,
   ResourceName,
 } from '@cyberismo/model';
-import ClingoParser from './engine/clingo-parser.js';
+import ClingoParser from '../../infra/engine/clingo-parser.js';
 
 import Handlebars from 'handlebars';
-import type { Checkout } from './checkout.js';
-import { getChildLogger } from '../shared/utils/log-utils.js';
+import type { Checkout } from '../checkout/checkout.js';
+import { getChildLogger } from '../../shared/utils/log-utils.js';
 import {
   createCalculatedFieldRules,
   createCardFacts,
@@ -51,11 +51,11 @@ import {
   createSkillFacts,
   createTemplateFacts,
   createWorkflowFacts,
-} from '../shared/utils/clingo-facts.js';
+} from './clingo-facts.js';
 import { ClingoContext } from '@cyberismo/node-clingo';
-import { generateReportContent } from '../domain/queries/report.js';
+import { generateReportContent } from '../../domain/queries/report.js';
 import { lpFiles, graphvizReport } from '@cyberismo/assets';
-import { resourceNameToString } from '../shared/utils/resource-utils.js';
+import { resourceNameToString } from '../../shared/utils/resource-utils.js';
 
 // Define the all category that will be used for all programs
 const ALL_CATEGORY = 'all';

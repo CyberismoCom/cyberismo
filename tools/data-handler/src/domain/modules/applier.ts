@@ -23,7 +23,7 @@ import { getChildLogger } from '../../shared/utils/log-utils.js';
 
 import type { ResolvedModule } from '../resources/changes/replay/module-types.js';
 import type { ModuleSetting } from '@cyberismo/model';
-import type { Checkout } from '../../infra/checkout.js';
+import type { Checkout } from '../../state/checkout/checkout.js';
 
 const logger = getChildLogger({ module: 'applier' });
 
