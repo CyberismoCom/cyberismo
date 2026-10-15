@@ -21,17 +21,17 @@ import type {
   MetadataContent,
   TemplateCardTree,
 } from '@cyberismo/model';
-import type { Checkout } from '../../state/checkout/checkout.js';
-import { read, write } from '../../infra/tx/rw-lock.js';
-import type { CommitIdentity } from '../../infra/tx/tx-record.js';
+import type { Checkout } from '../state/checkout/checkout.js';
+import { read, write } from '../infra/tx/rw-lock.js';
+import type { CommitIdentity } from '../infra/tx/tx-record.js';
 import {
   addAttachment,
   removeAttachment,
   renameCardAttachment,
-} from './attachments.js';
-import { removeCard } from './delete.js';
-import { importCsv } from './import-csv.js';
-import { addCards, createCard } from './instantiate.js';
+} from '../domain/cards/index.js';
+import { removeCard } from '../domain/cards/index.js';
+import { importCsv } from '../domain/cards/index.js';
+import { addCards, createCard } from '../domain/cards/index.js';
 import {
   moveCard,
   rankAfter,
@@ -39,7 +39,7 @@ import {
   rankFirst,
   rebalanceAll,
   rebalanceUnder,
-} from './move.js';
+} from '../domain/cards/index.js';
 import {
   attachment,
   attachments,
@@ -49,8 +49,8 @@ import {
   listCards,
   rootCards,
   templateCardTrees,
-} from './read.js';
-import { transitionCard } from './transition.js';
+} from '../domain/cards/index.js';
+import { transitionCard } from '../domain/cards/index.js';
 import {
   addLabel,
   addLink,
@@ -58,7 +58,7 @@ import {
   editCardMetadata,
   removeLabel,
   removeLink,
-} from './update.js';
+} from '../domain/cards/index.js';
 
 /**
  * Card operations of one handle. Writes through it are the handle's actor's.

@@ -15,7 +15,7 @@ import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
-import type { Workspace } from '../../../src/api/workspace/workspace.js';
+import type { Workspace } from '../../../src/api/workspace.js';
 
 import {
   CardNotFoundError,

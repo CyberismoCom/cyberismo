@@ -20,7 +20,7 @@ import type {
   ProjectSummary,
 } from '@cyberismo/model';
 import type { CommitIdentity } from '../../infra/tx/tx-record.js';
-import type { Workspace } from '../workspace/workspace.js';
+import type { Workspace } from '../workspace.js';
 
 /**
  * A set of projects, each opened by its prefix. Handles it gives are the

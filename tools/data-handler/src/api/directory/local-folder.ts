@@ -32,7 +32,7 @@ import {
   isProjectFolder,
 } from '../../infra/paths/project-folders.js';
 import { SYSTEM_ACTOR, type CommitIdentity } from '../../infra/tx/tx-record.js';
-import { Workspace, type WorkspaceOptions } from '../workspace/workspace.js';
+import { Workspace, type WorkspaceOptions } from '../workspace.js';
 import { createAndOpen } from './create-project.js';
 import type { ProjectDirectory } from './project-directory.js';
 import { renameProject } from './rename-project.js';

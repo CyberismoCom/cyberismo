@@ -6,7 +6,7 @@ import { Checkout } from '../../../../../src/state/checkout/checkout.js';
 import { resourceName } from '../../../../../src/shared/utils/resource-utils.js';
 import { copyDir } from '../../../../../src/shared/utils/file-utils.js';
 import { ResourceMutations } from '../../../../../src/domain/resources/changes/resource-mutations.js';
-import { Workspace } from '../../../../../src/api/workspace/workspace.js';
+import { Workspace } from '../../../../../src/api/workspace.js';
 import {
   SYSTEM_ACTOR,
   SYSTEM_FRAME,

@@ -13,10 +13,7 @@
 
 import type { ActorRef } from '@cyberismo/model';
 import { openProjectAt } from '../../src/api/directory/local-folder.js';
-import type {
-  Workspace,
-  WorkspaceOptions,
-} from '../../src/api/workspace/workspace.js';
+import type { Workspace, WorkspaceOptions } from '../../src/api/workspace.js';
 import {
   SYSTEM_ACTOR,
   type CommitIdentity,

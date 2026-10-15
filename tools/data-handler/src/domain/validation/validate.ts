@@ -44,7 +44,7 @@ import {
   pathExists,
 } from '../../shared/utils/file-utils.js';
 import type { Checkout } from '../../state/checkout/checkout.js';
-import type { Workspace } from '../../api/workspace/workspace.js';
+import type { Workspace } from '../../api/workspace.js';
 import { readJsonFile } from '../../shared/utils/json.js';
 import { resourceName } from '../../shared/utils/resource-utils.js';
 import {
@@ -55,7 +55,7 @@ import {
 const SHORT_TEXT_MAX_LENGTH = 80;
 
 import * as EmailValidator from 'email-validator';
-import { evaluateMacros } from '../macros/index.js';
+import { evaluateMacros } from '../macros/registry.js';
 import { allTemplateCards } from '../cards/read.js';
 import { checkoutOf } from '../../state/checkout/internal.js';
 const baseDir = import.meta.dirname ?? new URL('.', import.meta.url).pathname;
