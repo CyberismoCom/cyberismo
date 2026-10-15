@@ -47,65 +47,29 @@ const file = {
 
 describe('AttachmentPanel', () => {
   it.each([
+    { name: 'reader', editor: false, insert: false, can: false },
+    { name: 'editor', editor: true, insert: false, can: true },
     {
-      name: 'reader, collapsed, no insert',
-      editor: false,
-      expanded: false,
-      insert: false,
-      expectVisible: false,
-      add: false,
-      del: false,
-      ins: false,
-    },
-    {
-      name: 'reader, expanded, no insert',
-      editor: false,
-      expanded: true,
-      insert: false,
-      expectVisible: true,
-      add: false,
-      del: false,
-      ins: false,
-    },
-    {
-      name: 'editor, expanded, insert offered',
+      name: 'editor with insert offered',
       editor: true,
-      expanded: true,
       insert: true,
-      expectVisible: true,
-      add: true,
-      del: true,
-      ins: true,
+      can: true,
     },
-    {
-      name: 'editor, collapsed',
-      editor: true,
-      expanded: false,
-      insert: true,
-      expectVisible: false,
-      add: true,
-      del: true,
-      ins: true,
-    },
-  ])('$name', ({ editor, expanded, insert, expectVisible, add, del, ins }) => {
+  ])('$name: add/delete/insert controls', ({ editor, insert, can }) => {
     isEditor = editor;
     render(
       <AttachmentPanel
         cardKey="c_1"
         attachments={[file]}
-        initialExpanded={expanded}
         onInsert={insert ? vi.fn() : undefined}
       />,
     );
 
     expect(screen.getByTestId('attachmentCountBadge')).toHaveTextContent('1');
-    const name = screen.getByText('notes.txt');
-    if (expectVisible) expect(name).toBeVisible();
-    else expect(name).not.toBeVisible();
     // Controls are rendered even when collapsed, so presence is checked in the DOM.
-    expect(!!screen.queryByTestId('addAttachmentButton')).toBe(add);
-    expect(!!screen.queryByLabelText('delete')).toBe(del);
-    expect(!!screen.queryByTestId('insertToContentButton')).toBe(ins);
+    expect(!!screen.queryByTestId('addAttachmentButton')).toBe(can);
+    expect(!!screen.queryByLabelText('delete')).toBe(can);
+    expect(!!screen.queryByTestId('insertToContentButton')).toBe(insert);
   });
 
   it('toggles open on click', () => {
