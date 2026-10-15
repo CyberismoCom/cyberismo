@@ -19,8 +19,8 @@ import type {
   UpdateKey,
   Operation,
 } from '@cyberismo/model';
-import { resourceName } from '../../src/utils/resource-utils.js';
-import type { Workspace } from '../../src/workspace/workspace.js';
+import { resourceName } from '../../src/shared/utils/resource-utils.js';
+import type { Workspace } from '../../src/api/workspace/workspace.js';
 import type { ProjectSpec } from '../helpers/project-builder.js';
 
 export { expectRefused, projects, snapshot } from '../cards/fixture.js';

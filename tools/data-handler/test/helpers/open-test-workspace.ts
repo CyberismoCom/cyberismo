@@ -12,15 +12,15 @@
 */
 
 import type { ActorRef } from '@cyberismo/model';
-import { openProjectAt } from '../../src/directory/local-folder.js';
+import { openProjectAt } from '../../src/api/directory/local-folder.js';
 import type {
   Workspace,
   WorkspaceOptions,
-} from '../../src/workspace/workspace.js';
+} from '../../src/api/workspace/workspace.js';
 import {
   SYSTEM_ACTOR,
   type CommitIdentity,
-} from '../../src/utils/tx-record.js';
+} from '../../src/shared/utils/tx-record.js';
 
 /**
  * Opens a fresh checkout at `path` and returns a handle over it. The system

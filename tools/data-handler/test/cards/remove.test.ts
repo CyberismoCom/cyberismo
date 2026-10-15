@@ -15,7 +15,7 @@ import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
-import { CardNotFoundError } from '../../src/exceptions/index.js';
+import { CardNotFoundError } from '../../src/shared/exceptions/index.js';
 import {
   expectRefused,
   metadataOf,

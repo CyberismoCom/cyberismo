@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { sleep } from '../src/utils/common-utils.js';
+import { sleep } from '../src/shared/utils/common-utils.js';
 import { GitSync } from '../src/infra/git-sync.js';
 import type { GitManager } from '../src/infra/git-manager.js';
 

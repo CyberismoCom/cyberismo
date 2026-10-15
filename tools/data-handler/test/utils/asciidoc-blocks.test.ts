@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 
-import { closeUnterminatedBlock } from '../../src/utils/asciidoc-blocks.js';
+import { closeUnterminatedBlock } from '../../src/shared/utils/asciidoc-blocks.js';
 
 describe('closeUnterminatedBlock', () => {
   it('closes an unterminated table', () => {

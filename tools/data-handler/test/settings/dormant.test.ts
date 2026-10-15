@@ -17,7 +17,7 @@ import { promisify } from 'node:util';
 import { describe, expect, it, vi } from 'vitest';
 
 import { local, projects, snapshot } from '../resources/fixture.js';
-import type { Workspace } from '../../src/workspace/workspace.js';
+import type { Workspace } from '../../src/api/workspace/workspace.js';
 
 const open = projects();
 

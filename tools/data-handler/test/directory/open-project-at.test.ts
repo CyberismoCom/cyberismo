@@ -17,7 +17,7 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 import { SCHEMA_VERSION } from '@cyberismo/migrations';
-import { openProjectAt } from '../../src/directory/local-folder.js';
+import { openProjectAt } from '../../src/api/directory/local-folder.js';
 import { folders } from './folder.js';
 import { checkoutOf } from '../../src/infra/internal.js';
 

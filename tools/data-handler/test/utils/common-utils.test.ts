@@ -1,6 +1,6 @@
 import { expect, describe, it } from 'vitest';
 
-import { deepCompare } from '../../src/utils/common-utils.js';
+import { deepCompare } from '../../src/shared/utils/common-utils.js';
 
 describe('common utils', () => {
   describe('deep compare', () => {

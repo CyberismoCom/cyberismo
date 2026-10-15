@@ -3,8 +3,8 @@ import { describe, expect, it } from 'vitest';
 import {
   DHValidationError,
   SchemaNotFound,
-} from '../../src/exceptions/index.js';
-import { validateJson } from '../../src/utils/validate.js';
+} from '../../src/shared/exceptions/index.js';
+import { validateJson } from '../../src/shared/utils/validate.js';
 
 describe('validateJson', () => {
   // The asset schemas point at their own $defs and at each other. Those refs

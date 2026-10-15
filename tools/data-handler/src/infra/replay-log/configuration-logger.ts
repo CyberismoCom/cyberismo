@@ -17,10 +17,10 @@ import { join } from 'node:path';
 
 import semver from 'semver';
 
-import { getChildLogger } from '../../utils/log-utils.js';
+import { getChildLogger } from '../../shared/utils/log-utils.js';
 import { formatSealFileName, lastSealedVersion } from './seal-files.js';
 import { ProjectPaths } from '../project-paths.js';
-import { writeFileSafe, pathExists } from '../../utils/file-utils.js';
+import { writeFileSafe, pathExists } from '../../shared/utils/file-utils.js';
 
 // Entry shapes match the log format shipped in released versions
 // (INTDEV-584), so logs written by older versions remain readable and no
