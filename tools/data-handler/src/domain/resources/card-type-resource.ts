@@ -20,7 +20,7 @@ import {
 } from '../../shared/utils/resource-utils.js';
 import { sortCards } from '../../shared/utils/card-utils.js';
 import { removeValue } from '../../shared/utils/common-utils.js';
-import { Validate } from '../commands/validate.js';
+import { Validate } from '../validation/validate.js';
 import { ResourceNotFoundError } from '../../shared/exceptions/index.js';
 
 import type {

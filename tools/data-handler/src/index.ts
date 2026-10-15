@@ -12,7 +12,7 @@
 
 import { Workspace } from './api/workspace/workspace.js';
 import { ExportFormats } from './domain/export/export.js';
-import { Validate } from './domain/commands/validate.js';
+import { Validate } from './domain/validation/validate.js';
 export { SCHEMA_VERSION } from '@cyberismo/migrations';
 export { createProject } from './api/directory/create-project.js';
 export { localFolder, openProjectAt } from './api/directory/local-folder.js';
@@ -62,8 +62,8 @@ export { AsciidoctorPdfError } from './domain/export/export.js';
 export {
   ModuleReplayFailedError,
   ModuleValidationFailedError,
-} from './domain/mutations/replay/replay.js';
+} from './domain/resources/changes/replay/replay.js';
 export { errorFunction } from './shared/utils/error-utils.js';
 export type { WorkspaceOptions } from './api/workspace/workspace.js';
-export { SYSTEM_ACTOR, type CommitIdentity } from './shared/utils/tx-record.js';
-export { createGit } from './infra/git-config.js';
+export { SYSTEM_ACTOR, type CommitIdentity } from './infra/tx/tx-record.js';
+export { createGit } from './infra/git/git-config.js';

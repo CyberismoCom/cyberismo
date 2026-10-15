@@ -28,8 +28,8 @@ import { findOrphans } from './orphans.js';
 import { buildRemoteUrl } from './remote-url.js';
 import { conflictReason } from './resolve/format.js';
 import { solve, type SolveOutcome } from './resolve/solver.js';
-import type { SourceLayer } from '../../infra/module-source/source.js';
-import type { ModuleDeclaration } from '../mutations/replay/module-types.js';
+import type { SourceLayer } from '../../infra/modules/source.js';
+import type { ModuleDeclaration } from '../resources/changes/replay/module-types.js';
 import {
   isBreakingMove,
   pickVersion,

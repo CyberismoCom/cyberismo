@@ -21,12 +21,12 @@ import {
   canonicalHubLocation,
   hubModuleListUrl,
   MODULE_LIST_FILE,
-} from '../shared/utils/hub-utils.js';
+} from './modules/hub-utils.js';
 import { egressFetch } from '../shared/utils/egress.js';
 import { getChildLogger } from '../shared/utils/log-utils.js';
 import { readJsonFile, writeJsonFile } from '../shared/utils/json.js';
 import { validateJson } from '../shared/utils/validate.js';
-import { write } from './rw-lock.js';
+import { write } from './tx/rw-lock.js';
 
 import type { HubFetchFailure, ModuleSetting } from '@cyberismo/model';
 import type { Checkout } from './checkout.js';
