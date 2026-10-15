@@ -15,7 +15,7 @@ import { join } from 'node:path';
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 
 import { copyDir } from '../../../src/shared/utils/file-utils.js';
-import { type Workspace } from '../../../src/api/workspace/workspace.js';
+import { type Workspace } from '../../../src/api/workspace.js';
 import { createCardFacts } from '../../../src/state/engine/clingo-facts.js';
 import { resourceName } from '../../../src/shared/utils/resource-utils.js';
 import type { Card, CardType } from '@cyberismo/model';

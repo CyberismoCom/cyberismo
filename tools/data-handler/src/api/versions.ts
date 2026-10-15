@@ -13,21 +13,21 @@
 
 import semver from 'semver';
 import type { ActorRef, PublishResult, VersionBump } from '@cyberismo/model';
-import { Validate } from '../validation/validate.js';
-import type { Checkout } from '../../state/checkout/checkout.js';
-import type { ConfigurationLogEntry } from '../../infra/replay-log/configuration-logger.js';
+import { Validate } from '../domain/validation/index.js';
+import type { Checkout } from '../state/checkout/checkout.js';
+import type { ConfigurationLogEntry } from '../infra/replay-log/configuration-logger.js';
 import {
   ConfigurationLogger,
   RETIRED_OPERATIONS,
-} from '../../infra/replay-log/configuration-logger.js';
-import type { ChangeClassification } from '../resources/changes/registry.js';
-import { classify } from '../resources/changes/dispatcher.js';
-import { entryToMutationInput } from '../resources/changes/replay/convert.js';
-import { recordSettingsChange } from '../../infra/tx/change-feed.js';
-import { write } from '../../infra/tx/rw-lock.js';
-import type { CommitIdentity } from '../../infra/tx/tx-record.js';
-import { tagVersion } from './publish.js';
-import { errorFunction } from '../../shared/utils/error-utils.js';
+} from '../infra/replay-log/configuration-logger.js';
+import type { ChangeClassification } from '../domain/resources/index.js';
+import { classify } from '../domain/resources/index.js';
+import { entryToMutationInput } from '../domain/resources/index.js';
+import { recordSettingsChange } from '../infra/tx/change-feed.js';
+import { write } from '../infra/tx/rw-lock.js';
+import type { CommitIdentity } from '../infra/tx/tx-record.js';
+import { tagVersion } from '../domain/versions/index.js';
+import { errorFunction } from '../shared/utils/error-utils.js';
 
 export const validBumps = ['patch', 'minor', 'major'] as const;
 export type BumpType = (typeof validBumps)[number];

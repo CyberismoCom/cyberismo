@@ -6,7 +6,7 @@ import { copyDir } from '../../../../../src/shared/utils/file-utils.js';
 import type { Checkout } from '../../../../../src/state/checkout/checkout.js';
 import { getTestProject } from '../../../../helpers/test-utils.js';
 import { resourceName } from '../../../../../src/shared/utils/resource-utils.js';
-import { Workspace } from '../../../../../src/api/workspace/workspace.js';
+import { Workspace } from '../../../../../src/api/workspace.js';
 import { SYSTEM_ACTOR } from '../../../../../src/infra/tx/tx-record.js';
 import { updateCardMetadata } from '../../../../../src/domain/cards/update.js';
 

@@ -16,8 +16,8 @@ import { join, relative, sep } from 'node:path';
 import { afterEach, expect } from 'vitest';
 
 import type { Card } from '@cyberismo/model';
-import type { Workspace } from '../../../src/api/workspace/workspace.js';
-import type { WorkspaceOptions } from '../../../src/api/workspace/workspace.js';
+import type { Workspace } from '../../../src/api/workspace.js';
+import type { WorkspaceOptions } from '../../../src/api/workspace.js';
 import { sortItems } from '../../../src/shared/utils/lexorank.js';
 import {
   buildProject,

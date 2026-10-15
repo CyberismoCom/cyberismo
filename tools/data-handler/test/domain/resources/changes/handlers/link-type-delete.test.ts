@@ -9,7 +9,7 @@ import {
 } from '../../../../../src/shared/utils/file-utils.js';
 import { resourceName } from '../../../../../src/shared/utils/resource-utils.js';
 import { createLinkSeededProject } from '../helpers.js';
-import { Workspace } from '../../../../../src/api/workspace/workspace.js';
+import { Workspace } from '../../../../../src/api/workspace.js';
 import { SYSTEM_ACTOR } from '../../../../../src/infra/tx/tx-record.js';
 
 const tmpDir = join(import.meta.dirname, 'tmp-link-type-delete');

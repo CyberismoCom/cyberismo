@@ -12,7 +12,7 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { createImage, validateMacroContent } from '../index.js';
+import { createImage, validateMacroContent } from '../registry.js';
 
 import type { MacroGenerationContext } from '../../../shared/interfaces/macros.js';
 import macroMetadata from '@cyberismo/model/macros/scoreCard/metadata';

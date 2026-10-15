@@ -3,7 +3,7 @@ import { mkdirSync, rmSync } from 'node:fs';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
-import { type Workspace } from '../src/api/workspace/workspace.js';
+import { type Workspace } from '../src/api/workspace.js';
 import { copyDir } from '../src/shared/utils/file-utils.js';
 import { openTestWorkspace } from './helpers/open-test-workspace.js';
 import { checkoutOf } from '../src/state/checkout/internal.js';

@@ -17,7 +17,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { simpleGit } from 'simple-git';
 
-import { type Workspace } from '../src/api/workspace/workspace.js';
+import { type Workspace } from '../src/api/workspace.js';
 import { resourceName } from '../src/shared/utils/resource-utils.js';
 import { openTestWorkspace } from './helpers/open-test-workspace.js';
 
