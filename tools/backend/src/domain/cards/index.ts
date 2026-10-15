@@ -11,7 +11,7 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { type Context, Hono } from 'hono';
+import { Hono } from 'hono';
 import type { ContentfulStatusCode } from 'hono/utils/http-status';
 import { getCardDetails } from './lib.js';
 import * as cardService from './service.js';
