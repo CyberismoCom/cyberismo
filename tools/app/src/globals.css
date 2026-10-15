@@ -1156,8 +1156,7 @@
   overflow-x: auto;
   max-width: 100%;
 }
-.doc table.tableblock {
-  display: block;
+.doc .tablecontainer {
   overflow-x: auto;
   max-width: 100%;
 }
