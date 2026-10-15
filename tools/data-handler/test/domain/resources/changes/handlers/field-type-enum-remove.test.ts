@@ -3,7 +3,7 @@ import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { copyDir } from '../../../../../src/shared/utils/file-utils.js';
-import type { Checkout } from '../../../../../src/infra/checkout.js';
+import type { Checkout } from '../../../../../src/state/checkout/checkout.js';
 import { getTestProject } from '../../../../helpers/test-utils.js';
 import { resourceName } from '../../../../../src/shared/utils/resource-utils.js';
 import { ResourceMutations } from '../../../../../src/domain/resources/changes/resource-mutations.js';

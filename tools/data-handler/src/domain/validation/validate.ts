@@ -43,7 +43,7 @@ import {
   isValidFolderName,
   pathExists,
 } from '../../shared/utils/file-utils.js';
-import type { Checkout } from '../../infra/checkout.js';
+import type { Checkout } from '../../state/checkout/checkout.js';
 import type { Workspace } from '../../api/workspace/workspace.js';
 import { readJsonFile } from '../../shared/utils/json.js';
 import { resourceName } from '../../shared/utils/resource-utils.js';
@@ -57,7 +57,7 @@ const SHORT_TEXT_MAX_LENGTH = 80;
 import * as EmailValidator from 'email-validator';
 import { evaluateMacros } from '../macros/index.js';
 import { allTemplateCards } from '../cards/read.js';
-import { checkoutOf } from '../../infra/internal.js';
+import { checkoutOf } from '../../state/checkout/internal.js';
 const baseDir = import.meta.dirname ?? new URL('.', import.meta.url).pathname;
 const subFoldersToValidate = ['.cards', 'cardRoot'];
 

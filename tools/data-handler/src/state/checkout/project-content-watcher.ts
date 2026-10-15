@@ -13,7 +13,7 @@
 
 import { watch } from 'node:fs';
 
-import { getChildLogger } from '../shared/utils/log-utils.js';
+import { getChildLogger } from '../../shared/utils/log-utils.js';
 
 /**
  * Class that starts watching certain path for changes.

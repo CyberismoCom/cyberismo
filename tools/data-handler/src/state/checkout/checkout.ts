@@ -16,31 +16,31 @@
 import { join, resolve } from 'node:path';
 import { readdirSync } from 'node:fs';
 
-import { CalculationEngine } from './calculation-engine.js';
-import { CardKeyRegistry } from './card-keys.js';
-import { CardTree, type CardTreeChange } from './card-tree.js';
+import { CalculationEngine } from '../engine/calculation-engine.js';
+import { CardKeyRegistry } from '../cards/card-keys.js';
+import { CardTree, type CardTreeChange } from '../cards/card-tree.js';
 import {
   CardNotFoundError,
   DuplicateCardKeyError,
-} from '../shared/exceptions/index.js';
+} from '../../shared/exceptions/index.js';
 import { type CardNode, type ModuleContent } from '@cyberismo/model';
-import { pathExists } from '../shared/utils/file-utils.js';
-import { isModulePath } from '../shared/utils/card-utils.js';
+import { pathExists } from '../../shared/utils/file-utils.js';
+import { isModulePath } from '../../shared/utils/card-utils.js';
 import { ProjectConfiguration } from './project-settings.js';
-import { resourceName } from '../shared/utils/resource-utils.js';
-import { ProjectPaths } from './paths/project-paths.js';
-import { readCardsConfig } from './paths/cards-config.js';
-import { ResourceHandler } from './resource-handler.js';
+import { resourceName } from '../../shared/utils/resource-utils.js';
+import { ProjectPaths } from '../../infra/paths/project-paths.js';
+import { readCardsConfig } from '../../infra/paths/cards-config.js';
+import { ResourceHandler } from '../resources/resource-handler.js';
 import { ContentWatcher } from './project-content-watcher.js';
-import { getChildLogger, initLogger } from '../shared/utils/log-utils.js';
-import { RWLock } from './tx/rw-lock.js';
-import { GitSync } from './git/git-sync.js';
-import { GitManager } from './git/git-manager.js';
-import { commitTrailers } from './tx/tx-record.js';
-import { ChangeFeed, changedAnything } from './tx/change-feed.js';
-import { Validate } from '../domain/validation/validate.js';
+import { getChildLogger, initLogger } from '../../shared/utils/log-utils.js';
+import { RWLock } from '../../infra/tx/rw-lock.js';
+import { GitSync } from '../../infra/git/git-sync.js';
+import { GitManager } from '../../infra/git/git-manager.js';
+import { commitTrailers } from '../../infra/tx/tx-record.js';
+import { ChangeFeed, changedAnything } from '../../infra/tx/change-feed.js';
+import { Validate } from '../../domain/validation/validate.js';
 
-import type { TemplateResource } from '../domain/resources/template-resource.js';
+import type { TemplateResource } from '../../domain/resources/template-resource.js';
 import type { Level } from 'pino';
 
 /**

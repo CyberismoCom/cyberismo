@@ -8,7 +8,7 @@ import {
   createContextFacts,
   createSkillFacts,
   createWorkflowFacts,
-} from '../../../src/shared/utils/clingo-facts.js';
+} from '../../../src/state/engine/clingo-facts.js';
 import {
   WorkflowCategory,
   type CardType,
@@ -16,7 +16,7 @@ import {
   type Workflow,
 } from '@cyberismo/model';
 import type { Card } from '@cyberismo/model';
-import type { Checkout } from '../../../src/infra/checkout.js';
+import type { Checkout } from '../../../src/state/checkout/checkout.js';
 import { copyDir } from '../../../src/shared/utils/file-utils.js';
 import { getTestProject } from '../../helpers/test-utils.js';
 import { findCard } from '../../../src/domain/cards/read.js';

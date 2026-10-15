@@ -19,7 +19,7 @@ import { promisify } from 'node:util';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import type { ModuleSettingOptions } from '@cyberismo/model';
-import { Fetch } from '../../../src/infra/hub-store.js';
+import { Fetch } from '../../../src/state/checkout/hub-store.js';
 import { projects } from '../cards/fixture.js';
 import { readJson } from '../resources/fixture.js';
 

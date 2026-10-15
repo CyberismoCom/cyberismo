@@ -31,10 +31,10 @@ import type {
   Workflow,
 } from '@cyberismo/model';
 import { ClingoProgramBuilder } from '../../infra/engine/clingo-program-builder.js';
-import { isPredefinedField, ROOT } from './constants.js';
-import { getChildLogger } from './log-utils.js';
-import type { Checkout } from '../../infra/checkout.js';
-import type { CardTreeKind } from '../../infra/card-tree.js';
+import { isPredefinedField, ROOT } from '../../shared/utils/constants.js';
+import { getChildLogger } from '../../shared/utils/log-utils.js';
+import type { Checkout } from '../checkout/checkout.js';
+import type { CardTreeKind } from '../cards/card-tree.js';
 
 const logger = getChildLogger({ module: 'clingo-facts' });
 
