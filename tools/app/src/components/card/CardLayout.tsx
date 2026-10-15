@@ -21,18 +21,9 @@ import {
 } from 'react';
 import type { ExpandedLinkType, MetadataValue } from '@/lib/definitions';
 
-import {
-  Accordion,
-  AccordionDetails,
-  AccordionSummary,
-  Box,
-  Button,
-  Stack,
-  Typography,
-} from '@mui/joy';
+import { Box, Stack } from '@mui/joy';
 import { useTheme } from '@mui/material/styles';
 import { useMediaQuery } from '@mui/material';
-import ExpandMore from '@mui/icons-material/ExpandMore';
 import Toc from '@mui/icons-material/Toc';
 import { useTranslation } from 'react-i18next';
 import MetadataView from '@/components/card/metadata-section/MetadataSection';
@@ -53,91 +44,7 @@ import { TableOfContents } from './TableOfContents';
 import { CardBody, type CardBodyHandle } from './CardBody';
 import { CardTitle } from './CardTitle';
 import { AttachmentPanel } from './AttachmentPanel';
-
-function SidebarPanelAccordion({
-  expanded,
-  onToggle,
-  leading,
-  title,
-  children,
-  dataCy,
-}: {
-  expanded: boolean;
-  onToggle: () => void;
-  leading: ReactNode;
-  title: string;
-  children: ReactNode;
-  dataCy?: string;
-}) {
-  const { t } = useTranslation();
-  return (
-    <Box
-      border="1px solid"
-      borderColor="neutral.outlinedBorder"
-      borderRadius={6}
-    >
-      <Accordion expanded={expanded} data-cy={dataCy}>
-        <AccordionSummary
-          onClick={onToggle}
-          sx={{ borderRadius: 6 }}
-          slotProps={{
-            button: {
-              sx: {
-                padding: { xs: 1, sm: 1.5 },
-                gap: 2,
-                borderRadius: 'inherit',
-              },
-            },
-            indicator: { sx: { display: 'none' } },
-          }}
-        >
-          {leading}
-          <Typography level="title-sm" fontWeight="bold" sx={{ flexGrow: 1 }}>
-            {title}
-          </Typography>
-          <Button
-            component="span"
-            variant="plain"
-            color="primary"
-            size="sm"
-            endDecorator={
-              <ExpandMore
-                sx={{
-                  transition: 'transform 0.2s',
-                  transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)',
-                }}
-              />
-            }
-            sx={(theme) => ({
-              [theme.breakpoints.down('sm')]: {
-                paddingBlock: 0,
-                minHeight: 'auto',
-              },
-            })}
-          >
-            <Box
-              component="span"
-              sx={{ display: { xs: 'none', sm: 'inline' } }}
-            >
-              {expanded ? t('showLess') : t('showMore')}
-            </Box>
-          </Button>
-        </AccordionSummary>
-        <AccordionDetails>
-          <Box
-            sx={{
-              paddingX: { xs: 1, sm: 1.5 },
-              paddingBottom: { xs: 1, sm: 1.5 },
-              paddingTop: 1,
-            }}
-          >
-            {children}
-          </Box>
-        </AccordionDetails>
-      </Accordion>
-    </Box>
-  );
-}
+import { SidebarPanelAccordion } from './SidebarPanelAccordion';
 
 type CardLayoutProps = {
   cards: QueryResult<'tree'>[];
