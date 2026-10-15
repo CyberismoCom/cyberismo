@@ -609,6 +609,14 @@
 .doc ul.checklist {
   padding-left: calc(2rem - 1.25em);
 }
+/* Table cells are narrow, so their lists indent by the cell's font, not the page's */
+.doc td.tableblock ol,
+.doc td.tableblock ul {
+  padding-left: 1.5em;
+}
+.doc td.tableblock ul.checklist {
+  padding-left: calc(1.5em - 1.25em);
+}
 .doc .dlist .dlist,
 .doc .dlist .olist,
 .doc .dlist .ulist,
