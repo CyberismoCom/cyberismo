@@ -82,3 +82,6 @@ export { conflictReason } from './resolve/format.js';
 export { ensureStagedSchemas } from './staged-migration.js';
 export { applyModules } from './applier.js';
 export { cleanOrphans } from './orphans.js';
+
+// Used by api/.
+export { Modules } from './modules.js';

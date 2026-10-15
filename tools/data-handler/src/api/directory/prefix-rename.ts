@@ -24,8 +24,8 @@ import type { Checkout } from '../../infra/checkout/checkout.js';
 import type { Card } from '@cyberismo/model';
 import { resourceName } from '../../shared/utils/resource-utils.js';
 import { ResourcesFrom } from '../../infra/resources-from.js';
-import { renameCardAttachment } from '../../domain/cards/attachments.js';
-import { updateCardMetadata as saveCardMetadata } from '../../domain/cards/update.js';
+import { renameCardAttachment } from '../../domain/cards/index.js';
+import { updateCardMetadata as saveCardMetadata } from '../../domain/cards/index.js';
 
 const FILE_TYPES_WITH_PREFIX_REFERENCES = ['adoc', 'hbs', 'json', 'lp'];
 

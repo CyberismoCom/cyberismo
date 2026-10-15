@@ -23,7 +23,7 @@ import type {
   CreateProjectResult,
   ProjectFile,
 } from '@cyberismo/model';
-import { Validate } from '../../domain/validation/validate.js';
+import { Validate } from '../../domain/validation/index.js';
 import { Checkout, type OpenOptions } from '../../infra/checkout/checkout.js';
 import { errorFunction } from '../../shared/utils/error-utils.js';
 import { isValidFolderName } from '../../shared/utils/file-utils.js';
