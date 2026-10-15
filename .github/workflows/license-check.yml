@@ -1,11 +1,11 @@
-# Verifies that all npm/pnpm dependencies carry an allowed license.
-# Policy lives in scripts/license-policy.json
+# Verifies that all npm/pnpm dependencies carry an allowed license
+# (policy in scripts/license-policy.json), and that every file in the repo
+# has copyright and license information per the REUSE spec (REUSE.toml).
 
 name: License check
 
 on:
   pull_request:
-    branches: ["main"]
 
 jobs:
   license-check:
@@ -33,3 +33,17 @@ jobs:
         run: pnpm install --ignore-scripts
       - name: Check dependency licenses
         run: pnpm check-licenses
+
+  reuse:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check file license headers (REUSE)
+        run: pipx run reuse==6.2.0 lint
+      - name: Hint
+        if: failure()
+        run: echo "::error::REUSE lint failed. Add the two-line SPDX header or annotate the file in REUSE.toml; see AGENTS.md (Code style)."

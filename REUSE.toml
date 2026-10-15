@@ -1,0 +1,128 @@
+version = 1
+SPDX-PackageName = "Cyberismo"
+SPDX-PackageSupplier = "Cyberismo Ltd"
+SPDX-PackageDownloadLocation = "https://github.com/CyberismoCom/cyberismo"
+
+# Licensing for files that cannot or should not carry an in-file header.
+# Source code, tests and configs (TS/JS/C++/CSS, scripts) carry a two-line SPDX
+# header in the file itself and are deliberately NOT matched here, so
+# `reuse lint` fails on a new source file without one.
+#
+# Paths under "No in-file header zones" below must also stay in the ignores of
+# the `cyberismo/spdx-header` rule in eslint.config.js.
+#
+# When annotations overlap, the last one wins.
+
+# Non-commentable files (JSON, lockfile, images, snapshots, plain-text
+# fixtures and prose). Commentable authored files (YAML, Dockerfile, HTML,
+# ignore files, ...) carry an in-file header instead.
+[[annotations]]
+path = [
+  "**/*.json",
+  "**/*.md",
+  "**/*.adoc",
+  "**/*.png",
+  "**/*.ico",
+  "**/*.snap",
+  ".prettierrc",
+  "pnpm-lock.yaml",
+  "CONTRIBUTING",
+  "LICENSE",
+  "scripts/pre-commit.sample.txt",
+  "tools/cli/test/help.txt",
+]
+SPDX-FileCopyrightText = "Cyberismo Ltd and contributors"
+SPDX-License-Identifier = "AGPL-3.0-only"
+
+# --- No in-file header zones ---
+
+# Content and fixtures that mimic or are copied into users' projects. No
+# in-file headers so nothing is stamped into user content.
+# AGPL-3.0-only is interim: licence OPEN, see INTDEV-1507 plan.
+[[annotations]]
+path = [
+  "module-test/**",
+  "tools/data-handler/test/test-data/**",
+  "tools/assets/src/**/*.json",
+  "tools/assets/src/**/*.schema",
+  "tools/assets/src/**/*.lp",
+  "tools/assets/src/**/*.hbs",
+  "tools/assets/src/**/*.md",
+  "tools/assets/src/**/*.yml",
+  "tools/assets/src/**/*.png",
+]
+SPDX-FileCopyrightText = "Cyberismo Ltd and contributors"
+SPDX-License-Identifier = "AGPL-3.0-only" # licence OPEN, see INTDEV-1507 plan
+
+# Scaffolding copied verbatim into user projects: no licence burden on users.
+[[annotations]]
+path = [
+  "tools/assets/src/static/defaultReport/**",
+  "tools/assets/src/static/defaultGraphView/**",
+  "tools/assets/src/static/defaultSkill/**",
+  "tools/assets/src/static/agentSkills/**",
+]
+precedence = "override"
+SPDX-FileCopyrightText = "Cyberismo Ltd and contributors"
+SPDX-License-Identifier = "CC0-1.0"
+
+# Documentation content is CC-BY-SA-4.0 (see docs/README.adoc).
+[[annotations]]
+path = "docs/**"
+precedence = "override"
+SPDX-FileCopyrightText = "Cyberismo Ltd and contributors"
+SPDX-License-Identifier = "CC-BY-SA-4.0"
+
+# --- Third-party material (see THIRD-PARTY.txt files) ---
+
+[[annotations]]
+path = "tools/node-clingo/external/xxhash/**"
+precedence = "override"
+SPDX-FileCopyrightText = "2012-2021 Yann Collet"
+SPDX-License-Identifier = "BSD-2-Clause"
+
+[[annotations]]
+path = "tools/assets/src/static/pdf-themes/fonts/*.ttf"
+precedence = "override"
+SPDX-FileCopyrightText = "2020 The Plus Jakarta Sans Project Authors (https://github.com/tokotype/PlusJakartaSans)"
+SPDX-License-Identifier = "OFL-1.1"
+
+[[annotations]]
+path = [
+  "tools/assets/src/schema/macros/vegaMacroSchema.json",
+  "tools/assets/src/schema/macros/vegaLiteMacroSchema.json",
+]
+precedence = "override"
+SPDX-FileCopyrightText = "2017 Vega"
+SPDX-License-Identifier = "BSD-3-Clause"
+
+# Aggregated third-party notices; each reproduces the licenses it lists.
+[[annotations]]
+path = "tools/assets/THIRD-PARTY.txt"
+SPDX-FileCopyrightText = ["2017 Vega", "2020 The Plus Jakarta Sans Project Authors"]
+SPDX-License-Identifier = "BSD-3-Clause AND OFL-1.1"
+
+[[annotations]]
+path = "tools/node-clingo/THIRD-PARTY.txt"
+SPDX-FileCopyrightText = ["2012-2021 Yann Collet", "2021-2026 Barak Shoshany"]
+SPDX-License-Identifier = "BSD-2-Clause AND MIT"
+
+# unverified origin: Google Material Symbols icon (viewBox "0 -960 960 960"
+# signature).
+[[annotations]]
+path = "tools/app/public/images/attach_file_add.svg"
+SPDX-FileCopyrightText = "Google LLC"
+SPDX-License-Identifier = "Apache-2.0"
+
+# unverified origin: Vite / React logos from the create-vite scaffold (Iconify
+# "logos" set).
+[[annotations]]
+path = ["tools/app/public/vite.svg", "tools/app/src/assets/react.svg"]
+SPDX-FileCopyrightText = "Gil Barbara (https://github.com/gilbarbara/logos)"
+SPDX-License-Identifier = "CC0-1.0"
+
+# Own icon with no known third-party origin.
+[[annotations]]
+path = "tools/app/public/images/broken_link.svg"
+SPDX-FileCopyrightText = "Cyberismo Ltd and contributors"
+SPDX-License-Identifier = "AGPL-3.0-only"
