@@ -38,7 +38,12 @@ import { AttachmentPanel } from '@/components/card/AttachmentPanel';
 
 configure({ testIdAttribute: 'data-cy' });
 
-const file = { card: 'c_1', fileName: 'notes.txt', mimeType: 'text/plain' };
+const file = {
+  card: 'c_1',
+  fileName: 'notes.txt',
+  mimeType: 'text/plain',
+  path: '/c_1/a/notes.txt',
+};
 
 describe('AttachmentPanel', () => {
   it.each([
