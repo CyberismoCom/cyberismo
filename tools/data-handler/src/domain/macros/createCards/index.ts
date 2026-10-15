@@ -10,7 +10,7 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { createHtmlPlaceholder, validateMacroContent } from '../index.js';
+import { createHtmlPlaceholder, validateMacroContent } from '../registry.js';
 
 import type { CreateCardsOptions } from '@cyberismo/model';
 import type { MacroGenerationContext } from '../../../shared/interfaces/macros.js';

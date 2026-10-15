@@ -4,7 +4,7 @@ import { mkdirSync, rmSync, readFileSync, writeFileSync } from 'node:fs';
 
 import { copyDir } from '../src/shared/utils/file-utils.js';
 import { resourceName } from '../src/shared/utils/resource-utils.js';
-import { type Workspace } from '../src/api/workspace/workspace.js';
+import { type Workspace } from '../src/api/workspace.js';
 import type { Card } from '@cyberismo/model';
 import { openTestWorkspace } from './helpers/open-test-workspace.js';
 import { findCard } from '../src/domain/cards/read.js';

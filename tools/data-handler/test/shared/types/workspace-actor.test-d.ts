@@ -16,7 +16,7 @@
 import type { Checkout } from '../../../src/state/checkout/checkout.js';
 import { openProjectAt } from '../../../src/api/directory/local-folder.js';
 import type { ProjectDirectory } from '../../../src/api/directory/project-directory.js';
-import { Workspace } from '../../../src/api/workspace/workspace.js';
+import { Workspace } from '../../../src/api/workspace.js';
 import { SYSTEM_ACTOR } from '../../../src/infra/tx/tx-record.js';
 
 type OverParameters = Parameters<typeof Workspace.over>;

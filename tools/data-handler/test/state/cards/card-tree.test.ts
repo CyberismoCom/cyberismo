@@ -32,7 +32,7 @@ import { CardKeyRegistry } from '../../../src/state/cards/card-keys.js';
 import { CardTree } from '../../../src/state/cards/card-tree.js';
 import type { NewCard } from '../../../src/state/cards/card-tree.js';
 import type { Card, CardMetadata } from '@cyberismo/model';
-import { type Workspace } from '../../../src/api/workspace/workspace.js';
+import { type Workspace } from '../../../src/api/workspace.js';
 import { ROOT } from '../../../src/shared/utils/constants.js';
 import {
   CardNotFoundError,

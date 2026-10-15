@@ -15,7 +15,7 @@ import { mkdirSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import type { Workspace } from '../src/api/workspace/workspace.js';
+import type { Workspace } from '../src/api/workspace.js';
 import { copyDir } from '../src/shared/utils/file-utils.js';
 import { getTestBaseDir } from './helpers/test-utils.js';
 import { openTestWorkspace } from './helpers/open-test-workspace.js';

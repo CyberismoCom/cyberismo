@@ -11,7 +11,7 @@
 */
 import Handlebars from 'handlebars';
 import type { CalculationEngine } from '../../state/engine/calculation-engine.js';
-import { registerEmptyMacros } from '../macros/index.js';
+import { registerEmptyMacros } from '../macros/registry.js';
 import type { Context } from '@cyberismo/model';
 import {
   registerComparisonHelpers,

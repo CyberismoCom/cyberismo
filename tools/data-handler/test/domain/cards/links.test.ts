@@ -13,7 +13,7 @@
 
 import { describe, expect, it } from 'vitest';
 
-import type { Workspace } from '../../../src/api/workspace/workspace.js';
+import type { Workspace } from '../../../src/api/workspace.js';
 import { CardNotFoundError } from '../../../src/shared/exceptions/index.js';
 import { expectRefused, metadataOf, projects } from './fixture.js';
 

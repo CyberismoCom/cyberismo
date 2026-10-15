@@ -11,7 +11,7 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { evaluateMacros, validateMacroContent } from '../index.js';
+import { evaluateMacros, validateMacroContent } from '../registry.js';
 
 import type { IncludeMacroOptions } from '@cyberismo/model';
 import type { MacroGenerationContext } from '../../../shared/interfaces/macros.js';
