@@ -47,7 +47,14 @@ Internal deps use `"workspace:*"` and are imported as `@cyberismo/<package>`.
   import { Project } from './containers/project';
   ```
 - Use `node:` prefix on Node built-ins: `import { join } from 'node:path'`
-- New source files start with the AGPL-3.0 copyright header — copy the `/** Cyberismo ... */` block from any existing source file
+- Every commentable source, test, script and config file you author starts with exactly these two lines (after a shebang and one blank line, if any), with no year and no other text. Tests, e2e, configs and scripts included. Comment style: `//` for TS/JS/C++, `/* */` for CSS, `%` for `.lp`, `#` for shell, cmake and gyp:
+  ```typescript
+  // SPDX-FileCopyrightText: Cyberismo Ltd and contributors
+  // SPDX-License-Identifier: AGPL-3.0-only
+  ```
+- Do not add headers under the "No in-file header zones" in `REUSE.toml`: `tools/assets/src/**` (except `.ts`), `docs/**`, `module-test/**`, `tools/data-handler/test/test-data/**`. Those, and JSON, images and other non-commentable files, are licensed through `REUSE.toml`; extend it there.
+- Never edit third-party headers or files (e.g. `tools/node-clingo/external/**`)
+- `pnpm lint` checks TS/JS headers (`pnpm lint --fix` adds them). CI's `reuse` job (`License check / reuse`) runs `reuse lint` on every file, C++ included; locally: `uvx --from reuse==6.2.0 reuse lint`. For other file types: `uvx --from reuse==6.2.0 reuse annotate --template cyberismo --exclude-year --copyright 'Cyberismo Ltd and contributors' --license AGPL-3.0-only <files>`
 - C++ code in `node-clingo` is format-checked in CI: `pnpm --filter node-clingo format:cpp:check`
 
 ## Testing
