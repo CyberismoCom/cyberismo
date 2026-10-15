@@ -52,7 +52,7 @@ describe('Cards reads return plain data', () => {
     ['attachments', (cards) => cards.attachments()],
     [
       'attachment',
-      // A Buffer is a Uint8Array, which is how bytes cross the façade.
+      // A Buffer is a Uint8Array, which is how bytes cross the API.
       async (cards) => {
         const file = await cards.attachment('decision_1', 'the-needle.heic');
         return { ...file, fileBuffer: new Uint8Array(file.fileBuffer) };
