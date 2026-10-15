@@ -17,7 +17,7 @@ import { join } from 'node:path';
 import { validateProgram } from '@cyberismo/node-clingo';
 
 import { CONTENT_FILES, type ResourceName } from '@cyberismo/model';
-import { DefaultContent } from '../resources/create-defaults.js';
+import { DefaultContent } from './create-defaults.js';
 import { FolderResource } from './folder-resource.js';
 import { resourceNameToString } from '../../shared/utils/resource-utils.js';
 import { sortCards } from '../../shared/utils/card-utils.js';
@@ -29,7 +29,7 @@ import type {
   CalculationMetadata,
   Card,
 } from '@cyberismo/model';
-import type { Checkout } from '../../infra/checkout.js';
+import type { Checkout } from '../../infra/checkout/checkout.js';
 
 /**
  * Calculation resource class.

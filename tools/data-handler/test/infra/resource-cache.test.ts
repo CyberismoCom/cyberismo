@@ -5,13 +5,13 @@ import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
 
 import { type Workspace } from '../../src/api/workspace/workspace.js';
 import { copyDir, pathExists } from '../../src/shared/utils/file-utils.js';
-import type { Checkout } from '../../src/infra/checkout.js';
+import type { Checkout } from '../../src/infra/checkout/checkout.js';
 import { ResourceCache } from '../../src/infra/resource-cache.js';
 import { getTestProject } from '../helpers/test-utils.js';
 import { WorkflowCategory } from '@cyberismo/model';
 import { ResourcesFrom } from '../../src/infra/resources-from.js';
 import { openTestWorkspace } from '../helpers/open-test-workspace.js';
-import { checkoutOf } from '../../src/infra/internal.js';
+import { checkoutOf } from '../../src/infra/checkout/internal.js';
 
 describe('Resource cache', () => {
   const baseDir = import.meta.dirname;

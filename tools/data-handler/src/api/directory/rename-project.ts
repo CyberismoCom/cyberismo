@@ -11,12 +11,12 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { type Checkout } from '../../infra/checkout.js';
-import { checkoutOf } from '../../infra/internal.js';
+import { type Checkout } from '../../infra/checkout/checkout.js';
+import { checkoutOf } from '../../infra/checkout/internal.js';
 import type { Workspace } from '../workspace/workspace.js';
-import { renameProjectPrefix } from '../../shared/utils/prefix-rename.js';
-import { write } from '../../infra/rw-lock.js';
-import type { CommitIdentity } from '../../shared/utils/tx-record.js';
+import { renameProjectPrefix } from './prefix-rename.js';
+import { write } from '../../infra/tx/rw-lock.js';
+import type { CommitIdentity } from '../../infra/tx/tx-record.js';
 import type { ActorRef } from '@cyberismo/model';
 
 /**

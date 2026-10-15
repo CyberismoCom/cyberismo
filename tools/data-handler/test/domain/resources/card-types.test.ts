@@ -22,8 +22,8 @@ import {
   rename,
   spec,
 } from './fixture.js';
-import { Validate } from '../../../src/domain/commands/validate.js';
-import { checkoutOf } from '../../../src/infra/internal.js';
+import { Validate } from '../../../src/domain/validation/validate.js';
+import { checkoutOf } from '../../../src/infra/checkout/internal.js';
 
 const open = projects();
 

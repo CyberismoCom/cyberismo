@@ -23,7 +23,7 @@ import { isGitLocation } from '../../shared/utils/location.js';
 import {
   type ModuleDeclaration,
   type ModuleInstallation,
-} from '../mutations/replay/module-types.js';
+} from '../resources/changes/replay/module-types.js';
 import {
   toVersion,
   toVersionRange,
@@ -32,7 +32,7 @@ import {
 } from '../../shared/utils/version.js';
 import { type Source, type VersionSource } from '@cyberismo/model';
 
-import type { Checkout } from '../../infra/checkout.js';
+import type { Checkout } from '../../infra/checkout/checkout.js';
 import type {
   ModuleInfo,
   ModuleSetting,

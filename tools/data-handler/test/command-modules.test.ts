@@ -11,8 +11,8 @@ import {
 import { join, resolve as pathResolve } from 'node:path';
 import { copyDir } from '../src/shared/utils/file-utils.js';
 import { createProject } from '../src/api/directory/create-project.js';
-import { SYSTEM_ACTOR } from '../src/shared/utils/tx-record.js';
-import { GitManager } from '../src/infra/git-manager.js';
+import { SYSTEM_ACTOR } from '../src/infra/tx/tx-record.js';
+import { GitManager } from '../src/infra/git/git-manager.js';
 import {
   makeFakeModuleFixture,
   rewriteFakeModuleFixture,
@@ -22,7 +22,7 @@ import { readJsonFileSync } from '../src/shared/utils/json.js';
 import { SCHEMA_VERSION } from '@cyberismo/migrations';
 import { writeSeals } from './helpers/replay-fixtures.js';
 import { openTestWorkspace } from './helpers/open-test-workspace.js';
-import { checkoutOf } from '../src/infra/internal.js';
+import { checkoutOf } from '../src/infra/checkout/internal.js';
 
 // Create test artifacts in a temp folder.
 const baseDir = import.meta.dirname;

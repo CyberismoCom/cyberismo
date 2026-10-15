@@ -31,7 +31,7 @@ import {
 } from '../../shared/utils/resource-utils.js';
 import { sortCards } from '../../shared/utils/card-utils.js';
 
-import type { Checkout } from '../../infra/checkout.js';
+import type { Checkout } from '../../infra/checkout/checkout.js';
 
 /**
  * Workflow resource class.

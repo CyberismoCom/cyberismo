@@ -19,7 +19,7 @@ import semver from 'semver';
 
 import { getChildLogger } from '../../shared/utils/log-utils.js';
 import { formatSealFileName, lastSealedVersion } from './seal-files.js';
-import { ProjectPaths } from '../project-paths.js';
+import { ProjectPaths } from '../checkout/project-paths.js';
 import { writeFileSafe, pathExists } from '../../shared/utils/file-utils.js';
 
 // Entry shapes match the log format shipped in released versions

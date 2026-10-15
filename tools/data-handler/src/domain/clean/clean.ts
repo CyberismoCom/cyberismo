@@ -11,12 +11,12 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import type { Checkout } from '../../infra/checkout.js';
+import type { Checkout } from '../../infra/checkout/checkout.js';
 import { ResourcesFrom } from '../../infra/resources-from.js';
 import { isPredefinedField } from '../../shared/utils/constants.js';
 import { getChildLogger } from '../../shared/utils/log-utils.js';
 import { sortCards } from '../../shared/utils/card-utils.js';
-import { read, write } from '../../infra/rw-lock.js';
+import { read, write } from '../../infra/tx/rw-lock.js';
 
 import type {
   ActorRef,
@@ -29,7 +29,7 @@ import type {
   DormantSummary,
 } from '@cyberismo/model';
 import { updateCardMetadata } from '../cards/update.js';
-import type { CommitIdentity } from '../../shared/utils/tx-record.js';
+import type { CommitIdentity } from '../../infra/tx/tx-record.js';
 
 // The logger is initialized while the project loads, so the child logger is
 // taken at call time; binding it at module scope would keep the silent default.

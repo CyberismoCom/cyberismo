@@ -20,7 +20,7 @@ import { FolderResource } from './folder-resource.js';
 import { getStaticDirectoryPath } from '@cyberismo/assets';
 import { resourceNameToString } from '../../shared/utils/resource-utils.js';
 import { sortCards } from '../../shared/utils/card-utils.js';
-import { Validate } from '../commands/validate.js';
+import { Validate } from '../validation/validate.js';
 
 import type {
   Card,
@@ -28,7 +28,7 @@ import type {
   ReportMetadata,
   ResourceName,
 } from '@cyberismo/model';
-import type { Checkout } from '../../infra/checkout.js';
+import type { Checkout } from '../../infra/checkout/checkout.js';
 
 const PARAMETER_SCHEMA_ID = 'jsonSchema';
 

@@ -15,8 +15,8 @@
 import { basename, join, relative } from 'node:path';
 import { mkdir, mkdtemp, rename, rm } from 'node:fs/promises';
 
-import { createGit, gitTimeout } from '../../infra/git-config.js';
-import { configuredFolders } from '../../infra/project-folders.js';
+import { createGit, gitTimeout } from '../../infra/git/git-config.js';
+import { configuredFolders } from '../../infra/checkout/project-folders.js';
 import { pathExists } from '../../shared/utils/file-utils.js';
 import { getChildLogger } from '../../shared/utils/log-utils.js';
 
