@@ -1,5 +1,5 @@
 import { expect, describe, it } from 'vitest';
-import { ArrayHandler } from '../../src/resources/array-handler.js';
+import { ArrayHandler } from '../../src/domain/resources/array-handler.js';
 const testObject1 = {
   first: 'value1',
   second: 'value1',

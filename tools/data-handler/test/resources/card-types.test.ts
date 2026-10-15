@@ -13,7 +13,7 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { ResourceNotFoundError } from '../../src/exceptions/index.js';
+import { ResourceNotFoundError } from '../../src/shared/exceptions/index.js';
 import {
   edit,
   expectRefused,
@@ -22,7 +22,7 @@ import {
   rename,
   spec,
 } from './fixture.js';
-import { Validate } from '../../src/commands/validate.js';
+import { Validate } from '../../src/domain/commands/validate.js';
 import { checkoutOf } from '../../src/infra/internal.js';
 
 const open = projects();

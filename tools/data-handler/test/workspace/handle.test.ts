@@ -16,7 +16,7 @@ import { promisify } from 'node:util';
 import { afterEach, beforeEach, expect, it } from 'vitest';
 
 import { Checkout } from '../../src/infra/checkout.js';
-import { Workspace } from '../../src/workspace/workspace.js';
+import { Workspace } from '../../src/api/workspace/workspace.js';
 import { buildProject, type BuiltProject } from '../helpers/project-builder.js';
 import { checkoutOf } from '../../src/infra/internal.js';
 

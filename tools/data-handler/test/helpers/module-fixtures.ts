@@ -20,7 +20,7 @@ import { vi } from 'vitest';
 import { SCHEMA_VERSION } from '@cyberismo/migrations';
 import { ProjectPaths } from '../../src/infra/project-paths.js';
 import type { Checkout } from '../../src/infra/checkout.js';
-import { isGitLocation } from '../../src/utils/location.js';
+import { isGitLocation } from '../../src/shared/utils/location.js';
 import type {
   FetchTarget,
   SourceLayer,

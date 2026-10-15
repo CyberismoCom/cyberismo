@@ -7,7 +7,7 @@ import {
   checkUpdate,
   resolveUpdate,
   toUpdatePlan,
-} from '../../src/modules/update-plan.js';
+} from '../../src/domain/modules/update-plan.js';
 import { makeProjectStub } from '../helpers/module-fixtures.js';
 import { InMemorySource, type FakeModuleConfig } from './in-memory-source.js';
 import type {

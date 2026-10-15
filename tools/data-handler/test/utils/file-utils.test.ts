@@ -12,7 +12,7 @@ import {
   pathExists,
   resolveTilde,
   stripExtension,
-} from '../../src/utils/file-utils.js';
+} from '../../src/shared/utils/file-utils.js';
 
 describe('file utils', () => {
   const baseDir = import.meta.dirname;

@@ -3,8 +3,8 @@ import { expect, describe, it, beforeEach, afterEach } from 'vitest';
 import { join } from 'node:path';
 import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
 
-import { type Workspace } from '../src/workspace/workspace.js';
-import { copyDir, pathExists } from '../src/utils/file-utils.js';
+import { type Workspace } from '../src/api/workspace/workspace.js';
+import { copyDir, pathExists } from '../src/shared/utils/file-utils.js';
 import type { Checkout } from '../src/infra/checkout.js';
 import { ResourceCache } from '../src/infra/resource-cache.js';
 import { getTestProject } from './helpers/test-utils.js';

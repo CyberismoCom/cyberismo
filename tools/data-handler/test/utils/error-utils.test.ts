@@ -13,7 +13,7 @@
 
 import { expect, describe, it } from 'vitest';
 
-import { hasCode, errorFunction } from '../../src/utils/error-utils.js';
+import { hasCode, errorFunction } from '../../src/shared/utils/error-utils.js';
 
 describe('error utils', () => {
   describe('hasCode type guard', () => {
