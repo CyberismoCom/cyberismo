@@ -14,7 +14,7 @@
 import { existsSync, readdirSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
-import { ResourceNotFoundError } from '../../src/exceptions/index.js';
+import { ResourceNotFoundError } from '../../src/shared/exceptions/index.js';
 import {
   edit,
   expectRefused,

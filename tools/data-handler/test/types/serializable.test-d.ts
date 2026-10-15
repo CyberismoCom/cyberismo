@@ -17,18 +17,18 @@
 // `unknown` is trusted as an untyped JSON payload (an edit's value); `any` is not.
 
 import type { ChangeEvent } from '@cyberismo/model';
-import type { Cards } from '../../src/cards/cards.js';
-import type { Clean } from '../../src/clean/clean.js';
-import type { createProject } from '../../src/directory/create-project.js';
-import type { ProjectDirectory } from '../../src/directory/project-directory.js';
-import type { Export } from '../../src/export/export.js';
-import type { Render } from '../../src/macros/render.js';
-import type { Modules } from '../../src/modules/modules.js';
-import type { Queries } from '../../src/queries/queries.js';
-import type { Versions } from '../../src/versions/version.js';
-import type { Changes } from '../../src/workspace/changes.js';
-import type { Resources } from '../../src/workspace/resources.js';
-import type { Hubs, Settings } from '../../src/workspace/settings.js';
+import type { Cards } from '../../src/domain/cards/cards.js';
+import type { Clean } from '../../src/domain/clean/clean.js';
+import type { createProject } from '../../src/api/directory/create-project.js';
+import type { ProjectDirectory } from '../../src/api/directory/project-directory.js';
+import type { Export } from '../../src/domain/export/export.js';
+import type { Render } from '../../src/domain/macros/render.js';
+import type { Modules } from '../../src/domain/modules/modules.js';
+import type { Queries } from '../../src/domain/queries/queries.js';
+import type { Versions } from '../../src/domain/versions/version.js';
+import type { Changes } from '../../src/api/workspace/changes.js';
+import type { Resources } from '../../src/api/workspace/resources.js';
+import type { Hubs, Settings } from '../../src/api/workspace/settings.js';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnyFunction = (...args: any[]) => unknown;

@@ -2,15 +2,18 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { copyDir } from '../../../src/utils/file-utils.js';
+import { copyDir } from '../../../src/shared/utils/file-utils.js';
 import type { Checkout } from '../../../src/infra/checkout.js';
 import { getTestProject } from '../../helpers/test-utils.js';
-import { route } from '../../../src/mutations/route.js';
-import { resourceName } from '../../../src/utils/resource-utils.js';
-import { ResourceMutations } from '../../../src/mutations/resource-mutations.js';
-import { Workspace } from '../../../src/workspace/workspace.js';
-import { SYSTEM_ACTOR, SYSTEM_FRAME } from '../../../src/utils/tx-record.js';
-import { updateCardMetadata } from '../../../src/cards/update.js';
+import { route } from '../../../src/domain/mutations/route.js';
+import { resourceName } from '../../../src/shared/utils/resource-utils.js';
+import { ResourceMutations } from '../../../src/domain/mutations/resource-mutations.js';
+import { Workspace } from '../../../src/api/workspace/workspace.js';
+import {
+  SYSTEM_ACTOR,
+  SYSTEM_FRAME,
+} from '../../../src/shared/utils/tx-record.js';
+import { updateCardMetadata } from '../../../src/domain/cards/update.js';
 
 const baseDir = import.meta.dirname;
 const testDir = join(baseDir, 'tmp-field-type-enum-rename');

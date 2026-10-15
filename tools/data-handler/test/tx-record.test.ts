@@ -13,7 +13,7 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { commitTrailers } from '../src/utils/tx-record.js';
+import { commitTrailers } from '../src/shared/utils/tx-record.js';
 
 describe('commitTrailers', () => {
   it('records nothing for an actor without an agent', () => {

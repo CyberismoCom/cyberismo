@@ -13,9 +13,9 @@
 
 import { randomUUID } from 'node:crypto';
 import type { Change, ChangeEvent } from '@cyberismo/model';
-import { getChildLogger } from '../utils/log-utils.js';
+import { getChildLogger } from '../shared/utils/log-utils.js';
 import type { RWLock } from './rw-lock.js';
-import type { TxRecord } from '../utils/tx-record.js';
+import type { TxRecord } from '../shared/utils/tx-record.js';
 
 /** Receives the change events of a checkout. */
 export type ChangeListener = (event: ChangeEvent) => void;

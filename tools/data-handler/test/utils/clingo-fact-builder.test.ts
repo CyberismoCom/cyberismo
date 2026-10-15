@@ -2,8 +2,8 @@ import { expect, describe, it } from 'vitest';
 import {
   ClingoFactBuilder,
   encodeClingoValue,
-} from '../../src/utils/clingo-fact-builder.js';
-import { INT32_MAX } from '../../src/utils/constants.js';
+} from '../../src/shared/utils/clingo-fact-builder.js';
+import { INT32_MAX } from '../../src/shared/utils/constants.js';
 
 describe('ClingoFactBuilder', () => {
   it('should generate fact with addArgument', () => {

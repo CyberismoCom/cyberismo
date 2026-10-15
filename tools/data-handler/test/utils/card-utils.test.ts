@@ -7,7 +7,7 @@ import {
   isExternalItemKey,
   moduleNameFromCardKey,
   sortCards,
-} from '../../src/utils/card-utils.js';
+} from '../../src/shared/utils/card-utils.js';
 import type { Card } from '@cyberismo/model';
 
 describe('card utils', () => {

@@ -3,12 +3,12 @@ import { mkdir, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 
 import { Checkout } from '../../../src/infra/checkout.js';
-import { route } from '../../../src/mutations/route.js';
-import { resourceName } from '../../../src/utils/resource-utils.js';
-import { copyDir } from '../../../src/utils/file-utils.js';
-import { Workspace } from '../../../src/workspace/workspace.js';
-import { SYSTEM_ACTOR } from '../../../src/utils/tx-record.js';
-import { updateCardMetadata } from '../../../src/cards/update.js';
+import { route } from '../../../src/domain/mutations/route.js';
+import { resourceName } from '../../../src/shared/utils/resource-utils.js';
+import { copyDir } from '../../../src/shared/utils/file-utils.js';
+import { Workspace } from '../../../src/api/workspace/workspace.js';
+import { SYSTEM_ACTOR } from '../../../src/shared/utils/tx-record.js';
+import { updateCardMetadata } from '../../../src/domain/cards/update.js';
 
 const FIXTURE_PATH = join(
   import.meta.dirname,

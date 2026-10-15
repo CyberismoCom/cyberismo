@@ -21,11 +21,11 @@ import {
   canonicalHubLocation,
   hubModuleListUrl,
   MODULE_LIST_FILE,
-} from '../utils/hub-utils.js';
-import { egressFetch } from '../utils/egress.js';
-import { getChildLogger } from '../utils/log-utils.js';
-import { readJsonFile, writeJsonFile } from '../utils/json.js';
-import { validateJson } from '../utils/validate.js';
+} from '../shared/utils/hub-utils.js';
+import { egressFetch } from '../shared/utils/egress.js';
+import { getChildLogger } from '../shared/utils/log-utils.js';
+import { readJsonFile, writeJsonFile } from '../shared/utils/json.js';
+import { validateJson } from '../shared/utils/validate.js';
 import { write } from './rw-lock.js';
 
 import type { HubFetchFailure, ModuleSetting } from '@cyberismo/model';

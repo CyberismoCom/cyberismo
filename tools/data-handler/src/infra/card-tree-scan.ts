@@ -18,8 +18,8 @@ import { readdir, readFile } from 'node:fs/promises';
 
 import type { CardMetadata, MetadataContent } from '@cyberismo/model';
 import { CardNameRegEx } from '@cyberismo/model';
-import { getChildLogger } from '../utils/log-utils.js';
-import { ROOT } from '../utils/constants.js';
+import { getChildLogger } from '../shared/utils/log-utils.js';
+import { ROOT } from '../shared/utils/constants.js';
 
 // A card's own files, inside its folder.
 export const CARD_CONTENT_FILE = 'index.adoc';

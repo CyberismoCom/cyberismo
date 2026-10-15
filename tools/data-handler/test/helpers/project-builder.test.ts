@@ -21,13 +21,13 @@ import { join, relative, sep } from 'node:path';
 import { simpleGit } from 'simple-git';
 
 import { Checkout } from '../../src/infra/checkout.js';
-import { Validate } from '../../src/commands/validate.js';
+import { Validate } from '../../src/domain/commands/validate.js';
 import {
   buildProject,
   type BuiltProject,
   type ProjectSpec,
 } from './project-builder.js';
-import { allTemplateCards, findCard } from '../../src/cards/read.js';
+import { allTemplateCards, findCard } from '../../src/domain/cards/read.js';
 
 // Wrapped so a test can see which directory the builder created.
 vi.mock('node:fs/promises', async (importOriginal) => {

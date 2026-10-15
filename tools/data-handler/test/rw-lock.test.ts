@@ -2,10 +2,10 @@ import { expect, describe, it } from 'vitest';
 
 import { RWLock, read, write } from '../src/infra/rw-lock.js';
 import { runWithCommitContext } from '../src/infra/commit-context.js';
-import { MissingActorError } from '../src/exceptions/index.js';
-import type { TxRecord } from '../src/utils/tx-record.js';
+import { MissingActorError } from '../src/shared/exceptions/index.js';
+import type { TxRecord } from '../src/shared/utils/tx-record.js';
 import { deferred } from './test-utils.js';
-import { SYSTEM_FRAME } from '../src/utils/tx-record.js';
+import { SYSTEM_FRAME } from '../src/shared/utils/tx-record.js';
 
 describe('RWLock', () => {
   describe('basic read/write', () => {

@@ -3,8 +3,8 @@ import { mkdir, rm, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
 import { Checkout } from '../../src/infra/checkout.js';
-import { copyDir } from '../../src/utils/file-utils.js';
-import { renameProjectPrefix } from '../../src/utils/prefix-rename.js';
+import { copyDir } from '../../src/shared/utils/file-utils.js';
+import { renameProjectPrefix } from '../../src/shared/utils/prefix-rename.js';
 
 const FIXTURE_PATH = join(
   import.meta.dirname,

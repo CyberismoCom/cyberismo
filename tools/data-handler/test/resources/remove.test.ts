@@ -16,7 +16,7 @@ import { existsSync } from 'node:fs';
 import { promisify } from 'node:util';
 import { describe, expect, it } from 'vitest';
 
-import { ResourceNotFoundError } from '../../src/exceptions/index.js';
+import { ResourceNotFoundError } from '../../src/shared/exceptions/index.js';
 import {
   expectRefused,
   local,

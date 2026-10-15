@@ -3,10 +3,10 @@ import { mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
 
 import { Checkout } from '../../src/infra/checkout.js';
-import { resourceName } from '../../src/utils/resource-utils.js';
-import { copyDir, deleteDir } from '../../src/utils/file-utils.js';
-import { Workspace } from '../../src/workspace/workspace.js';
-import { SYSTEM_ACTOR } from '../../src/utils/tx-record.js';
+import { resourceName } from '../../src/shared/utils/resource-utils.js';
+import { copyDir, deleteDir } from '../../src/shared/utils/file-utils.js';
+import { Workspace } from '../../src/api/workspace/workspace.js';
+import { SYSTEM_ACTOR } from '../../src/shared/utils/tx-record.js';
 
 const testDir = join(import.meta.dirname, 'tmp-resource-mutations');
 const fixturePath = join(testDir, 'valid', 'decision-records');

@@ -1,5 +1,5 @@
 import { expect, describe, it } from 'vitest';
-import { generateRandomString } from '../../src/utils/random.js';
+import { generateRandomString } from '../../src/shared/utils/random.js';
 
 describe('generate random string', () => {
   it('base36', () => {

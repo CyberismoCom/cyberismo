@@ -11,8 +11,8 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { sleep } from '../utils/common-utils.js';
-import { getChildLogger } from '../utils/log-utils.js';
+import { sleep } from '../shared/utils/common-utils.js';
+import { getChildLogger } from '../shared/utils/log-utils.js';
 import { GitManager } from './git-manager.js';
 
 const MAX_RETRIES = 2;
