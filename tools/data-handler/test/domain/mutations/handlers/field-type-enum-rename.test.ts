@@ -1,0 +1,151 @@
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
+
+import { copyDir } from '../../../../src/shared/utils/file-utils.js';
+import type { Checkout } from '../../../../src/infra/checkout.js';
+import { getTestProject } from '../../../helpers/test-utils.js';
+import { route } from '../../../../src/domain/mutations/route.js';
+import { resourceName } from '../../../../src/shared/utils/resource-utils.js';
+import { ResourceMutations } from '../../../../src/domain/mutations/resource-mutations.js';
+import { Workspace } from '../../../../src/api/workspace/workspace.js';
+import {
+  SYSTEM_ACTOR,
+  SYSTEM_FRAME,
+} from '../../../../src/shared/utils/tx-record.js';
+import { updateCardMetadata } from '../../../../src/domain/cards/update.js';
+
+const baseDir = import.meta.dirname;
+const testDir = join(baseDir, 'tmp-field-type-enum-rename');
+const decisionRecordsPath = join(testDir, 'valid/decision-records');
+let checkout: Checkout;
+
+const fieldName = () => `${checkout.projectPrefix}/fieldTypes/testEnum`;
+
+function seedEnumField() {
+  const enumFieldPath = join(
+    decisionRecordsPath,
+    '.cards',
+    'local',
+    'fieldTypes',
+    'testEnum.json',
+  );
+  writeFileSync(
+    enumFieldPath,
+    JSON.stringify(
+      {
+        name: 'decision/fieldTypes/testEnum',
+        displayName: 'Test Enum',
+        description: 'A seeded enum field type for handler tests',
+        dataType: 'enum',
+        enumValues: [
+          { enumValue: 'low' },
+          { enumValue: 'medium' },
+          { enumValue: 'high' },
+        ],
+      },
+      null,
+      2,
+    ),
+  );
+}
+
+// Register the enum field on the decision card type, then seed the value 'low'
+// onto every card of that type.
+async function seedCardTypeAndCardValues() {
+  const cardTypeName = `${checkout.projectPrefix}/cardTypes/decision`;
+  await checkout.resources.byType(cardTypeName, 'cardTypes').update(
+    { key: 'customFields' },
+    {
+      name: 'add' as const,
+      target: { name: fieldName() },
+    },
+  );
+  const cards = checkout.cardTree
+    .cards()
+    .filter((c) => c.metadata?.cardType === cardTypeName);
+  for (const card of cards) {
+    card.metadata![fieldName()] = 'low';
+    await updateCardMetadata(checkout, card, card.metadata!);
+  }
+}
+
+const renameOp = {
+  kind: 'edit' as const,
+  target: resourceName('decision/fieldTypes/testEnum'),
+  updateKey: { key: 'enumValues' as const },
+  operation: {
+    name: 'change' as const,
+    target: { enumValue: 'low' },
+    to: { enumValue: 'minor' },
+  },
+};
+
+describe('FieldTypeEnumRenameHandler', () => {
+  beforeEach(async () => {
+    mkdirSync(testDir, { recursive: true });
+    await copyDir(join(baseDir, '..', '..', '..', 'test-data'), testDir);
+    seedEnumField();
+    checkout = getTestProject(decisionRecordsPath);
+    await checkout.populateCaches();
+    await seedCardTypeAndCardValues();
+  });
+  afterEach(() => {
+    rmSync(testDir, { recursive: true, force: true });
+  });
+
+  it('derives op=rename-member when the enumValue identity changes', () => {
+    expect(route(renameOp).op).toBe('rename-member');
+  });
+
+  it('keeps op=change when only enumDisplayValue is edited (no identity change)', () => {
+    const op = route({
+      kind: 'edit' as const,
+      target: resourceName(fieldName()),
+      updateKey: { key: 'enumValues' as const },
+      operation: {
+        name: 'change' as const,
+        target: { enumValue: 'low' },
+        to: { enumValue: 'low', enumDisplayValue: 'Low priority' },
+      },
+    }).op;
+    expect(op).toBe('change');
+  });
+
+  it('renames the value in the field definition', async () => {
+    await Workspace.over(checkout, SYSTEM_ACTOR).changes.apply(renameOp);
+    const updated = checkout.resources.byType(fieldName(), 'fieldTypes').show();
+    const values = (updated.enumValues ?? []).map((e) => e.enumValue);
+    expect(values).toContain('minor');
+    expect(values).not.toContain('low');
+  });
+
+  it('migrates card values to the new value', async () => {
+    await Workspace.over(checkout, SYSTEM_ACTOR).changes.apply(renameOp);
+    const cards = checkout.cardTree.cards();
+    const anyStillLow = cards.some((c) => c.metadata?.[fieldName()] === 'low');
+    const migrated = cards.filter((c) => c.metadata?.[fieldName()] === 'minor');
+    expect(anyStillLow).toBe(false);
+    expect(migrated.length).toBeGreaterThan(0);
+  });
+
+  it('replay runs the cascade only: migrates card values without touching the definition', async () => {
+    // Replay assumes the definition change is already materialized (mirrors the
+    // module-file overwrite), so apply it first, then replay runs the cascade.
+    await checkout.resources
+      .byType(fieldName(), 'fieldTypes')
+      .update(renameOp.updateKey, renameOp.operation);
+
+    await checkout.lock.write(SYSTEM_FRAME, () =>
+      new ResourceMutations(checkout).apply(renameOp, {
+        kind: 'replay',
+        modulePrefix: checkout.projectPrefix,
+      }),
+    );
+
+    const anyStillLow = checkout.cardTree
+      .cards()
+      .some((c) => c.metadata?.[fieldName()] === 'low');
+    expect(anyStillLow).toBe(false);
+  });
+});
