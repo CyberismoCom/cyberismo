@@ -85,7 +85,7 @@ function styleOf(path, shebang) {
 
 // The old header: a block comment opening with a "Cyberismo" line. Other
 // block comments are never treated as legacy.
-const LEGACY = /^\/\*\*?[ \t]*\n[ \t]*Cyberismo[ \t]*\n[\s\S]*?\*\/[ \t]*\n/;
+const LEGACY = /^\/\*\*?[ \t]*\n[ \t]*Cyberismo[ \t]*\n(?:(?!\*\/)[\s\S])*\*\/[ \t]*\n/;
 const isLegacy = (block) =>
   block.includes('Copyright © Cyberismo Ltd') &&
   block.includes('GNU Affero General Public License');
