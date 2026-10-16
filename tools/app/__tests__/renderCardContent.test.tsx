@@ -107,6 +107,23 @@ describe('renderCardHtml', () => {
     );
   });
 
+  it('wraps tables in a scroll container and keeps their attributes', () => {
+    const { container } = render(
+      <Content
+        html={
+          '<table class="tableblock frame-all grid-all stretch">' +
+          '<colgroup><col width="50%"><col width="50%"></colgroup>' +
+          '<tbody><tr><td>a</td><td>b</td></tr></tbody></table>'
+        }
+      />,
+    );
+
+    const table = container.querySelector('.tablecontainer > table');
+    expect(table).toHaveClass('tableblock', 'frame-all', 'grid-all', 'stretch');
+    expect(table?.querySelector('col')).toHaveAttribute('width', '50%');
+    expect(container.querySelectorAll('.tablecontainer')).toHaveLength(1);
+  });
+
   // Passthrough blocks put author-written HTML straight into the card, so the
   // sanitizer is the only thing between a card and a fake login box.
   describe('sanitization', () => {

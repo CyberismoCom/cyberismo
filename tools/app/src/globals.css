@@ -600,8 +600,17 @@
 .doc ol.lowergreek {
   list-style-type: lower-greek;
 }
+/* A checklist has no marker, so start the checkbox where a bullet would be */
 .doc ul.checklist {
-  padding-left: 1.75rem;
+  padding-left: calc(2rem - 1.25em);
+}
+/* Table cells are narrow, so their lists indent by the cell's font, not the page's */
+.doc td.tableblock ol,
+.doc td.tableblock ul {
+  padding-left: 1.5em;
+}
+.doc td.tableblock ul.checklist {
+  padding-left: calc(1.5em - 1.25em);
 }
 .doc .dlist .dlist,
 .doc .dlist .olist,
@@ -1151,8 +1160,7 @@
   overflow-x: auto;
   max-width: 100%;
 }
-.doc table.tableblock {
-  display: block;
+.doc .tablecontainer {
   overflow-x: auto;
   max-width: 100%;
 }
