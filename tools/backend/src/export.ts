@@ -29,7 +29,6 @@ import type { TreeOptions } from './types.js';
 import {
   findAllCards,
   findRelevantAttachments,
-  getAttachment,
 } from './domain/cards/service.js';
 
 export interface ExportSiteOptions extends TreeOptions {
@@ -193,10 +192,10 @@ export async function exportSite(
     // Written directly: toSSG would append an extension derived from the
     // Content-Type, so the files would not land under their own names.
     if (scope !== undefined) {
-      const ws = await directory.open(scope, SYSTEM_ACTOR);
-      for (const { key, attachment } of attachmentsByPrefix.get(scope) ?? []) {
+      for (const { key, attachment, file } of attachmentsByPrefix.get(scope) ??
+        []) {
         try {
-          const { fileBuffer } = await getAttachment(ws, key, attachment);
+          const fileBuffer = await fs.readFile(file);
           const target = join(
             exportDir,
             'api',
