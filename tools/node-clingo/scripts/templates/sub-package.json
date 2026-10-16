@@ -6,7 +6,7 @@
   "exports": { ".": "./node-clingo.node" },
   "files": ["node-clingo.node", "THIRD-PARTY.txt", "LICENSE.md", "README.md"],
   "homepage": "https://github.com/CyberismoCom/cyberismo",
-  "license": "AGPL-3.0",
+  "license": "AGPL-3.0-only",
   "main": "./node-clingo.node",
   "name": "{{NAME}}",
   "os": ["{{OS}}"],
