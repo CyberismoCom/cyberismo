@@ -171,6 +171,8 @@ export const CardLayout = forwardRef<CardLayoutHandle, CardLayoutProps>(
 
     const attachmentPanel = (variant: 'sidebar' | 'inline') => (
       <AttachmentPanel
+        // Fresh expanded state per card and per view/edit mode.
+        key={`${card.key}-${editingBody}`}
         variant={variant}
         cardKey={card.key}
         attachments={card.attachments ?? []}
