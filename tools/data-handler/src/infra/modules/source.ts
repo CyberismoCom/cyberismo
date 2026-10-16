@@ -1,0 +1,83 @@
+/**
+  Cyberismo
+  Copyright © Cyberismo Ltd and contributors 2026
+
+  This program is free software: you can redistribute it and/or modify it under
+  the terms of the GNU Affero General Public License version 3 as published by
+  the Free Software Foundation. This program is distributed in the hope that it
+  will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty
+  of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+  See the GNU Affero General Public License for more details.
+  You should have received a copy of the GNU Affero General Public
+  License along with this program. If not, see <https://www.gnu.org/licenses/>.
+*/
+
+import { isGitLocation } from '../../shared/utils/location.js';
+import { CompositeSourceLayer } from './source-composite.js';
+import { FileSourceLayer } from './source-file.js';
+import { GitSourceLayer } from './source-git.js';
+import type { Source } from '@cyberismo/model';
+import { type Version } from '../../shared/utils/version.js';
+import type { ProjectSettings } from '@cyberismo/model';
+import type { SealFile } from '../replay-log/seal-files.js';
+
+/** A concrete fetch target. `remoteUrl` is pre-built with any credentials injected. */
+export interface FetchTarget {
+  location: string;
+  remoteUrl: string;
+  /** Optional git ref (tag or branch). Default branch when omitted. */
+  ref?: string;
+}
+
+/** File-I/O and network layer for fetching modules. Never persists state. */
+export interface SourceLayer {
+  /**
+   * Fetch a module into `destRoot/<nameHint>` and return the absolute path.
+   * Git sources are shallow-cloned (`--depth 1`); file sources resolve
+   * without any filesystem mutation.
+   */
+  fetch(
+    target: FetchTarget,
+    destRoot: string,
+    nameHint: string,
+  ): Promise<string>;
+
+  /**
+   * True when this source kind exposes discrete versions (git tags). When
+   * false, declared version ranges are silently ignored by the resolver
+   * because there is no concept of "available versions" to pick from.
+   */
+  supportsVersioning(location: string): boolean;
+
+  /** Remote version tags in descending semver order; `[]` for file sources. */
+  listRemoteVersions(location: string, remoteUrl?: string): Promise<string[]>;
+
+  /**
+   * Read a version's manifest + seal filenames WITHOUT a full checkout.
+   * Git: read the tag from a per-repo blobless clone reused across candidates.
+   * File: read the source dir.
+   * Pass `null` for `version` to read the default branch / install-as-is state
+   * (for unversioned modules: file sources, or git remotes with no tags).
+   */
+  readMetadata(
+    source: Source,
+    version: Version | null,
+    remoteUrl?: string,
+  ): Promise<{ config: ProjectSettings; seals: SealFile[] }>;
+
+  /** Optional: release any cached working clones (git layer). No-op otherwise. */
+  dispose?(): Promise<void>;
+}
+
+/**
+ * Build the default source layer: a composite that routes git URLs to
+ * {@link GitSourceLayer} and everything else (file: URLs and bare paths)
+ * to {@link FileSourceLayer}.
+ */
+export function createSourceLayer(): SourceLayer {
+  return new CompositeSourceLayer([
+    { accepts: isGitLocation, layer: new GitSourceLayer() },
+    // Catch-all: file: URLs and bare paths both behave as file sources.
+    { accepts: () => true, layer: new FileSourceLayer() },
+  ]);
+}

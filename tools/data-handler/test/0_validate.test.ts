@@ -4,15 +4,15 @@ import { join, resolve, sep } from 'node:path';
 
 import { expect, describe, it, beforeAll } from 'vitest';
 
-import { copyDir } from '../src/utils/file-utils.js';
-import { readJsonFile } from '../src/utils/json.js';
-import { Validate } from '../src/commands/validate.js';
-import type { Checkout } from '../src/infra/checkout.js';
-import { errorFunction } from '../src/utils/error-utils.js';
-import { resourceName } from '../src/utils/resource-utils.js';
+import { copyDir } from '../src/shared/utils/file-utils.js';
+import { readJsonFile } from '../src/shared/utils/json.js';
+import { Validate } from '../src/domain/validation/validate.js';
+import type { Checkout } from '../src/state/checkout/checkout.js';
+import { errorFunction } from '../src/shared/utils/error-utils.js';
+import { resourceName } from '../src/shared/utils/resource-utils.js';
 import { getTestBaseDir, getTestProject } from './helpers/test-utils.js';
 import type { Card, ResourceTypes } from '@cyberismo/model';
-import { findCard } from '../src/cards/read.js';
+import { findCard } from '../src/domain/cards/read.js';
 
 describe('validate cmd tests', () => {
   const baseDir = getTestBaseDir(import.meta.dirname, import.meta.url);

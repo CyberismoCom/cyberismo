@@ -5,14 +5,14 @@ import { expect, it, describe, beforeEach, afterEach } from 'vitest';
 import { mkdirSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { type Workspace } from '../src/workspace/workspace.js';
-import { copyDir } from '../src/utils/file-utils.js';
-import { resourceName } from '../src/utils/resource-utils.js';
+import { type Workspace } from '../src/api/workspace.js';
+import { copyDir } from '../src/shared/utils/file-utils.js';
+import { resourceName } from '../src/shared/utils/resource-utils.js';
 import { getTestBaseDir, getTestProject } from './helpers/test-utils.js';
-import { Cards } from '../src/cards/cards.js';
-import { SYSTEM_ACTOR } from '../src/utils/tx-record.js';
-import { checkoutOf } from '../src/infra/internal.js';
-import { CardNotFoundError } from '../src/exceptions/index.js';
+import { Cards } from '../src/api/cards.js';
+import { SYSTEM_ACTOR } from '../src/infra/tx/tx-record.js';
+import { checkoutOf } from '../src/state/checkout/internal.js';
+import { CardNotFoundError } from '../src/shared/exceptions/index.js';
 import { openTestWorkspace } from './helpers/open-test-workspace.js';
 
 // validation tests do not modify the content - so they can use the original files

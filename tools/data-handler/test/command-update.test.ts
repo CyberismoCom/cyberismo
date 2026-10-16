@@ -4,13 +4,13 @@ import { join } from 'node:path';
 import { mkdirSync, rmSync } from 'node:fs';
 
 import type { CardType } from '@cyberismo/model';
-import { copyDir } from '../src/utils/file-utils.js';
-import type { Checkout } from '../src/infra/checkout.js';
-import type { Changes } from '../src/workspace/changes.js';
+import { copyDir } from '../src/shared/utils/file-utils.js';
+import type { Checkout } from '../src/state/checkout/checkout.js';
+import type { Changes } from '../src/api/changes.js';
 import { getTestProject } from './helpers/test-utils.js';
-import { resourceName } from '../src/utils/resource-utils.js';
-import { Workspace } from '../src/workspace/workspace.js';
-import { SYSTEM_ACTOR } from '../src/utils/tx-record.js';
+import { resourceName } from '../src/shared/utils/resource-utils.js';
+import { Workspace } from '../src/api/workspace.js';
+import { SYSTEM_ACTOR } from '../src/infra/tx/tx-record.js';
 
 const baseDir = import.meta.dirname;
 const testDir = join(baseDir, 'tmp-update-tests');

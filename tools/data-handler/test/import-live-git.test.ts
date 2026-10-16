@@ -6,10 +6,10 @@ import { platform } from 'node:os';
 
 import semver from 'semver';
 
-import { copyDir } from '../src/utils/file-utils.js';
-import { type Workspace } from '../src/workspace/workspace.js';
+import { copyDir } from '../src/shared/utils/file-utils.js';
+import { type Workspace } from '../src/api/workspace.js';
 import { openTestWorkspace } from './helpers/open-test-workspace.js';
-import { checkoutOf } from '../src/infra/internal.js';
+import { checkoutOf } from '../src/state/checkout/internal.js';
 
 const { satisfies } = semver;
 

@@ -21,7 +21,7 @@ import { dirname, join } from 'node:path';
 import { simpleGit } from 'simple-git';
 
 import { SCHEMA_VERSION } from '@cyberismo/migrations';
-import { FIRST_RANK, getRankAfter } from '../../src/utils/lexorank.js';
+import { FIRST_RANK, getRankAfter } from '../../src/shared/utils/lexorank.js';
 
 export interface WorkflowSpec {
   name: string;

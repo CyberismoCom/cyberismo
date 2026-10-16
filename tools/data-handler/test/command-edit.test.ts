@@ -2,13 +2,13 @@ import { expect, it, describe, beforeAll, afterAll } from 'vitest';
 import { join } from 'node:path';
 import { mkdirSync, rmSync, readFileSync, writeFileSync } from 'node:fs';
 
-import { copyDir } from '../src/utils/file-utils.js';
-import { resourceName } from '../src/utils/resource-utils.js';
-import { type Workspace } from '../src/workspace/workspace.js';
+import { copyDir } from '../src/shared/utils/file-utils.js';
+import { resourceName } from '../src/shared/utils/resource-utils.js';
+import { type Workspace } from '../src/api/workspace.js';
 import type { Card } from '@cyberismo/model';
 import { openTestWorkspace } from './helpers/open-test-workspace.js';
-import { findCard } from '../src/cards/read.js';
-import { checkoutOf } from '../src/infra/internal.js';
+import { findCard } from '../src/domain/cards/read.js';
+import { checkoutOf } from '../src/state/checkout/internal.js';
 
 describe('edit card', () => {
   const baseDir = import.meta.dirname;
