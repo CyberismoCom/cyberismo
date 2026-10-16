@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: Cyberismo Ltd and contributors
+# SPDX-License-Identifier: AGPL-3.0-only
+
 # Isolated stage so the ~5min cmake compile is cached when clingo
 # source is unchanged.
 FROM node:22-alpine AS clingo-builder

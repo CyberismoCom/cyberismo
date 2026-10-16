@@ -1,5 +1,8 @@
 #!/usr/bin/env node
 
+// SPDX-FileCopyrightText: Cyberismo Ltd and contributors
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { execSync } from 'child_process';
 import { existsSync, readFileSync } from 'fs';
 

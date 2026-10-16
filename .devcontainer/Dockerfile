@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: Cyberismo Ltd and contributors
+# SPDX-License-Identifier: AGPL-3.0-only
+
 FROM mcr.microsoft.com/devcontainers/base:ubuntu-24.04
 
 RUN apt-get update && apt-get install -y --no-install-recommends \

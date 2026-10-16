@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: Cyberismo Ltd and contributors
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { test, expect } from '../fixtures.js';
 import { editPage } from '../helpers.js';
 import t from '../../src/locales/en/translation.json' with { type: 'json' };

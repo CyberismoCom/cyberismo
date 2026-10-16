@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# SPDX-FileCopyrightText: Cyberismo Ltd and contributors
+# SPDX-License-Identifier: AGPL-3.0-only
+
 # Usage: show-commits <version>
 # Shows commits between the previous version bump and the specified version bump
 # Example: show-commits 0.0.16

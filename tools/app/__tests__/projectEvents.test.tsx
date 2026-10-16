@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: Cyberismo Ltd and contributors
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, cleanup, renderHook, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';

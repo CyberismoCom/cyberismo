@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: Cyberismo Ltd and contributors
+# SPDX-License-Identifier: AGPL-3.0-only
+
 # Clang-Format configuration for Cyberismo C++ code
 #
 # Note that formatting checks for CI builds are skipped if clang-format cannot be found.

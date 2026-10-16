@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: Cyberismo Ltd and contributors
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { describe, expect, test } from 'vitest';
 import { resolveConfigTreeMove } from '@/lib/configTreeMove';
 import type { AnyNode } from '@/lib/api/types';
