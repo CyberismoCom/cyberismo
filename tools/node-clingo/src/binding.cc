@@ -19,6 +19,7 @@
 
 #include "napi_helpers.h"
 #include "program_store.h"
+#include "program_summary.h"
 #include "solve_task.h"
 #include "validator.h"
 #include "xxhash.h"
@@ -253,6 +254,49 @@ Napi::Value ValidateProgram(const Napi::CallbackInfo& info)
 }
 
 /**
+ * parseSummary(program) → { heads, bodies }, sorted "name/arity" signatures.
+ * Throws an Error with details { errors, warnings } on a syntax error.
+ */
+Napi::Value ParseSummary(const Napi::CallbackInfo& info)
+{
+    Napi::Env env = info.Env();
+    if (info.Length() < 1 || !info[0].IsString())
+    {
+        throw Napi::TypeError::New(env, "String argument expected for program");
+    }
+
+    node_clingo::ProgramSummary summary;
+    try
+    {
+        summary = node_clingo::parse_summary(info[0].As<Napi::String>().Utf8Value());
+    }
+    catch (const node_clingo::ClingoSolveException& e)
+    {
+        Napi::Error error = Napi::Error::New(env, e.what());
+        Napi::Object details = Napi::Object::New(env);
+        node_clingo::NodeClingoLogs logs = node_clingo::parse_clingo_logs(env, e.logs);
+        details.Set("errors", logs.errors);
+        details.Set("warnings", logs.warnings);
+        error.Set("details", details);
+        throw error;
+    }
+
+    auto to_array = [&env](const std::set<std::string>& signatures) {
+        Napi::Array array = Napi::Array::New(env, signatures.size());
+        uint32_t i = 0;
+        for (const auto& signature : signatures)
+        {
+            array.Set(i++, Napi::String::New(env, signature));
+        }
+        return array;
+    };
+    Napi::Object resultObj = Napi::Object::New(env);
+    resultObj.Set("heads", to_array(summary.heads));
+    resultObj.Set("bodies", to_array(summary.bodies));
+    return resultObj;
+}
+
+/**
  * Module initialization.
  */
 Napi::Object Init(Napi::Env env, Napi::Object exports)
@@ -260,6 +304,7 @@ Napi::Object Init(Napi::Env env, Napi::Object exports)
     ClingoContext::Init(env, exports);
     exports.Set(Napi::String::New(env, "clearCache"), Napi::Function::New(env, ClearCache));
     exports.Set(Napi::String::New(env, "validateProgram"), Napi::Function::New(env, ValidateProgram));
+    exports.Set(Napi::String::New(env, "parseSummary"), Napi::Function::New(env, ParseSummary));
     return exports;
 }
 

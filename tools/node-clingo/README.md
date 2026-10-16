@@ -62,6 +62,11 @@ ctx.removeProgram('facts');
 A module-level `clearCache()` clears the solve-result cache shared across all
 contexts.
 
+A module-level `parseSummary(program)` parses `program` without grounding and
+returns `{ heads, bodies }`: the sorted `name/arity` signatures it derives and
+reads (`-name/arity` for classical negation). A default-negated head
+(`not k :- l.`) counts as a read. It throws a `ClingoError` on a syntax error.
+
 When a program fails to parse or solve, `solve` throws a `ClingoError` whose
 `details` field carries the raw `errors`, `warnings`, and (for syntax errors)
 the offending program text.
