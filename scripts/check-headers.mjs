@@ -171,10 +171,13 @@ for (const path of files) {
   } catch {
     continue;
   }
-  const { fixed, problem } = expected(path, text);
-  if (fixed === text) continue;
+  // Compare as LF so CRLF checkouts (core.autocrlf) pass; write back in kind.
+  const crlf = text.includes('\r\n');
+  const lf = crlf ? text.replace(/\r\n/g, '\n') : text;
+  const { fixed, problem } = expected(path, lf);
+  if (fixed === lf) continue;
   if (fix && fixed !== undefined) {
-    writeFileSync(full, fixed);
+    writeFileSync(full, crlf ? fixed.replace(/\n/g, '\r\n') : fixed);
     fixedCount++;
   } else {
     failures.push(`${path}: ${problem ?? 'header spacing is off'}`);
