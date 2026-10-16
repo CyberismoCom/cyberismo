@@ -19,9 +19,9 @@ import {
   AccordionSummary,
   AspectRatio,
   Box,
+  Button,
   Card,
   CardOverflow,
-  Grid,
   IconButton,
   Stack,
   SvgIcon,
@@ -186,25 +186,32 @@ export const AttachmentPanel: React.FC<AttachmentPanelProps> = ({
   const content = (
     <Stack spacing={1}>
       {canEdit && (
-        <Tooltip title={t('addAttachment')}>
-          <IconButton
-            data-cy="addAttachmentButton"
-            sx={{ alignSelf: 'flex-start' }}
-            onClick={() => setModalOpen(true)}
-          >
-            <SvgIcon viewBox="0 -960 960 960" aria-label="Add attachment">
+        <Button
+          data-cy="addAttachmentButton"
+          size="sm"
+          variant="soft"
+          sx={{ alignSelf: 'flex-start' }}
+          startDecorator={
+            <SvgIcon viewBox="0 -960 960 960">
               <path d={ADD_ATTACHMENT_PATH} />
             </SvgIcon>
-          </IconButton>
-        </Tooltip>
+          }
+          onClick={() => setModalOpen(true)}
+        >
+          {t('addAttachment')}
+        </Button>
       )}
-      <Grid container gap={1.5}>
+      <Box
+        sx={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 120px))',
+          gap: 1,
+        }}
+      >
         {attachments.map((attachment) => (
-          <Grid
+          <Box
             key={attachment.fileName}
-            display="flex"
-            justifyContent="center"
-            width={120}
+            sx={{ minWidth: 0 }}
             draggable={!!onInsert}
             onDragStart={(e) => {
               e.dataTransfer.effectAllowed = 'copy';
@@ -252,9 +259,9 @@ export const AttachmentPanel: React.FC<AttachmentPanelProps> = ({
                 )}
               </Box>
             </AttachmentPreviewCard>
-          </Grid>
+          </Box>
         ))}
-      </Grid>
+      </Box>
     </Stack>
   );
 
