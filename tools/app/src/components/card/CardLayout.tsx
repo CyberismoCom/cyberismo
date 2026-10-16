@@ -182,7 +182,6 @@ export const CardLayout = forwardRef<CardLayoutHandle, CardLayoutProps>(
 
     const attachmentPanel = (
       <AttachmentPanel
-        key={editingBody ? 'edit' : 'view'}
         cardKey={card.key}
         attachments={card.attachments ?? []}
         initialExpanded={editingBody && !isNarrow}

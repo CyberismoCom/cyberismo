@@ -13,6 +13,7 @@ import { join } from 'node:path';
 import { getCardQueryResult, reset, exportSite } from '../src/export.js';
 import {
   localFolder,
+  SYSTEM_ACTOR,
   type ProjectDirectory,
   type Workspace,
 } from '@cyberismo/data-handler';
@@ -216,7 +217,8 @@ describe('export module', () => {
       const { errors } = await exportSite(registry, tempDir);
 
       expect(errors.map((e) => e.prefix)).toEqual(['decision']);
-      expect(errors[0].errors.length).toBeGreaterThan(0);
+      expect(errors[0].errors).toHaveLength(1);
+      expect(errors[0].errors[0]).toMatch(/^decision_5\/games\.jpg: /);
     });
   });
 
@@ -286,16 +288,25 @@ describe('export module', () => {
       ).toEqual(['games.jpg']);
     });
 
-    test('names the card and file when an attachment fails to export', async () => {
+    test('exports the top-level file when a subfolder link has the same name', async () => {
       const card = join(folder, 'decision-records', 'cardRoot', 'decision_5');
+      const secret = join(folder, 'secret.png');
+      await writeFile(secret, 'secret');
+      await mkdir(join(card, 'a', 'sub'));
+      await symlink(secret, join(card, 'a', 'sub', 'x.png'));
       const { directory: registry } = await localFolder(folder);
-      // Loaded, then lost on disk: its route fails at export.
-      await rm(join(card, 'a', 'games.jpg'));
+      const top = Buffer.from('top-level');
+      const ws = await registry.open('decision', SYSTEM_ACTOR);
+      await ws.cards.addAttachment('decision_5', 'x.png', top);
 
       const { errors } = await exportSite(registry, tempDir);
 
-      expect(errors).toHaveLength(1);
-      expect(errors[0].errors[0]).toMatch(/^decision_5\/games\.jpg: /);
+      expect(errors).toEqual([]);
+      expect(
+        await readFile(
+          join(tempDir, 'api/projects/decision/cards/decision_5/a/x.png'),
+        ),
+      ).toEqual(top);
     });
   });
 });

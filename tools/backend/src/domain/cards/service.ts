@@ -17,7 +17,7 @@ import type {
   MetadataContent,
 } from '@cyberismo/model';
 import { lstat } from 'node:fs/promises';
-import { basename, dirname, join } from 'node:path';
+import { basename, dirname, join, normalize } from 'node:path';
 import { AsciidoctorPdfError, type Workspace } from '@cyberismo/data-handler';
 import { preprocessMermaidBlocksForHtml } from './mermaid.js';
 import { allCards } from './lib.js';
@@ -260,18 +260,24 @@ export async function findRelevantAttachments(
     (await allCards(ws, options)).map((c) => c.key),
   );
   const attachments = await ws.cards.attachments();
-  // Only regular files directly in the card's a/ folder are exported: lstat
-  // does not follow links, so a symlink cannot pull in files from outside the
-  // card, and files of subfolders would collide under one flat name.
+  // Only regular files directly in the card's own a/ folder are exported:
+  // lstat does not follow links, so a symlink cannot pull in files from outside
+  // the card, and files of subfolders would collide under one flat name. The
+  // card's folder is the one holding its index.json.
   const exportable = async (attachment: (typeof attachments)[number]) => {
+    const folder = normalize(attachment.path);
+    const cardFolder = dirname(folder);
     if (
-      basename(attachment.path) !== 'a' ||
-      basename(dirname(attachment.path)) !== attachment.card
+      folder !== join(cardFolder, 'a') ||
+      basename(cardFolder) !== attachment.card
     ) {
       return false;
     }
     try {
-      return (await lstat(join(attachment.path, attachment.fileName))).isFile();
+      if (!(await lstat(join(cardFolder, 'index.json'))).isFile()) {
+        return false;
+      }
+      return (await lstat(join(folder, attachment.fileName))).isFile();
     } catch {
       return true; // unreadable: left to fail at export, where it is reported
     }
@@ -283,6 +289,8 @@ export async function findRelevantAttachments(
     .map((attachment) => ({
       key: attachment.card,
       attachment: attachment.fileName,
+      // The exact file that was checked, so check and read cannot differ.
+      file: join(normalize(attachment.path), attachment.fileName),
     }));
 }
 
