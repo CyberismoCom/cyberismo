@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import type { Page } from '@playwright/test';
 import { test, expect } from '../fixtures.js';
-import { editPage, dismissSaveToast } from '../helpers.js';
+import { editPage, dismissSaveToast, createPage } from '../helpers.js';
 import t from '../../src/locales/en/translation.json' with { type: 'json' };
 
 // Open the golden project's root card (the only card after a reset).
@@ -221,6 +221,30 @@ test.describe('Attachments', () => {
     await expect(page.locator('.cm-editor')).toBeVisible();
     await page.getByTestId('contentCancelButton').click();
     await expect(page.locator('.cm-editor')).toHaveCount(0);
+    await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+  });
+
+  test('navigating to another card collapses an expanded panel', async ({
+    page,
+  }) => {
+    await page.setViewportSize(WIDE);
+    await openRootCard(page);
+    // Visit both cards first so switching between them is served from the
+    // SWR cache and the card layout stays mounted.
+    await createPage(page);
+    const tree = (name: RegExp) => page.locator('p').filter({ hasText: name });
+    await tree(/^Untitled page content$/).click();
+
+    const toggle = page
+      .getByTestId('cardAttachmentsPanel')
+      .getByRole('button', { name: t.attachments });
+    await toggle.click();
+    await expect(toggle).toHaveAttribute('aria-expanded', 'true');
+
+    await tree(/^Untitled page$/).click();
+    await expect(
+      page.getByRole('heading', { level: 1, name: /^Untitled page$/ }),
+    ).toBeVisible();
     await expect(toggle).toHaveAttribute('aria-expanded', 'false');
   });
 });
