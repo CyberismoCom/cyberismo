@@ -16,8 +16,7 @@ import type {
   ExportPdfOptions,
   MetadataContent,
 } from '@cyberismo/model';
-import { lstat } from 'node:fs/promises';
-import { basename, dirname, join, normalize } from 'node:path';
+import { basename, dirname, join } from 'node:path';
 import { AsciidoctorPdfError, type Workspace } from '@cyberismo/data-handler';
 import { preprocessMermaidBlocksForHtml } from './mermaid.js';
 import { allCards } from './lib.js';
@@ -259,38 +258,20 @@ export async function findRelevantAttachments(
   const cards = new Set<string>(
     (await allCards(ws, options)).map((c) => c.key),
   );
-  const attachments = await ws.cards.attachments();
-  // Only regular files directly in the card's own a/ folder are exported:
-  // lstat does not follow links, so a symlink cannot pull in files from outside
-  // the card, and files of subfolders would collide under one flat name. The
-  // card's folder is the one holding its index.json.
-  const exportable = async (attachment: (typeof attachments)[number]) => {
-    const folder = normalize(attachment.path);
-    const cardFolder = dirname(folder);
-    if (
-      folder !== join(cardFolder, 'a') ||
-      basename(cardFolder) !== attachment.card
-    ) {
-      return false;
-    }
-    try {
-      if (!(await lstat(join(cardFolder, 'index.json'))).isFile()) {
-        return false;
-      }
-      return (await lstat(join(folder, attachment.fileName))).isFile();
-    } catch {
-      return true; // unreadable: left to fail at export, where it is reported
-    }
-  };
-  const wanted = attachments.filter((attachment) => cards.has(attachment.card));
-  const keep = await Promise.all(wanted.map(exportable));
-  return wanted
-    .filter((_, i) => keep[i])
-    .map((attachment) => ({
-      key: attachment.card,
-      attachment: attachment.fileName,
-      // The exact file that was checked, so check and read cannot differ.
-      file: join(normalize(attachment.path), attachment.fileName),
+  // Only files directly in the card's own a/ folder: files of subfolders would
+  // collide under one flat name. Whether a file is a regular file (not a
+  // symlink) is checked at export, right before it is read.
+  return (await ws.cards.attachments())
+    .filter(
+      ({ card, path }) =>
+        cards.has(card) &&
+        basename(path) === 'a' &&
+        basename(dirname(path)) === card,
+    )
+    .map(({ card, fileName, path }) => ({
+      key: card,
+      attachment: fileName,
+      file: join(path, fileName),
     }));
 }
 

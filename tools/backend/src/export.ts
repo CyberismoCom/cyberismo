@@ -195,6 +195,14 @@ export async function exportSite(
       for (const { key, attachment, file } of attachmentsByPrefix.get(scope) ??
         []) {
         try {
+          // lstat does not follow links, so a symlink cannot pull in files
+          // from outside the card.
+          if (!(await fs.lstat(file)).isFile()) {
+            done++;
+            if (done > total) total = done;
+            onProgress?.(done, total);
+            continue;
+          }
           const fileBuffer = await fs.readFile(file);
           const target = join(
             exportDir,
