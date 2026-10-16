@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: Cyberismo Ltd and contributors
+# SPDX-License-Identifier: AGPL-3.0-only
+
 {
   "variables": {
       "enable_cpp_logs%": "0"

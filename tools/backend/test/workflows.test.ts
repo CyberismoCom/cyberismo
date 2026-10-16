@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: Cyberismo Ltd and contributors
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { expect, test, beforeEach, afterEach } from 'vitest';
 import { type Workspace } from '@cyberismo/data-handler';
 import { createApp } from '../src/app.js';

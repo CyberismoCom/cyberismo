@@ -1,2 +1,5 @@
+# SPDX-FileCopyrightText: Cyberismo Ltd and contributors
+# SPDX-License-Identifier: AGPL-3.0-only
+
 dist-packages/
 package.json.prepack-backup

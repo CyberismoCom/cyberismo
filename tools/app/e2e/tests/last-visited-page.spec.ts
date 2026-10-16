@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: Cyberismo Ltd and contributors
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { test as base, expect } from '../fixtures.js';
 
 base.describe('Remember last visited page per project', () => {

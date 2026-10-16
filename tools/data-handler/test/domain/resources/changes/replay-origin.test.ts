@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: Cyberismo Ltd and contributors
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { ResourceMutations } from '../../../../src/domain/resources/changes/resource-mutations.js';
 import { dispatch } from '../../../../src/domain/resources/changes/dispatcher.js';

@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: Cyberismo Ltd and contributors
+// SPDX-License-Identifier: AGPL-3.0-only
+
 /**
  * Create a deferred promise that can be resolved externally.
  * Useful as a gate/latch in concurrency tests.

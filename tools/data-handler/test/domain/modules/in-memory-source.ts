@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: Cyberismo Ltd and contributors
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
