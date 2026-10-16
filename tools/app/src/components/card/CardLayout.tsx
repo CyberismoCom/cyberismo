@@ -340,6 +340,8 @@ export const CardLayout = forwardRef<CardLayoutHandle, CardLayoutProps>(
               minWidth: 250,
               flexShrink: 0,
               my: 2,
+              // Gutter between the main column's scrollbar and the sidebar.
+              ml: 3,
               mr: 3,
             }}
             data-cy="cardSidebar"
