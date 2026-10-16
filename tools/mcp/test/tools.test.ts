@@ -16,23 +16,27 @@
 import { beforeAll, afterAll, describe, expect, test } from 'vitest';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
-import { CommandManager } from '@cyberismo/data-handler';
-import { createMcpServer, singleProjectProvider } from '../src/server.js';
-import { testDataPath } from './test-utils.js';
+import { type Workspace } from '@cyberismo/data-handler';
+import { createMcpServer } from '../src/server.js';
+import { authenticated, testDataPath } from './test-utils.js';
+import {
+  openTestWorkspace,
+  directoryOf,
+} from './helpers/open-test-workspace.js';
 
-let commands: CommandManager;
+let ws: Workspace;
 let client: Client;
 
 // Fixes weird issue with asciidoctor
 beforeAll(async () => {
   process.argv = [];
-  commands = await CommandManager.getInstance(testDataPath);
+  ws = await openTestWorkspace(testDataPath);
 
-  const server = createMcpServer(singleProjectProvider(commands));
+  const server = createMcpServer(directoryOf(ws));
   const [clientTransport, serverTransport] =
     InMemoryTransport.createLinkedPair();
 
-  await server.connect(serverTransport);
+  await server.connect(authenticated(serverTransport));
 
   client = new Client({ name: 'test-client', version: '1.0.0' });
   await client.connect(clientTransport);
@@ -40,7 +44,6 @@ beforeAll(async () => {
 
 afterAll(async () => {
   await client.close();
-  commands.project.dispose();
 });
 
 type TextContent = { type: string; text: string };
@@ -48,6 +51,29 @@ const contentOf = (result: Record<string, unknown>) =>
   result.content as TextContent[];
 
 describe('MCP Tools via Client', () => {
+  test('refuses calls without an authenticated user, reads included', async () => {
+    const server = createMcpServer(directoryOf(ws));
+    const [clientTransport, serverTransport] =
+      InMemoryTransport.createLinkedPair();
+    await server.connect(serverTransport);
+    const anonymous = new Client({ name: 'anonymous', version: '1.0.0' });
+    await anonymous.connect(clientTransport);
+    try {
+      for (const [name, args] of [
+        ['list_projects', {}],
+        ['get_card', { projectPrefix: 'decision', cardKey: 'decision_5' }],
+      ] as const) {
+        const result = await anonymous.callTool({ name, arguments: args });
+        expect(result.isError).toBe(true);
+        expect(contentOf(result)[0].text).toContain(
+          'MCP request has no authenticated user',
+        );
+      }
+    } finally {
+      await anonymous.close();
+    }
+  });
+
   test('list_projects returns available projects', async () => {
     const result = await client.callTool({
       name: 'list_projects',

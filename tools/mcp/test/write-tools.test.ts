@@ -14,7 +14,8 @@
 */
 
 // Smoke tests for every MCP write tool under autocommit: the write lands, makes
-// exactly the expected commits with the expected author, and leaves the tree clean.
+// exactly the expected commits with the expected author, publishes one change
+// event per commit, and leaves the tree clean.
 
 import { execFile } from 'node:child_process';
 import { mkdtemp, rm, writeFile } from 'node:fs/promises';
@@ -24,23 +25,31 @@ import { promisify } from 'node:util';
 import { afterEach, beforeEach, describe, expect, test } from 'vitest';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
-import { resourceName, CommandManager } from '@cyberismo/data-handler';
-import { createMcpServer, singleProjectProvider } from '../src/server.js';
+import { resourceName, type Workspace } from '@cyberismo/data-handler';
+import type { ChangeEvent } from '@cyberismo/model';
+import { createMcpServer } from '../src/server.js';
 import {
   buildProject,
   type BuiltProject,
 } from '../../data-handler/test/helpers/project-builder.js';
+import { authenticated, TEST_USER } from './test-utils.js';
+import {
+  openTestWorkspace,
+  directoryOf,
+} from './helpers/open-test-workspace.js';
 
-// Author of MCP autocommits today.
-const COMMIT_AUTHOR = 'Cyberismo Bot <bot@cyberismo.com>';
+// MCP autocommits are the calling user's, with the client as agent.
+const COMMIT_AUTHOR = `${TEST_USER.name} <${TEST_USER.email}>`;
+const COMMIT_TRAILERS = 'Cyberismo-Agent: test-client';
 
 const run = promisify(execFile);
 
 let project: BuiltProject;
-let ws: CommandManager;
+let ws: Workspace;
 const savedEnv = new Map<string, string | undefined>();
 let configDir: string;
 let client: Client;
+let events: ChangeEvent[];
 // Root card keys: alpha (with child), beta, gamma and labelled.
 let alpha: string, child: string, beta: string, gamma: string;
 let labelled: string;
@@ -74,11 +83,14 @@ beforeEach(async () => {
     ],
   });
   [alpha, child, beta, gamma, labelled] = project.keys;
-  ws = new CommandManager(project.path, { autocommit: true });
-  await ws.initialize();
+  ws = await openTestWorkspace(project.path, { autocommit: true });
+  events = [];
+  ws.changes.subscribe((event) => events.push(event));
   const [clientTransport, serverTransport] =
     InMemoryTransport.createLinkedPair();
-  await createMcpServer(singleProjectProvider(ws)).connect(serverTransport);
+  await createMcpServer(directoryOf(ws)).connect(
+    authenticated(serverTransport),
+  );
   client = new Client({ name: 'test-client', version: '1.0.0' });
   await client.connect(clientTransport);
 });
@@ -90,7 +102,6 @@ afterEach(async () => {
   }
   savedEnv.clear();
   await client.close();
-  ws.project.dispose();
   await project.cleanup();
   await rm(configDir, { recursive: true, force: true });
 });
@@ -112,13 +123,35 @@ async function call(name: string, args: Record<string, unknown> = {}) {
   return JSON.parse(text);
 }
 
-// Calls a write tool and checks its commits, their author and a clean tree.
+// Calls a write tool and checks its commits, their author and trailers, their
+// change events, and a clean tree.
 async function write(name: string, args: Record<string, unknown>, commits = 1) {
   const before = await commitCount();
+  events.length = 0;
   const payload = await call(name, args);
   expect(await commitCount()).toBe(before + commits);
-  const authors = await git('log', `-${commits}`, '--format=%an <%ae>');
-  expect(authors.split('\n')).toEqual(Array(commits).fill(COMMIT_AUTHOR));
+  expect(events.map(({ actor, commit }) => ({ actor, commit }))).toEqual(
+    (await git('log', `-${commits}`, '--format=%H'))
+      .split('\n')
+      .reverse()
+      .map((commit) => ({
+        actor: {
+          kind: TEST_USER.kind,
+          id: TEST_USER.id,
+          name: TEST_USER.name,
+          agent: { name: 'test-client' },
+        },
+        commit,
+      })),
+  );
+  const authors = await git(
+    'log',
+    `-${commits}`,
+    '--format=%an <%ae> %(trailers:only,unfold,separator=%x2C)',
+  );
+  expect(authors.split('\n')).toEqual(
+    Array(commits).fill(`${COMMIT_AUTHOR} ${COMMIT_TRAILERS}`),
+  );
   expect(await git('status', '--porcelain')).toBe('');
   return payload;
 }
@@ -137,13 +170,13 @@ const childKeys = async (key: string) =>
     .find((node) => node.key === key)
     ?.children?.map((node) => node.key) ?? [];
 
-const resourceNames = (type: string) => ws.showCmd.showResources(type);
-const resource = (name: string) => ws.showCmd.showResource(name);
+const resourceNames = (type: string) => ws.resources.list(type);
+const resource = (name: string) => ws.resources.show(name);
 
 async function addLinkType(description = false) {
-  await ws.createCmd.createLinkType('related');
+  await ws.resources.create('related', 'linkTypes', {});
   if (description) {
-    await ws.updateCmd.apply({
+    await ws.changes.apply({
       kind: 'edit',
       target: resourceName('test/linkTypes/related'),
       updateKey: { key: 'enableLinkDescription' },
@@ -211,7 +244,7 @@ describe('MCP card write tools', () => {
 
   test('remove_link', async () => {
     const linkType = await addLinkType();
-    await ws.createCmd.createLink(alpha, beta, linkType);
+    await ws.cards.addLink(alpha, beta, linkType);
     await write('remove_link', {
       sourceKey: alpha,
       destinationKey: beta,
@@ -224,7 +257,7 @@ describe('MCP card write tools', () => {
     // Current behaviour: the tool takes no description, so it can match only
     // links without one; the call fails and nothing is committed.
     const linkType = await addLinkType(true);
-    await ws.createCmd.createLink(alpha, beta, linkType, 'why');
+    await ws.cards.addLink(alpha, beta, linkType, 'why');
     const before = await commitCount();
     const result = await callTool('remove_link', {
       sourceKey: alpha,
@@ -250,7 +283,7 @@ describe('MCP card write tools', () => {
   test('remove_label of a missing label removes the only label', async () => {
     // Current behaviour: a card with exactly one label loses it whatever
     // label is named.
-    await ws.removeCmd.remove('label', labelled, 'drop');
+    await ws.cards.removeLabel(labelled, 'drop');
     await write('remove_label', { cardKey: labelled, label: 'missing' });
     expect((await card(labelled)).metadata.labels).toEqual([]);
   });
@@ -268,7 +301,7 @@ describe('MCP card write tools', () => {
   });
 
   test('remove_attachment', async () => {
-    await ws.createCmd.createAttachment(beta, 'note.txt', Buffer.from('hi'));
+    await ws.cards.addAttachment(beta, 'note.txt', Buffer.from('hi'));
     await write('remove_attachment', { cardKey: beta, filename: 'note.txt' });
     expect((await card(beta)).attachments).toEqual([]);
   });

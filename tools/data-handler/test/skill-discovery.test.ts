@@ -3,8 +3,10 @@ import { mkdirSync, rmSync } from 'node:fs';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
-import { CommandManager } from '../src/command-manager.js';
+import { type Workspace } from '../src/workspace/workspace.js';
 import { copyDir } from '../src/utils/file-utils.js';
+import { openTestWorkspace } from './helpers/open-test-workspace.js';
+import { checkoutOf } from '../src/infra/internal.js';
 
 const baseDir = import.meta.dirname;
 const testDir = join(baseDir, 'tmp-skill-discovery-tests');
@@ -61,7 +63,7 @@ async function seedEnableCalc(lp: string) {
 }
 
 describe('skill discovery', () => {
-  let commands: CommandManager;
+  let ws: Workspace;
 
   beforeAll(async () => {
     mkdirSync(testDir, { recursive: true });
@@ -84,18 +86,17 @@ describe('skill discovery', () => {
         'enableSkill("decision/skills/complianceSkill").\n' +
         'enableSkill("decision/skills/cardSkill", decision_5).\n',
     );
-    commands = await CommandManager.getInstance(projectPath);
+    ws = await openTestWorkspace(projectPath);
   });
 
   afterAll(() => {
-    commands.project.dispose();
     rmSync(testDir, { recursive: true, force: true });
   });
 
   describe('enabledSkills query round-trip', () => {
     it('returns string skill-name keys (global + all per-card) without a cardKey', async () => {
       const keys = (
-        await commands.project.calculationEngine.runQuery('enabledSkills')
+        await checkoutOf(ws).calculationEngine.runQuery('enabledSkills')
       ).map((r) => r.key);
       expect(keys).toContain('decision/skills/globalSkill');
       expect(keys).toContain('decision/skills/cardSkill');
@@ -103,7 +104,7 @@ describe('skill discovery', () => {
 
     it('with a non-matching cardKey excludes per-card skills', async () => {
       const keys = (
-        await commands.project.calculationEngine.runQuery(
+        await checkoutOf(ws).calculationEngine.runQuery(
           'enabledSkills',
           'localApp',
           { cardKey: 'decision_1' },
@@ -116,7 +117,7 @@ describe('skill discovery', () => {
 
   describe('listSkills', () => {
     it('without a cardKey lists all enabled skills (global + per-card)', async () => {
-      const names = (await commands.showCmd.listSkills()).map((s) => s.name);
+      const names = (await ws.resources.skills()).map((s) => s.name);
       expect(names).toEqual([
         'decision/skills/cardSkill',
         'decision/skills/complianceSkill',
@@ -125,16 +126,16 @@ describe('skill discovery', () => {
     });
 
     it('with a cardKey lists global skills plus that card’s skills', async () => {
-      const names = (
-        await commands.showCmd.listSkills({ cardKey: 'decision_1' })
-      ).map((s) => s.name);
+      const names = (await ws.resources.skills({ cardKey: 'decision_1' })).map(
+        (s) => s.name,
+      );
       expect(names).toContain('decision/skills/globalSkill');
       expect(names).toContain('decision/skills/complianceSkill');
       expect(names).not.toContain('decision/skills/cardSkill');
     });
 
     it('filters by category', async () => {
-      const skills = await commands.showCmd.listSkills({
+      const skills = await ws.resources.skills({
         category: 'compliance',
       });
       expect(skills.map((s) => s.name)).toEqual([
@@ -143,7 +144,7 @@ describe('skill discovery', () => {
     });
 
     it('returns the lightweight summary fields', async () => {
-      const global = (await commands.showCmd.listSkills()).find(
+      const global = (await ws.resources.skills()).find(
         (s) => s.name === 'decision/skills/globalSkill',
       );
       expect(global).toMatchObject({
@@ -156,9 +157,21 @@ describe('skill discovery', () => {
       expect(global).not.toHaveProperty('instructions');
     });
 
+    it('returns copies: changing one leaves the next listing alone', async () => {
+      const globalSkill = async () =>
+        (await ws.resources.skills()).find(
+          (s) => s.name === 'decision/skills/globalSkill',
+        )!;
+      (await globalSkill()).relatedTools.push('mine');
+      expect((await globalSkill()).relatedTools).toEqual([
+        'query_cards',
+        'update_card',
+      ]);
+    });
+
     it('marks each skill global or card scope', async () => {
       const byName = new Map(
-        (await commands.showCmd.listSkills()).map((s) => [s.name, s.scope]),
+        (await ws.resources.skills()).map((s) => [s.name, s.scope]),
       );
       expect(byName.get('decision/skills/globalSkill')).toBe('global');
       expect(byName.get('decision/skills/cardSkill')).toBe('card');
@@ -166,10 +179,18 @@ describe('skill discovery', () => {
   });
 
   describe('getSkill', () => {
+    it('returns a copy: changing it leaves the next lookup alone', async () => {
+      const lookup = () => ws.resources.skill('decision/skills/globalSkill');
+      const first = await lookup();
+      if (first.status !== 'ok') throw new Error(first.status);
+      first.skill.relatedTools.push('mine');
+      expect(await lookup()).toMatchObject({
+        skill: { relatedTools: ['query_cards', 'update_card'] },
+      });
+    });
+
     it('renders a globally-enabled skill', async () => {
-      const result = await commands.showCmd.getSkill(
-        'decision/skills/globalSkill',
-      );
+      const result = await ws.resources.skill('decision/skills/globalSkill');
       expect(result.status).toBe('ok');
       if (result.status !== 'ok') return;
       expect(result.skill.instructions).toContain('Use this any time.');
@@ -177,56 +198,49 @@ describe('skill discovery', () => {
     });
 
     it('renders a per-card skill with the cardKey interpolated', async () => {
-      const result = await commands.showCmd.getSkill(
-        'decision/skills/cardSkill',
-        { cardKey: 'decision_5' },
-      );
+      const result = await ws.resources.skill('decision/skills/cardSkill', {
+        cardKey: 'decision_5',
+      });
       expect(result.status).toBe('ok');
       if (result.status !== 'ok') return;
       expect(result.skill.instructions).toContain('Applies to decision_5.');
     });
 
     it('asks for a cardKey when a per-card skill is requested without one', async () => {
-      const result = await commands.showCmd.getSkill(
-        'decision/skills/cardSkill',
-      );
+      const result = await ws.resources.skill('decision/skills/cardSkill');
       expect(result.status).toBe('needs-card');
     });
 
     it('reports not-enabled for a per-card skill requested with the wrong card', async () => {
-      const result = await commands.showCmd.getSkill(
-        'decision/skills/cardSkill',
-        { cardKey: 'decision_1' },
-      );
+      const result = await ws.resources.skill('decision/skills/cardSkill', {
+        cardKey: 'decision_1',
+      });
       expect(result.status).toBe('not-enabled');
     });
 
     it('reports not-found for an unknown skill', async () => {
-      const result = await commands.showCmd.getSkill(
-        'decision/skills/doesNotExist',
-      );
+      const result = await ws.resources.skill('decision/skills/doesNotExist');
       expect(result.status).toBe('not-found');
     });
 
     it('reports card-not-found when the cardKey is not a real card', async () => {
-      const result = await commands.showCmd.getSkill(
-        'decision/skills/cardSkill',
-        { cardKey: 'decision_does_not_exist' },
-      );
+      const result = await ws.resources.skill('decision/skills/cardSkill', {
+        cardKey: 'decision_does_not_exist',
+      });
       expect(result.status).toBe('card-not-found');
     });
   });
 
   describe('renderSkill', () => {
     it('renders stored content', async () => {
-      const rendered = await commands.showCmd.renderSkill(
+      const rendered = await ws.resources.skillPreview(
         'decision/skills/globalSkill',
       );
       expect(rendered).toContain('Use this any time.');
     });
 
     it('renders a per-card skill with the cardKey interpolated', async () => {
-      const rendered = await commands.showCmd.renderSkill(
+      const rendered = await ws.resources.skillPreview(
         'decision/skills/cardSkill',
         { cardKey: 'decision_5' },
       );
@@ -238,12 +252,12 @@ describe('skill discovery', () => {
       // card. The preview must still render it for the author.
       expect(
         (
-          await commands.showCmd.getSkill('decision/skills/cardSkill', {
+          await ws.resources.skill('decision/skills/cardSkill', {
             cardKey: 'decision_1',
           })
         ).status,
       ).toBe('not-enabled');
-      const rendered = await commands.showCmd.renderSkill(
+      const rendered = await ws.resources.skillPreview(
         'decision/skills/cardSkill',
         { cardKey: 'decision_1' },
       );
@@ -251,7 +265,7 @@ describe('skill discovery', () => {
     });
 
     it('renders unsaved content instead of what is stored', async () => {
-      const rendered = await commands.showCmd.renderSkill(
+      const rendered = await ws.resources.skillPreview(
         'decision/skills/globalSkill',
         { skillContent: '# Draft\nStill being written.\n' },
       );
@@ -260,7 +274,7 @@ describe('skill discovery', () => {
     });
 
     it('runs an unsaved query and uses its result as context', async () => {
-      const rendered = await commands.showCmd.renderSkill(
+      const rendered = await ws.resources.skillPreview(
         'decision/skills/globalSkill',
         {
           skillQuery: 'result(decision_5).\n',
@@ -272,13 +286,13 @@ describe('skill discovery', () => {
 
     it('throws for an unknown skill', async () => {
       await expect(
-        commands.showCmd.renderSkill('decision/skills/doesNotExist'),
+        ws.resources.skillPreview('decision/skills/doesNotExist'),
       ).rejects.toThrow(/does not exist/);
     });
 
     it('throws for an unknown card', async () => {
       await expect(
-        commands.showCmd.renderSkill('decision/skills/globalSkill', {
+        ws.resources.skillPreview('decision/skills/globalSkill', {
           cardKey: 'decision_does_not_exist',
         }),
       ).rejects.toThrow();
@@ -286,7 +300,7 @@ describe('skill discovery', () => {
 
     it('surfaces an error from a broken query', async () => {
       await expect(
-        commands.showCmd.renderSkill('decision/skills/globalSkill', {
+        ws.resources.skillPreview('decision/skills/globalSkill', {
           skillQuery: 'this is not a logic program',
         }),
       ).rejects.toThrow();

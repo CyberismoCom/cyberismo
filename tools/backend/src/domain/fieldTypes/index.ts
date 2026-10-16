@@ -35,10 +35,10 @@ const router = new Hono();
  *         description: project_path not set or other internal error
  */
 router.get('/', requireRole(UserRole.Reader), async (c) => {
-  const commands = c.get('commands');
+  const ws = c.get('ws');
 
   try {
-    const fieldTypes = await fieldTypeService.getFieldTypes(commands);
+    const fieldTypes = await fieldTypeService.getFieldTypes(ws);
     return c.json(fieldTypes);
   } catch (error) {
     return c.json(
@@ -84,11 +84,11 @@ router.post(
   requireRole(UserRole.Admin),
   zValidator('json', createFieldTypeSchema),
   async (c) => {
-    const commands = c.get('commands');
+    const ws = c.get('ws');
     const { identifier, dataType } = c.req.valid('json');
 
     try {
-      await fieldTypeService.createFieldType(commands, identifier, dataType);
+      await fieldTypeService.createFieldType(ws, identifier, dataType);
       return c.json({ message: 'Field type created successfully' });
     } catch (error) {
       return c.json(

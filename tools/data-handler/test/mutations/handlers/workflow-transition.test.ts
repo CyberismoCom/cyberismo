@@ -2,10 +2,11 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { mkdir, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 
-import { Project } from '../../../src/containers/project.js';
+import { Checkout } from '../../../src/infra/checkout.js';
 import { resourceName } from '../../../src/utils/resource-utils.js';
 import { copyDir } from '../../../src/utils/file-utils.js';
-import { ResourceMutations } from '../../../src/mutations/resource-mutations.js';
+import { Workspace } from '../../../src/workspace/workspace.js';
+import { SYSTEM_ACTOR } from '../../../src/utils/tx-record.js';
 
 const FIXTURE_PATH = join(
   import.meta.dirname,
@@ -18,22 +19,21 @@ const FIXTURE_PATH = join(
 const tmpDir = join(import.meta.dirname, 'tmp-workflow-transition');
 
 describe('workflow transitions routing and cascade', () => {
-  let project: Project;
+  let checkout: Checkout;
 
   beforeEach(async () => {
     const projectPath = join(tmpDir, `proj-${Date.now()}-${Math.random()}`);
     await mkdir(projectPath, { recursive: true });
     await copyDir(FIXTURE_PATH, projectPath);
-    project = new Project(projectPath);
-    await project.populateCaches();
+    checkout = new Checkout(projectPath);
+    await checkout.populateCaches();
   });
   afterEach(async () => {
     await rm(tmpDir, { recursive: true, force: true });
   });
 
   it('apply add appends the transition to the workflow definition', async () => {
-    const mutations = new ResourceMutations(project);
-    await mutations.apply({
+    await Workspace.over(checkout, SYSTEM_ACTOR).changes.apply({
       kind: 'edit',
       target: resourceName('decision/workflows/decision'),
       updateKey: { key: 'transitions' },
@@ -46,7 +46,7 @@ describe('workflow transitions routing and cascade', () => {
         },
       },
     });
-    const wf = project.resources.byType(
+    const wf = checkout.resources.byType(
       'decision/workflows/decision',
       'workflows',
     );
@@ -54,14 +54,13 @@ describe('workflow transitions routing and cascade', () => {
   });
 
   it('apply remove drops the transition from the workflow definition', async () => {
-    const mutations = new ResourceMutations(project);
-    await mutations.apply({
+    await Workspace.over(checkout, SYSTEM_ACTOR).changes.apply({
       kind: 'edit',
       target: resourceName('decision/workflows/decision'),
       updateKey: { key: 'transitions' },
       operation: { name: 'remove', target: 'Deprecate' },
     });
-    const wf = project.resources.byType(
+    const wf = checkout.resources.byType(
       'decision/workflows/decision',
       'workflows',
     );

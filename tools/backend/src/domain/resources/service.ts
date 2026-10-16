@@ -11,19 +11,20 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import type { AnyResourceContent } from '@cyberismo/data-handler/interfaces/resource-interfaces';
 import type {
+  AnyResourceContent,
   Card,
   CardWithChildrenCards,
   ResourceFolderType,
-  RemovableResourceTypes,
-} from '@cyberismo/data-handler/interfaces/project-interfaces';
+} from '@cyberismo/model';
 import {
-  type CommandManager,
+  type Workspace,
+  CardNotFoundError,
   isResourceFolderType,
   moduleNameFromCardKey,
   resourceName,
   resourceNameToString,
+  ResourceNotFoundError,
 } from '@cyberismo/data-handler';
 import type { ResourceParams } from '../../common/validationSchemas.js';
 import type {
@@ -45,13 +46,13 @@ const resourceTypes: ResourceFolderType[] = [
   'workflows',
 ];
 
-async function getModules(commands: CommandManager) {
+async function getModules(ws: Workspace) {
   try {
-    const modules = await commands.modulesCmd.list();
+    const modules = await ws.modules.list();
     return Promise.all(
       modules.map(async (mod) => {
         try {
-          const module = await commands.modulesCmd.show(mod.name);
+          const module = await ws.modules.show(mod.name);
           return { name: module.name, cardKeyPrefix: module.cardKeyPrefix };
         } catch {
           return { name: mod.name, cardKeyPrefix: mod.name };
@@ -81,9 +82,9 @@ function sortTemplateCardsByRank(
     }));
 }
 
-export async function buildResourceTree(commands: CommandManager) {
-  return commands.consistent(async () => {
-    const project = await commands.showCmd.showProject();
+export async function buildResourceTree(ws: Workspace) {
+  return ws.consistent(async () => {
+    const project = await ws.settings.info();
     const tree: unknown[] = [];
 
     const sortByDisplayName = (
@@ -95,7 +96,7 @@ export async function buildResourceTree(commands: CommandManager) {
         ),
       );
 
-    const modules = await getModules(commands);
+    const modules = await getModules(ws);
 
     // General section first (single node with project + modules metadata)
     tree.push({
@@ -117,12 +118,12 @@ export async function buildResourceTree(commands: CommandManager) {
 
       if (resourceType === 'templates') {
         ({ rootResources, moduleResources } = await processTemplates(
-          commands,
+          ws,
           project.prefix,
         ));
       } else {
         ({ rootResources, moduleResources } = await groupResourcesByPrefix(
-          commands,
+          ws,
           resourceType,
           project.prefix,
         ));
@@ -200,7 +201,7 @@ function parseResourcePrefix(resource: string): {
 // Helper function to create resource node with all data from showResource
 // TODO: The types should be shared between backend and frontend
 async function createResourceNode(
-  commands: CommandManager,
+  ws: Workspace,
   resourceType: ResourceFolderType,
   name: string,
   projectPrefix: string,
@@ -213,7 +214,7 @@ async function createResourceNode(
   children?: unknown[];
   readOnly?: boolean;
 }> {
-  const resourceData = await commands.showCmd.showResource(name);
+  const resourceData = await ws.resources.show(name);
   const node: {
     id: string;
     type: ResourceFolderType;
@@ -302,12 +303,9 @@ function createCardNode(
 }
 
 // Helper function to process templates using templateTree query
-async function processTemplates(
-  commands: CommandManager,
-  projectPrefix: string,
-) {
-  const templates = await commands.showCmd.showResources('templates');
-  const templateTree = await commands.showCmd.showAllTemplateCards();
+async function processTemplates(ws: Workspace, projectPrefix: string) {
+  const templates = await ws.resources.list('templates');
+  const templateTree = await ws.cards.templateCards();
 
   const rootTemplates: { [templateName: string]: unknown[] } = {};
   const moduleTemplates: {
@@ -341,13 +339,7 @@ async function processTemplates(
 
   const rootResources = await Promise.all(
     Object.entries(rootTemplates).map(([templateName, cards]) =>
-      createResourceNode(
-        commands,
-        'templates',
-        templateName,
-        projectPrefix,
-        cards,
-      ),
+      createResourceNode(ws, 'templates', templateName, projectPrefix, cards),
     ),
   );
 
@@ -355,13 +347,7 @@ async function processTemplates(
   for (const [prefix, templates] of Object.entries(moduleTemplates)) {
     moduleResources[prefix] = await Promise.all(
       Object.entries(templates).map(([templateName, cards]) =>
-        createResourceNode(
-          commands,
-          'templates',
-          templateName,
-          projectPrefix,
-          cards,
-        ),
+        createResourceNode(ws, 'templates', templateName, projectPrefix, cards),
       ),
     );
   }
@@ -373,7 +359,7 @@ async function processTemplates(
       if (!rootResources.find((resource) => resource.name === template)) {
         rootResources.push(
           await createResourceNode(
-            commands,
+            ws,
             'templates',
             template,
             projectPrefix,
@@ -392,7 +378,7 @@ async function processTemplates(
       ) {
         moduleResources[prefix].push(
           await createResourceNode(
-            commands,
+            ws,
             'templates',
             template,
             projectPrefix,
@@ -408,14 +394,14 @@ async function processTemplates(
 
 // Helper function to group regular resources by prefix
 async function groupResourcesByPrefix(
-  commands: CommandManager,
+  ws: Workspace,
   resourceType: ResourceFolderType,
   projectPrefix: string,
 ) {
-  const resourceNames = await commands.showCmd.showResources(resourceType);
+  const resourceNames = await ws.resources.list(resourceType);
   const resources = await Promise.all(
     resourceNames.map((name: string) =>
-      createResourceNode(commands, resourceType, name, projectPrefix),
+      createResourceNode(ws, resourceType, name, projectPrefix),
     ),
   );
 
@@ -439,35 +425,27 @@ async function groupResourcesByPrefix(
 
 /**
  * Delete a resource.
- * @param commands Command manager.
+ * @param ws Command manager.
  * @param resource Resource to delete.
  */
-export async function deleteResource(
-  commands: CommandManager,
-  resource: ResourceParams,
-) {
-  return commands.removeCmd.remove(
-    resource.type.substring(
-      0,
-      resource.type.length - 1,
-    ) as RemovableResourceTypes,
+export async function deleteResource(ws: Workspace, resource: ResourceParams) {
+  return ws.resources.remove(
     resourceNameToString(resource),
+    resource.type.substring(0, resource.type.length - 1),
   );
 }
 
 /**
  * Validate a single resource.
- * @param commands Command manager.
+ * @param ws Command manager.
  * @param resource Resource to validate.
  * @returns Validation result with errors and validity status.
  */
 export async function validateResource(
-  commands: CommandManager,
+  ws: Workspace,
   resource: ValidateResourceParams,
 ) {
-  const errors = await commands.consistent(() =>
-    commands.validateCmd.validateResource(resource, commands.project),
-  );
+  const errors = await ws.resources.validate(resource);
 
   return {
     errors: errors.split('\n\n').filter((error) => error !== ''),
@@ -476,13 +454,13 @@ export async function validateResource(
 
 /**
  * Lists the path params for every workflow resource in the project.
- * @param commands Command manager.
+ * @param ws Command manager.
  * @returns One `{ prefix, identifier }` entry per workflow resource.
  */
 export async function listWorkflowGraphParams(
-  commands: CommandManager,
+  ws: Workspace,
 ): Promise<{ prefix: string; identifier: string }[]> {
-  const workflows = await commands.showCmd.showResources('workflows');
+  const workflows = await ws.resources.list('workflows');
   return workflows.map((name) => {
     const { prefix, identifier } = resourceName(name);
     return { prefix, identifier };
@@ -501,15 +479,15 @@ export async function listWorkflowGraphParams(
  *   card cannot be resolved.
  */
 export async function getWorkflowGraph(
-  commands: CommandManager,
+  ws: Workspace,
   workflowName: string,
   cardKey?: string,
 ): Promise<string> {
-  return commands.consistent(async () => {
+  return ws.consistent(async () => {
     try {
-      await commands.showCmd.showResource(workflowName, 'workflows');
+      await ws.resources.show(workflowName, 'workflows');
     } catch (error) {
-      if (error instanceof Error && error.message.includes('does not exist')) {
+      if (error instanceof ResourceNotFoundError) {
         throw new Error(`Workflow '${workflowName}' not found`, {
           cause: error,
         });
@@ -520,7 +498,7 @@ export async function getWorkflowGraph(
     if (cardKey) {
       let card;
       try {
-        card = await commands.showCmd.showCardDetails(cardKey);
+        card = await ws.cards.details(cardKey);
       } catch (error) {
         throw new Error(`Card '${cardKey}' not found`, { cause: error });
       }
@@ -529,7 +507,7 @@ export async function getWorkflowGraph(
       }
       currentState = card.metadata.workflowState;
     }
-    return commands.calculateCmd.runWorkflowGraph(workflowName, {
+    return ws.queries.runWorkflowGraph(workflowName, {
       currentState,
     });
   });
@@ -547,34 +525,31 @@ export async function getWorkflowGraph(
  *   be resolved; any other error means the template or query failed to render.
  */
 export async function previewSkill(
-  commands: CommandManager,
+  ws: Workspace,
   skillName: string,
   body: SkillPreviewBody,
 ): Promise<string> {
   const { cardKey, skillContent, skillQuery } = body;
-  return commands.consistent(async () => {
+  return ws.consistent(async () => {
     try {
-      await commands.showCmd.showResource(skillName, 'skills');
+      await ws.resources.show(skillName, 'skills');
     } catch (error) {
-      if (error instanceof Error && error.message.includes('does not exist')) {
+      if (error instanceof ResourceNotFoundError) {
         throw new Error(`Skill '${skillName}' not found`, { cause: error });
       }
       throw error;
     }
     if (cardKey) {
       try {
-        await commands.showCmd.showCardDetails(cardKey);
+        await ws.cards.details(cardKey);
       } catch (error) {
-        if (
-          error instanceof Error &&
-          error.message.includes('does not exist')
-        ) {
+        if (error instanceof CardNotFoundError) {
           throw new Error(`Card '${cardKey}' not found`, { cause: error });
         }
         throw error;
       }
     }
-    return commands.showCmd.renderSkill(skillName, {
+    return ws.resources.skillPreview(skillName, {
       cardKey,
       skillContent,
       skillQuery,
@@ -587,14 +562,14 @@ export async function previewSkill(
  * This delegates to the data-handler mutation engine.
  */
 export async function updateResourceWithOperation(
-  commands: CommandManager,
+  ws: Workspace,
   resource: ResourceParams,
   body: UpdateOperationBody,
 ) {
   const { updateKey, operation } = body;
-  await commands.atomic(
+  await ws.atomic(
     () =>
-      commands.updateCmd.apply({
+      ws.changes.apply({
         kind: 'edit',
         target: resource,
         updateKey,

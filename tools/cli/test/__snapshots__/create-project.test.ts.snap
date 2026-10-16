@@ -1,0 +1,246 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`create project > refuses a resource named as a projects resource name 1`] = `
+{
+  "code": 1,
+  "stderr": "Unknown type to create: 'project'
+",
+  "stdout": "",
+}
+`;
+
+exports[`create project > refuses a resource named as project 1`] = `
+{
+  "code": 1,
+  "stderr": "Input validation error: prefix must be from 3 to 10 characters long. 'undefined' does not fulfill the condition.
+",
+  "stdout": "",
+}
+`;
+
+exports[`create project > refuses an invalid prefix, creating nothing 1`] = `
+{
+  "code": 1,
+  "stderr": "Input validation error: prefix must be from 3 to 10 characters long. 'G!' does not fulfill the condition.
+",
+  "stdout": "",
+}
+`;
+
+exports[`create project > skipping module import 1`] = `
+{
+  "commits": [
+    "Ann <ann@example.com> | Cyberismo Bot <bot@cyberismo.com> | Initial commit",
+    "A	.cards/local/.schema",
+    "A	.cards/local/cardsConfig.json",
+    "A	.gitignore",
+  ],
+  "files": {
+    ".cards/local/.schema": "[
+    {
+        "id": "cardsConfigSchema",
+        "version": 1
+    }
+]",
+    ".cards/local/cardsConfig.json": "{
+    "schemaVersion": 5,
+    "cardKeyPrefix": "gold",
+    "name": "Golden Project",
+    "description": "A golden project",
+    "modules": [],
+    "hubs": [],
+    "category": "Testing"
+}",
+    ".gitignore": ".calc
+.asciidoctor
+.vscode
+*.html
+*.pdf
+*.puml
+**/.DS_Store
+*-debug.log
+*-error.log
+.temp
+.logs
+.cache
+",
+    ".logs/cyberismo_data-handler.log": "<log>",
+  },
+  "output": {
+    "code": 0,
+    "stderr": "",
+    "stdout": "Done
+",
+  },
+  "uncommitted": [],
+}
+`;
+
+exports[`create project > with autocommit 1`] = `
+{
+  "commits": [
+    "Ann <ann@example.com> | Cyberismo Bot <bot@cyberismo.com> | Add hub https://raw.githubusercontent.com/CyberismoCom/cyberismo/main/tools/assets/src/hub/",
+    "M	.cards/local/cardsConfig.json",
+    "Ann <ann@example.com> | Cyberismo Bot <bot@cyberismo.com> | Initial commit",
+    "A	.cards/local/.schema",
+    "A	.cards/local/cardsConfig.json",
+    "A	.gitignore",
+  ],
+  "files": {
+    ".cards/local/.schema": "[
+    {
+        "id": "cardsConfigSchema",
+        "version": 1
+    }
+]",
+    ".cards/local/cardsConfig.json": "{
+    "schemaVersion": 5,
+    "cardKeyPrefix": "gold",
+    "name": "Golden Project",
+    "category": "Testing",
+    "description": "A golden project",
+    "modules": [],
+    "hubs": [
+        {
+            "location": "https://raw.githubusercontent.com/CyberismoCom/cyberismo/main/tools/assets/src/hub/"
+        }
+    ]
+}",
+    ".gitignore": ".calc
+.asciidoctor
+.vscode
+*.html
+*.pdf
+*.puml
+**/.DS_Store
+*-debug.log
+*-error.log
+.temp
+.logs
+.cache
+",
+    ".logs/cyberismo_data-handler.log": "<log>",
+    ".temp/moduleList.json": "{
+    "modules": [],
+    "hubs": []
+}",
+  },
+  "output": {
+    "code": 1,
+    "stderr": "Could not fetch hub data - https://raw.githubusercontent.com/CyberismoCom/cyberismo/main/tools/assets/src/hub/: fetch failed
+No modules available
+",
+    "stdout": "",
+  },
+  "uncommitted": [],
+}
+`;
+
+exports[`create project > with autocommit, skipping module import 1`] = `
+{
+  "commits": [
+    "Ann <ann@example.com> | Cyberismo Bot <bot@cyberismo.com> | Initial commit",
+    "A	.cards/local/.schema",
+    "A	.cards/local/cardsConfig.json",
+    "A	.gitignore",
+  ],
+  "files": {
+    ".cards/local/.schema": "[
+    {
+        "id": "cardsConfigSchema",
+        "version": 1
+    }
+]",
+    ".cards/local/cardsConfig.json": "{
+    "schemaVersion": 5,
+    "cardKeyPrefix": "gold",
+    "name": "Golden Project",
+    "description": "A golden project",
+    "modules": [],
+    "hubs": [],
+    "category": "Testing"
+}",
+    ".gitignore": ".calc
+.asciidoctor
+.vscode
+*.html
+*.pdf
+*.puml
+**/.DS_Store
+*-debug.log
+*-error.log
+.temp
+.logs
+.cache
+",
+    ".logs/cyberismo_data-handler.log": "<log>",
+  },
+  "output": {
+    "code": 0,
+    "stderr": "",
+    "stdout": "Done
+",
+  },
+  "uncommitted": [],
+}
+`;
+
+exports[`create project > without autocommit 1`] = `
+{
+  "commits": [
+    "Ann <ann@example.com> | Cyberismo Bot <bot@cyberismo.com> | Initial commit",
+    "A	.cards/local/.schema",
+    "A	.cards/local/cardsConfig.json",
+    "A	.gitignore",
+  ],
+  "files": {
+    ".cards/local/.schema": "[
+    {
+        "id": "cardsConfigSchema",
+        "version": 1
+    }
+]",
+    ".cards/local/cardsConfig.json": "{
+    "schemaVersion": 5,
+    "cardKeyPrefix": "gold",
+    "name": "Golden Project",
+    "category": "Testing",
+    "description": "A golden project",
+    "modules": [],
+    "hubs": [
+        {
+            "location": "https://raw.githubusercontent.com/CyberismoCom/cyberismo/main/tools/assets/src/hub/"
+        }
+    ]
+}",
+    ".gitignore": ".calc
+.asciidoctor
+.vscode
+*.html
+*.pdf
+*.puml
+**/.DS_Store
+*-debug.log
+*-error.log
+.temp
+.logs
+.cache
+",
+    ".logs/cyberismo_data-handler.log": "<log>",
+    ".temp/moduleList.json": "{
+    "modules": [],
+    "hubs": []
+}",
+  },
+  "output": {
+    "code": 1,
+    "stderr": "Could not fetch hub data - https://raw.githubusercontent.com/CyberismoCom/cyberismo/main/tools/assets/src/hub/: fetch failed
+No modules available
+",
+    "stdout": "",
+  },
+  "uncommitted": [
+    " M .cards/local/cardsConfig.json",
+  ],
+}
+`;

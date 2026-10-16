@@ -1,16 +1,20 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
-import { isGitLocation } from '../../src/modules/location.js';
-import type { SourceLayer, FetchTarget } from '../../src/modules/source.js';
-import type { Source, Version } from '../../src/modules/types.js';
-import type { ProjectSettings } from '../../src/interfaces/project-interfaces.js';
-import type { SealFile } from '../../src/mutations/replay/seal-files.js';
-import { versionToTag } from '../../src/modules/version.js';
+import { isGitLocation } from '../../src/utils/location.js';
+import type {
+  SourceLayer,
+  FetchTarget,
+} from '../../src/infra/module-source/source.js';
+import type { Source } from '@cyberismo/model';
+import type { ProjectSettings } from '@cyberismo/model';
+import type { SealFile } from '../../src/infra/replay-log/seal-files.js';
+import { versionToTag, type Version } from '../../src/utils/version.js';
 
 /** Minimal `cardsConfig.json` shape the resolver reads. */
 export interface FakeModuleConfig {
   cardKeyPrefix?: string;
+  schemaVersion?: number;
   name?: string;
   version?: string;
   modules?: Array<{
@@ -75,15 +79,30 @@ export class InMemorySource implements SourceLayer {
     }
     const dir = join(destRoot, nameHint);
     await mkdir(join(dir, '.cards', 'local'), { recursive: true });
-    const config = this.configs.get(target.location) ?? {
-      cardKeyPrefix: nameHint,
-      name: nameHint,
-      modules: [],
-    };
+    const config = (target.ref
+      ? this.configs.get(`${target.location}@${target.ref}`)
+      : undefined) ??
+      this.configs.get(target.location) ?? {
+        cardKeyPrefix: nameHint,
+        name: nameHint,
+        modules: [],
+      };
     await writeFile(
       join(dir, '.cards', 'local', 'cardsConfig.json'),
       JSON.stringify(config),
     );
+    await writeFile(
+      join(dir, '.cards', 'local', '.schema'),
+      JSON.stringify([{ id: 'cardsConfigSchema', version: 1 }]),
+    );
+    // The seals the release carries, as empty logs, for a replay to read.
+    for (const seal of target.ref
+      ? this.sealsAt(target.location, target.ref)
+      : []) {
+      const migrations = join(dir, '.cards', 'local', 'migrations');
+      await mkdir(migrations, { recursive: true });
+      await writeFile(join(migrations, seal.fileName), '');
+    }
     return dir;
   }
 

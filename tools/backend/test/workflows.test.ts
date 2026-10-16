@@ -1,22 +1,22 @@
 import { expect, test, beforeEach, afterEach } from 'vitest';
-import { CommandManager } from '@cyberismo/data-handler';
+import { type Workspace } from '@cyberismo/data-handler';
 import { createApp } from '../src/app.js';
-import { ProjectRegistry } from '../src/project-registry.js';
 import { MockAuthProvider } from '../src/auth/mock.js';
 import { createTempTestData, cleanupTempTestData } from './test-utils.js';
 import { listWorkflowGraphParams } from '../src/domain/resources/service.js';
+import {
+  openTestWorkspace,
+  directoryOf,
+} from './helpers/open-test-workspace.js';
 
 let app: ReturnType<typeof createApp>;
 let tempTestDataPath: string;
-let commands: CommandManager;
+let ws: Workspace;
 
 beforeEach(async () => {
   tempTestDataPath = await createTempTestData('decision-records');
-  commands = await CommandManager.getInstance(tempTestDataPath);
-  app = createApp(
-    new MockAuthProvider(),
-    ProjectRegistry.fromCommandManager(commands),
-  );
+  ws = await openTestWorkspace(tempTestDataPath);
+  app = createApp(new MockAuthProvider(), directoryOf(ws));
 });
 
 afterEach(async () => {
@@ -89,7 +89,7 @@ test('GET /api/projects/:prefix/resources/:prefix/workflows/:identifier/graph?ca
 // Every entry listWorkflowGraphParams returns must resolve to a route that
 // actually renders a graph.
 test('listWorkflowGraphParams enumerates renderable workflow graph routes', async () => {
-  const params = await listWorkflowGraphParams(commands);
+  const params = await listWorkflowGraphParams(ws);
 
   expect(params.length).toBeGreaterThan(0);
   expect(params).toContainEqual({ prefix: 'decision', identifier: 'simple' });

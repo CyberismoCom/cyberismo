@@ -15,11 +15,13 @@ import { join } from 'node:path';
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 
 import { copyDir } from '../../src/utils/file-utils.js';
-import { CommandManager } from '../../src/command-manager.js';
+import { type Workspace } from '../../src/workspace/workspace.js';
 import { createCardFacts } from '../../src/utils/clingo-facts.js';
 import { resourceName } from '../../src/utils/resource-utils.js';
-import type { Card } from '../../src/index.js';
-import type { CardType } from '../../src/interfaces/resource-interfaces.js';
+import type { Card, CardType } from '@cyberismo/model';
+import { openTestWorkspace } from '../helpers/open-test-workspace.js';
+import { findCard } from '../../src/cards/read.js';
+import { checkoutOf } from '../../src/infra/internal.js';
 
 const FIELD = 'decision/fieldTypes/obsoletedBy';
 const RESPONSIBLE_FIELD = 'decision/fieldTypes/responsible';
@@ -53,7 +55,7 @@ describe('fieldOverride fact generation', () => {
   const baseDir = import.meta.dirname;
   const testDir = join(baseDir, 'tmp-override-facts-tests');
   const projectPath = join(testDir, 'valid/decision-records');
-  let commands: CommandManager;
+  let ws: Workspace;
 
   beforeAll(async () => {
     mkdirSync(testDir, { recursive: true });
@@ -84,8 +86,7 @@ describe('fieldOverride fact generation', () => {
     // derivation (override wins over calculated) can be exercised too.
     appendFieldCalculatedRule(projectPath);
 
-    commands = new CommandManager(projectPath, {});
-    await commands.initialize();
+    ws = await openTestWorkspace(projectPath, {});
   });
 
   afterAll(() => {
@@ -93,8 +94,8 @@ describe('fieldOverride fact generation', () => {
   });
 
   it('stored value on an override-enabled calculated field becomes fieldOverride', async () => {
-    const card = commands.project.findCard(CARD_KEY) as Card;
-    const facts = await createCardFacts(card, commands.project);
+    const card = findCard(checkoutOf(ws), CARD_KEY) as Card;
+    const facts = await createCardFacts(card, checkoutOf(ws));
     expect(facts).toContain(
       `fieldOverride(${CARD_KEY}, "${FIELD}", "decision_999").`,
     );
@@ -102,14 +103,14 @@ describe('fieldOverride fact generation', () => {
   });
 
   it('stored values on regular fields still become field facts', async () => {
-    const card = commands.project.findCard(CARD_KEY) as Card;
-    const facts = await createCardFacts(card, commands.project);
+    const card = findCard(checkoutOf(ws), CARD_KEY) as Card;
+    const facts = await createCardFacts(card, checkoutOf(ws));
     expect(facts).toContain(`field(${CARD_KEY}, "title"`);
     expect(facts).not.toContain(`fieldOverride(${CARD_KEY}, "title"`);
   });
 
   it('card query: override wins as effective value; calculatedValue shows the calculated value', async () => {
-    const result = await commands.project.calculationEngine.runQuery(
+    const result = await checkoutOf(ws).calculationEngine.runQuery(
       'card',
       'localApp',
       { cardKey: CARD_KEY },
@@ -122,7 +123,7 @@ describe('fieldOverride fact generation', () => {
   });
 
   // Mutates the fixture's calculation module further, so it runs last
-  // against a fresh CommandManager to avoid polluting the tests above.
+  // against a fresh checkout to avoid polluting the tests above.
   it('conflicting scalar values raise a notification', async () => {
     const calcPath = calculationPath(projectPath);
     writeFileSync(
@@ -131,9 +132,8 @@ describe('fieldOverride fact generation', () => {
         `\nfield(Card, "${FIELD}", "conflicting") :- projectCard(Card).\n`,
     );
 
-    const fresh = new CommandManager(projectPath, {});
-    await fresh.initialize();
-    const result = await fresh.project.calculationEngine.runQuery(
+    const fresh = await openTestWorkspace(projectPath, {});
+    const result = await checkoutOf(fresh).calculationEngine.runQuery(
       'card',
       'localApp',
       { cardKey: CARD_KEY },
@@ -152,7 +152,7 @@ describe('card query: calculated value without a stored override', () => {
   const baseDir = import.meta.dirname;
   const testDir = join(baseDir, 'tmp-override-noval-tests');
   const projectPath = join(testDir, 'valid/decision-records');
-  let commands: CommandManager;
+  let ws: Workspace;
 
   beforeAll(async () => {
     mkdirSync(testDir, { recursive: true });
@@ -189,8 +189,7 @@ describe('card query: calculated value without a stored override', () => {
 
     appendFieldCalculatedRule(projectPath);
 
-    commands = new CommandManager(projectPath, {});
-    await commands.initialize();
+    ws = await openTestWorkspace(projectPath, {});
   });
 
   afterAll(() => {
@@ -198,7 +197,7 @@ describe('card query: calculated value without a stored override', () => {
   });
 
   it('calculated value is effective when no override is stored', async () => {
-    const result = await commands.project.calculationEngine.runQuery(
+    const result = await checkoutOf(ws).calculationEngine.runQuery(
       'card',
       'localApp',
       { cardKey: CARD_KEY },
@@ -211,7 +210,7 @@ describe('card query: calculated value without a stored override', () => {
   });
 
   it('a field without overridableField reports isOverridable as false', async () => {
-    const result = await commands.project.calculationEngine.runQuery(
+    const result = await checkoutOf(ws).calculationEngine.runQuery(
       'card',
       'localApp',
       { cardKey: CARD_KEY },
@@ -224,8 +223,8 @@ describe('card query: calculated value without a stored override', () => {
   });
 
   it('stored value on an override-enabled but non-calculated field still becomes a field fact, not fieldOverride', async () => {
-    const card = commands.project.findCard(CARD_KEY) as Card;
-    const facts = await createCardFacts(card, commands.project);
+    const card = findCard(checkoutOf(ws), CARD_KEY) as Card;
+    const facts = await createCardFacts(card, checkoutOf(ws));
     expect(facts).toContain(`field(${CARD_KEY}, "${RESPONSIBLE_FIELD}"`);
     expect(facts).not.toContain(
       `fieldOverride(${CARD_KEY}, "${RESPONSIBLE_FIELD}"`,
@@ -237,7 +236,7 @@ describe('card query: calculated value without a stored override', () => {
   // persisted card type, which would break the fixture assumptions above.
   it('disabling enableOverride succeeds when no card holds an override value', async () => {
     await expect(
-      commands.updateCmd.apply({
+      ws.changes.apply({
         kind: 'edit',
         target: resourceName('decision/cardTypes/decision'),
         updateKey: { key: 'customFields' },
@@ -249,8 +248,8 @@ describe('card query: calculated value without a stored override', () => {
       }),
     ).resolves.toBeUndefined();
 
-    const cardType = commands.project.resources
-      .byType('decision/cardTypes/decision', 'cardTypes')
+    const cardType = checkoutOf(ws)
+      .resources.byType('decision/cardTypes/decision', 'cardTypes')
       .show() as CardType;
     const field = cardType.customFields.find((f) => f.name === FIELD);
     expect(field?.enableOverride).toBeFalsy();
@@ -264,7 +263,7 @@ describe('disabling override on a calculated field that holds values', () => {
   const baseDir = import.meta.dirname;
   const testDir = join(baseDir, 'tmp-override-disable-tests');
   const projectPath = join(testDir, 'valid/decision-records');
-  let commands: CommandManager;
+  let ws: Workspace;
 
   beforeAll(async () => {
     mkdirSync(testDir, { recursive: true });
@@ -289,8 +288,7 @@ describe('disabling override on a calculated field that holds values', () => {
     metadata[FIELD] = 'decision_999';
     writeFileSync(cardJsonPath, JSON.stringify(metadata, null, 4));
 
-    commands = new CommandManager(projectPath, {});
-    await commands.initialize();
+    ws = await openTestWorkspace(projectPath, {});
   });
 
   afterAll(() => {
@@ -299,7 +297,7 @@ describe('disabling override on a calculated field that holds values', () => {
 
   it('succeeds and persists instead of refusing on the stored values', async () => {
     await expect(
-      commands.updateCmd.apply({
+      ws.changes.apply({
         kind: 'edit',
         target: resourceName('decision/cardTypes/decision'),
         updateKey: { key: 'customFields' },
@@ -311,8 +309,8 @@ describe('disabling override on a calculated field that holds values', () => {
       }),
     ).resolves.toBeUndefined();
 
-    const cardType = commands.project.resources
-      .byType('decision/cardTypes/decision', 'cardTypes')
+    const cardType = checkoutOf(ws)
+      .resources.byType('decision/cardTypes/decision', 'cardTypes')
       .show() as CardType;
     const field = cardType.customFields.find((f) => f.name === FIELD);
     expect(field?.isCalculated).toBe(true);
@@ -327,7 +325,7 @@ describe('stored value on a calculated non-overridable field is dormant', () => 
   const baseDir = import.meta.dirname;
   const testDir = join(baseDir, 'tmp-dormant-calculated-tests');
   const projectPath = join(testDir, 'valid/decision-records');
-  let commands: CommandManager;
+  let ws: Workspace;
 
   beforeAll(async () => {
     mkdirSync(testDir, { recursive: true });
@@ -345,8 +343,7 @@ describe('stored value on a calculated non-overridable field is dormant', () => 
 
     appendFieldCalculatedRule(projectPath);
 
-    commands = new CommandManager(projectPath, {});
-    await commands.initialize();
+    ws = await openTestWorkspace(projectPath, {});
   });
 
   afterAll(() => {
@@ -354,7 +351,7 @@ describe('stored value on a calculated non-overridable field is dormant', () => 
   });
 
   it('the calculation is effective and no conflict is raised', async () => {
-    const result = await commands.project.calculationEngine.runQuery(
+    const result = await checkoutOf(ws).calculationEngine.runQuery(
       'card',
       'localApp',
       { cardKey: CARD_KEY },
@@ -372,14 +369,14 @@ describe('stored value on a calculated non-overridable field is dormant', () => 
 // Regression (INTDEV-1363): a card type may declare a custom field whose
 // fieldTypes resource is gone - deleted, renamed or misspelled. Resolving it
 // throws, and an unguarded lookup let a single such declaration abort fact
-// generation for the whole project, so CommandManager.initialize() failed with
+// generation for the whole project, so loading the project failed with
 // a bare "Must define resource name to query its details" and 'validate' never
 // got to report the dangling reference.
 describe('a declared field whose field type resource is missing', () => {
   const baseDir = import.meta.dirname;
   const testDir = join(baseDir, 'tmp-dangling-field-type-tests');
   const projectPath = join(testDir, 'valid/decision-records');
-  let commands: CommandManager;
+  let ws: Workspace;
 
   beforeAll(async () => {
     mkdirSync(testDir, { recursive: true });
@@ -401,10 +398,9 @@ describe('a declared field whose field type resource is missing', () => {
     metadata[DANGLING_FIELD] = 'stored value';
     writeFileSync(cardJsonPath, JSON.stringify(metadata, null, 4));
 
-    commands = new CommandManager(projectPath, {
+    ws = await openTestWorkspace(projectPath, {
       autoSaveConfiguration: false,
     });
-    await commands.initialize();
   });
 
   afterAll(() => {
@@ -412,9 +408,9 @@ describe('a declared field whose field type resource is missing', () => {
   });
 
   it('is omitted while the rest of the card still produces facts', async () => {
-    const card = commands.project.findCard(CARD_KEY) as Card;
+    const card = findCard(checkoutOf(ws), CARD_KEY) as Card;
 
-    const facts = await createCardFacts(card, commands.project);
+    const facts = await createCardFacts(card, checkoutOf(ws));
 
     expect(facts).toContain(`field(${CARD_KEY}, "title"`);
     expect(facts).not.toContain(DANGLING_FIELD);
@@ -430,7 +426,7 @@ describe('fieldCalculated is ignored for a field the card type does not declare 
   const baseDir = import.meta.dirname;
   const testDir = join(baseDir, 'tmp-override-ignored-calc-tests');
   const projectPath = join(testDir, 'valid/decision-records');
-  let commands: CommandManager;
+  let ws: Workspace;
 
   beforeAll(async () => {
     mkdirSync(testDir, { recursive: true });
@@ -461,8 +457,7 @@ describe('fieldCalculated is ignored for a field the card type does not declare 
     metadata[FIELD] = 'decision_999';
     writeFileSync(cardJsonPath, JSON.stringify(metadata, null, 4));
 
-    commands = new CommandManager(projectPath, {});
-    await commands.initialize();
+    ws = await openTestWorkspace(projectPath, {});
   });
 
   afterAll(() => {
@@ -470,7 +465,7 @@ describe('fieldCalculated is ignored for a field the card type does not declare 
   });
 
   it('the stored value stands alone and no conflict notification is raised', async () => {
-    const result = await commands.project.calculationEngine.runQuery(
+    const result = await checkoutOf(ws).calculationEngine.runQuery(
       'card',
       'localApp',
       { cardKey: CARD_KEY },

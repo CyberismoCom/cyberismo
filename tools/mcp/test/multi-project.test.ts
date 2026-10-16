@@ -16,39 +16,42 @@
 import { beforeAll, afterAll, describe, expect, test } from 'vitest';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
-import { CommandManager } from '@cyberismo/data-handler';
+import { type ProjectDirectory, type Workspace } from '@cyberismo/data-handler';
 import { createMcpServer } from '../src/server.js';
-import type { ProjectProvider } from '../src/lib/resolve-project.js';
-import { testDataPath } from './test-utils.js';
+import { authenticated, testDataPath } from './test-utils.js';
+import {
+  directoryOf,
+  openTestWorkspace,
+} from './helpers/open-test-workspace.js';
 
-let commands: CommandManager;
+let ws: Workspace;
 let client: Client;
 
 /**
- * A provider that exposes the same project under two prefixes,
+ * The project's directory, also listing a project that does not open,
  * simulating a multi-project deployment.
  */
-function multiProjectProvider(cmd: CommandManager): ProjectProvider {
-  const realPrefix = cmd.project.configuration.cardKeyPrefix;
+function multiProjectDirectory(cmd: Workspace): ProjectDirectory {
+  const directory = directoryOf(cmd);
   return {
-    get: (prefix: string) => (prefix === realPrefix ? cmd : undefined),
-    list: () => [
-      { prefix: realPrefix, name: cmd.project.configuration.name },
+    open: (prefix, actor, identity) => directory.open(prefix, actor, identity),
+    list: async () => [
+      ...(await directory.list()),
       { prefix: 'other', name: 'Other project' },
     ],
-  };
+  } as ProjectDirectory;
 }
 
 // Fixes weird issue with asciidoctor
 beforeAll(async () => {
   process.argv = [];
-  commands = await CommandManager.getInstance(testDataPath);
+  ws = await openTestWorkspace(testDataPath);
 
-  const server = createMcpServer(multiProjectProvider(commands));
+  const server = createMcpServer(multiProjectDirectory(ws));
   const [clientTransport, serverTransport] =
     InMemoryTransport.createLinkedPair();
 
-  await server.connect(serverTransport);
+  await server.connect(authenticated(serverTransport));
 
   client = new Client({ name: 'test-client', version: '1.0.0' });
   await client.connect(clientTransport);
@@ -56,7 +59,6 @@ beforeAll(async () => {
 
 afterAll(async () => {
   await client.close();
-  commands.project.dispose();
 });
 
 type TextContent = { type: string; text: string };
@@ -120,7 +122,7 @@ describe('Multi-project MCP', () => {
       arguments: { projectPrefix: 'other' },
     });
 
-    // 'other' is listed but provider.get returns undefined for it
+    // 'other' is listed but does not open
     expect(result.isError).toBe(true);
     const text = contentOf(result)[0].text;
     expect(text).toContain("Unknown project 'other'");

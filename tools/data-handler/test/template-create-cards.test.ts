@@ -22,19 +22,19 @@ import { join } from 'node:path';
 import { copyDir } from '../src/utils/file-utils.js';
 import { getTestProject } from './helpers/test-utils.js';
 import { readJsonFile } from '../src/utils/json.js';
-import { CardNameRegEx } from '../src/interfaces/project-interfaces.js';
+import { CardNameRegEx } from '@cyberismo/model';
 import { CardNotFoundError } from '../src/exceptions/index.js';
 import type { TemplateResource } from '../src/resources/template-resource.js';
-import { instantiateTemplate } from '../src/containers/project/template-instantiation.js';
-
-import type { Project } from '../src/containers/project.js';
+import { instantiateTemplate } from '../src/cards/instantiate.js';
+import { findCard } from '../src/cards/read.js';
+import type { Checkout } from '../src/infra/checkout.js';
 
 const baseDir = import.meta.dirname;
 const testDir = join(baseDir, 'tmp-template-create-cards-tests');
 
 const ATTACHMENT = 'needle.png';
 
-let project: Project;
+let checkout: Checkout;
 let decisionRecordsPath: string;
 let attachedCardFolder: string;
 
@@ -57,8 +57,8 @@ beforeEach(async () => {
     `= Simple Page\n\nimage::${ATTACHMENT}[]\n`,
   );
 
-  project = getTestProject(decisionRecordsPath);
-  await project.populateCaches();
+  checkout = getTestProject(decisionRecordsPath);
+  await checkout.populateCaches();
 });
 
 afterEach(() => {
@@ -66,13 +66,13 @@ afterEach(() => {
 });
 
 function templateOf(name: string): TemplateResource {
-  return project.resources.byType(name, 'templates');
+  return checkout.resources.byType(name, 'templates');
 }
 
 async function instantiateAttachedCard(
   template: TemplateResource,
 ): Promise<string> {
-  const created = await instantiateTemplate(project, template.cardTree);
+  const created = await instantiateTemplate(checkout, template.cardTree);
   const card = created.find(
     (item) => item.metadata?.templateCardKey === 'decision_2',
   );
@@ -81,7 +81,7 @@ async function instantiateAttachedCard(
 }
 
 async function cardRootKeys(): Promise<string[]> {
-  const entries = await readdir(project.paths.cardRootFolder, {
+  const entries = await readdir(checkout.paths.cardRootFolder, {
     withFileTypes: true,
   });
   return entries
@@ -113,8 +113,8 @@ describe('instantiateTemplate', () => {
 
     const diskBefore = await ranksOnDisk();
 
-    await instantiateTemplate(project, template.cardTree);
-    await instantiateTemplate(project, template.cardTree);
+    await instantiateTemplate(checkout, template.cardTree);
+    await instantiateTemplate(checkout, template.cardTree);
 
     const after = template.cardTree.cards().map((card) => ({
       key: card.key,
@@ -134,7 +134,7 @@ describe('instantiateTemplate', () => {
 
     await rm(join(attachedCardFolder, 'a', ATTACHMENT));
 
-    const error = await instantiateTemplate(project, template.cardTree).then(
+    const error = await instantiateTemplate(checkout, template.cardTree).then(
       () => undefined,
       (reason: unknown) => reason as Error,
     );
@@ -152,18 +152,18 @@ describe('instantiateTemplate', () => {
   // children.
   it('deletes only what it created when instantiating under a parent card', async () => {
     const template = templateOf('decision/templates/simplepage');
-    const parentCard = project.findCard('decision_5');
+    const parentCard = findCard(checkout, 'decision_5');
     const childrenBefore = parentCard.children;
     expect(childrenBefore.length).toBeGreaterThan(0);
 
     await rm(join(attachedCardFolder, 'a', ATTACHMENT));
 
     await expect(
-      instantiateTemplate(project, template.cardTree, parentCard),
+      instantiateTemplate(checkout, template.cardTree, parentCard),
     ).rejects.toThrow(/ENOENT/);
 
     // The parent and its existing children are untouched.
-    const parentAfter = project.findCard('decision_5');
+    const parentAfter = findCard(checkout, 'decision_5');
     expect(parentAfter.children).to.deep.equal(childrenBefore);
     for (const childKey of childrenBefore) {
       expect(
@@ -284,7 +284,7 @@ describe('instantiateTemplate', () => {
   it('caches the content it actually wrote', async () => {
     const template = templateOf('decision/templates/simplepage');
 
-    const cached = project.findCard(await instantiateAttachedCard(template));
+    const cached = findCard(checkout, await instantiateAttachedCard(template));
 
     const contentOnDisk = await readFile(
       join(cached.path, 'index.adoc'),
@@ -297,7 +297,7 @@ describe('instantiateTemplate', () => {
   it('caches the attachments it actually wrote', async () => {
     const template = templateOf('decision/templates/simplepage');
 
-    const cached = project.findCard(await instantiateAttachedCard(template));
+    const cached = findCard(checkout, await instantiateAttachedCard(template));
     const expectedFileName = `${cached.key}-${ATTACHMENT}`;
     const expectedFolder = join(cached.path, 'a');
 

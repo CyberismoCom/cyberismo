@@ -3,13 +3,15 @@ import { expect, describe, it, beforeEach, afterEach } from 'vitest';
 import { join } from 'node:path';
 import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
 
-import { CommandManager } from '../src/command-manager.js';
+import { type Workspace } from '../src/workspace/workspace.js';
 import { copyDir, pathExists } from '../src/utils/file-utils.js';
-import type { Project } from '../src/containers/project.js';
-import { ResourceCache } from '../src/containers/project/resource-cache.js';
+import type { Checkout } from '../src/infra/checkout.js';
+import { ResourceCache } from '../src/infra/resource-cache.js';
 import { getTestProject } from './helpers/test-utils.js';
-import { WorkflowCategory } from '../src/interfaces/resource-interfaces.js';
-import { ResourcesFrom } from '../src/containers/project/resources-from.js';
+import { WorkflowCategory } from '@cyberismo/model';
+import { ResourcesFrom } from '../src/infra/resources-from.js';
+import { openTestWorkspace } from './helpers/open-test-workspace.js';
+import { checkoutOf } from '../src/infra/internal.js';
 
 describe('Resource cache', () => {
   const baseDir = import.meta.dirname;
@@ -17,20 +19,20 @@ describe('Resource cache', () => {
   const testProjectPath = join(testDir, 'valid', 'decision-records');
 
   describe('using resource cache', () => {
-    let project: Project;
+    let checkout: Checkout;
 
     beforeEach(async () => {
       mkdirSync(testDir, { recursive: true });
       await copyDir('test/test-data/', testDir);
-      project = getTestProject(testProjectPath);
-      await project.populateCaches();
+      checkout = getTestProject(testProjectPath);
+      await checkout.populateCaches();
     });
 
     afterEach(() => {
       rmSync(testDir, { recursive: true, force: true });
     });
     it('should correctly initialize the cache', () => {
-      const cache = ResourceCache.create(project);
+      const cache = ResourceCache.create(checkout);
       // Verify some resource types were collected during initialization
       const workflows = cache.resources('workflows', ResourcesFrom.localOnly);
       const cardTypes = cache.resources('cardTypes', ResourcesFrom.localOnly);
@@ -40,30 +42,30 @@ describe('Resource cache', () => {
       expect(fieldTypes.length).to.be.greaterThan(0);
     });
     it('should access resources through resourceHandler', () => {
-      const handler = project.resources;
+      const handler = checkout.resources;
       expect(handler).not.toBeUndefined();
       const workflows = handler.workflows();
       expect(workflows).to.be.an('array');
     });
     it('should collect local resources on initialization', () => {
-      const workflows = project.resources.workflows(ResourcesFrom.localOnly);
+      const workflows = checkout.resources.workflows(ResourcesFrom.localOnly);
       expect(workflows).to.be.an('array');
       expect(workflows.length).to.be.greaterThan(0);
     });
     it('should collect all resource types', () => {
-      const calculations = project.resources.calculations(
+      const calculations = checkout.resources.calculations(
         ResourcesFrom.localOnly,
       );
-      const cardTypes = project.resources.cardTypes(ResourcesFrom.localOnly);
-      const fieldTypes = project.resources.fieldTypes(ResourcesFrom.localOnly);
-      const graphViews = project.resources.graphViews(ResourcesFrom.localOnly);
-      const graphModels = project.resources.graphModels(
+      const cardTypes = checkout.resources.cardTypes(ResourcesFrom.localOnly);
+      const fieldTypes = checkout.resources.fieldTypes(ResourcesFrom.localOnly);
+      const graphViews = checkout.resources.graphViews(ResourcesFrom.localOnly);
+      const graphModels = checkout.resources.graphModels(
         ResourcesFrom.localOnly,
       );
-      const linkTypes = project.resources.linkTypes(ResourcesFrom.localOnly);
-      const reports = project.resources.reports(ResourcesFrom.localOnly);
-      const templates = project.resources.templates(ResourcesFrom.localOnly);
-      const workflows = project.resources.workflows(ResourcesFrom.localOnly);
+      const linkTypes = checkout.resources.linkTypes(ResourcesFrom.localOnly);
+      const reports = checkout.resources.reports(ResourcesFrom.localOnly);
+      const templates = checkout.resources.templates(ResourcesFrom.localOnly);
+      const workflows = checkout.resources.workflows(ResourcesFrom.localOnly);
 
       expect(calculations.length).to.be.greaterThan(0);
       expect(cardTypes.length).to.be.greaterThan(0);
@@ -76,11 +78,11 @@ describe('Resource cache', () => {
       expect(workflows.length).to.be.greaterThan(0);
     });
     it('should keep data unchanged between collecting if no changes', () => {
-      const beforeRefresh = project.resources.workflows(
+      const beforeRefresh = checkout.resources.workflows(
         ResourcesFrom.localOnly,
       ).length;
-      project.resources.changed();
-      const afterRefresh = project.resources.workflows(
+      checkout.resources.changed();
+      const afterRefresh = checkout.resources.workflows(
         ResourcesFrom.localOnly,
       ).length;
       expect(afterRefresh).toBe(beforeRefresh);
@@ -88,24 +90,24 @@ describe('Resource cache', () => {
   });
 
   describe('accessing resources', () => {
-    let project: Project;
+    let checkout: Checkout;
 
     beforeEach(async () => {
       mkdirSync(testDir, { recursive: true });
       await copyDir('test/test-data/', testDir);
-      project = getTestProject(testProjectPath);
-      await project.populateCaches();
+      checkout = getTestProject(testProjectPath);
+      await checkout.populateCaches();
     });
 
     afterEach(() => {
       rmSync(testDir, { recursive: true, force: true });
     });
     it('should check if resource exists', () => {
-      const exists = project.resources.exists('decision/workflows/decision');
+      const exists = checkout.resources.exists('decision/workflows/decision');
       expect(exists).toBe(true);
     });
     it('should return false for non-existing resource', () => {
-      const exists = project.resources.exists(
+      const exists = checkout.resources.exists(
         'decision/workflows/non_existing',
       );
       expect(exists).toBe(false);
@@ -129,23 +131,23 @@ describe('Resource cache', () => {
         );
 
       write('number');
-      project.resources.changedModules();
+      checkout.resources.changedModules();
       expect(
-        project.resources.byType('mod/fieldTypes/estimate', 'fieldTypes').data
+        checkout.resources.byType('mod/fieldTypes/estimate', 'fieldTypes').data
           ?.dataType,
       ).toBe('number');
 
       // Overwrite under the same key, as a module update does on disk.
       write('shortText');
-      project.resources.changedModules();
+      checkout.resources.changedModules();
       expect(
-        project.resources.byType('mod/fieldTypes/estimate', 'fieldTypes').data
+        checkout.resources.byType('mod/fieldTypes/estimate', 'fieldTypes').data
           ?.dataType,
       ).toBe('shortText');
     });
 
     it('should get resource by type and name', () => {
-      const workflow = project.resources.byType(
+      const workflow = checkout.resources.byType(
         'decision/workflows/decision',
         'workflows',
       );
@@ -153,14 +155,16 @@ describe('Resource cache', () => {
       expect(workflow.data).not.toBeUndefined();
     });
     it('should extract resource type from name', () => {
-      const type = project.resources.extractType('decision/workflows/decision');
+      const type = checkout.resources.extractType(
+        'decision/workflows/decision',
+      );
       expect(type).toBe('workflows');
     });
     it('should handle invalid resource names gracefully', () => {
-      expect(() => project.resources.extractType('invalid-name')).toThrow();
+      expect(() => checkout.resources.extractType('invalid-name')).toThrow();
     });
     it('should get resources of specific type', () => {
-      const workflows = project.resources.workflows(ResourcesFrom.localOnly);
+      const workflows = checkout.resources.workflows(ResourcesFrom.localOnly);
       expect(workflows).toBeInstanceOf(Array);
       expect(workflows.length).toBeGreaterThan(0);
 
@@ -175,10 +179,10 @@ describe('Resource cache', () => {
       });
     });
     it('should filter resources by source (local only)', () => {
-      const localWorkflows = project.resources.workflows(
+      const localWorkflows = checkout.resources.workflows(
         ResourcesFrom.localOnly,
       );
-      const allWorkflows = project.resources.workflows();
+      const allWorkflows = checkout.resources.workflows();
 
       expect(localWorkflows.length).toBeGreaterThan(0);
       expect(allWorkflows.length).toBeGreaterThan(0);
@@ -191,53 +195,53 @@ describe('Resource cache', () => {
       });
     });
     it('should get all calculation resources', () => {
-      const calculations = project.resources.calculations();
+      const calculations = checkout.resources.calculations();
       expect(calculations.length).toBeGreaterThan(0);
     });
     it('should get local calculations', () => {
-      const calculations = project.resources.calculations(
+      const calculations = checkout.resources.calculations(
         ResourcesFrom.localOnly,
       );
       expect(calculations.length).toBeGreaterThan(0);
     });
     it('should get all card type resources', () => {
-      const cardTypes = project.resources.cardTypes();
+      const cardTypes = checkout.resources.cardTypes();
       expect(cardTypes.length).toBeGreaterThan(0);
     });
     it('should get all field type resources', () => {
-      const fieldTypes = project.resources.fieldTypes();
+      const fieldTypes = checkout.resources.fieldTypes();
       expect(fieldTypes.length).toBeGreaterThan(0);
     });
     it('should get all graph model resources', () => {
-      const graphModels = project.resources.graphModels();
+      const graphModels = checkout.resources.graphModels();
       expect(graphModels.length).toBeGreaterThan(0);
     });
     it('should get all graph view resources', () => {
-      const graphViews = project.resources.graphViews();
+      const graphViews = checkout.resources.graphViews();
       expect(graphViews.length).toBeGreaterThan(0);
     });
     it('should get all link type resources', () => {
-      const linkTypes = project.resources.linkTypes();
+      const linkTypes = checkout.resources.linkTypes();
       expect(linkTypes.length).toBeGreaterThan(0);
     });
     it('should get all report resources', () => {
-      const reports = project.resources.reports();
+      const reports = checkout.resources.reports();
       expect(reports.length).toBeGreaterThan(0);
     });
     it('should get all template resources', () => {
-      const templates = project.resources.templates();
+      const templates = checkout.resources.templates();
       expect(templates.length).toBeGreaterThan(0);
     });
     it('should get all workflow resources', () => {
-      const workflows = project.resources.workflows();
+      const workflows = checkout.resources.workflows();
       expect(workflows.length).toBeGreaterThan(0);
     });
     it('should cache resource instances', () => {
-      const workflowFirstInstance = project.resources.byType(
+      const workflowFirstInstance = checkout.resources.byType(
         'decision/workflows/decision',
         'workflows',
       );
-      const workflowSecondInstance = project.resources.byType(
+      const workflowSecondInstance = checkout.resources.byType(
         'decision/workflows/decision',
         'workflows',
       );
@@ -246,18 +250,18 @@ describe('Resource cache', () => {
     });
     it('should get workflow resource by type', () => {
       const resourceName = 'decision/workflows/decision';
-      const workflow = project.resources.byType(resourceName, 'workflows');
+      const workflow = checkout.resources.byType(resourceName, 'workflows');
 
       expect(workflow).not.toBeUndefined();
       expect(workflow.data).not.toBeUndefined();
       expect(workflow.data?.name).toBe(resourceName);
     });
     it('should get cardType resource by type', () => {
-      const cardTypes = project.resources.cardTypes(ResourcesFrom.localOnly);
+      const cardTypes = checkout.resources.cardTypes(ResourcesFrom.localOnly);
       expect(cardTypes.length).toBeGreaterThan(0);
 
       const firstCardType = cardTypes[0].data!;
-      const cardType = project.resources.byType(
+      const cardType = checkout.resources.byType(
         firstCardType.name,
         'cardTypes',
       );
@@ -266,11 +270,11 @@ describe('Resource cache', () => {
       expect(cardType.data).not.toBeUndefined();
     });
     it('should get fieldType resource by type', () => {
-      const fieldTypes = project.resources.fieldTypes(ResourcesFrom.localOnly);
+      const fieldTypes = checkout.resources.fieldTypes(ResourcesFrom.localOnly);
       expect(fieldTypes.length).toBeGreaterThan(0);
 
       const firstFieldType = fieldTypes[0];
-      const fieldType = project.resources.byType(
+      const fieldType = checkout.resources.byType(
         firstFieldType.data?.name || '',
         'fieldTypes',
       );
@@ -280,41 +284,41 @@ describe('Resource cache', () => {
     });
     it('should handle accessing resource with mismatched type', () => {
       const resourceName = 'decision/workflows/decision';
-      const workflow = project.resources.byType(resourceName, 'workflows');
+      const workflow = checkout.resources.byType(resourceName, 'workflows');
       expect(workflow).not.toBeUndefined();
 
       // Verify the resource type is correctly identified
-      const type = project.resources.extractType(resourceName);
+      const type = checkout.resources.extractType(resourceName);
       expect(type).toBe('workflows');
     });
     it('should convert singular to plural resource type', () => {
       const pluralType =
-        project.resources.resourceTypeFromSingularType('workflow');
+        checkout.resources.resourceTypeFromSingularType('workflow');
       expect(pluralType).toBe('workflows');
 
       const pluralCardType =
-        project.resources.resourceTypeFromSingularType('cardType');
+        checkout.resources.resourceTypeFromSingularType('cardType');
       expect(pluralCardType).toBe('cardTypes');
 
       const pluralFieldType =
-        project.resources.resourceTypeFromSingularType('fieldType');
+        checkout.resources.resourceTypeFromSingularType('fieldType');
       expect(pluralFieldType).toBe('fieldTypes');
     });
     it('should throw for unknown singular type', () => {
       expect(() =>
-        project.resources.resourceTypeFromSingularType('unknownType'),
+        checkout.resources.resourceTypeFromSingularType('unknownType'),
       ).toThrow();
     });
   });
 
   describe('resource modifications', () => {
-    let project: Project;
+    let checkout: Checkout;
 
     beforeEach(async () => {
       mkdirSync(testDir, { recursive: true });
       await copyDir('test/test-data/', testDir);
-      project = getTestProject(testProjectPath);
-      await project.populateCaches();
+      checkout = getTestProject(testProjectPath);
+      await checkout.populateCaches();
     });
 
     afterEach(() => {
@@ -323,18 +327,18 @@ describe('Resource cache', () => {
     it('should handle resource creation', async () => {
       const resourceName = 'decision/workflows/testWorkflow';
 
-      const workflow = project.resources.byType(resourceName, 'workflows');
+      const workflow = checkout.resources.byType(resourceName, 'workflows');
       await workflow.create({
         name: resourceName,
         displayName: 'Test Workflow',
         states: [{ name: 'Draft', category: WorkflowCategory.initial }],
         transitions: [{ name: 'Create', fromState: [''], toState: 'Draft' }],
       });
-      expect(project.resources.exists(resourceName)).toBe(true);
+      expect(checkout.resources.exists(resourceName)).toBe(true);
     });
     it('should handle resource deletion', async () => {
       const resourceName = 'decision/workflows/testWorkflowToDelete';
-      const workflow = project.resources.byType(resourceName, 'workflows');
+      const workflow = checkout.resources.byType(resourceName, 'workflows');
       await workflow.create({
         name: resourceName,
         displayName: 'Test Workflow',
@@ -342,7 +346,7 @@ describe('Resource cache', () => {
         transitions: [{ name: 'Create', fromState: [''], toState: 'Draft' }],
       });
 
-      expect(project.resources.exists(resourceName)).toBe(true);
+      expect(checkout.resources.exists(resourceName)).toBe(true);
       const workflowPath = join(
         testProjectPath,
         '.cards',
@@ -355,12 +359,12 @@ describe('Resource cache', () => {
       // Delete the resource
       await workflow.delete();
 
-      expect(project.resources.exists(resourceName)).toBe(false);
+      expect(checkout.resources.exists(resourceName)).toBe(false);
       expect(pathExists(workflowPath)).toBe(false);
     });
     it('should update resource in cache', async () => {
       const resourceName = 'decision/workflows/decision';
-      const workflow = project.resources.byType(resourceName, 'workflows');
+      const workflow = checkout.resources.byType(resourceName, 'workflows');
       await workflow.update(
         { key: 'displayName' },
         {
@@ -370,19 +374,21 @@ describe('Resource cache', () => {
         },
       );
       // Fetch the resource from cache again. Check that value is changes (same instance).
-      const workflowAfter = project.resources.byType(resourceName, 'workflows');
+      const workflowAfter = checkout.resources.byType(
+        resourceName,
+        'workflows',
+      );
       expect(workflowAfter.data!.displayName).toBe('Updated display name');
     });
   });
 
   describe('resources with modules', () => {
-    let commands: CommandManager;
+    let ws: Workspace;
 
     beforeEach(async () => {
       mkdirSync(testDir, { recursive: true });
       await copyDir('test/test-data/', testDir);
-      commands = new CommandManager(testProjectPath, {});
-      await commands.initialize();
+      ws = await openTestWorkspace(testProjectPath, {});
     });
 
     afterEach(() => {
@@ -391,21 +397,21 @@ describe('Resource cache', () => {
     it('should import and collect module resources', async () => {
       const baseModule = 'https://github.com/CyberismoCom/module-base.git';
 
-      await commands.modulesCmd.install(baseModule);
+      await ws.modules.install(baseModule);
 
-      const allWorkflows = commands.project.resources.workflows();
+      const allWorkflows = checkoutOf(ws).resources.workflows();
       expect(allWorkflows.length).toBeGreaterThan(0);
 
-      const modules = commands.project.resources.moduleNames();
+      const modules = checkoutOf(ws).resources.moduleNames();
       const foundModule = modules.find((m) => m === 'base');
       expect(foundModule).not.toBeUndefined();
     }, 60000);
     it('should get module names', async () => {
       const baseModule = 'https://github.com/CyberismoCom/module-base.git';
 
-      await commands.modulesCmd.install(baseModule);
+      await ws.modules.install(baseModule);
 
-      const modules = commands.project.resources.moduleNames();
+      const modules = checkoutOf(ws).resources.moduleNames();
       expect(modules).toBeInstanceOf(Array);
       expect(modules.length).toBeGreaterThan(0);
 
@@ -416,26 +422,26 @@ describe('Resource cache', () => {
     it('should invalidate module resources', async () => {
       const baseModule = 'https://github.com/CyberismoCom/module-base.git';
 
-      await commands.modulesCmd.install(baseModule);
+      await ws.modules.install(baseModule);
 
-      const moduleNames = commands.project.resources.moduleNames();
+      const moduleNames = checkoutOf(ws).resources.moduleNames();
       expect(moduleNames.length).toBeGreaterThan(0);
       expect(moduleNames).toContain('base');
 
-      const moduleEntry = commands.project.configuration.modules.find(
+      const moduleEntry = checkoutOf(ws).configuration.modules.find(
         (m) => m.location && m.location.includes('module-base'),
       );
       expect(moduleEntry).not.toBeUndefined();
-      await commands.removeCmd.remove('module', moduleEntry!.name);
+      await ws.modules.remove(moduleEntry!.name);
 
-      const remainingModuleNames = commands.project.resources.moduleNames();
+      const remainingModuleNames = checkoutOf(ws).resources.moduleNames();
       expect(remainingModuleNames).not.toContain('base');
     }, 60000);
     it('should get resource names from specific module', async () => {
       const baseModule = 'https://github.com/CyberismoCom/module-base.git';
-      await commands.modulesCmd.install(baseModule);
+      await ws.modules.install(baseModule);
 
-      const resourceHandler = commands.project.resources;
+      const resourceHandler = checkoutOf(ws).resources;
       const workflowNames = resourceHandler.moduleResourceNames(
         'workflows',
         'base',
@@ -450,7 +456,7 @@ describe('Resource cache', () => {
       });
     }, 60000);
     it('should return empty array for non-existent module', () => {
-      const resourceHandler = commands.project.resources;
+      const resourceHandler = checkoutOf(ws).resources;
       const workflowNames = resourceHandler.moduleResourceNames(
         'workflows',
         'nonExistentModule',
@@ -460,27 +466,27 @@ describe('Resource cache', () => {
       expect(workflowNames.length).toBe(0);
     });
     it('should filter local-only resources correctly', () => {
-      const localWorkflows = commands.project.resources.workflows(
+      const localWorkflows = checkoutOf(ws).resources.workflows(
         ResourcesFrom.localOnly,
       );
-      const allWorkflows = commands.project.resources.workflows();
+      const allWorkflows = checkoutOf(ws).resources.workflows();
 
       expect(localWorkflows.length).toBeGreaterThan(0);
       expect(allWorkflows.length).toBeGreaterThanOrEqual(localWorkflows.length);
     });
     it('should include module resources when using ResourcesFrom.all', async () => {
-      const localOnlyBefore = commands.project.resources.workflows(
+      const localOnlyBefore = checkoutOf(ws).resources.workflows(
         ResourcesFrom.localOnly,
       ).length;
-      const allBefore = commands.project.resources.workflows().length;
+      const allBefore = checkoutOf(ws).resources.workflows().length;
 
       const baseModule = 'https://github.com/CyberismoCom/module-base.git';
-      await commands.modulesCmd.install(baseModule);
+      await ws.modules.install(baseModule);
 
-      const localOnlyAfter = commands.project.resources.workflows(
+      const localOnlyAfter = checkoutOf(ws).resources.workflows(
         ResourcesFrom.localOnly,
       ).length;
-      const allAfter = commands.project.resources.workflows().length;
+      const allAfter = checkoutOf(ws).resources.workflows().length;
 
       // Local count should not change
       expect(localOnlyAfter).toBe(localOnlyBefore);
@@ -489,17 +495,17 @@ describe('Resource cache', () => {
     }, 60000);
     it('should get module-only resources', async () => {
       const baseModule = 'https://github.com/CyberismoCom/module-base.git';
-      await commands.modulesCmd.install(baseModule);
+      await ws.modules.install(baseModule);
 
-      const localWorkflows = commands.project.resources.workflows(
+      const localWorkflows = checkoutOf(ws).resources.workflows(
         ResourcesFrom.localOnly,
       );
-      const moduleWorkflows = commands.project.resources.workflows(
+      const moduleWorkflows = checkoutOf(ws).resources.workflows(
         ResourcesFrom.importedOnly,
       );
       expect(moduleWorkflows.length).toBeGreaterThan(0);
 
-      const allWorkflows = commands.project.resources.workflows();
+      const allWorkflows = checkoutOf(ws).resources.workflows();
       expect(allWorkflows.length).toBeGreaterThanOrEqual(localWorkflows.length);
       expect(allWorkflows.length).toBeGreaterThanOrEqual(
         moduleWorkflows.length,
@@ -516,20 +522,20 @@ describe('Resource cache', () => {
   });
 
   describe('resource property validation', () => {
-    let project: Project;
+    let checkout: Checkout;
 
     beforeEach(async () => {
       mkdirSync(testDir, { recursive: true });
       await copyDir('test/test-data/', testDir);
-      project = getTestProject(testProjectPath);
-      await project.populateCaches();
+      checkout = getTestProject(testProjectPath);
+      await checkout.populateCaches();
     });
 
     afterEach(() => {
       rmSync(testDir, { recursive: true, force: true });
     });
     it('should have valid name and path properties on workflows', () => {
-      const workflows = project.resources.workflows();
+      const workflows = checkout.resources.workflows();
       workflows.forEach((resource) => {
         expect(resource).toHaveProperty('data');
         expect(resource).toHaveProperty('fileName');
@@ -541,7 +547,7 @@ describe('Resource cache', () => {
       });
     });
     it('should have valid name and other properties on cardTypes', () => {
-      const cardTypes = project.resources.cardTypes();
+      const cardTypes = checkout.resources.cardTypes();
       cardTypes.forEach((resource) => {
         expect(resource).toHaveProperty('data');
         expect(resource).toHaveProperty('fileName');
@@ -552,7 +558,7 @@ describe('Resource cache', () => {
       });
     });
     it('should have valid name and other properties on fieldTypes', () => {
-      const fieldTypes = project.resources.fieldTypes();
+      const fieldTypes = checkout.resources.fieldTypes();
       fieldTypes.forEach((resource) => {
         expect(resource).toHaveProperty('data');
         expect(resource).toHaveProperty('fileName');
@@ -563,12 +569,12 @@ describe('Resource cache', () => {
       });
     });
     it('should have consistent resource type in name', () => {
-      const workflows = project.resources.workflows();
+      const workflows = checkout.resources.workflows();
       workflows.forEach((workflow) => {
         expect(workflow.data!.name).toContain('/workflows/');
       });
 
-      const cardTypes = project.resources.cardTypes();
+      const cardTypes = checkout.resources.cardTypes();
       cardTypes.forEach((cardType) => {
         expect(cardType.data!.name).toContain('/cardTypes/');
       });

@@ -11,7 +11,7 @@ import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { simpleGit } from 'simple-git';
 
-import { GitManager } from '../src/utils/git-manager.js';
+import { GitManager } from '../src/infra/git-manager.js';
 
 /** Create a simpleGit instance with a test identity so tests work without global git config. */
 function testGit(dir: string) {
@@ -113,6 +113,35 @@ describe('GitManager', () => {
       const log = await git.log();
       expect(log.latest!.author_name).toBe('Test User');
       expect(log.latest!.author_email).toBe('test@example.com');
+    });
+
+    it('should append trailers as the last paragraph', async () => {
+      await writeFile(join(dir, 'cardRoot', 'file.txt'), 'content');
+      await gm.commit('With trailers', undefined, {
+        'Cyberismo-Agent': 'claude-code',
+      });
+
+      const git = testGit(dir);
+      expect(await git.raw(['log', '-1', '--format=%B'])).toBe(
+        'With trailers\n\nCyberismo-Agent: claude-code\n\n',
+      );
+    });
+
+    it('should keep each trailer value on one line', async () => {
+      await writeFile(join(dir, 'cardRoot', 'file.txt'), 'content');
+      await gm.commit('Sanitised', undefined, {
+        'Cyberismo-Agent': ' Claude\r\n\tCode\u0000\nCyberismo-Agent: forged ',
+        Empty: ' \n ',
+      });
+
+      const trailers = await testGit(dir).raw([
+        'log',
+        '-1',
+        '--format=%(trailers:only)',
+      ]);
+      expect(trailers.trim().split('\n')).toEqual([
+        'Cyberismo-Agent: Claude Code Cyberismo-Agent: forged',
+      ]);
     });
   });
 

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import type { UpdatePlan } from '@cyberismo/data-handler';
+import type { UpdatePlan } from '@cyberismo/model';
 import { renderUpdatePlan } from '../src/update-plan-lines.js';
 
 const plan = (over: Partial<UpdatePlan> = {}): UpdatePlan => ({

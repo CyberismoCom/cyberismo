@@ -3,39 +3,42 @@ import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { copyDir } from '../../src/utils/file-utils.js';
-import type { Project } from '../../src/containers/project.js';
+import type { Checkout } from '../../src/infra/checkout.js';
 import { getTestProject } from '../helpers/test-utils.js';
-import { ResourceMutations } from '../../src/mutations/resource-mutations.js';
-import { ConfigurationLogger } from '../../src/utils/configuration-logger.js';
+import { ConfigurationLogger } from '../../src/infra/replay-log/configuration-logger.js';
 import { resourceName } from '../../src/utils/resource-utils.js';
+import { Workspace } from '../../src/workspace/workspace.js';
+import { SYSTEM_ACTOR } from '../../src/utils/tx-record.js';
+import { updateCardMetadata } from '../../src/cards/update.js';
 
 const baseDir = import.meta.dirname;
 const testDir = join(baseDir, 'tmp-field-type-integration');
 const decisionRecordsPath = join(testDir, 'valid/decision-records');
-let project: Project;
+let checkout: Checkout;
 
 describe('FieldType mutation engine end-to-end', () => {
   beforeEach(async () => {
     mkdirSync(testDir, { recursive: true });
     await copyDir(join(baseDir, '..', 'test-data'), testDir);
-    project = getTestProject(decisionRecordsPath);
-    await project.populateCaches();
+    checkout = getTestProject(decisionRecordsPath);
+    await checkout.populateCaches();
   });
   afterEach(() => {
     rmSync(testDir, { recursive: true, force: true });
   });
 
   it('apply → log entry for a FieldType delete (unused field)', async () => {
-    const name = `${project.projectPrefix}/fieldTypes/unusedField`;
-    await project.resources
+    const name = `${checkout.projectPrefix}/fieldTypes/unusedField`;
+    await checkout.resources
       .byType(name, 'fieldTypes')
       .createFieldType('shortText');
+    await Workspace.over(checkout, SYSTEM_ACTOR).changes.apply({
+      kind: 'delete',
+      target: resourceName(name),
+    });
 
-    const mutations = new ResourceMutations(project);
-    await mutations.apply({ kind: 'delete', target: resourceName(name) });
-
-    expect(project.resources.exists(name)).toBe(false);
-    const entries = await ConfigurationLogger.entries(project.basePath);
+    expect(checkout.resources.exists(name)).toBe(false);
+    const entries = await ConfigurationLogger.entries(checkout.basePath);
     expect(
       entries.some(
         (e) => e.operation === 'resource_delete' && e.target === name,
@@ -46,20 +49,18 @@ describe('FieldType mutation engine end-to-end', () => {
   it('apply → log entry for a FieldType rename (unused field)', async () => {
     // Renaming a field still referenced by a card type is rejected, so rename
     // an unused field.
-    const name = `${project.projectPrefix}/fieldTypes/spare`;
-    await project.resources
+    const name = `${checkout.projectPrefix}/fieldTypes/spare`;
+    await checkout.resources
       .byType(name, 'fieldTypes')
       .createFieldType('shortText');
     const target = resourceName(name);
-    const mutations = new ResourceMutations(project);
-
-    await mutations.apply({
+    await Workspace.over(checkout, SYSTEM_ACTOR).changes.apply({
       kind: 'rename',
       target,
       newIdentifier: 'spareRenamed',
     });
 
-    const entries = await ConfigurationLogger.entries(project.basePath);
+    const entries = await ConfigurationLogger.entries(checkout.basePath);
     expect(
       entries.some(
         (e) => e.operation === 'resource_rename' && e.target === name,
@@ -68,41 +69,42 @@ describe('FieldType mutation engine end-to-end', () => {
   });
 
   it('apply → log entry for a FieldType dataType change', async () => {
-    const target = resourceName(`${project.projectPrefix}/fieldTypes/finished`);
-    const mutations = new ResourceMutations(project);
-
-    await mutations.apply({
+    const target = resourceName(
+      `${checkout.projectPrefix}/fieldTypes/finished`,
+    );
+    await Workspace.over(checkout, SYSTEM_ACTOR).changes.apply({
       kind: 'edit',
       target,
       updateKey: { key: 'dataType' },
       operation: { name: 'change', target: 'boolean', to: 'shortText' },
     });
 
-    const entries = await ConfigurationLogger.entries(project.basePath);
+    const entries = await ConfigurationLogger.entries(checkout.basePath);
     expect(
       entries.some(
         (e) =>
           e.operation === 'resource_update' &&
-          e.target === `${project.projectPrefix}/fieldTypes/finished`,
+          e.target === `${checkout.projectPrefix}/fieldTypes/finished`,
       ),
     ).toBe(true);
   });
 
   it('apply → in-use FieldType delete cascades and logs', async () => {
     // 'finished' is referenced by the decision card type's customFields.
-    const name = `${project.projectPrefix}/fieldTypes/finished`;
-    const cardTypeName = `${project.projectPrefix}/cardTypes/decision`;
+    const name = `${checkout.projectPrefix}/fieldTypes/finished`;
+    const cardTypeName = `${checkout.projectPrefix}/cardTypes/decision`;
+    await Workspace.over(checkout, SYSTEM_ACTOR).changes.apply({
+      kind: 'delete',
+      target: resourceName(name),
+    });
 
-    const mutations = new ResourceMutations(project);
-    await mutations.apply({ kind: 'delete', target: resourceName(name) });
-
-    expect(project.resources.exists(name)).toBe(false);
+    expect(checkout.resources.exists(name)).toBe(false);
     expect(
-      project.resources
+      checkout.resources
         .byType(cardTypeName, 'cardTypes')
         .data?.customFields?.some((f) => f.name === name),
     ).toBe(false);
-    const entries = await ConfigurationLogger.entries(project.basePath);
+    const entries = await ConfigurationLogger.entries(checkout.basePath);
     expect(
       entries.some(
         (e) => e.operation === 'resource_delete' && e.target === name,
@@ -143,11 +145,9 @@ describe('FieldType mutation engine end-to-end', () => {
       .cards()
       .filter((c) => c.metadata?.cardType === cardTypeName)) {
       card.metadata![fieldName] = 'low';
-      await freshProject.updateCardMetadata(card, card.metadata!);
+      await updateCardMetadata(freshProject, card, card.metadata!);
     }
-
-    const mutations = new ResourceMutations(freshProject);
-    await mutations.apply({
+    await Workspace.over(freshProject, SYSTEM_ACTOR).changes.apply({
       kind: 'edit',
       target: resourceName(fieldName),
       updateKey: { key: 'enumValues' },
@@ -192,9 +192,7 @@ describe('FieldType mutation engine end-to-end', () => {
     );
     const freshProject = getTestProject(decisionRecordsPath);
     await freshProject.populateCaches();
-
-    const mutations = new ResourceMutations(freshProject);
-    await mutations.apply({
+    await Workspace.over(freshProject, SYSTEM_ACTOR).changes.apply({
       kind: 'edit',
       target: resourceName(`${freshProject.projectPrefix}/fieldTypes/testEnum`),
       updateKey: { key: 'enumValues' },
@@ -206,15 +204,14 @@ describe('FieldType mutation engine end-to-end', () => {
   });
 
   it('display-only changes route to the plain handler (no log entry)', async () => {
-    const mutations = new ResourceMutations(project);
-    await mutations.apply({
+    await Workspace.over(checkout, SYSTEM_ACTOR).changes.apply({
       kind: 'edit',
-      target: resourceName(`${project.projectPrefix}/fieldTypes/finished`),
+      target: resourceName(`${checkout.projectPrefix}/fieldTypes/finished`),
       updateKey: { key: 'displayName' },
       operation: { name: 'change', target: 'Finished', to: 'Done' },
     });
 
-    const entries = await ConfigurationLogger.entries(project.basePath);
+    const entries = await ConfigurationLogger.entries(checkout.basePath);
     expect(entries).toHaveLength(0);
   });
 });

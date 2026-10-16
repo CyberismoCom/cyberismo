@@ -25,12 +25,9 @@ router.get(
   requireRole(UserRole.Reader),
   zValidator('param', resourceParamsWithCard),
   async (c) => {
-    const commands = c.get('commands');
+    const ws = c.get('ws');
     const params = c.req.valid('param');
-    const logicProgram = await logicProgramService.getLogicProgram(
-      commands,
-      params,
-    );
+    const logicProgram = await logicProgramService.getLogicProgram(ws, params);
     return c.json({ logicProgram });
   },
 );

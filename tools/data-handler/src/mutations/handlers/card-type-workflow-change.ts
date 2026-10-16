@@ -15,13 +15,10 @@
 import type { Handler, MutationContext } from '../handler.js';
 import type { EditInput } from '../types.js';
 import { resourceNameToString } from '../../utils/resource-utils.js';
-import { ResourcesFrom } from '../../containers/project/resources-from.js';
+import { ResourcesFrom } from '../../infra/resources-from.js';
 import { getChildLogger } from '../../utils/log-utils.js';
-import type { Card } from '../../interfaces/project-interfaces.js';
-import type {
-  ChangeOperation,
-  Operation,
-} from '../../resources/resource-object.js';
+import type { Card, ChangeOperation, Operation } from '@cyberismo/model';
+import { updateCardMetadata } from '../../cards/update.js';
 
 /**
  * When a mapping is supplied, the handler validates it before writing
@@ -31,7 +28,7 @@ import type {
 export class CardTypeWorkflowChangeHandler implements Handler<EditInput> {
   async apply(ctx: MutationContext<EditInput>): Promise<void> {
     const cardTypeName = resourceNameToString(ctx.input.target);
-    const resource = ctx.project.resources.byType(cardTypeName, 'cardTypes');
+    const resource = ctx.checkout.resources.byType(cardTypeName, 'cardTypes');
     if (!resource) throw new Error(`CardType '${cardTypeName}' not found`);
 
     const changeOp = ctx.input.operation as ChangeOperation<string>;
@@ -66,8 +63,8 @@ export class CardTypeWorkflowChangeHandler implements Handler<EditInput> {
 
   // Cards using this card type: local project cards plus local template cards.
   private affectedCards(ctx: MutationContext, cardTypeName: string): Card[] {
-    const project = [...ctx.project.cardTree.cards()];
-    const templates = ctx.project.resources
+    const project = [...ctx.checkout.cardTree.cards()];
+    const templates = ctx.checkout.resources
       .templates(ResourcesFrom.localOnly)
       .flatMap((t) => t.cardTree.cards());
     return [...project, ...templates].filter(
@@ -95,7 +92,7 @@ export class CardTypeWorkflowChangeHandler implements Handler<EditInput> {
             `Updating card '${card.key}': ${currentState} -> ${newState}`,
           );
           card.metadata.workflowState = newState;
-          await ctx.project.updateCardMetadata(card, card.metadata);
+          await updateCardMetadata(ctx.checkout, card, card.metadata);
         } else if (!newState && !unmappedStates.includes(currentState)) {
           unmappedStates.push(currentState);
         }
@@ -120,7 +117,7 @@ export class CardTypeWorkflowChangeHandler implements Handler<EditInput> {
     op: ChangeOperation<string>,
   ): void {
     const currentWorkflowName = op.target as string;
-    const currentWorkflow = ctx.project.resources
+    const currentWorkflow = ctx.checkout.resources
       .byType(currentWorkflowName, 'workflows')
       .show();
     if (!currentWorkflow) {
@@ -129,7 +126,7 @@ export class CardTypeWorkflowChangeHandler implements Handler<EditInput> {
       );
     }
 
-    const newWorkflow = ctx.project.resources
+    const newWorkflow = ctx.checkout.resources
       .byType(op.to as string, 'workflows')
       .show();
     if (!newWorkflow) {

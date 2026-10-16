@@ -9,23 +9,33 @@ import {
   vi,
 } from 'vitest';
 import type { MockInstance } from 'vitest';
-import { CommandManager } from '@cyberismo/data-handler';
+import {
+  ProjectNotFoundError,
+  SYSTEM_ACTOR,
+  type ProjectDirectory,
+  type Workspace,
+} from '@cyberismo/data-handler';
 import { X_HONO_DISABLE_SSG_HEADER_KEY } from 'hono/ssg';
 import type { SSEMessage } from 'hono/streaming';
+import type { ChangeEvent } from '@cyberismo/model';
 import { createApp } from '../src/app.js';
 import type { AuthProvider } from '../src/auth/types.js';
 import { MockAuthProvider } from '../src/auth/mock.js';
 import { computeLifetimeMs } from '../src/domain/events/lifetime.js';
 import { ProjectEvents } from '../src/domain/events/project-events.js';
 import type { Delivery } from '../src/domain/events/project-events.js';
-import { ProjectRegistry } from '../src/project-registry.js';
+import { EventsByProject } from '../src/domain/events/events-by-project.js';
 import { UserRole } from '../src/types.js';
 import { createTempTestData, cleanupTempTestData } from './test-utils.js';
+import {
+  openTestWorkspace,
+  directoryOf,
+} from './helpers/open-test-workspace.js';
 
 let app: ReturnType<typeof createApp>;
 let tempTestDataPath: string;
-let commands: CommandManager;
-let registry: ProjectRegistry;
+let ws: Workspace;
+let registry: ProjectDirectory;
 // Not exported by hono; the env key toSSG sets on the requests it makes.
 const SSG_CONTEXT = 'HONO_SSG_CONTEXT';
 const readers: ReadableStreamDefaultReader<Uint8Array>[] = [];
@@ -34,8 +44,8 @@ const base = '/api/projects/decision';
 beforeAll(async () => {
   process.argv = [];
   tempTestDataPath = await createTempTestData('decision-records');
-  commands = await CommandManager.getInstance(tempTestDataPath);
-  registry = ProjectRegistry.fromCommandManager(commands);
+  ws = await openTestWorkspace(tempTestDataPath);
+  registry = directoryOf(ws);
   app = createApp(new MockAuthProvider({ roster: true }), registry);
 });
 afterEach(async () => {
@@ -43,7 +53,6 @@ afterEach(async () => {
   vi.useRealTimers();
 });
 afterAll(async () => {
-  registry.dispose();
   await cleanupTempTestData(tempTestDataPath);
 });
 
@@ -235,6 +244,19 @@ describe('project event stream over HTTP', () => {
     });
   });
 
+  test('a write no route made reaches the stream as its actor', async () => {
+    const { reader, ready } = await connect('bob');
+    await presence(ready.connectionId, 'decision_6', 1, 'bob');
+
+    // The test's handle acts as the system.
+    await ws.cards.edit('decision_6', 'Written without a route');
+    expect(await nextEvent(reader, 'card.updated')).toEqual({
+      cardKey: 'decision_6',
+      userId: 'cyberismo',
+      userName: 'Cyberismo Bot',
+    });
+  });
+
   test('static generation skips the event stream', async () => {
     const response = await app.request(
       `${base}/events`,
@@ -245,17 +267,71 @@ describe('project event stream over HTTP', () => {
     expect(response.headers.get(X_HONO_DISABLE_SSG_HEADER_KEY)).toBe('true');
   });
 
-  test('disposal closes subscriptions', async () => {
-    // Needs an instance it can dispose without touching the shared app.
-    const ownCommands = new CommandManager(tempTestDataPath);
-    await ownCommands.initialize();
-    const ownRegistry = ProjectRegistry.fromCommandManager(ownCommands);
-    const { reader } = await connect(
-      'alice',
-      createApp(new MockAuthProvider({ roster: true }), ownRegistry),
-    );
-    ownRegistry.dispose();
-    expect((await reader.read()).done).toBe(true);
+  test('a renamed project keeps its subscriptions under the new prefix', async () => {
+    // Needs a project it can rename without touching the shared one.
+    const ownPath = await createTempTestData('decision-records');
+    try {
+      const own = await openTestWorkspace(ownPath);
+      const ownApp = createApp(
+        new MockAuthProvider({ roster: true }),
+        directoryOf(own),
+      );
+      const { ready } = await connect('alice', ownApp);
+      const renamed = await ownApp.request(`${base}/project`, {
+        method: 'PATCH',
+        headers: {
+          'content-type': 'application/json',
+          cookie: 'mock-user=alice',
+        },
+        body: JSON.stringify({ cardKeyPrefix: 'renamed' }),
+      });
+      expect(renamed.status).toBe(200);
+
+      const response = await ownApp.request(
+        '/api/projects/renamed/events/presence',
+        {
+          method: 'PUT',
+          headers: {
+            'content-type': 'application/json',
+            cookie: 'mock-user=alice',
+          },
+          body: JSON.stringify({
+            connectionId: ready.connectionId,
+            cardKey: null,
+            sequence: 1,
+            mode: 'viewing',
+          }),
+        },
+      );
+      expect(response.status).toBe(204);
+    } finally {
+      await cleanupTempTestData(ownPath);
+    }
+  });
+
+  test('replacing the project closes its subscriptions', async () => {
+    // Needs an app it can reset without touching the shared one.
+    const ownPath = await createTempTestData('decision-records');
+    const env = { ...process.env };
+    process.env.NODE_ENV = 'test';
+    process.env.npm_config_project_path = ownPath;
+    process.env.CYBERISMO_GOLDEN_PATH = tempTestDataPath;
+    try {
+      const own = await openTestWorkspace(ownPath);
+      const ownApp = createApp(
+        new MockAuthProvider({ roster: true }),
+        directoryOf(own),
+      );
+      const { reader } = await connect('alice', ownApp);
+      const reset = await ownApp.request('/api/test/reset', {
+        method: 'POST',
+      });
+      expect(reset.status).toBe(204);
+      expect((await reader.read()).done).toBe(true);
+    } finally {
+      process.env = env;
+      await cleanupTempTestData(ownPath);
+    }
   });
 });
 
@@ -338,7 +414,7 @@ describe('presence bookkeeping', () => {
 
       vi.advanceTimersByTime(1_000);
       events.update(six, admin.id, 2, 'decision_6', 'editing');
-      events.cardsUpdated(['decision_6'], admin);
+      events.cardsUpdated(['decision_6'], { kind: 'user', ...admin });
 
       expect(onDecision5).toEqual([]);
       expect(onDecision6.map((m) => m.event)).toEqual([
@@ -397,19 +473,51 @@ describe('presence bookkeeping', () => {
     } finally {
       events.dispose();
     }
+  });
 
-    const one = {} as CommandManager;
-    const two = {} as CommandManager;
-    const projects = new ProjectRegistry();
-    projects.add('one', one);
-    projects.add('two', two);
+  test('a project has one set of events until it is dropped', async () => {
+    // Each project's handle subscribes to its changes.
+    const changes = { subscribe: () => () => {} };
+    const directory = {
+      open: async (prefix: string) => {
+        if (prefix !== 'one' && prefix !== 'two') {
+          throw new ProjectNotFoundError(prefix);
+        }
+        return { changes };
+      },
+    } as unknown as ProjectDirectory;
+    const projects = new EventsByProject(directory);
+    const [first, raced] = await Promise.all([
+      projects.for('one'),
+      projects.for('one'),
+    ]);
+    expect(raced).toBe(first);
+    expect(await projects.for('one')).toBe(first);
+    expect(await projects.for('two')).not.toBe(first);
+    await expect(projects.for('three')).rejects.toThrow(ProjectNotFoundError);
+    projects.drop('one');
+    expect(await projects.for('one')).not.toBe(first);
+    projects.drop('one');
+    projects.drop('two');
+  });
+
+  test("a project's events follow its rename from its changes", async () => {
+    // Needs a project it can rename without touching the shared one.
+    const ownPath = await createTempTestData('decision-records');
     try {
-      expect(projects.eventsFor(one)).toBe(projects.eventsFor(one));
-      expect(projects.eventsFor(one)).not.toBe(projects.eventsFor(two));
-      expect(() => projects.eventsFor({} as CommandManager)).toThrow();
+      const directory = directoryOf(await openTestWorkspace(ownPath));
+      const projects = new EventsByProject(directory);
+      const first = await projects.for('decision');
+
+      await directory.rename('decision', 'renamed', SYSTEM_ACTOR);
+
+      expect(await projects.for('renamed')).toBe(first);
+      await expect(projects.for('decision')).rejects.toThrow(
+        ProjectNotFoundError,
+      );
+      projects.drop('renamed');
     } finally {
-      projects.eventsFor(one).dispose();
-      projects.eventsFor(two).dispose();
+      await cleanupTempTestData(ownPath);
     }
   });
 
@@ -442,7 +550,10 @@ describe('presence bookkeeping', () => {
       const connectionId = connect();
       events.update(connectionId, user.id, 1, 'decision_5', 'viewing');
       messages.length = 0;
-      events.cardsUpdated(['decision_5', 'decision_6', 'decision_5'], user);
+      events.cardsUpdated(['decision_5', 'decision_6', 'decision_5'], {
+        kind: 'user',
+        ...user,
+      });
       expect(
         messages.map((message) => JSON.parse(String(message.data)).cardKey),
       ).toEqual(['decision_5']);
@@ -519,8 +630,57 @@ describe('presence bookkeeping', () => {
   });
 });
 
+describe('change events', () => {
+  test('announce the cards an event names, as its actor, until disposed', () => {
+    let listener: ((event: ChangeEvent) => void) | undefined;
+    const events = new ProjectEvents({
+      subscribe: (added) => {
+        listener = added;
+        return () => (listener = undefined);
+      },
+    });
+    const messages: SSEMessage[] = [];
+    const editor = { id: 'editor', name: 'Editor' };
+    const connectionId = events.connect(
+      editor,
+      fullCapabilities,
+      testDelivery(messages),
+    );
+    events.update(connectionId, editor.id, 1, 'decision_5', 'viewing');
+
+    listener!({
+      project: 'decision',
+      workspace: 'main',
+      epoch: 'epoch',
+      revision: 1,
+      actor: {
+        kind: 'connector',
+        id: 'bot',
+        name: 'Bot',
+        agent: { name: 'claude' },
+      },
+      cause: 'direct',
+      at: '2026-10-13T00:00:00.000Z',
+      changes: [
+        { kind: 'resource.changed', name: 'decision/cardTypes/decision' },
+        { kind: 'card.removed', key: 'decision_5' },
+      ],
+    });
+    events.dispose();
+
+    expect(listener).toBeUndefined();
+    expect(
+      messages
+        .filter((message) => message.event === 'card.updated')
+        .map((message) => JSON.parse(String(message.data))),
+    ).toEqual([{ cardKey: 'decision_5', userId: 'bot', userName: 'Bot' }]);
+  });
+});
+
 describe('stream rotation', () => {
   test('the stream closes at its computed lifetime, sending `rotating` last', async () => {
+    // Its own checkout, so its events do not follow the shared one's writes.
+    const own = await openTestWorkspace(tempTestDataPath);
     vi.useFakeTimers();
     // Whole-second-aligned so exp (epoch seconds) round-trips exactly, and
     // 75s life keeps the ~45s rotation clear of the 30s heartbeat ticks.
@@ -536,7 +696,7 @@ describe('stream rotation', () => {
     };
     const { reader } = await connect(
       'irrelevant',
-      createApp(provider, registry),
+      createApp(provider, directoryOf(own)),
     );
     vi.advanceTimersByTime(50_000);
     const names = await drainEventNames(reader);
@@ -788,23 +948,29 @@ describe('card update notifications', () => {
   let edited: string;
 
   beforeAll(async () => {
-    const [target] = await commands.createCmd.createCard(
+    const [target] = await ws.cards.create(
       'decision/templates/decision',
       'decision_5',
     );
     retargeted = target.key;
-    const [scratch] = await commands.createCmd.createCard(
+    const [scratch] = await ws.cards.create(
       'decision/templates/decision',
       'decision_5',
     );
     edited = scratch.key;
   });
   beforeEach(() => {
-    notify = vi.spyOn(registry.eventsFor(commands), 'cardsUpdated');
+    // Only the shared app's events follow this checkout.
+    notify = vi.spyOn(ProjectEvents.prototype, 'cardsUpdated');
   });
   afterEach(() => notify.mockRestore());
 
-  const bodies: { field: string; body: () => unknown; notifies: number }[] = [
+  const bodies: {
+    field: string;
+    body: () => unknown;
+    notifies: number;
+    prepare?: () => Promise<unknown>;
+  }[] = [
     { field: 'nothing', body: () => ({}), notifies: 0 },
     { field: 'state', body: () => ({ state: 'Approve' }), notifies: 1 },
     { field: 'content', body: () => ({ content: 'Edited body' }), notifies: 1 },
@@ -814,16 +980,37 @@ describe('card update notifications', () => {
       notifies: 1,
     },
     { field: 'parent', body: () => ({ parent: 'decision_6' }), notifies: 1 },
-    { field: 'index', body: () => ({ index: 0 }), notifies: 1 },
+    {
+      field: 'index',
+      body: () => ({ index: 0 }),
+      notifies: 1,
+      // A sibling ranked first, so that index 0 is a move: a write that
+      // changes nothing notifies no one.
+      prepare: async () => {
+        const [sibling] = await ws.cards.create(
+          'decision/templates/decision',
+          'decision_6',
+        );
+        await ws.cards.rankFirst(sibling.key);
+      },
+    },
   ];
 
   test.each(bodies)(
     'a PATCH body carrying $field notifies $notifies time(s)',
-    async ({ body, notifies }) => {
+    async ({ body, notifies, prepare }) => {
+      await prepare?.();
+      notify.mockClear();
       expect((await patch(edited, body())).status).toBe(200);
       expect(notify.mock.calls).toEqual(
         notifies
-          ? [[[edited], expect.objectContaining({ id: 'mock-user-bob' })]]
+          ? [
+              [
+                // Re-ranking also names the siblings it re-ranked.
+                expect.arrayContaining([edited]),
+                expect.objectContaining({ id: 'mock-user-bob' }),
+              ],
+            ]
           : [],
       );
     },

@@ -11,28 +11,26 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import type { CommandManager } from '@cyberismo/data-handler';
-import type { DataType } from '@cyberismo/data-handler/interfaces/resource-interfaces';
+import type { Workspace } from '@cyberismo/data-handler';
+import type { DataType } from '@cyberismo/model';
 
-export async function getFieldTypes(commands: CommandManager) {
-  const response = await commands.showCmd.showResources('fieldTypes');
+export async function getFieldTypes(ws: Workspace) {
+  const response = await ws.resources.list('fieldTypes');
   if (!response) {
     throw new Error('No field types found');
   }
 
   const fieldTypes = await Promise.all(
-    response.map((fieldType: string) =>
-      commands.showCmd.showResource(fieldType),
-    ),
+    response.map((fieldType: string) => ws.resources.show(fieldType)),
   );
 
   return fieldTypes;
 }
 
 export async function createFieldType(
-  commands: CommandManager,
+  ws: Workspace,
   identifier: string,
   dataType: DataType,
 ) {
-  await commands.createCmd.createFieldType(identifier, dataType);
+  await ws.resources.create(identifier, 'fieldTypes', { dataType });
 }

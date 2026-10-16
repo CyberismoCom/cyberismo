@@ -14,14 +14,19 @@
 */
 
 import { beforeAll, describe, expect, test } from 'vitest';
+import { execFile } from 'node:child_process';
 import path from 'node:path';
+import { promisify } from 'node:util';
 import { fileURLToPath } from 'node:url';
-import { CommandManager } from '@cyberismo/data-handler';
 import { createApp } from '../src/app.js';
-import { ProjectRegistry } from '../src/project-registry.js';
 import { MockAuthProvider } from '../src/auth/mock.js';
 import { UserRole, type UserInfo } from '../src/types.js';
 import type { AuthProvider } from '../src/auth/types.js';
+import { buildProject } from '../../data-handler/test/helpers/project-builder.js';
+import {
+  openTestWorkspace,
+  directoryOf,
+} from './helpers/open-test-workspace.js';
 
 const fileUrl = fileURLToPath(import.meta.url);
 const dirname = path.dirname(fileUrl);
@@ -31,16 +36,13 @@ let app: ReturnType<typeof createApp>;
 beforeAll(async () => {
   // Fixes weird issue with asciidoctor
   process.argv = [];
-  const commands = await CommandManager.getInstance(
+  const ws = await openTestWorkspace(
     path.resolve(
       dirname,
       '../../data-handler/test/test-data/valid/decision-records',
     ),
   );
-  app = createApp(
-    new MockAuthProvider(),
-    ProjectRegistry.fromCommandManager(commands),
-  );
+  app = createApp(new MockAuthProvider(), directoryOf(ws));
 });
 
 describe('MCP HTTP Endpoint', () => {
@@ -73,6 +75,93 @@ describe('MCP HTTP Endpoint', () => {
     expect([200, 202]).toContain(response.status);
   });
 
+  test('a tool call on a session is committed as the request user', async () => {
+    const project = await buildProject({
+      git: true,
+      cards: [{ title: 'Alpha' }],
+    });
+    const ws = await openTestWorkspace(project.path, { autocommit: true });
+    try {
+      // The same user, renamed after initializing the session: commits must
+      // follow each request's user, not the one the session started with.
+      let user: UserInfo = {
+        id: 'dana-1',
+        email: 'dana@example.com',
+        name: 'Dana Editor',
+        role: UserRole.Editor,
+      };
+      const sessionApp = createApp(
+        { authenticate: async () => user },
+        directoryOf(ws),
+      );
+      const post = (body: object, sessionId?: string) =>
+        sessionApp.request('/mcp', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Accept: 'application/json, text/event-stream',
+            ...(sessionId && { 'mcp-session-id': sessionId }),
+          },
+          body: JSON.stringify(body),
+        });
+      // The JSON-RPC message in an SSE response.
+      const message = async (response: Response) =>
+        JSON.parse(
+          (await response.text())
+            .split('\n')
+            .find((line) => line.startsWith('data: '))!
+            .slice('data: '.length),
+        );
+
+      const init = await post({
+        jsonrpc: '2.0',
+        id: 1,
+        method: 'initialize',
+        params: {
+          protocolVersion: '2024-11-05',
+          capabilities: {},
+          clientInfo: { name: 'test-client', version: '1.0.0' },
+        },
+      });
+      const sessionId = init.headers.get('mcp-session-id')!;
+      await post(
+        { jsonrpc: '2.0', method: 'notifications/initialized' },
+        sessionId,
+      );
+
+      user = { ...user, name: 'Dana Renamed', email: 'dana@new.example.com' };
+      const call = await message(
+        await post(
+          {
+            jsonrpc: '2.0',
+            id: 2,
+            method: 'tools/call',
+            params: {
+              name: 'edit_card_metadata',
+              arguments: {
+                projectPrefix: 'test',
+                cardKey: project.keys[0],
+                field: 'title',
+                value: 'Renamed',
+              },
+            },
+          },
+          sessionId,
+        ),
+      );
+      expect(call.result.isError).toBeFalsy();
+
+      const { stdout } = await promisify(execFile)(
+        'git',
+        ['log', '-1', '--format=%an <%ae>'],
+        { cwd: project.path },
+      );
+      expect(stdout.trim()).toBe('Dana Renamed <dana@new.example.com>');
+    } finally {
+      await project.cleanup();
+    }
+  });
+
   describe('a session belongs to the user who opened it', () => {
     const owner: UserInfo = {
       id: 'owner-1',
@@ -84,17 +173,15 @@ describe('MCP HTTP Endpoint', () => {
     let sessionApp: ReturnType<typeof createApp>;
 
     beforeAll(async () => {
-      const commands = await CommandManager.getInstance(
+      const ws = await openTestWorkspace(
         path.resolve(
           dirname,
           '../../data-handler/test/test-data/valid/decision-records',
         ),
       );
       sessionApp = createApp(
-        {
-          authenticate: async () => ({ ...user, exp: Number.MAX_SAFE_INTEGER }),
-        },
-        ProjectRegistry.fromCommandManager(commands),
+        { authenticate: async () => user },
+        directoryOf(ws),
       );
     });
 
@@ -221,16 +308,13 @@ describe('MCP HTTP Endpoint', () => {
       }),
     };
 
-    const commands = await CommandManager.getInstance(
+    const ws = await openTestWorkspace(
       path.resolve(
         dirname,
         '../../data-handler/test/test-data/valid/decision-records',
       ),
     );
-    const readerApp = createApp(
-      readerProvider,
-      ProjectRegistry.fromCommandManager(commands),
-    );
+    const readerApp = createApp(readerProvider, directoryOf(ws));
 
     const response = await readerApp.request('/mcp', {
       method: 'POST',

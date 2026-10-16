@@ -18,16 +18,26 @@ import { cp, mkdir, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
-import { CommandManager } from '@cyberismo/data-handler';
-import { createMcpServer, singleProjectProvider } from '../src/server.js';
-import { testDataPath } from './test-utils.js';
+import {
+  ProjectNotFoundError,
+  type CommitIdentity,
+  type ProjectDirectory,
+  type Workspace,
+} from '@cyberismo/data-handler';
+import type { ActorRef } from '@cyberismo/model';
+import { createMcpServer } from '../src/server.js';
+import { authenticated, testDataPath } from './test-utils.js';
+import {
+  openTestWorkspace,
+  directoryOf,
+} from './helpers/open-test-workspace.js';
 
 const baseDir = import.meta.dirname;
 const projectPath = join(baseDir, 'tmp-skills-mcp');
 const skillsFolder = join(projectPath, '.cards/local/skills');
 const calcFolder = join(projectPath, '.cards/local/calculations');
 
-let commands: CommandManager;
+let ws: Workspace;
 let client: Client;
 
 type TextContent = { type: string; text: string };
@@ -91,18 +101,17 @@ beforeAll(async () => {
     'utf-8',
   );
 
-  commands = await CommandManager.getInstance(projectPath);
-  const server = createMcpServer(singleProjectProvider(commands));
+  ws = await openTestWorkspace(projectPath);
+  const server = createMcpServer(directoryOf(ws));
   const [clientTransport, serverTransport] =
     InMemoryTransport.createLinkedPair();
-  await server.connect(serverTransport);
+  await server.connect(authenticated(serverTransport));
   client = new Client({ name: 'test-client', version: '1.0.0' });
   await client.connect(clientTransport);
 });
 
 afterAll(async () => {
   await client.close();
-  commands.project.dispose();
   await rm(projectPath, { recursive: true, force: true });
 });
 
@@ -225,6 +234,24 @@ const promptText = (result: { messages: { content: { text?: string } }[] }) =>
   result.messages.map((m) => m.content.text ?? '').join('\n');
 
 describe('skill discovery MCP prompts', () => {
+  test('listPrompts refuses an unauthenticated caller, even with no projects', async () => {
+    const server = createMcpServer({
+      list: async () => [],
+    } as unknown as ProjectDirectory);
+    const [clientTransport, serverTransport] =
+      InMemoryTransport.createLinkedPair();
+    await server.connect(serverTransport);
+    const anonymous = new Client({ name: 'anonymous', version: '1.0.0' });
+    await anonymous.connect(clientTransport);
+    try {
+      await expect(anonymous.listPrompts()).rejects.toThrow(
+        'MCP request has no authenticated user',
+      );
+    } finally {
+      await anonymous.close();
+    }
+  });
+
   test('listPrompts exposes enabled skills, with a cardKey arg for card-scoped', async () => {
     const { prompts } = await client.listPrompts();
     const byName = new Map(prompts.map((p) => [p.name, p]));
@@ -292,14 +319,24 @@ describe('skill discovery MCP prompts', () => {
   // by iterating projects, not by parsing the name's first segment.
   test('getPrompt resolves a skill whose name prefix differs from the provider key', async () => {
     const moduleLikeProvider = {
-      get: (prefix: string) =>
-        prefix === 'registeredUnderOtherKey' ? commands : undefined,
-      list: () => [{ prefix: 'registeredUnderOtherKey', name: 'decision' }],
-    };
+      open: async (
+        prefix: string,
+        actor: ActorRef,
+        identity?: CommitIdentity,
+      ) => {
+        if (prefix !== 'registeredUnderOtherKey') {
+          throw new ProjectNotFoundError(prefix);
+        }
+        return directoryOf(ws).open('decision', actor, identity);
+      },
+      list: async () => [
+        { prefix: 'registeredUnderOtherKey', name: 'decision' },
+      ],
+    } as unknown as ProjectDirectory;
     const server = createMcpServer(moduleLikeProvider);
     const [clientTransport, serverTransport] =
       InMemoryTransport.createLinkedPair();
-    await server.connect(serverTransport);
+    await server.connect(authenticated(serverTransport));
     const moduleClient = new Client({
       name: 'module-client',
       version: '1.0.0',

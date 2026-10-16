@@ -11,11 +11,8 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import type { CommandManager } from '@cyberismo/data-handler';
+import type { Workspace } from '@cyberismo/data-handler';
 
-export async function createReport(
-  commands: CommandManager,
-  reportName: string,
-) {
-  await commands.createCmd.createReport(reportName);
+export async function createReport(ws: Workspace, reportName: string) {
+  await ws.resources.create(reportName, 'reports', {});
 }

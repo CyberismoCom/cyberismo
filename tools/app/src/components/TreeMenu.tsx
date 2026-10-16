@@ -13,7 +13,7 @@
 
 import { useCallback } from 'react';
 import type { NodeApi } from 'react-arborist';
-import type { QueryResult } from '@cyberismo/data-handler/types/queries';
+import type { QueryResult } from '@cyberismo/model';
 import { Stack } from '@mui/joy';
 import { BaseTreeComponent } from './BaseTreeComponent';
 import { CardTreeNode } from './tree-nodes';

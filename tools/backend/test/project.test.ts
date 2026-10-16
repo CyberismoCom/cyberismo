@@ -2,12 +2,14 @@ import { readFileSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { beforeEach, afterEach, describe, expect, test, vi } from 'vitest';
-import { CommandManager } from '@cyberismo/data-handler';
 import { createApp } from '../src/app.js';
-import { ProjectRegistry } from '../src/project-registry.js';
 import { MockAuthProvider, MOCK_ROLE_COOKIE } from '../src/auth/mock.js';
-import type { CleanResult } from '../src/domain/project/service.js';
+import type { CleanResult } from '@cyberismo/model';
 import { cleanupTempTestData, createTempTestData } from './test-utils.js';
+import {
+  openTestWorkspace,
+  directoryOf,
+} from './helpers/open-test-workspace.js';
 
 type ProjectResponse = {
   name: string;
@@ -90,11 +92,8 @@ afterEach(() => {
 
 beforeEach(async () => {
   tempTestDataPath = await createTempTestData('module-test');
-  const commands = await CommandManager.getInstance(tempTestDataPath);
-  app = createApp(
-    new MockAuthProvider(),
-    ProjectRegistry.fromCommandManager(commands),
-  );
+  const ws = await openTestWorkspace(tempTestDataPath);
+  app = createApp(new MockAuthProvider(), directoryOf(ws));
 });
 
 afterEach(async () => {
@@ -126,6 +125,27 @@ describe('Project endpoints', () => {
     const result = (await response.json()) as ProjectResponse;
     expect(result.name).toBe('Updated Project Name');
     expect(result.cardKeyPrefix).toBe('projtest');
+  });
+
+  test('a renamed project is served under its new prefix only', async () => {
+    const response = await app.request('/api/projects/test/project', {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ cardKeyPrefix: 'projtest' }),
+    });
+    expect(response.status).toBe(200);
+
+    expect((await app.request('/api/projects/projtest/project')).status).toBe(
+      200,
+    );
+    const old = await app.request('/api/projects/test/project');
+    expect(old.status).toBe(404);
+    expect(await old.json()).toEqual({
+      error: "Project 'test' not found",
+      code: 'not-found',
+      message: "Project 'test' not found",
+      details: { prefix: 'test' },
+    });
   });
 
   test('PATCH /api/projects/:projectPrefix/project updates description and category', async () => {

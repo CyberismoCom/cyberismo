@@ -26,16 +26,17 @@ export type {
   InstallationRef,
   ModuleDeclaration,
   ModuleInstallation,
-  Source,
-  Version,
-  VersionRange,
-} from './types.js';
-export type { FetchTarget, SourceLayer } from './source.js';
+  ResolvedModule,
+} from '../mutations/replay/module-types.js';
+export type { Version, VersionRange } from '../utils/version.js';
+export type {
+  FetchTarget,
+  SourceLayer,
+} from '../infra/module-source/source.js';
 export type {
   Change,
   ConflictDemand,
   ResolveConflict,
-  ResolvedModule,
   ResolveResult,
   UpdateRequest,
 } from './resolve/types.js';
@@ -43,19 +44,23 @@ export type { ApplyOptions } from './applier.js';
 export type { CleanOrphansOptions } from './orphans.js';
 
 // Version and location primitives.
-export { toDeclaredRange, toVersion, toVersionRange } from './types.js';
+export {
+  toDeclaredRange,
+  toVersion,
+  toVersionRange,
+} from '../utils/version.js';
 export {
   FILE_PROTOCOL,
   isFileLocation,
   isGitLocation,
   stripFileProtocol,
-} from './location.js';
+} from '../utils/location.js';
 export {
   pickVersion,
   stripTagPrefix,
   validateVersionAgainstConstraints,
   versionToTag,
-} from './version.js';
+} from '../utils/version.js';
 export { buildRemoteUrl } from './remote-url.js';
 
 // Reading what a project declares and what it has installed.
@@ -68,9 +73,14 @@ export {
 } from './inventory.js';
 
 // Fetching, resolving and applying.
-export { createSourceLayer } from './source.js';
+export { createSourceLayer } from '../infra/module-source/source.js';
 export { resolve, resolveForApply, stageResolution } from './resolve/solver.js';
-export { requireDeclared, resolveUpdate, toUpdatePlan } from './update-plan.js';
+export {
+  checkUpdate,
+  requireDeclared,
+  resolveUpdate,
+  toUpdatePlan,
+} from './update-plan.js';
 export { conflictReason } from './resolve/format.js';
 export { ensureStagedSchemas } from './staged-migration.js';
 export { applyModules } from './applier.js';

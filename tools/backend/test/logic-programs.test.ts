@@ -1,10 +1,12 @@
 import { expect, test, beforeAll } from 'vitest';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { CommandManager } from '@cyberismo/data-handler';
 import { createApp } from '../src/app.js';
-import { ProjectRegistry } from '../src/project-registry.js';
 import { MockAuthProvider } from '../src/auth/mock.js';
+import {
+  openTestWorkspace,
+  directoryOf,
+} from './helpers/open-test-workspace.js';
 
 const fileUrl = fileURLToPath(import.meta.url);
 const dirname = path.dirname(fileUrl);
@@ -12,16 +14,13 @@ const dirname = path.dirname(fileUrl);
 let app: ReturnType<typeof createApp>;
 
 beforeAll(async () => {
-  const commands = await CommandManager.getInstance(
+  const ws = await openTestWorkspace(
     path.resolve(
       dirname,
       '../../data-handler/test/test-data/valid/decision-records',
     ),
   );
-  app = createApp(
-    new MockAuthProvider(),
-    ProjectRegistry.fromCommandManager(commands),
-  );
+  app = createApp(new MockAuthProvider(), directoryOf(ws));
 });
 
 test('/api/logicPrograms returns logic program for a valid card', async () => {
@@ -55,7 +54,7 @@ test('/api/logicPrograms returns error for non-existent card', async () => {
     '/api/projects/decision/logicPrograms/decision/cards/nonexistent_card',
   );
   expect(response).not.toBe(null);
-  expect(response.status).toBe(500);
+  expect(response.status).toBe(404);
 
   const result = await response.json();
   expect(result).toHaveProperty('error');

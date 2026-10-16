@@ -9,10 +9,10 @@ import {
   installedModulesWithSources,
 } from '../../src/modules/inventory.js';
 import { makeProjectStub } from '../helpers/module-fixtures.js';
-import type { ModuleSetting } from '../../src/interfaces/project-interfaces.js';
+import type { ModuleSetting } from '@cyberismo/model';
 
 function makeStub(basePath: string, modules: ModuleSetting[]) {
-  return makeProjectStub({ basePath, modules }).project;
+  return makeProjectStub({ basePath, modules }).checkout;
 }
 
 async function writeInstalledModule(
@@ -46,7 +46,7 @@ describe('modules/inventory', () => {
   });
 
   it('declared maps each project config entry to a ModuleDeclaration with parent=undefined', () => {
-    const project = makeStub(projectDir, [
+    const checkout = makeStub(projectDir, [
       {
         name: 'foo',
         location: 'https://example.com/foo.git',
@@ -59,7 +59,7 @@ describe('modules/inventory', () => {
       },
     ]);
 
-    const decls = declaredModules(project);
+    const decls = declaredModules(checkout);
 
     expect(decls).toHaveLength(2);
     const byName = new Map(decls.map((d) => [d.name, d]));
@@ -80,7 +80,7 @@ describe('modules/inventory', () => {
   });
 
   it('declared returns versionRange undefined for an invalid semver range', () => {
-    const project = makeStub(projectDir, [
+    const checkout = makeStub(projectDir, [
       {
         name: 'baz',
         location: 'https://example.com/baz.git',
@@ -88,21 +88,21 @@ describe('modules/inventory', () => {
       },
     ]);
 
-    const [decl] = declaredModules(project);
+    const [decl] = declaredModules(checkout);
     expect(decl.versionRange).toBeUndefined();
     // Invalid range is warn-only; name/source still populate.
     expect(decl.name).toBe('baz');
   });
 
   it('installed returns [] when .cards/modules/ does not exist', async () => {
-    const project = makeStub(projectDir, []);
+    const checkout = makeStub(projectDir, []);
 
-    const installations = await installedModules(project);
+    const installations = await installedModules(checkout);
     expect(installations).toEqual([]);
   });
 
   it('installed brands a valid version and attaches the declared source', async () => {
-    const project = makeStub(projectDir, [
+    const checkout = makeStub(projectDir, [
       {
         name: 'foo',
         location: 'https://example.com/foo.git',
@@ -116,7 +116,7 @@ describe('modules/inventory', () => {
       modules: [],
     });
 
-    const installations = await installedModules(project);
+    const installations = await installedModules(checkout);
 
     expect(installations).toHaveLength(1);
     const [foo] = installations;
@@ -130,7 +130,7 @@ describe('modules/inventory', () => {
   });
 
   it('installed leaves version undefined when installation config has an invalid semver', async () => {
-    const project = makeStub(projectDir, [
+    const checkout = makeStub(projectDir, [
       {
         name: 'foo',
         location: 'https://example.com/foo.git',
@@ -141,25 +141,25 @@ describe('modules/inventory', () => {
       version: 'not-semver',
     });
 
-    const [foo] = await installedModules(project);
+    const [foo] = await installedModules(checkout);
     expect(foo.name).toBe('foo');
     expect(foo.version).toBeUndefined();
   });
 
   it('installed skips a module folder with no readable cardsConfig.json', async () => {
-    const project = makeStub(projectDir, []);
+    const checkout = makeStub(projectDir, []);
     // Folder exists but has no cardsConfig.json.
     await mkdir(join(projectDir, '.cards', 'modules', 'ghost'), {
       recursive: true,
     });
 
-    const installations = await installedModules(project);
+    const installations = await installedModules(checkout);
     expect(installations).toEqual([]);
   });
 
   it('withSources recovers a transitive location from an installed parent declaration', async () => {
     // Project declares only "parent"; "child" was installed transitively.
-    const project = makeStub(projectDir, [
+    const checkout = makeStub(projectDir, [
       { name: 'parent', location: 'https://example.com/parent.git' },
     ]);
     await writeInstalledModule(projectDir, 'parent', {
@@ -175,7 +175,7 @@ describe('modules/inventory', () => {
       modules: [],
     });
 
-    const installations = await installedModulesWithSources(project);
+    const installations = await installedModulesWithSources(checkout);
 
     const child = installations.find((i) => i.name === 'child');
     expect(child?.source).toEqual({
@@ -187,7 +187,7 @@ describe('modules/inventory', () => {
   });
 
   it('withSources keeps an empty location when no installed module declares the dependency', async () => {
-    const project = makeStub(projectDir, [
+    const checkout = makeStub(projectDir, [
       { name: 'parent', location: 'https://example.com/parent.git' },
     ]);
     await writeInstalledModule(projectDir, 'parent', {
@@ -203,7 +203,7 @@ describe('modules/inventory', () => {
       version: '3.0.0',
     });
 
-    const installations = await installedModulesWithSources(project);
+    const installations = await installedModulesWithSources(checkout);
 
     const stray = installations.find((i) => i.name === 'stray');
     expect(stray?.source.location).toBe('');
@@ -212,7 +212,7 @@ describe('modules/inventory', () => {
   it('withSources lets a project declaration win over a module declaration', async () => {
     // "child" is declared by the project AND by parent's config, with
     // different locations; the project's location must win.
-    const project = makeStub(projectDir, [
+    const checkout = makeStub(projectDir, [
       { name: 'parent', location: 'https://example.com/parent.git' },
       { name: 'child', location: 'https://example.com/child-project.git' },
     ]);
@@ -231,7 +231,7 @@ describe('modules/inventory', () => {
       modules: [],
     });
 
-    const installations = await installedModulesWithSources(project);
+    const installations = await installedModulesWithSources(checkout);
 
     const child = installations.find((i) => i.name === 'child');
     expect(child?.source.location).toBe(
@@ -240,7 +240,7 @@ describe('modules/inventory', () => {
   });
 
   it('withSources ignores module dependency declarations without a location', async () => {
-    const project = makeStub(projectDir, [
+    const checkout = makeStub(projectDir, [
       { name: 'parent', location: 'https://example.com/parent.git' },
     ]);
     await writeInstalledModule(projectDir, 'parent', {
@@ -255,7 +255,7 @@ describe('modules/inventory', () => {
       version: '2.0.0',
     });
 
-    const installations = await installedModulesWithSources(project);
+    const installations = await installedModulesWithSources(checkout);
 
     const child = installations.find((i) => i.name === 'child');
     expect(child?.source.location).toBe('');
@@ -263,14 +263,14 @@ describe('modules/inventory', () => {
 
   it('installed flags an untracked installation with an empty source.location', async () => {
     // No declaration for "trans" — it was pulled in by another installation.
-    const project = makeStub(projectDir, []);
+    const checkout = makeStub(projectDir, []);
     await writeInstalledModule(projectDir, 'trans', {
       cardKeyPrefix: 'trans',
       name: 'trans',
       version: '1.0.0',
     });
 
-    const installations = await installedModules(project);
+    const installations = await installedModules(checkout);
     expect(installations).toHaveLength(1);
     expect(installations[0].source.location).toBe('');
     expect(installations[0].version).toBe('1.0.0');

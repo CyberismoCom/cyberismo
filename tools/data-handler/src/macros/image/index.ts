@@ -15,12 +15,13 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import BaseMacro from '../base-macro.js';
-import macroMetadata from './metadata.js';
+import macroMetadata from '@cyberismo/model/macros/image/metadata';
 import { validateMacroContent } from '../index.js';
 
-import type { ImageMacroOptions } from './types.js';
+import type { ImageMacroOptions } from '@cyberismo/model';
 import type { MacroGenerationContext } from '../../interfaces/macros.js';
 import type TaskQueue from '../task-queue.js';
+import { cardAttachments } from '../../cards/read.js';
 
 /**
  * Macro for including images in the content
@@ -40,9 +41,9 @@ export default class ImageMacro extends BaseMacro {
     cardKey: string,
     filename: string,
   ) {
-    const attachment = context.project
-      .cardAttachments(cardKey)
-      .find((a) => a.fileName === filename);
+    const attachment = cardAttachments(context.checkout, cardKey).find(
+      (a) => a.fileName === filename,
+    );
     if (!attachment) {
       throw new Error(
         `Attachment file '${filename}' not found in card '${cardKey}'`,
@@ -106,7 +107,7 @@ export default class ImageMacro extends BaseMacro {
     const attributes = this.buildImageAttributes(options);
 
     // In inject mode, always use the API path for consistency
-    const projectPrefix = context.project.projectPrefix;
+    const projectPrefix = context.checkout.projectPrefix;
     return `image::/api/projects/${projectPrefix}/cards/${cardKey}/a/${options.fileName}[${attributes}]`;
   };
 }

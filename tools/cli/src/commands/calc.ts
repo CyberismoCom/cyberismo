@@ -11,13 +11,16 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { type Command } from 'commander';
+import { readFileSync } from 'node:fs';
+import { writeFile } from 'node:fs/promises';
 
-import { Cmd, type CommandOptions } from '@cyberismo/data-handler';
+import { type Command } from 'commander';
+import type { Context } from '@cyberismo/model';
 
 import { CommandGroup, contextOption } from '../lib/args.js';
-import { commandHandler } from '../lib/dispatch.js';
-import { handleResponse } from '../lib/output.js';
+import { onProject } from '../lib/errors.js';
+import { printJson, printResult } from '../lib/output.js';
+import type { CalcCommandOptions } from '../options.js';
 
 export function registerCalc(program: Command) {
   const calculate = new CommandGroup('calc').description(
@@ -37,14 +40,13 @@ export function registerCalc(program: Command) {
       async (
         destination: string,
         query: string,
-        options: CommandOptions<'calc'>,
+        options: CalcCommandOptions,
       ) => {
-        const result = await commandHandler.command(
-          Cmd.calc,
-          ['generate', destination, query],
+        await onProject(
           Object.assign({}, options, program.opts()),
+          async (ws) => writeFile(destination, await ws.queries.program(query)),
         );
-        handleResponse(result);
+        printResult();
       },
     );
 
@@ -53,12 +55,15 @@ export function registerCalc(program: Command) {
     .description('Run a logic program')
     .argument('<filePath>', 'Path to the logic program')
     .addOption(contextOption)
-    .action(async (filePath: string, options: CommandOptions<'calc'>) => {
-      const result = await commandHandler.command(
-        Cmd.calc,
-        ['run', filePath],
+    .action(async (filePath: string, options: CalcCommandOptions) => {
+      const result = await onProject(
         Object.assign({}, options, program.opts()),
+        (ws) =>
+          ws.queries.runLogicProgram(
+            readFileSync(filePath, 'utf-8'),
+            (options.context || 'commandLine') as Context,
+          ),
       );
-      handleResponse(result);
+      printJson(result);
     });
 }

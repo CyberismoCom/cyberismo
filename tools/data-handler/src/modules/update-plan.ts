@@ -19,36 +19,34 @@ import {
   installedModules,
   versionSourceOf,
 } from './inventory.js';
-import { isGitLocation } from './location.js';
+import { isGitLocation } from '../utils/location.js';
 import { ModuleRequestError, unreachable } from '../exceptions/index.js';
 import { findOrphans } from './orphans.js';
 import { buildRemoteUrl } from './remote-url.js';
 import { conflictReason } from './resolve/format.js';
 import { solve, type SolveOutcome } from './resolve/solver.js';
-import type { SourceLayer } from './source.js';
-import { toDeclaredRange, toVersion, type ModuleDeclaration } from './types.js';
+import type { SourceLayer } from '../infra/module-source/source.js';
+import type { ModuleDeclaration } from '../mutations/replay/module-types.js';
 import {
   isBreakingMove,
   pickVersion,
+  toDeclaredRange,
+  toVersion,
   validateVersionAgainstConstraints,
-} from './version.js';
+} from '../utils/version.js';
 
-import type { Project } from '../containers/project.js';
-import type {
-  Credentials,
-  UpdatePlan,
-  UpdateTarget,
-} from '../interfaces/project-interfaces.js';
+import type { Checkout } from '../infra/checkout.js';
+import type { Credentials, UpdatePlan, UpdateTarget } from '@cyberismo/model';
 import type { UpdateRequest } from './resolve/types.js';
 
 /** The declared root `module` names; a transitive or unknown module is refused. */
 export async function requireDeclared(
-  project: Project,
+  checkout: Checkout,
   module: string,
 ): Promise<ModuleDeclaration> {
-  const declaration = declaredModules(project).find((d) => d.name === module);
+  const declaration = declaredModules(checkout).find((d) => d.name === module);
   if (declaration) return declaration;
-  const parents = (await installedModules(project))
+  const parents = (await installedModules(checkout))
     .filter((m) => m.declaredDependencies.includes(module))
     .map((m) => m.name);
   if (parents.length > 0) {
@@ -60,25 +58,44 @@ export async function requireDeclared(
   throw new ModuleRequestError(`Module '${module}' is not part of the project`);
 }
 
+/** A version the project accepts for `module`, still to be found at its source. */
+interface PendingVersion {
+  module: string;
+  declaration: ModuleDeclaration;
+  version: string;
+}
+
+/** A target checked against the project; {@link resolveUpdate} takes it to the network. */
+export interface CheckedTarget {
+  target: UpdateTarget;
+  request: UpdateRequest | PendingVersion;
+}
+
 /**
  * The solver request `target` stands for; both a dry run and an update build
  * it here. Refuses a target the project cannot take before anything is solved.
+ * Reads the project only: a pinned version is looked up at its source later.
  */
-async function buildUpdateRequest(
-  project: Project,
-  source: SourceLayer,
+export async function checkUpdate(
+  checkout: Checkout,
   target: UpdateTarget,
-  credentials?: Credentials,
-): Promise<UpdateRequest> {
+): Promise<CheckedTarget> {
+  return { target, request: await buildUpdateRequest(checkout, target) };
+}
+
+async function buildUpdateRequest(
+  checkout: Checkout,
+  target: UpdateTarget,
+): Promise<UpdateRequest | PendingVersion> {
   const { module } = target;
   if (module === undefined) {
-    if (declaredModules(project).length === 0) {
+    if (declaredModules(checkout).length === 0) {
       throw new ModuleRequestError('No modules in the project!');
     }
     return { kind: 'updateAll' };
   }
 
-  const declaration = await requireDeclared(project, module);
+  const declaration = await requireDeclared(checkout, module);
 
   // Re-declaring the range is the upsert `install` does for a declared module.
   if (target.range !== undefined) {
@@ -98,7 +115,7 @@ async function buildUpdateRequest(
   if (version === undefined) return { kind: 'update', module };
 
   // The raw setting, so an invalid declared range refuses the version too.
-  const declared = project.configuration.modules.find(
+  const declared = checkout.configuration.modules.find(
     (m) => m.name === module,
   )?.version;
   if (declared) {
@@ -106,6 +123,14 @@ async function buildUpdateRequest(
       { range: declared, source: 'project' },
     ]);
   }
+  return { module, declaration, version };
+}
+
+async function confirmVersion(
+  source: SourceLayer,
+  { module, declaration, version }: PendingVersion,
+  credentials?: Credentials,
+): Promise<UpdateRequest> {
   const remote = await source
     .listRemoteVersions(
       declaration.source.location,
@@ -132,29 +157,27 @@ export interface Resolution extends SolveOutcome {
   target: UpdateTarget;
 }
 
-/** Builds the request `target` stands for and solves it. The caller owns `source`. */
+/** Solves a checked target. The caller owns `source`. */
 export async function resolveUpdate(
-  project: Project,
-  target: UpdateTarget,
+  checkout: Checkout,
+  { target, request }: CheckedTarget,
   opts: { source: SourceLayer; credentials?: Credentials },
 ): Promise<Resolution> {
-  const req = await buildUpdateRequest(
-    project,
-    opts.source,
-    target,
-    opts.credentials,
-  );
-  const outcome = await solve(project, req, opts.source, opts.credentials);
+  const req =
+    'kind' in request
+      ? request
+      : await confirmVersion(opts.source, request, opts.credentials);
+  const outcome = await solve(checkout, req, opts.source, opts.credentials);
   return { ...outcome, target };
 }
 
 /** The consumer view of a {@link Resolution}. */
 export async function toUpdatePlan(
-  project: Project,
+  checkout: Checkout,
   { target, result, listed, rangeWrites, assign }: Resolution,
 ): Promise<UpdatePlan> {
-  const declared = declaredModules(project);
-  const installations = await installedModules(project);
+  const declared = declaredModules(checkout);
+  const installations = await installedModules(checkout);
   const installed = new Map(installations.map((m) => [m.name, m.version]));
   const changes = result.ok ? result.changes : [];
   const moved = new Map(changes.map((c) => [c.module, c.to]));

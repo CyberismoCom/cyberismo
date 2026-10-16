@@ -12,12 +12,10 @@
 */
 
 import { type Command } from 'commander';
-
-import { Cmd, type CommandOptions } from '@cyberismo/data-handler';
-
 import { CommandGroup } from '../lib/args.js';
-import { commandHandler } from '../lib/dispatch.js';
-import { handleResponse } from '../lib/output.js';
+import { onProject } from '../lib/errors.js';
+import { printResult } from '../lib/output.js';
+import type { RankCommandOptions } from '../options.js';
 
 export function registerRank(program: Command) {
   const rank = new CommandGroup('rank').description(
@@ -39,14 +37,14 @@ export function registerRank(program: Command) {
       async (
         cardKey: string,
         afterCardKey: string,
-        options: CommandOptions<'rank'>,
+        options: RankCommandOptions,
       ) => {
-        const result = await commandHandler.command(
-          Cmd.rank,
-          ['card', cardKey, afterCardKey],
-          Object.assign({}, options, program.opts()),
+        await onProject(Object.assign({}, options, program.opts()), (ws) =>
+          afterCardKey === 'first'
+            ? ws.cards.rankFirst(cardKey)
+            : ws.cards.rank(cardKey, afterCardKey),
         );
-        handleResponse(result);
+        printResult();
       },
     );
 
@@ -59,12 +57,10 @@ export function registerRank(program: Command) {
       '[parentCardKey]',
       'if null, rebalance the whole project, otherwise rebalance only the direct children',
     )
-    .action(async (cardKey: string, options: CommandOptions<'rank'>) => {
-      const result = await commandHandler.command(
-        Cmd.rank,
-        ['rebalance', cardKey],
-        Object.assign({}, options, program.opts()),
+    .action(async (cardKey: string, options: RankCommandOptions) => {
+      await onProject(Object.assign({}, options, program.opts()), (ws) =>
+        cardKey ? ws.cards.rebalance(cardKey) : ws.cards.rebalanceAll(),
       );
-      handleResponse(result);
+      printResult();
     });
 }

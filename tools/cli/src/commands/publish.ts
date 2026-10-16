@@ -12,12 +12,10 @@
 */
 
 import { type Command } from 'commander';
-
-import { Cmd, type CommandOptions } from '@cyberismo/data-handler';
-
 import { CommandWithPath } from '../lib/args.js';
-import { commandHandler } from '../lib/dispatch.js';
-import { handleResponse } from '../lib/output.js';
+import { onProject } from '../lib/errors.js';
+import { printResult } from '../lib/output.js';
+import type { PublishCommandOptions } from '../options.js';
 
 export function registerPublish(program: Command) {
   // Publish command - creates a git tag from cardsConfig version and pushes
@@ -28,14 +26,16 @@ export function registerPublish(program: Command) {
     .option('--dry-run', 'Show what would happen without doing it')
     .option('--remote <name>', 'Git remote to push to (default: origin)');
   program.addCommand(publishCmd);
-  publishCmd.action(async (options: CommandOptions<'publish'>) => {
-    const mergedOptions = Object.assign({}, options, program.opts());
-    const args = [options.dryRun ? 'true' : 'false', options.remote ?? ''];
-    const result = await commandHandler.command(
-      Cmd.publish,
-      args,
-      mergedOptions,
+  publishCmd.action(async (options: PublishCommandOptions) => {
+    const result = await onProject(
+      Object.assign({}, options, program.opts()),
+      (ws) =>
+        ws.versions.publish(!!options.dryRun, options.remote || undefined),
     );
-    handleResponse(result);
+    printResult(
+      result.dryRun
+        ? `Would publish v${result.version} (create tag and push to remote '${result.remote}')`
+        : `Published v${result.version}`,
+    );
   });
 }

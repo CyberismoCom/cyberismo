@@ -10,89 +10,60 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import {
-  Cmd,
-  CmdKey,
-  CmdValue,
-  Commands,
-  CommandManager,
-  ExportFormats,
-} from './command-handler.js';
+import { Workspace } from './workspace/workspace.js';
+import { ExportFormats } from './export/export.js';
 import { Validate } from './commands/validate.js';
 export { SCHEMA_VERSION } from '@cyberismo/migrations';
-export * from './interfaces/project-interfaces.js';
-export * from './interfaces/macros.js';
-export type { ProjectProvider } from './interfaces/project-provider.js';
-import { requestStatus } from './interfaces/request-status-interfaces.js';
-import { UpdateOperations } from './resources/resource-object.js';
-export type {
-  Operation,
-  OperationFor,
-  AddOperation,
-  ChangeOperation,
-  RankOperation,
-  RemoveOperation,
-} from './resources/resource-object.js';
-export type { MutationInput } from './mutations/types.js';
-export type { HubFetchFailure } from './commands/fetch.js';
-export type {
-  CleanFinding,
-  CleanReason,
-  CleanResult,
-} from './commands/clean.js';
-import { evaluateMacros } from './macros/index.js';
-import { validBumps } from './commands/version.js';
+export { createProject } from './directory/create-project.js';
+export { localFolder, openProjectAt } from './directory/local-folder.js';
+export { renameProject } from './directory/rename-project.js';
+export { migrateProject } from './directory/migrate-project.js';
+export type { ProjectDirectory } from './directory/project-directory.js';
+import { macroErrorText } from './macros/render.js';
+import { validBumps } from './versions/version.js';
 import {
   isResourceFolderType,
   resourceName,
   resourceNameToString,
 } from './utils/resource-utils.js';
 import { moduleNameFromCardKey } from './utils/card-utils.js';
-import { scanForProjects } from './project-scanner.js';
-import { Create } from './commands/create.js';
 
 export {
-  Cmd,
-  CmdKey,
-  CmdValue,
-  CommandManager,
-  Commands,
-  Create,
+  Workspace,
   ExportFormats,
   isResourceFolderType,
   moduleNameFromCardKey,
-  requestStatus,
   resourceName,
   resourceNameToString,
-  scanForProjects,
-  UpdateOperations,
   Validate,
-  evaluateMacros,
+  macroErrorText,
   validBumps,
 };
 
-// Export command-specific option interfaces
-export type {
-  CommandOptions,
-  AllCommandOptions,
-  AddCommandOptions,
-  CalcCommandOptions,
-  CreateCommandOptions,
-  EditCommandOptions,
-  ExportCommandOptions,
-  FetchCommandOptions,
-  ImportCommandOptions,
-  MoveCommandOptions,
-  PublishCommandOptions,
-  RankCommandOptions,
-  RemoveCommandOptions,
-  RenameCommandOptions,
-  ReportCommandOptions,
-  ShowCommandOptions,
-  StartCommandOptions,
-  TransitionCommandOptions,
-  UpdateCommandOptions,
-  UpdateModulesCommandOptions,
-  ValidateCommandOptions,
-  VersionCommandOptions,
-} from './interfaces/command-options.js';
+export {
+  CardNotFoundError,
+  ContainerMismatchError,
+  CycleError,
+  DHValidationError,
+  DomainError,
+  DuplicateCardKeyError,
+  MacroError,
+  MissingActorError,
+  ModuleRequestError,
+  PermissionDeniedError,
+  ProjectExistsError,
+  ProjectNotFoundError,
+  ReadOnlyContainerError,
+  ResourceNotFoundError,
+  SchemaNotFound,
+  WorkspaceDisposedError,
+} from './exceptions/index.js';
+export { AsciidoctorPdfError } from './export/export.js';
+export {
+  ModuleReplayFailedError,
+  ModuleValidationFailedError,
+} from './mutations/replay/replay.js';
+export { errorFunction } from './utils/error-utils.js';
+export type { WorkspaceOptions } from './workspace/workspace.js';
+export { SYSTEM_ACTOR, type CommitIdentity } from './utils/tx-record.js';
+export { createGit } from './infra/git-config.js';

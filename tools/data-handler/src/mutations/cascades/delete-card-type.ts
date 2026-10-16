@@ -13,15 +13,15 @@
 */
 
 import type { MutationContext } from '../handler.js';
-import { ResourcesFrom } from '../../containers/project/resources-from.js';
-import type { Card } from '../../interfaces/project-interfaces.js';
-import type { Operation } from '../../resources/resource-object.js';
+import { ResourcesFrom } from '../../infra/resources-from.js';
+import type { Card, Operation } from '@cyberismo/model';
+import { deleteCards } from '../../cards/delete.js';
 
 // Cards using this card type: local project cards plus local template cards.
 function affectedCards(ctx: MutationContext, cardTypeName: string): Card[] {
   return [
-    ...ctx.project.cardTree.cards(),
-    ...ctx.project.resources
+    ...ctx.checkout.cardTree.cards(),
+    ...ctx.checkout.resources
       .templates(ResourcesFrom.localOnly)
       .flatMap((t) => t.cardTree.cards()),
   ].filter((c) => c.metadata?.cardType === cardTypeName);
@@ -39,7 +39,7 @@ export async function deleteCardTypeCascade(
   cardTypeName: string,
 ): Promise<void> {
   // 1. Strip the card type from every local link type.
-  const linkTypes = ctx.project.resources.linkTypes(ResourcesFrom.localOnly);
+  const linkTypes = ctx.checkout.resources.linkTypes(ResourcesFrom.localOnly);
   for (const lt of linkTypes) {
     const data = lt.data;
     if (!data) continue;
@@ -56,7 +56,7 @@ export async function deleteCardTypeCascade(
   // 2. Delete every local card of this type, along with their subtrees and any
   //    links pointing at them. deleteCards handles the cascade; no per-card
   //    permission check applies to a structural cardType deletion.
-  await ctx.project.deleteCards(affectedCards(ctx, cardTypeName));
+  await deleteCards(ctx.checkout, affectedCards(ctx, cardTypeName));
 }
 
 /**
@@ -69,6 +69,6 @@ export async function deleteCardType(
   cardTypeName: string,
 ): Promise<void> {
   await deleteCardTypeCascade(ctx, cardTypeName);
-  const resource = ctx.project.resources.byType(cardTypeName, 'cardTypes');
+  const resource = ctx.checkout.resources.byType(cardTypeName, 'cardTypes');
   if (resource) await resource.delete();
 }

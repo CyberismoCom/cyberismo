@@ -11,21 +11,26 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { resourceName, type CommandManager } from '@cyberismo/data-handler';
+import {
+  ResourceNotFoundError,
+  resourceName,
+  type Workspace,
+} from '@cyberismo/data-handler';
 import type { VisibilityGroup, FieldVisibilityBody } from './schema.js';
 
-export async function getCardTypes(commands: CommandManager) {
-  const cardTypesWithDetails =
-    await commands.showCmd.showCardTypesWithDetails();
+export async function getCardTypes(ws: Workspace) {
+  const cardTypesWithDetails = await ws.resources.contents('cardTypes');
   return cardTypesWithDetails;
 }
 
 export async function createCardType(
-  commands: CommandManager,
+  ws: Workspace,
   cardTypeName: string,
   workflowName: string,
 ) {
-  await commands.createCmd.createCardType(cardTypeName, workflowName);
+  await ws.resources.create(cardTypeName, 'cardTypes', {
+    workflow: workflowName,
+  });
 }
 
 const groupToKey: Record<Exclude<VisibilityGroup, 'hidden'>, string> = {
@@ -48,19 +53,16 @@ function getCurrentGroup(
  * Handles moving fields between visibility groups and reordering within groups.
  */
 export async function updateFieldVisibility(
-  commands: CommandManager,
+  ws: Workspace,
   cardTypeName: string,
   body: FieldVisibilityBody,
 ): Promise<void> {
   const { fieldName, group: targetGroup, index: targetIndex } = body;
   const target = resourceName(cardTypeName);
 
-  await commands.atomic(async () => {
+  await ws.atomic(async () => {
     // Read is now inside the write lock
-    const cardType = await commands.showCmd.showResource(
-      cardTypeName,
-      'cardTypes',
-    );
+    const cardType = await ws.resources.show(cardTypeName, 'cardTypes');
     if (!cardType) {
       throw new Error(`Card type '${cardTypeName}' not found`);
     }
@@ -74,7 +76,8 @@ export async function updateFieldVisibility(
       (f: { name: string }) => f.name === fieldName,
     );
     if (!fieldExists) {
-      throw new Error(
+      throw new ResourceNotFoundError(
+        fieldName,
         `Field '${fieldName}' does not exist in card type '${cardTypeName}'. `,
       );
     }
@@ -88,7 +91,7 @@ export async function updateFieldVisibility(
     // If same group, just handle reordering
     if (currentGroup === targetGroup) {
       if (targetGroup !== 'hidden' && targetIndex !== undefined) {
-        await commands.updateCmd.apply({
+        await ws.changes.apply({
           kind: 'edit',
           target,
           updateKey: { key: groupToKey[targetGroup] },
@@ -100,7 +103,7 @@ export async function updateFieldVisibility(
 
     // Remove from current group (if not hidden)
     if (currentGroup !== 'hidden') {
-      await commands.updateCmd.apply({
+      await ws.changes.apply({
         kind: 'edit',
         target,
         updateKey: { key: groupToKey[currentGroup] },
@@ -110,7 +113,7 @@ export async function updateFieldVisibility(
 
     // Add to new group (if not hidden)
     if (targetGroup !== 'hidden') {
-      await commands.updateCmd.apply({
+      await ws.changes.apply({
         kind: 'edit',
         target,
         updateKey: { key: groupToKey[targetGroup] },
@@ -118,7 +121,7 @@ export async function updateFieldVisibility(
       });
 
       if (targetIndex !== undefined) {
-        await commands.updateCmd.apply({
+        await ws.changes.apply({
           kind: 'edit',
           target,
           updateKey: { key: groupToKey[targetGroup] },

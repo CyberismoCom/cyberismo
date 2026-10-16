@@ -39,7 +39,7 @@ import type {
   CalculationLink,
   LinkDirection,
   QueryResult,
-} from '@cyberismo/data-handler/types/queries';
+} from '@cyberismo/model';
 import {
   canCreateLinkToCard,
   createPredicate,

@@ -23,12 +23,12 @@ import {
   registerMacros,
   validateMacroContent,
 } from '../../src/macros/index.js';
-import type { Project } from '../../src/containers/project.js';
+import type { Checkout } from '../../src/infra/checkout.js';
 import TaskQueue from '../../src/macros/task-queue.js';
 
 import { MAX_LEVEL_OFFSET, ROOT } from '../../src/utils/constants.js';
 
-import type { Card } from '../../src/interfaces/project-interfaces.js';
+import type { Card } from '@cyberismo/model';
 import type { MacroGenerationContext } from '../../src/interfaces/macros.js';
 import { CardNotFoundError } from '../../src/exceptions/index.js';
 import type { Mode } from '../../src/interfaces/macros.js';
@@ -36,7 +36,7 @@ import type { Mode } from '../../src/interfaces/macros.js';
 const baseDir = import.meta.dirname;
 const testDir = join(baseDir, 'tmp-calculate-tests');
 const decisionRecordsPath = join(testDir, 'valid/decision-records');
-let project: Project;
+let checkout: Checkout;
 
 class TestMacro extends BaseMacro {
   constructor(schema: string) {
@@ -128,9 +128,9 @@ describe('macros', () => {
     beforeAll(async () => {
       mkdirSync(testDir, { recursive: true });
       await copyDir('test/test-data/', testDir);
-      project = getTestProject(decisionRecordsPath);
-      await project.populateCaches();
-      await project.calculationEngine.generate();
+      checkout = getTestProject(decisionRecordsPath);
+      await checkout.populateCaches();
+      await checkout.calculationEngine.generate();
     });
 
     afterAll(() => {
@@ -142,7 +142,7 @@ describe('macros', () => {
       it('createCards inject (success)', async () => {
         const result = await evaluateMacros(validAdoc, {
           mode: 'inject',
-          project: project,
+          checkout,
           cardKey: '',
           context: 'localApp',
         });
@@ -151,7 +151,7 @@ describe('macros', () => {
       it('createCards static (success)', async () => {
         const result = await evaluateMacros(validAdoc, {
           mode: 'static',
-          project: project,
+          checkout,
           cardKey: '',
           context: 'localApp',
         });
@@ -160,7 +160,7 @@ describe('macros', () => {
       it('createCards exportSite (success)', async () => {
         const result = await evaluateMacros(validAdoc, {
           mode: 'staticSite',
-          project: project,
+          checkout,
           cardKey: '',
           context: 'localApp',
         });
@@ -173,7 +173,7 @@ describe('macros', () => {
         const withRaw = `{{#raw}}${macro}{{/raw}}`;
         const result = await evaluateMacros(withRaw, {
           mode: 'static',
-          project: project,
+          checkout,
           cardKey: '',
           context: 'localApp',
         });
@@ -189,7 +189,7 @@ describe('macros', () => {
         const withRaw = `{{#raw}}${handlebarsContent}{{/raw}}`;
         const result = await evaluateMacros(withRaw, {
           mode: 'static',
-          project: project,
+          checkout,
           cardKey: '',
           context: 'localApp',
         });
@@ -208,7 +208,7 @@ describe('macros', () => {
         const withRaw = `{{#raw}}${mixedContent}{{/raw}}`;
         const result = await evaluateMacros(withRaw, {
           mode: 'static',
-          project: project,
+          checkout,
           cardKey: '',
           context: 'localApp',
         });
@@ -223,7 +223,7 @@ RawContent2
 RawContent3`;
         const result = await evaluateMacros(nestedContent, {
           mode: 'static',
-          project: project,
+          checkout,
           cardKey: '',
           context: 'localApp',
         });
@@ -239,7 +239,7 @@ More outer content
 {{/raw}}`;
         const result = await evaluateMacros(nestedContent, {
           mode: 'static',
-          project: project,
+          checkout,
           cardKey: '',
           context: 'localApp',
         });
@@ -253,7 +253,7 @@ This raw block has no closing tag
 Some content here`;
         const result = await evaluateMacros(unclosedContent, {
           mode: 'static',
-          project: project,
+          checkout,
           cardKey: '',
           context: 'localApp',
         });
@@ -267,7 +267,7 @@ Some content here`;
         const macro = `{{#scoreCard}}"title": "Scorecard", "value": 99, "unit": "%", "legend": "complete"{{/scoreCard}}`;
         const result = await evaluateMacros(macro, {
           mode: 'inject',
-          project: project,
+          checkout,
           cardKey: '',
           context: 'localApp',
         });
@@ -277,7 +277,7 @@ Some content here`;
         const macro = `{{#scoreCard}}"title": "Open issues", "value": 0 {{/scoreCard}}`;
         const result = await evaluateMacros(macro, {
           mode: 'static',
-          project: project,
+          checkout,
           cardKey: '',
           context: 'localApp',
         });
@@ -287,7 +287,7 @@ Some content here`;
         const macro = `{{#scoreCard}}"title": "Scorecard", "value": 99, "unit": "%", "legend": "complete"{{/scoreCard}}`;
         const result = await evaluateMacros(macro, {
           mode: 'staticSite',
-          project: project,
+          checkout,
           cardKey: '',
           context: 'localApp',
         });
@@ -299,7 +299,7 @@ Some content here`;
         const macro = `{{#percentage}}"title": "Test Percentage", "value": 85, "legend": "of Assets", "colour": "red"{{/percentage}}`;
         const result = await evaluateMacros(macro, {
           mode: 'inject',
-          project: project,
+          checkout,
           cardKey: '',
           context: 'localApp',
         });
@@ -311,7 +311,7 @@ Some content here`;
         const macro = `{{#percentage}}"title": "Static Percentage", "value": 42, "legend": "done", "colour": "green"{{/percentage}}`;
         const result = await evaluateMacros(macro, {
           mode: 'static',
-          project: project,
+          checkout,
           cardKey: '',
           context: 'localApp',
         });
@@ -321,7 +321,7 @@ Some content here`;
         const macro = `{{#percentage}}"title": "Test Percentage", "value": 85, "legend": "of Assets", "colour": "red"{{/percentage}}`;
         const result = await evaluateMacros(macro, {
           mode: 'staticSite',
-          project: project,
+          checkout,
           cardKey: '',
           context: 'localApp',
         });
@@ -333,7 +333,7 @@ Some content here`;
         const macro = `{{#percentage}}"value": 50, "legend": "missing title"{{/percentage}}`;
         const result = await evaluateMacros(macro, {
           mode: 'static',
-          project: project,
+          checkout,
           cardKey: '',
           context: 'localApp',
         });
@@ -344,7 +344,7 @@ Some content here`;
         const macro = `{{#percentage}}"title": "No Value", "legend": "No Value"{{/percentage}}`;
         const result = await evaluateMacros(macro, {
           mode: 'static',
-          project: project,
+          checkout,
           cardKey: '',
           context: 'localApp',
         });
@@ -355,7 +355,7 @@ Some content here`;
         const macro = `{{#percentage}}"title": "No Legend", "value": 10{{/percentage}}`;
         const result = await evaluateMacros(macro, {
           mode: 'static',
-          project: project,
+          checkout,
           cardKey: '',
           context: 'localApp',
         });
@@ -366,7 +366,7 @@ Some content here`;
         const macro = `{{#percentage}}"title": "String Value", "value": "not a number", "legend": "fail"{{/percentage}}`;
         const result = await evaluateMacros(macro, {
           mode: 'static',
-          project: project,
+          checkout,
           cardKey: '',
           context: 'localApp',
         });
@@ -377,7 +377,7 @@ Some content here`;
         const macro = `{{#percentage}}"title": "Malformed", "value": 10, "legend": "fail"`;
         const result = await evaluateMacros(macro, {
           mode: 'static',
-          project: project,
+          checkout,
           cardKey: '',
           context: 'localApp',
         });
@@ -389,7 +389,7 @@ Some content here`;
         const macro = `{{#report}}"name": "decision/reports/divideByZeroReport"{{/report}}`;
         const result = await evaluateMacros(macro, {
           mode: 'static',
-          project: project,
+          checkout,
           cardKey: 'decision_1',
           context: 'localApp',
         });
@@ -399,13 +399,15 @@ Some content here`;
     });
     describe('includeMacro', () => {
       let cardDetailsByIdStub: sinon.SinonStub;
-      let cardContentStub: sinon.SinonStub;
+      let treeOfStub: sinon.SinonStub;
       beforeEach(() => {
-        cardDetailsByIdStub = stub(project, 'cardNode');
-        cardContentStub = stub(project, 'cardContent');
-        cardContentStub.callsFake(
-          (cardKey: string) => (cardDetailsByIdStub(cardKey) as Card).content,
-        );
+        const tree = {
+          node: () => undefined as Card | undefined,
+          content: (cardKey: string) =>
+            (cardDetailsByIdStub(cardKey) as Card).content,
+        };
+        cardDetailsByIdStub = stub(tree, 'node');
+        treeOfStub = stub(checkout, 'treeOf').returns(tree as never);
 
         const baseCard: Card = {
           key: '',
@@ -466,7 +468,7 @@ Some content here`;
       });
       afterEach(() => {
         cardDetailsByIdStub.restore();
-        cardContentStub.restore();
+        treeOfStub.restore();
       });
       ['static', 'inject', 'staticSite'].forEach((mode) => {
         it(`includeMacro ${mode} (success)`, async () => {
@@ -474,7 +476,7 @@ Some content here`;
             const macro = `{{#include}}"cardKey": "test-card"{{/include}}`;
             const result = await evaluateMacros(macro, {
               mode: mode as Mode,
-              project: project,
+              checkout,
               cardKey: '',
               context: 'localApp',
             });
@@ -494,7 +496,7 @@ Some content here`;
         const macro = `{{#include}}"cardKey": "test-card", "levelOffset": "+1"{{/include}}`;
         const result = await evaluateMacros(macro, {
           mode: 'static',
-          project: project,
+          checkout,
           cardKey: '',
           context: 'localApp',
         });
@@ -505,7 +507,7 @@ Some content here`;
         const macro = `{{#include}}"cardKey": "testCardBlocks", "levelOffset": "+1", "title": "exclude"{{/include}}`;
         const result = await evaluateMacros(macro, {
           mode: 'static',
-          project: project,
+          checkout,
           cardKey: '',
           context: 'localApp',
         });
@@ -518,7 +520,7 @@ Some content here`;
         const macro = `{{#include}}"cardKey": "testCardOpenTable", "title": "exclude"{{/include}}\n\nAfter`;
         const result = await evaluateMacros(macro, {
           mode: 'static',
-          project: project,
+          checkout,
           cardKey: '',
           context: 'localApp',
         });
@@ -529,7 +531,7 @@ Some content here`;
         const macro = `{{#include}}"cardKey": "test-card", "levelOffset": "-10"{{/include}}`;
         const result = await evaluateMacros(macro, {
           mode: 'static',
-          project: project,
+          checkout,
           cardKey: '',
           context: 'localApp',
         });
@@ -542,7 +544,7 @@ Some content here`;
         const macro = `{{#include}}"cardKey": "non-existent-card"{{/include}}`;
         const result = await evaluateMacros(macro, {
           mode: 'static',
-          project: project,
+          checkout,
           cardKey: '',
           context: 'localApp',
         });
@@ -560,7 +562,7 @@ Some content here`;
         const macro = `{{#include}}"cardKey": "test-card", "levelOffset": "test"{{/include}}`;
         const result = await evaluateMacros(macro, {
           mode: 'static',
-          project: project,
+          checkout,
           cardKey: '',
           context: 'localApp',
         });
@@ -572,7 +574,7 @@ Some content here`;
         const macro = `{{#include}}"cardKey": "test-card", "levelOffset": 1{{/include}}`;
         const result = await evaluateMacros(macro, {
           mode: 'static',
-          project: project,
+          checkout,
           cardKey: '',
           context: 'localApp',
         });
@@ -582,7 +584,7 @@ Some content here`;
         const macro = `{{#include}}"cardKey": "test-card", "levelOffset": "+10"{{/include}}`;
         const result = await evaluateMacros(macro, {
           mode: 'static',
-          project: project,
+          checkout,
           cardKey: '',
           context: 'localApp',
         });
@@ -598,7 +600,7 @@ Some content here`;
         const macro = `{{#include}}"cardKey": "testCardNested"{{/include}}`;
         const result = await evaluateMacros(macro, {
           mode: 'static',
-          project: project,
+          checkout,
           cardKey: '',
           context: 'localApp',
         });
@@ -618,7 +620,7 @@ Some content here`;
         const macro = `{{#include}}"cardKey": "testCardNestedWithOffset"{{/include}}`;
         const result = await evaluateMacros(macro, {
           mode: 'static',
-          project: project,
+          checkout,
           cardKey: '',
           context: 'localApp',
         });
@@ -633,7 +635,7 @@ Some content here`;
         const macro = `{{#include}}"cardKey": "testCardNestedWithOffset", "levelOffset": "+1"{{/include}}`;
         const result = await evaluateMacros(macro, {
           mode: 'static',
-          project: project,
+          checkout,
           cardKey: '',
           context: 'localApp',
         });
@@ -649,7 +651,7 @@ Some content here`;
         const macro = `{{#include}}"cardKey": "test-card"{{/include}}`;
         const result = await evaluateMacros(macro, {
           mode: 'static',
-          project: project,
+          checkout,
           cardKey: 'original-card-key',
           context: 'localApp',
         });
@@ -681,7 +683,7 @@ Some content here`;
         const macro = `{{#include}}"cardKey": "test-card-with-raw"{{/include}}`;
         const result = await evaluateMacros(macro, {
           mode: 'static',
-          project: project,
+          checkout,
           cardKey: '',
           context: 'localApp',
         });
@@ -706,7 +708,7 @@ Some content here`;
             const macro = `{{#include}}"cardKey": "test-card", "whitespace": "keep"{{/include}}`;
             const result = await evaluateMacros(macro, {
               mode: mode as Mode,
-              project: project,
+              checkout,
               cardKey: '',
               context: 'localApp',
             });
@@ -723,7 +725,7 @@ Some content here`;
             const macro = `{{#include}}"cardKey": "test-card", "whitespace": "trim"{{/include}}`;
             const result = await evaluateMacros(macro, {
               mode: mode as Mode,
-              project: project,
+              checkout,
               cardKey: '',
               context: 'localApp',
             });
@@ -741,7 +743,7 @@ Some content here`;
             const macro = `{{#include}}"cardKey": "test-card"{{/include}}`;
             const result = await evaluateMacros(macro, {
               mode: mode as Mode,
-              project: project,
+              checkout,
               cardKey: '',
               context: 'localApp',
             });
@@ -773,7 +775,7 @@ Some content here`;
           const macro = `{{#include}}"cardKey": "json-content-card", "whitespace": "trim", "title": "exclude"{{/include}}`;
           const result = await evaluateMacros(macro, {
             mode: 'static',
-            project: project,
+            checkout,
             cardKey: '',
             context: 'localApp',
           });
@@ -789,7 +791,7 @@ Some content here`;
           const macro = `{{#include}}"cardKey": "test-card", "whitespace": "trim", "title": "only"{{/include}}`;
           const result = await evaluateMacros(macro, {
             mode: 'static',
-            project: project,
+            checkout,
             cardKey: '',
             context: 'localApp',
           });
@@ -825,7 +827,7 @@ Some content here`;
             const macro = `{{#include}}"cardKey": "json-escape-card", "title": "exclude", "whitespace": "trim", "escape": "json"{{/include}}`;
             const result = await evaluateMacros(macro, {
               mode: mode as Mode,
-              project: project,
+              checkout,
               cardKey: '',
               context: 'localApp',
             });
@@ -857,7 +859,7 @@ Some content here`;
             const macro = `{{#include}}"cardKey": "csv-escape-card", "title": "exclude", "whitespace": "trim", "escape": "csv"{{/include}}`;
             const result = await evaluateMacros(macro, {
               mode: mode as Mode,
-              project: project,
+              checkout,
               cardKey: '',
               context: 'localApp',
             });
@@ -889,7 +891,7 @@ Some content here`;
             const macro = `{{#include}}"cardKey": "csv-multi-quote-card", "title": "exclude", "whitespace": "trim", "escape": "csv"{{/include}}`;
             const result = await evaluateMacros(macro, {
               mode: mode as Mode,
-              project: project,
+              checkout,
               cardKey: '',
               context: 'localApp',
             });
@@ -920,7 +922,7 @@ Some content here`;
           const macro = `{{#include}}"cardKey": "plain-card", "title": "exclude", "whitespace": "trim"{{/include}}`;
           const result = await evaluateMacros(macro, {
             mode: 'static',
-            project: project,
+            checkout,
             cardKey: '',
             context: 'localApp',
           });
@@ -932,8 +934,13 @@ Some content here`;
     });
     describe('xrefMacro', () => {
       let cardDetailsByIdStub: sinon.SinonStub;
+      let treeOfStub: sinon.SinonStub;
       beforeEach(() => {
-        cardDetailsByIdStub = stub(project, 'cardNode');
+        const tree = {
+          node: () => undefined as Card | undefined,
+        };
+        cardDetailsByIdStub = stub(tree, 'node');
+        treeOfStub = stub(checkout, 'treeOf').returns(tree as never);
 
         const baseCard: Card = {
           key: '',
@@ -960,6 +967,7 @@ Some content here`;
       });
       afterEach(() => {
         cardDetailsByIdStub.restore();
+        treeOfStub.restore();
       });
 
       [
@@ -980,7 +988,7 @@ Some content here`;
           const macro = `{{#xref}}"cardKey": "xref-test-card"{{/xref}}`;
           const result = await evaluateMacros(macro, {
             mode: mode as Mode,
-            project: project,
+            checkout,
             cardKey: '',
             context: 'localApp',
           });
@@ -996,7 +1004,7 @@ Some content here`;
         const macro = `{{#xref}}"cardKey": "non-existent-card"{{/xref}}`;
         const result = await evaluateMacros(macro, {
           mode: 'static',
-          project: project,
+          checkout,
           cardKey: '',
           context: 'localApp',
         });
@@ -1014,7 +1022,7 @@ Some content here`;
         const content = `tekstiä {{#xref}}"cardKey": "non-existent-card"{{/xref}} lisää tekstiä`;
         const result = await evaluateMacros(content, {
           mode: 'static',
-          project: project,
+          checkout,
           cardKey: '',
           context: 'localApp',
         });
@@ -1032,7 +1040,7 @@ Some content here`;
         const macro = `{{#xref}}"invalidProperty": "test-value"{{/xref}}`;
         const result = await evaluateMacros(macro, {
           mode: 'static',
-          project: project,
+          checkout,
           cardKey: '',
           context: 'localApp',
         });
@@ -1044,7 +1052,7 @@ Some content here`;
         const macro = `{{#xref}}{{/xref}}`;
         const result = await evaluateMacros(macro, {
           mode: 'static',
-          project: project,
+          checkout,
           cardKey: '',
           context: 'localApp',
         });
@@ -1057,7 +1065,7 @@ Some content here`;
         const macro = `{{#image}}"fileName": "the-needle.heic"{{/image}}`;
         const result = await evaluateMacros(macro, {
           mode: 'static',
-          project: project,
+          checkout,
           cardKey: 'decision_1',
           context: 'localApp',
         });
@@ -1069,7 +1077,7 @@ Some content here`;
         const macro = `{{#image}}"fileName": "the-needle.heic"{{/image}}`;
         const result = await evaluateMacros(macro, {
           mode: 'inject',
-          project: project,
+          checkout,
           cardKey: 'decision_1',
           context: 'localApp',
         });
@@ -1083,7 +1091,7 @@ Some content here`;
         const macro = `{{#image}}"fileName": "the-needle.heic"{{/image}}`;
         const result = await evaluateMacros(macro, {
           mode: 'staticSite',
-          project: project,
+          checkout,
           cardKey: 'decision_1',
           context: 'localApp',
         });
@@ -1097,7 +1105,7 @@ Some content here`;
         const macro = `{{#image}}"fileName": "the-needle.heic", "cardKey": "decision_1"{{/image}}`;
         const result = await evaluateMacros(macro, {
           mode: 'inject',
-          project: project,
+          checkout,
           cardKey: 'decision_5',
           context: 'localApp',
         });
@@ -1111,7 +1119,7 @@ Some content here`;
         const macro = `{{#image}}"fileName": "the-needle.heic", "alt": "Test image", "title": "A test needle image"{{/image}}`;
         const result = await evaluateMacros(macro, {
           mode: 'inject',
-          project: project,
+          checkout,
           cardKey: 'decision_1',
           context: 'localApp',
         });
@@ -1126,7 +1134,7 @@ Some content here`;
           const macro = `{{#image}}"fileName": "${missingFile}"{{/image}}`;
           const result = await evaluateMacros(macro, {
             mode,
-            project: project,
+            checkout,
             cardKey: 'decision_1',
             context: 'localApp',
           });
@@ -1140,7 +1148,7 @@ Some content here`;
         const macro = `{{#image}}"fileName": "any.png", "cardKey": "non-existent-card"{{/image}}`;
         const result = await evaluateMacros(macro, {
           mode: 'inject',
-          project: project,
+          checkout,
           cardKey: 'decision_1',
           context: 'localApp',
         });
@@ -1154,7 +1162,7 @@ Some content here`;
         const macro = `{{#image}}"fileName": "test.png", "cardKey": "non-existent-card"{{/image}}`;
         const result = await evaluateMacros(macro, {
           mode: 'static',
-          project: project,
+          checkout,
           cardKey: 'decision_1',
           context: 'localApp',
         });
@@ -1169,7 +1177,7 @@ Some content here`;
         const macro = `{{#image}}"fileName": "non-existent-image.png"{{/image}}`;
         const result = await evaluateMacros(macro, {
           mode: 'static',
-          project: project,
+          checkout,
           cardKey: 'decision_5',
           context: 'localApp',
         });
@@ -1184,7 +1192,7 @@ Some content here`;
         const macro = `{{#image}}"invalidProperty": "test-value"{{/image}}`;
         const result = await evaluateMacros(macro, {
           mode: 'static',
-          project: project,
+          checkout,
           cardKey: 'decision_5',
           context: 'localApp',
         });
@@ -1196,7 +1204,7 @@ Some content here`;
         const macro = `{{#image}}{{/image}}`;
         const result = await evaluateMacros(macro, {
           mode: 'static',
-          project: project,
+          checkout,
           cardKey: 'decision_5',
           context: 'localApp',
         });
@@ -1209,9 +1217,9 @@ Some content here`;
     beforeAll(async () => {
       mkdirSync(testDir, { recursive: true });
       await copyDir('test/test-data/', testDir);
-      project = getTestProject(decisionRecordsPath);
-      await project.populateCaches();
-      await project.calculationEngine.generate();
+      checkout = getTestProject(decisionRecordsPath);
+      await checkout.populateCaches();
+      await checkout.calculationEngine.generate();
     });
 
     afterAll(() => {
@@ -1223,7 +1231,7 @@ Some content here`;
       // this should not throw an error
       const result = await evaluateMacros(validAdoc, {
         mode: 'validate',
-        project: project,
+        checkout,
         cardKey: '',
         context: 'localApp',
       });
@@ -1233,7 +1241,7 @@ Some content here`;
       await expect(
         evaluateMacros(invalidAdoc, {
           mode: 'validate',
-          project: project,
+          checkout,
           cardKey: '',
           context: 'localApp',
         }),
@@ -1247,7 +1255,7 @@ Some content here`;
         handlebars,
         {
           mode: 'inject',
-          project: project,
+          checkout,
           cardKey: '',
           context: 'localApp',
         },

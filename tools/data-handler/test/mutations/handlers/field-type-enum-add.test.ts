@@ -3,17 +3,18 @@ import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { copyDir } from '../../../src/utils/file-utils.js';
-import type { Project } from '../../../src/containers/project.js';
+import type { Checkout } from '../../../src/infra/checkout.js';
 import { getTestProject } from '../../helpers/test-utils.js';
 import { resourceName } from '../../../src/utils/resource-utils.js';
-import { ResourceMutations } from '../../../src/mutations/resource-mutations.js';
+import { Workspace } from '../../../src/workspace/workspace.js';
+import { SYSTEM_ACTOR } from '../../../src/utils/tx-record.js';
 
 const baseDir = import.meta.dirname;
 const testDir = join(baseDir, 'tmp-field-type-enum-add');
 const decisionRecordsPath = join(testDir, 'valid/decision-records');
-let project: Project;
+let checkout: Checkout;
 
-const fieldName = () => `${project.projectPrefix}/fieldTypes/testEnum`;
+const fieldName = () => `${checkout.projectPrefix}/fieldTypes/testEnum`;
 
 function seedEnumField() {
   const enumFieldPath = join(
@@ -48,22 +49,21 @@ describe('fieldType enumValues add routing', () => {
     mkdirSync(testDir, { recursive: true });
     await copyDir(join(baseDir, '..', '..', 'test-data'), testDir);
     seedEnumField();
-    project = getTestProject(decisionRecordsPath);
-    await project.populateCaches();
+    checkout = getTestProject(decisionRecordsPath);
+    await checkout.populateCaches();
   });
   afterEach(() => {
     rmSync(testDir, { recursive: true, force: true });
   });
 
   it('adds the new value to the field definition', async () => {
-    const mutations = new ResourceMutations(project);
-    await mutations.apply({
+    await Workspace.over(checkout, SYSTEM_ACTOR).changes.apply({
       kind: 'edit' as const,
       target: resourceName(fieldName()),
       updateKey: { key: 'enumValues' as const },
       operation: { name: 'add' as const, target: { enumValue: 'critical' } },
     });
-    const updated = project.resources.byType(fieldName(), 'fieldTypes').show();
+    const updated = checkout.resources.byType(fieldName(), 'fieldTypes').show();
     const values = (updated.enumValues ?? []).map((e) => e.enumValue);
     expect(values).toContain('critical');
   });

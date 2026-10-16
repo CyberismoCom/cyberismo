@@ -15,10 +15,9 @@
 import type { Handler, MutationContext } from '../handler.js';
 import type { EditInput } from '../types.js';
 import { resourceNameToString } from '../../utils/resource-utils.js';
-import { ResourcesFrom } from '../../containers/project/resources-from.js';
-import type { Card } from '../../interfaces/project-interfaces.js';
-import type { ChangeOperation } from '../../resources/resource-object.js';
-import type { EnumDefinition } from '../../interfaces/resource-interfaces.js';
+import { ResourcesFrom } from '../../infra/resources-from.js';
+import type { Card, ChangeOperation, EnumDefinition } from '@cyberismo/model';
+import { updateCardMetadataKey } from '../../cards/update.js';
 
 /**
  * FieldTypeResource.update renames the value in the enum definition; the
@@ -28,7 +27,7 @@ import type { EnumDefinition } from '../../interfaces/resource-interfaces.js';
 export class FieldTypeEnumRenameHandler implements Handler<EditInput> {
   async apply(ctx: MutationContext<EditInput>): Promise<void> {
     const name = resourceNameToString(ctx.input.target);
-    const resource = ctx.project.resources.byType(name, 'fieldTypes');
+    const resource = ctx.checkout.resources.byType(name, 'fieldTypes');
     if (!resource) throw new Error(`Field type '${name}' not found`);
 
     // Rename the value in the enum definition and persist it.
@@ -46,7 +45,7 @@ export class FieldTypeEnumRenameHandler implements Handler<EditInput> {
 
     for (const card of this.affectedCards(ctx, name)) {
       if (card.metadata?.[name] === oldValue) {
-        await ctx.project.updateCardMetadataKey(card.key, name, newValue);
+        await updateCardMetadataKey(ctx.checkout, card.key, name, newValue);
       }
     }
   }
@@ -55,8 +54,8 @@ export class FieldTypeEnumRenameHandler implements Handler<EditInput> {
   // template cards. The field key carrying the old value is itself the evidence
   // a card needs migrating, so no card-type scoping is required.
   private affectedCards(ctx: MutationContext, fieldName: string): Card[] {
-    const project = [...ctx.project.cardTree.cards()];
-    const templates = ctx.project.resources
+    const project = [...ctx.checkout.cardTree.cards()];
+    const templates = ctx.checkout.resources
       .templates(ResourcesFrom.localOnly)
       .flatMap((t) => t.cardTree.cards());
     return [...project, ...templates].filter(

@@ -11,7 +11,7 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 import { describe, expect, test } from 'vitest';
-import { formatProjectErrors } from '../src/project-errors.js';
+import { formatProjectErrors } from '@cyberismo/model';
 
 describe('formatProjectErrors', () => {
   test('groups messages under their project and caps each project separately', () => {

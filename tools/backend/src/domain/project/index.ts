@@ -31,9 +31,9 @@ import { requireRole } from '../../middleware/auth.js';
 const router = new Hono();
 
 router.get('/', requireRole(UserRole.Reader), async (c) => {
-  const commands = c.get('commands');
+  const ws = c.get('ws');
 
-  const project = await projectService.getProject(commands);
+  const project = await projectService.getProject(ws);
   return c.json(project);
 });
 
@@ -42,17 +42,21 @@ router.patch(
   requireRole(UserRole.Admin),
   zValidator('json', updateProjectSchema),
   async (c) => {
-    const commands = c.get('commands');
+    const ws = c.get('ws');
     const updates = c.req.valid('json');
 
-    const project = await projectService.updateProject(commands, updates);
+    const project = await projectService.updateProject(
+      ws,
+      c.get('directory'),
+      updates,
+    );
     return c.json(project);
   },
 );
 
 router.post('/modules/update', requireRole(UserRole.Admin), async (c) => {
-  const commands = c.get('commands');
-  await projectService.updateAllModules(commands);
+  const ws = c.get('ws');
+  await projectService.updateAllModules(ws);
   return c.json({ message: 'All modules updated' });
 });
 
@@ -62,10 +66,10 @@ router.post(
   zValidator('param', moduleParamSchema),
   zValidator('json', updateModuleSchema),
   async (c) => {
-    const commands = c.get('commands');
+    const ws = c.get('ws');
     const { module } = c.req.valid('param');
     const { range } = c.req.valid('json');
-    await projectService.updateModule(commands, module, range);
+    await projectService.updateModule(ws, module, range);
     return c.json({ message: 'Module updated' });
   },
 );
@@ -77,9 +81,9 @@ router.get(
   requireRole(UserRole.Admin),
   zValidator('query', moduleVersionsQuerySchema),
   async (c) => {
-    const commands = c.get('commands');
+    const ws = c.get('ws');
     const target = c.req.valid('query');
-    return c.json(await projectService.listModuleVersions(commands, target));
+    return c.json(await projectService.listModuleVersions(ws, target));
   },
 );
 
@@ -88,14 +92,14 @@ router.get(
   disableSSG(),
   requireRole(UserRole.Admin),
   async (c) => {
-    const commands = c.get('commands');
-    return c.json(await projectService.getUpdatePlan(commands));
+    const ws = c.get('ws');
+    return c.json(await projectService.getUpdatePlan(ws));
   },
 );
 
 router.get('/modules/importable', requireRole(UserRole.Reader), async (c) => {
-  const commands = c.get('commands');
-  const modules = await projectService.getImportableModules(commands);
+  const ws = c.get('ws');
+  const modules = await projectService.getImportableModules(ws);
   return c.json(modules);
 });
 
@@ -104,9 +108,9 @@ router.post(
   requireRole(UserRole.Admin),
   zValidator('json', importModuleSchema),
   async (c) => {
-    const commands = c.get('commands');
+    const ws = c.get('ws');
     const { source, range } = c.req.valid('json');
-    await projectService.importModule(commands, source, range);
+    await projectService.importModule(ws, source, range);
     return c.json({ message: 'Module imported successfully' });
   },
 );
@@ -116,16 +120,16 @@ router.delete(
   requireRole(UserRole.Admin),
   zValidator('param', moduleParamSchema),
   async (c) => {
-    const commands = c.get('commands');
+    const ws = c.get('ws');
     const { module } = c.req.valid('param');
-    await projectService.deleteModule(commands, module);
+    await projectService.deleteModule(ws, module);
     return c.json({ message: 'Module removed' });
   },
 );
 
 router.get('/hubs', requireRole(UserRole.Reader), async (c) => {
-  const commands = c.get('commands');
-  const hubs = await projectService.getHubs(commands);
+  const ws = c.get('ws');
+  const hubs = await projectService.getHubs(ws);
   return c.json(hubs);
 });
 
@@ -134,9 +138,9 @@ router.post(
   requireRole(UserRole.Admin),
   zValidator('json', addHubSchema),
   async (c) => {
-    const commands = c.get('commands');
+    const ws = c.get('ws');
     const { location } = c.req.valid('json');
-    const unreachable = await projectService.addHub(commands, location);
+    const unreachable = await projectService.addHub(ws, location);
     return c.json({ message: 'Hub added', unreachable });
   },
 );
@@ -146,16 +150,16 @@ router.delete(
   requireRole(UserRole.Admin),
   zValidator('query', removeHubSchema),
   async (c) => {
-    const commands = c.get('commands');
+    const ws = c.get('ws');
     const { location } = c.req.valid('query');
-    await projectService.removeHub(commands, location);
+    await projectService.removeHub(ws, location);
     return c.json({ message: 'Hub removed' });
   },
 );
 
 router.post('/hubs/fetch', requireRole(UserRole.Admin), async (c) => {
-  const commands = c.get('commands');
-  const unreachable = await projectService.fetchHubs(commands);
+  const ws = c.get('ws');
+  const unreachable = await projectService.fetchHubs(ws);
   return c.json({ message: 'Hubs fetched', unreachable });
 });
 
@@ -167,9 +171,9 @@ router.post(
   requireRole(UserRole.Admin),
   zValidator('json', cleanSchema),
   async (c) => {
-    const commands = c.get('commands');
+    const ws = c.get('ws');
     const { dryRun } = c.req.valid('json');
-    const result = await projectService.cleanProject(commands, dryRun);
+    const result = await projectService.cleanProject(ws, dryRun);
     return c.json(result);
   },
 );

@@ -15,10 +15,9 @@
 import type { Handler, MutationContext } from '../handler.js';
 import type { EditInput } from '../types.js';
 import { resourceNameToString } from '../../utils/resource-utils.js';
-import { ResourcesFrom } from '../../containers/project/resources-from.js';
-import type { Card } from '../../interfaces/project-interfaces.js';
-import type { RemoveOperation } from '../../resources/resource-object.js';
-import type { EnumDefinition } from '../../interfaces/resource-interfaces.js';
+import { ResourcesFrom } from '../../infra/resources-from.js';
+import type { Card, RemoveOperation, EnumDefinition } from '@cyberismo/model';
+import { updateCardMetadata } from '../../cards/update.js';
 
 // An enum value from either recorded shape: a full EnumDefinition object or
 // a bare string.
@@ -40,7 +39,7 @@ function enumValueOf(value: unknown): string | undefined {
 export class FieldTypeEnumRemoveHandler implements Handler<EditInput> {
   async apply(ctx: MutationContext<EditInput>): Promise<void> {
     const fieldName = resourceNameToString(ctx.input.target);
-    const resource = ctx.project.resources.byType(fieldName, 'fieldTypes');
+    const resource = ctx.checkout.resources.byType(fieldName, 'fieldTypes');
     if (!resource) {
       throw new Error(`Field type '${fieldName}' not found`);
     }
@@ -76,7 +75,7 @@ export class FieldTypeEnumRemoveHandler implements Handler<EditInput> {
         // resulting project is judged once, at the end, by the replay's
         // validation gate. Per-write validation here would reject a card that
         // a later entry in the chain has yet to migrate.
-        return ctx.project.updateCardMetadata(card, card.metadata!);
+        return updateCardMetadata(ctx.checkout, card, card.metadata!);
       }),
     );
   }
@@ -86,8 +85,8 @@ export class FieldTypeEnumRemoveHandler implements Handler<EditInput> {
   // card type name: a card type rename elsewhere in the same update must not
   // hide a card from this cascade.
   private affectedCards(ctx: MutationContext, fieldName: string): Card[] {
-    const project = [...ctx.project.cardTree.cards()];
-    const templates = ctx.project.resources
+    const project = [...ctx.checkout.cardTree.cards()];
+    const templates = ctx.checkout.resources
       .templates(ResourcesFrom.localOnly)
       .flatMap((t) => t.cardTree.cards());
     return [...project, ...templates].filter(

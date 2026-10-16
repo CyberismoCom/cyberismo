@@ -6,22 +6,20 @@ import { expect, describe, it, beforeAll } from 'vitest';
 
 import { copyDir } from '../src/utils/file-utils.js';
 import { readJsonFile } from '../src/utils/json.js';
-import { Validate } from '../src/commands/index.js';
-import type { Project } from '../src/containers/project.js';
+import { Validate } from '../src/commands/validate.js';
+import type { Checkout } from '../src/infra/checkout.js';
 import { errorFunction } from '../src/utils/error-utils.js';
 import { resourceName } from '../src/utils/resource-utils.js';
 import { getTestBaseDir, getTestProject } from './helpers/test-utils.js';
-import type {
-  Card,
-  ResourceTypes,
-} from '../src/interfaces/project-interfaces.js';
+import type { Card, ResourceTypes } from '@cyberismo/model';
+import { findCard } from '../src/cards/read.js';
 
 describe('validate cmd tests', () => {
   const baseDir = getTestBaseDir(import.meta.dirname, import.meta.url);
   const testDir = join(baseDir, 'test-data');
   const validateCmd = Validate.getInstance();
-  let validProject: Project;
-  let invalidCalcProject: Project;
+  let validProject: Checkout;
+  let invalidCalcProject: Checkout;
 
   beforeAll(async () => {
     validProject = getTestProject('test/test-data/valid/decision-records');
@@ -182,51 +180,51 @@ describe('validate cmd tests', () => {
   });
 
   it('validateWorkflowState (success)', async () => {
-    const card = validProject.findCard('decision_5');
+    const card = findCard(validProject, 'decision_5');
     const valid = await validateCmd.validateWorkflowState(validProject, card);
     expect(valid.length).toBe(0);
   });
   it('try to validateWorkflowState - invalid state', async () => {
-    const project = getTestProject(
+    const checkout = getTestProject(
       'test/test-data/invalid/invalid-card-has-wrong-state/',
     );
-    await project.populateCaches();
-    const card = project.findCard('decision_6');
-    const valid = await validateCmd.validateWorkflowState(project, card);
+    await checkout.populateCaches();
+    const card = findCard(checkout, 'decision_6');
+    const valid = await validateCmd.validateWorkflowState(checkout, card);
     expect(valid.length).toBeGreaterThan(0);
   });
   it('try to validateWorkflowState - card type not found', async () => {
-    const project = getTestProject(
+    const checkout = getTestProject(
       'test/test-data/invalid/invalid-card-has-wrong-state/',
     );
-    await project.populateCaches();
-    const card = project.findCard('decision_5');
-    const valid = await validateCmd.validateWorkflowState(project, card);
+    await checkout.populateCaches();
+    const card = findCard(checkout, 'decision_5');
+    const valid = await validateCmd.validateWorkflowState(checkout, card);
     expect(valid.length).toBeGreaterThan(0);
   });
   it('try to validateWorkflowState - workflow not found from project', async () => {
-    const project = getTestProject(
+    const checkout = getTestProject(
       'test/test-data/invalid/invalid-card-has-wrong-state/',
     );
-    await project.populateCaches();
-    const card = project.findCard('decision_7');
-    const valid = await validateCmd.validateWorkflowState(project, card);
+    await checkout.populateCaches();
+    const card = findCard(checkout, 'decision_7');
+    const valid = await validateCmd.validateWorkflowState(checkout, card);
     expect(valid.length).toBeGreaterThan(0);
   });
   it('try to validateWorkflowState - workflow not found from card', async () => {
-    const project = getTestProject(
+    const checkout = getTestProject(
       'test/test-data/invalid/invalid-card-has-wrong-state/',
     );
-    await project.populateCaches();
-    const card = project.findCard('decision_8');
+    await checkout.populateCaches();
+    const card = findCard(checkout, 'decision_8');
     if (card) {
-      const valid = await validateCmd.validateWorkflowState(project, card);
+      const valid = await validateCmd.validateWorkflowState(checkout, card);
       expect(valid.length).toBeGreaterThan(0);
     }
   });
   it('validate card custom fields data (success)', async () => {
     // card _6 has all of the types as custom fields (with null values)
-    const card = validProject.findCard('decision_6');
+    const card = findCard(validProject, 'decision_6');
     if (card) {
       const allPrefixes = await validProject.projectPrefixes();
       const valid = await validateCmd.validateCustomFields(
@@ -238,15 +236,15 @@ describe('validate cmd tests', () => {
     }
   });
   it('try to validate card custom fields - card type not found', async () => {
-    const project = getTestProject(
+    const checkout = getTestProject(
       'test/test-data/invalid/invalid-card-has-wrong-state/',
     );
-    await project.populateCaches();
-    const card = project.findCard('decision_5');
+    await checkout.populateCaches();
+    const card = findCard(checkout, 'decision_5');
     if (card) {
-      const allPrefixes = await project.projectPrefixes();
+      const allPrefixes = await checkout.projectPrefixes();
       const valid = await validateCmd.validateCustomFields(
-        project,
+        checkout,
         card,
         allPrefixes,
       );
@@ -254,7 +252,7 @@ describe('validate cmd tests', () => {
     }
   });
   it('try to validate card custom fields - no metadata for the card', async () => {
-    const card = validProject.findCard('decision_5');
+    const card = findCard(validProject, 'decision_5');
     if (card) {
       const allPrefixes = await validProject.projectPrefixes();
       await validateCmd
@@ -345,11 +343,14 @@ describe('validate cmd tests', () => {
     }
   });
   it('try to validate resource that has name conflicts with filename', async () => {
-    const project = getTestProject(
+    const checkout = getTestProject(
       'test/test-data/invalid/invalid-wrong-resource-names/',
     );
-    await project.populateCaches();
-    const errors = await validateCmd.validate(project.basePath, () => project);
+    await checkout.populateCaches();
+    const errors = await validateCmd.validate(
+      checkout.basePath,
+      () => checkout,
+    );
     const separatedErrors = errors.split('\n');
     const expectWrongPrefix1 =
       "Wrong prefix in resource 'wrong/templates/decision'. Project prefixes are '[decision]'";

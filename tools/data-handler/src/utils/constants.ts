@@ -11,7 +11,7 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import type { PredefinedCardMetadata } from '../interfaces/project-interfaces.js';
+import type { PredefinedCardMetadata } from '@cyberismo/model';
 
 // Card key separator between project prefix and card ID
 export const CARD_KEY_SEPARATOR = '_';

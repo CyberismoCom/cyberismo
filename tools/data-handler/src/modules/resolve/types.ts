@@ -12,13 +12,9 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import type { SealFile } from '../../mutations/replay/seal-files.js';
-import type {
-  ModuleDeclaration,
-  Source,
-  Version,
-  VersionRange,
-} from '../types.js';
+import type { Source } from '@cyberismo/model';
+import type { SealFile } from '../../infra/replay-log/seal-files.js';
+import type { Version, VersionRange } from '../../utils/version.js';
 
 export type UpdateRequest =
   | { kind: 'verify' }
@@ -63,16 +59,3 @@ export interface ResolveConflict {
 }
 export type ResolveResult =
   { ok: true; changes: Change[] } | { ok: false; conflicts: ResolveConflict[] };
-
-/** A module declaration after the resolver has chosen a concrete version. */
-export interface ResolvedModule {
-  declaration: ModuleDeclaration;
-  /** Git tag/branch to check out; undefined for file sources or unranged git. */
-  ref?: string;
-  /** Remote URL with credentials injected when needed; ready for `SourceLayer.fetch`. */
-  remoteUrl: string;
-  /** Resolved semver version; undefined when no concrete version was pinned. */
-  version?: Version;
-  /** Absolute path where the resolver staged this module's clone. */
-  stagedPath: string;
-}

@@ -16,10 +16,8 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { ResourceTemplate } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { ResourceTypeConfig } from '../lib/mcp-helpers.js';
-import {
-  resolveCommands,
-  type ProjectProvider,
-} from '../lib/resolve-project.js';
+import type { ProjectDirectory } from '@cyberismo/data-handler';
+import { callerOf, resolveWorkspace } from '../lib/resolve-project.js';
 
 import { getCardTree } from '../lib/render.js';
 
@@ -65,7 +63,7 @@ const resourceTypeConfigs: ResourceTypeConfig[] = [
 
 const registerResourceType = (
   server: McpServer,
-  provider: ProjectProvider,
+  directory: ProjectDirectory,
   config: ResourceTypeConfig,
 ) => {
   server.registerResource(
@@ -75,13 +73,16 @@ const registerResourceType = (
       { list: undefined },
     ),
     { description: config.description, mimeType: 'application/json' },
-    async (uri, { projectPrefix }) => {
-      const commands = resolveCommands(provider, projectPrefix as string);
-      const names = await commands.showCmd.showResources(config.resourceType);
+    async (uri, { projectPrefix }, extra) => {
+      const ws = await resolveWorkspace(
+        directory,
+        projectPrefix as string,
+        extra,
+        server,
+      );
+      const names = await ws.resources.list(config.resourceType);
       const details = await Promise.all(
-        names.map((name) =>
-          commands.showCmd.showResource(name, config.resourceType),
-        ),
+        names.map((name) => ws.resources.show(name, config.resourceType)),
       );
       return {
         contents: [
@@ -101,7 +102,7 @@ const registerResourceType = (
  */
 export function registerResources(
   server: McpServer,
-  provider: ProjectProvider,
+  directory: ProjectDirectory,
 ): void {
   // Projects listing (static URI)
   server.registerResource(
@@ -111,8 +112,9 @@ export function registerResources(
       description: 'List all available projects',
       mimeType: 'application/json',
     },
-    async () => {
-      const projects = provider.list();
+    async (_uri, extra) => {
+      callerOf(extra);
+      const projects = await directory.list();
       return {
         contents: [
           {
@@ -135,9 +137,14 @@ export function registerResources(
       description: 'Project information and settings',
       mimeType: 'application/json',
     },
-    async (uri, { projectPrefix }) => {
-      const commands = resolveCommands(provider, projectPrefix as string);
-      const project = await commands.showCmd.showProject();
+    async (uri, { projectPrefix }, extra) => {
+      const ws = await resolveWorkspace(
+        directory,
+        projectPrefix as string,
+        extra,
+        server,
+      );
+      const project = await ws.settings.info();
       return {
         contents: [
           {
@@ -160,9 +167,14 @@ export function registerResources(
       description: 'Card tree with hierarchy',
       mimeType: 'application/json',
     },
-    async (uri, { projectPrefix }) => {
-      const commands = resolveCommands(provider, projectPrefix as string);
-      const tree = await getCardTree(commands);
+    async (uri, { projectPrefix }, extra) => {
+      const ws = await resolveWorkspace(
+        directory,
+        projectPrefix as string,
+        extra,
+        server,
+      );
+      const tree = await getCardTree(ws);
       return {
         contents: [
           {
@@ -185,9 +197,14 @@ export function registerResources(
       description: 'All card type definitions',
       mimeType: 'application/json',
     },
-    async (uri, { projectPrefix }) => {
-      const commands = resolveCommands(provider, projectPrefix as string);
-      const cardTypes = await commands.showCmd.showCardTypesWithDetails();
+    async (uri, { projectPrefix }, extra) => {
+      const ws = await resolveWorkspace(
+        directory,
+        projectPrefix as string,
+        extra,
+        server,
+      );
+      const cardTypes = await ws.resources.contents('cardTypes');
       return {
         contents: [
           {
@@ -210,9 +227,14 @@ export function registerResources(
       description: 'All workflow definitions',
       mimeType: 'application/json',
     },
-    async (uri, { projectPrefix }) => {
-      const commands = resolveCommands(provider, projectPrefix as string);
-      const workflows = await commands.showCmd.showWorkflowsWithDetails();
+    async (uri, { projectPrefix }, extra) => {
+      const ws = await resolveWorkspace(
+        directory,
+        projectPrefix as string,
+        extra,
+        server,
+      );
+      const workflows = await ws.resources.contents('workflows');
       return {
         contents: [
           {
@@ -235,9 +257,14 @@ export function registerResources(
       description: 'All template definitions',
       mimeType: 'application/json',
     },
-    async (uri, { projectPrefix }) => {
-      const commands = resolveCommands(provider, projectPrefix as string);
-      const templates = await commands.showCmd.showTemplatesWithDetails();
+    async (uri, { projectPrefix }, extra) => {
+      const ws = await resolveWorkspace(
+        directory,
+        projectPrefix as string,
+        extra,
+        server,
+      );
+      const templates = await ws.resources.contents('templates');
       return {
         contents: [
           {
@@ -251,6 +278,6 @@ export function registerResources(
   );
 
   resourceTypeConfigs.forEach((config) => {
-    registerResourceType(server, provider, config);
+    registerResourceType(server, directory, config);
   });
 }

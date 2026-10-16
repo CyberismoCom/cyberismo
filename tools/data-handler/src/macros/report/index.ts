@@ -14,13 +14,13 @@
 import { validateMacroContent } from '../index.js';
 
 import type { MacroGenerationContext } from '../../interfaces/macros.js';
-import macroMetadata from './metadata.js';
+import macroMetadata from '@cyberismo/model/macros/report/metadata';
 import BaseMacro from '../base-macro.js';
 import { validateJson } from '../../utils/validate.js';
 import type TaskQueue from '../task-queue.js';
-import { generateReportContent } from '../../utils/report.js';
+import { generateReportContent } from '../../queries/report.js';
 import { ClingoError } from '@cyberismo/node-clingo';
-import type { ReportOptions } from './types.js';
+import type { ReportOptions } from '@cyberismo/model';
 
 class ReportMacro extends BaseMacro {
   constructor(tasks: TaskQueue) {
@@ -32,7 +32,7 @@ class ReportMacro extends BaseMacro {
 
   handleStatic = async (context: MacroGenerationContext, data: unknown) => {
     const options = this.validate(data);
-    const report = context.project.resources
+    const report = context.checkout.resources
       .byType(options.name, 'reports')
       .show();
 
@@ -43,7 +43,7 @@ class ReportMacro extends BaseMacro {
     }
     try {
       return await generateReportContent({
-        calculate: context.project.calculationEngine,
+        calculate: context.checkout.calculationEngine,
         contentTemplate: report.content.contentTemplate,
         queryTemplate: report.content.queryTemplate,
         options: {

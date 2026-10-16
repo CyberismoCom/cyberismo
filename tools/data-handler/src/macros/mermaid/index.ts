@@ -13,7 +13,7 @@
 */
 import type { MacroGenerationContext } from '../../interfaces/macros.js';
 import BaseMacro from '../base-macro.js';
-import macroMetadata from './metadata.js';
+import macroMetadata from '@cyberismo/model/macros/mermaid/metadata';
 import type TaskQueue from '../task-queue.js';
 import {
   createHtmlPlaceholder,
@@ -22,7 +22,7 @@ import {
 } from '../index.js';
 import { renderMermaidToSvg } from '../../utils/mermaid-renderer.js';
 import { sanitizeSvgBase64 } from '../../utils/sanitize-svg.js';
-import type { MermaidMacroInput } from './types.js';
+import type { MermaidMacroInput } from '@cyberismo/model';
 
 class MermaidMacro extends BaseMacro {
   constructor(tasksQueue: TaskQueue) {

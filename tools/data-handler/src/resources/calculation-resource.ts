@@ -16,7 +16,7 @@ import { join } from 'node:path';
 
 import { validateProgram } from '@cyberismo/node-clingo';
 
-import { CONTENT_FILES } from '../interfaces/folder-content-interfaces.js';
+import { CONTENT_FILES, type ResourceName } from '@cyberismo/model';
 import { DefaultContent } from '../resources/create-defaults.js';
 import { FolderResource } from './folder-resource.js';
 import { resourceNameToString } from '../utils/resource-utils.js';
@@ -24,11 +24,12 @@ import { sortCards } from '../utils/card-utils.js';
 import { writeFileSafe } from '../utils/file-utils.js';
 
 import type { ClingoValidationResult } from '@cyberismo/node-clingo';
-import type { CalculationContent } from '../interfaces/folder-content-interfaces.js';
-import type { CalculationMetadata } from '../interfaces/resource-interfaces.js';
-import type { Card } from '../interfaces/project-interfaces.js';
-import type { Project } from '../containers/project.js';
-import type { ResourceName } from '../utils/resource-utils.js';
+import type {
+  CalculationContent,
+  CalculationMetadata,
+  Card,
+} from '@cyberismo/model';
+import type { Checkout } from '../infra/checkout.js';
 
 /**
  * Calculation resource class.
@@ -39,11 +40,12 @@ export class CalculationResource extends FolderResource<
 > {
   /**
    * Creates instance of CalculationResource
-   * @param project Project to use
+   * @param checkout Project to use
    * @param name Resource name
+   * @internal
    */
-  constructor(project: Project, name: ResourceName) {
-    super(project, name, 'calculations');
+  constructor(checkout: Checkout, name: ResourceName) {
+    super(checkout, name, 'calculations');
 
     this.contentSchemaId = 'calculationSchema';
     this.contentSchema = super.contentSchemaContent(this.contentSchemaId);

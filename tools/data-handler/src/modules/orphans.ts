@@ -16,8 +16,8 @@ import { deleteDir } from '../utils/file-utils.js';
 import { getChildLogger } from '../utils/log-utils.js';
 import { declaredModules, installedModules } from './inventory.js';
 
-import type { Project } from '../containers/project.js';
-import type { ModuleInstallation } from './types.js';
+import type { Checkout } from '../infra/checkout.js';
+import type { ModuleInstallation } from '../mutations/replay/module-types.js';
 
 /**
  * Options for {@link cleanOrphans}.
@@ -62,13 +62,13 @@ export function findOrphans<
  * @returns Number of installation folders removed.
  */
 export async function cleanOrphans(
-  project: Project,
+  checkout: Checkout,
   options: CleanOrphansOptions = {},
 ): Promise<number> {
   const logger = getChildLogger({ module: 'orphans' });
   const orphans = findOrphans(
-    declaredModules(project).map((d) => d.name),
-    await installedModules(project),
+    declaredModules(checkout).map((d) => d.name),
+    await installedModules(checkout),
   );
   for (const installation of orphans) {
     logger.debug(
@@ -79,7 +79,7 @@ export async function cleanOrphans(
     await deleteDir(installation.path);
   }
   if (orphans.length > 0) {
-    await project.refreshAfterModuleChange();
+    await checkout.refreshAfterModuleChange();
   }
   return orphans.length;
 }

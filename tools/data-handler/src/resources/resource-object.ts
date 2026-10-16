@@ -29,69 +29,21 @@ import {
   resourceName,
   resourceNameToPath,
   resourceNameToString,
-  type ResourceName,
 } from '../utils/resource-utils.js';
 import type {
   Card,
   ResourceFolderType,
-} from '../interfaces/project-interfaces.js';
-import type { Logger } from 'pino';
-import type { Project } from '../containers/project.js';
-import type {
   ResourceBaseMetadata,
   UpdateKey,
-} from '../interfaces/resource-interfaces.js';
+  ChangeOperation,
+  Operation,
+  ResourceName,
+} from '@cyberismo/model';
+import type { Logger } from 'pino';
+import type { Checkout } from '../infra/checkout.js';
 import type { Validate } from '../commands/validate.js';
-
-// Possible operations to perform when doing "update"
-export type UpdateOperations = 'add' | 'change' | 'rank' | 'remove';
-
-// Base class for update operations.
-type BaseOperation<T> = {
-  name: 'add' | 'change' | 'rank' | 'remove';
-  target: T;
-};
-
-// Add item to an array.
-export type AddOperation<T> = BaseOperation<T> & {
-  name: 'add';
-};
-
-// Change item in an array or property in an object or rename a scalar.
-// 'target' is the item to change and is required for array changes; scalar
-// changes carry no old value, so it may be omitted.
-export type ChangeOperation<T> = Omit<BaseOperation<T>, 'target'> & {
-  name: 'change';
-  target?: T;
-  to: T;
-  mappingTable?: { stateMapping: Record<string, string> }; // Optional state mapping for workflow changes
-};
-
-// Move item in an array to new position.
-export type RankOperation<T> = BaseOperation<T> & {
-  name: 'rank';
-  newIndex: number;
-};
-
-// Remove item from an array.
-export type RemoveOperation<T> = BaseOperation<T> & {
-  name: 'remove';
-  replacementValue?: T;
-};
-
-export type Operation<T> =
-  AddOperation<T> | ChangeOperation<T> | RankOperation<T> | RemoveOperation<T>;
-
-// Utility mapping from operation name to its concrete operation type
-export type OperationMap<T> = {
-  add: AddOperation<T>;
-  change: ChangeOperation<T>;
-  rank: RankOperation<T>;
-  remove: RemoveOperation<T>;
-};
-
-// Given an operation name, get the corresponding operation type
-export type OperationFor<T, N extends UpdateOperations> = OperationMap<T>[N];
+import { allTemplateCards } from '../cards/read.js';
+import { ResourceNotFoundError } from '../exceptions/index.js';
 
 // T, but U is in the content field
 export type ShowReturnType<T extends ResourceBaseMetadata, U = never> = Omit<
@@ -149,18 +101,19 @@ export abstract class ResourceObject<
 
   /**
    * Constructs a ResourceObject instance
-   * @param project Project where this resource is
+   * @param checkout Project where this resource is
    * @param resourceName Name for the resource
    * @param type Type of resource
+   * @internal
    */
   constructor(
-    protected project: Project,
+    protected checkout: Checkout,
     protected resourceName: ResourceName,
     type: ResourceFolderType,
   ) {
     super();
     this.moduleResource =
-      this.resourceName.prefix !== this.project.projectPrefix;
+      this.resourceName.prefix !== this.checkout.projectPrefix;
     this.type = type;
     this.logger = this.getLogger(this.getType);
     this.content = { name: '' } as T; // not found if name is empty
@@ -169,7 +122,7 @@ export abstract class ResourceObject<
   // Check if resource already exists. First checks the cache, then filesystem.
   private exists(): boolean {
     const name = resourceNameToString(this.resourceName);
-    const existsInCache = this.project.resources.exists(name);
+    const existsInCache = this.checkout.resources.exists(name);
     return existsInCache || pathExists(this.fileName);
   }
 
@@ -198,7 +151,8 @@ export abstract class ResourceObject<
     if (!this.exists()) {
       const resourceType = `${this.type[0].toUpperCase()}${this.type.slice(1, this.type.length - 1)}`;
       const name = resourceNameToString(this.resourceName);
-      throw new Error(
+      throw new ResourceNotFoundError(
+        name,
         `${resourceType} '${name}' does not exist in the project`,
       );
     }
@@ -215,7 +169,7 @@ export abstract class ResourceObject<
    */
   protected async calculations(): Promise<string[]> {
     const name = resourceNameToString(this.resourceName);
-    return this.project.resources
+    return this.checkout.resources
       .calculations()
       .filter((c) => c.contentData().calculation?.includes(name))
       .map((c) => c.data!.name);
@@ -226,8 +180,8 @@ export abstract class ResourceObject<
    */
   protected cards(): Card[] {
     return [
-      ...this.project.cardTree.cards(),
-      ...this.project.allTemplateCards(),
+      ...this.checkout.cardTree.cards(),
+      ...allTemplateCards(this.checkout),
     ];
   }
 
@@ -261,9 +215,9 @@ export abstract class ResourceObject<
 
     if (this.resourceFolder === '') {
       this.resourceName = resourceName(
-        `${this.project.projectPrefix}/${this.type}/${this.resourceName.identifier}`,
+        `${this.checkout.projectPrefix}/${this.type}/${this.resourceName.identifier}`,
       );
-      this.resourceFolder = this.project.paths.resourcePath(
+      this.resourceFolder = this.checkout.paths.resourcePath(
         this.resourceName.type as ResourceFolderType,
       );
       this.fileName = join(
@@ -276,7 +230,7 @@ export abstract class ResourceObject<
     const validName = validator.validResourceName(
       this.resourceType(),
       resourceNameToString(this.resourceName),
-      this.project.projectPrefixes(),
+      this.checkout.projectPrefixes(),
     );
 
     let validContent = {} as T;
@@ -292,7 +246,7 @@ export abstract class ResourceObject<
     await this.write();
 
     const resourceString = resourceNameToString(this.resourceName);
-    this.project.resources.add(resourceString, this);
+    this.checkout.resources.add(resourceString, this);
   }
 
   /**
@@ -366,23 +320,23 @@ export abstract class ResourceObject<
       this.resourceName.type = this.type;
     }
     if (this.resourceName.prefix === '') {
-      this.resourceName.prefix = this.project.projectPrefix;
+      this.resourceName.prefix = this.checkout.projectPrefix;
     }
     if (this.type) {
       this.moduleResource =
-        this.resourceName.prefix !== this.project.projectPrefix;
+        this.resourceName.prefix !== this.checkout.projectPrefix;
       this.resourceFolder = this.moduleResource
         ? join(
-            this.project.paths.modulesFolder,
+            this.checkout.paths.modulesFolder,
             this.resourceName.prefix,
             this.resourceName.type,
           )
-        : this.project.paths.resourcePath(this.type);
-      this.fileName = resourceNameToPath(this.project, this.resourceName);
+        : this.checkout.paths.resourcePath(this.type);
+      this.fileName = resourceNameToPath(this.checkout, this.resourceName);
     }
     // Only load content from disk if resource exists in the cache registry
     if (
-      this.project.resources.exists(resourceNameToString(this.resourceName))
+      this.checkout.resources.exists(resourceNameToString(this.resourceName))
     ) {
       try {
         this.content = readJsonFileSync(this.fileName);
@@ -460,7 +414,8 @@ export abstract class ResourceObject<
       throw new Error(`Cannot rename module resources`);
     }
     if (!this.exists()) {
-      throw new Error(
+      throw new ResourceNotFoundError(
+        resourceNameToString(this.resourceName),
         `Resource '${this.resourceName.identifier}' does not exist`,
       );
     }
@@ -493,7 +448,7 @@ export abstract class ResourceObject<
     const oldName = resourceNameToString(this.resourceName);
     this.resourceName = { ...this.resourceName, prefix: newPrefix };
     this.content.name = resourceNameToString(this.resourceName);
-    this.project.resources.rename(oldName, this.content.name);
+    this.checkout.resources.rename(oldName, this.content.name);
     await this.write();
   }
 
@@ -530,8 +485,10 @@ export abstract class ResourceObject<
   ): Promise<void> {
     const content = this.data;
     if (!content) {
-      throw new Error(
-        `Resource '${resourceNameToString(this.resourceName)}' does not exist`,
+      const name = resourceNameToString(this.resourceName);
+      throw new ResourceNotFoundError(
+        name,
+        `Resource '${name}' does not exist`,
       );
     }
     if (this.moduleResource) {
@@ -550,11 +507,12 @@ export abstract class ResourceObject<
    */
   protected async usage(cards?: Card[]): Promise<string[]> {
     if (!this.exists()) {
-      throw new Error(
+      throw new ResourceNotFoundError(
+        resourceNameToString(this.resourceName),
         `Resource '${this.resourceName.identifier}' does not exist in the project`,
       );
     }
-    const cardArray = cards?.length ? cards : this.project.cardTree.cards();
+    const cardArray = cards?.length ? cards : this.checkout.cardTree.cards();
 
     return cardArray
       .filter((card) =>
@@ -589,7 +547,7 @@ export abstract class ResourceObject<
     const validName = validator.validResourceName(
       this.resourceType(),
       resourceNameToString(newName),
-      this.project.projectPrefixes(),
+      this.checkout.projectPrefixes(),
     );
     return validName;
   }
@@ -619,7 +577,7 @@ export abstract class ResourceObject<
       await rename(this.fileName, newFileName);
       this.fileName = newFileName;
       this.resourceName = resourceName(this.content.name);
-      this.project.resources.rename(resourceString, this.content.name);
+      this.checkout.resources.rename(resourceString, this.content.name);
     }
     await writeJsonFile(this.fileName, this.content);
   }
@@ -653,12 +611,13 @@ export abstract class ResourceObject<
       this.fileName += '.json';
     }
     if (!this.exists()) {
-      throw new Error(
+      throw new ResourceNotFoundError(
+        resourceNameToString(this.resourceName),
         `Resource '${this.resourceName.identifier}' does not exist in the project`,
       );
     }
     await deleteFile(this.fileName);
-    this.project.resources.remove(resourceNameToString(this.resourceName));
+    this.checkout.resources.remove(resourceNameToString(this.resourceName));
     this.fileName = '';
   }
 

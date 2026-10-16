@@ -17,7 +17,7 @@ import type {
   CleanResult,
   ModuleSettingFromHub,
   UpdatePlan,
-} from '@cyberismo/data-handler';
+} from '@cyberismo/model';
 import { projectApiPaths, callApi } from '../swr';
 import { useSWRHook } from './common';
 import type { Hub, HubFetchResult, ProjectSettingsUpdate } from './types';

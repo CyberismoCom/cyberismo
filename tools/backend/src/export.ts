@@ -13,16 +13,18 @@
 
 import fs from 'node:fs/promises';
 
-import type { CommandManager } from '@cyberismo/data-handler';
+import {
+  SYSTEM_ACTOR,
+  type ProjectDirectory,
+  type Workspace,
+} from '@cyberismo/data-handler';
 import { createApp } from './app.js';
 import { MockAuthProvider } from './auth/mock.js';
-import type { ProjectRegistry } from './project-registry.js';
 import { cp } from 'node:fs/promises';
 import { staticFrontendDirRelative } from './utils.js';
-import type { QueryResult } from '@cyberismo/data-handler/types/queries';
+import type { QueryResult, ProjectErrors } from '@cyberismo/model';
 import { toSSG } from 'hono/ssg';
 import type { TreeOptions } from './types.js';
-import type { ProjectErrors } from './project-errors.js';
 import {
   findAllCards,
   findRelevantAttachments,
@@ -48,19 +50,19 @@ export function reset() {
 /**
  * Get the card query result for a given card key. Should only be called during
  * static site generation
- * @param commands - CommandManager instance for the project.
+ * @param ws - Handle of the project.
  * @param cardKey - Key of the card to get the query result for.
  * @returns The card query result for the given card key.
  */
 export async function getCardQueryResult(
-  commands: CommandManager,
+  ws: Workspace,
   cardKey?: string,
 ): Promise<QueryResult<'card'>[]> {
-  const prefix = commands.project.configuration.cardKeyPrefix;
+  const prefix = ws.settings.prefix;
   if (!_cardQueryCache.has(prefix)) {
     _cardQueryCache.set(
       prefix,
-      commands.calculateCmd.runQuery('card', 'exportedSite', {}),
+      ws.queries.runQuery('card', 'exportedSite', {}),
     );
   }
   return _cardQueryCache.get(prefix)!.then((results) => {
@@ -78,7 +80,7 @@ export async function getCardQueryResult(
 /**
  * Export the site to a given directory.
  * Note: Do not call this function in parallel.
- * @param registry - ProjectRegistry holding all project CommandManagers.
+ * @param directory - Directory the exported projects are opened from.
  * @param exportDir - Directory to export to.
  * @param options - Export options.
  * @param options.recursive - Whether to export cards recursively.
@@ -88,7 +90,7 @@ export async function getCardQueryResult(
  * @returns Errors that occurred during export, grouped by project.
  */
 export async function exportSite(
-  registry: ProjectRegistry,
+  directory: ProjectDirectory,
   exportDir?: string,
   options?: ExportSiteOptions,
   onProgress?: (current: number, total: number) => void,
@@ -100,12 +102,10 @@ export async function exportSite(
     ...treeOpts,
   };
 
-  if (defaultProject && !registry.has(defaultProject)) {
+  const prefixes = (await directory.list()).map((p) => p.prefix);
+  if (defaultProject && !prefixes.includes(defaultProject)) {
     throw new Error(
-      `Default project '${defaultProject}' is not in the registry. Available: ${registry
-        .list()
-        .map((p) => p.prefix)
-        .join(', ')}`,
+      `Default project '${defaultProject}' is not in the registry. Available: ${prefixes.join(', ')}`,
     );
   }
 
@@ -113,7 +113,7 @@ export async function exportSite(
     process.env.CYBERISMO_DEFAULT_PROJECT = defaultProject;
   }
 
-  const app = createApp(new MockAuthProvider(), registry, opts, true);
+  const app = createApp(new MockAuthProvider(), directory, opts, prefixes);
 
   // copy whole frontend to the same directory
   await cp(staticFrontendDirRelative, exportDir, { recursive: true });
@@ -122,16 +122,16 @@ export async function exportSite(
 
   // estimate total based on the number of cards to export across all projects
   let total = OVERHEAD_CALLS;
-  for (const commands of registry.values()) {
-    const cards = await findAllCards(commands, opts);
-    const attachments = await findRelevantAttachments(commands, opts);
+  for (const prefix of prefixes) {
+    const ws = await directory.open(prefix, SYSTEM_ACTOR);
+    const cards = await findAllCards(ws, opts);
+    const attachments = await findRelevantAttachments(ws, opts);
     total += cards.length + attachments.length;
   }
 
   // One pass per project so an error is attributed to the project whose route
   // produced it (the response itself carries no project). Shared routes get
   // their own pass so each route is emitted exactly once.
-  const prefixes = registry.list().map((p) => p.prefix);
   const projectOf = (pathname: string) =>
     prefixes.find((p) => {
       const base = `/api/projects/${p}`;

@@ -15,21 +15,20 @@
 import type { Handler, MutationContext } from '../handler.js';
 import type { RenameInput } from '../types.js';
 import { resourceNameToString } from '../../utils/resource-utils.js';
-import { ResourcesFrom } from '../../containers/project/resources-from.js';
+import { ResourcesFrom } from '../../infra/resources-from.js';
 import {
   rewriteCardContentRefs,
   rewriteContentFileRefs,
 } from '../cascades/rewrite-refs.js';
-import type { Card } from '../../interfaces/project-interfaces.js';
-import type { ChangeOperation } from '../../resources/resource-object.js';
-import type { LinkType } from '../../interfaces/resource-interfaces.js';
+import type { Card, ChangeOperation, LinkType } from '@cyberismo/model';
+import { updateCardMetadata } from '../../cards/update.js';
 
 export class CardTypeRenameHandler implements Handler<RenameInput> {
   async apply(ctx: MutationContext<RenameInput>): Promise<void> {
     const oldName = resourceNameToString(ctx.input.target);
 
     // Interactive rename of a module-owned card type is not allowed.
-    if (ctx.input.target.prefix !== ctx.project.projectPrefix) {
+    if (ctx.input.target.prefix !== ctx.checkout.projectPrefix) {
       throw new Error(
         `Cannot rename resource ${oldName}: It is a module resource`,
       );
@@ -41,7 +40,7 @@ export class CardTypeRenameHandler implements Handler<RenameInput> {
     await this.applyCascade(ctx);
 
     // Rename the resource itself.
-    const resource = ctx.project.resources.byType(oldName, 'cardTypes');
+    const resource = ctx.checkout.resources.byType(oldName, 'cardTypes');
     if (!resource) {
       throw new Error(`CardType '${oldName}' not found`);
     }
@@ -57,15 +56,15 @@ export class CardTypeRenameHandler implements Handler<RenameInput> {
     for (const card of cards) {
       const metadata = card.metadata!;
       metadata.cardType = newName;
-      await ctx.project.updateCardMetadata(card, metadata);
+      await updateCardMetadata(ctx.checkout, card, metadata);
     }
 
     // 2. Rewrite the cascading references: folder-resource content files
     //    (calculations, report/graph templates), card content and the
     //    source/destination card-type lists of every link type that
     //    referenced this card type.
-    await rewriteContentFileRefs(ctx.project, oldName, newName);
-    await rewriteCardContentRefs(ctx.project, oldName, newName);
+    await rewriteContentFileRefs(ctx.checkout, oldName, newName);
+    await rewriteCardContentRefs(ctx.checkout, oldName, newName);
     await this.updateLinkTypes(ctx, oldName, newName);
   }
 
@@ -76,7 +75,7 @@ export class CardTypeRenameHandler implements Handler<RenameInput> {
     oldName: string,
     newName: string,
   ): Promise<void> {
-    const linkTypes = ctx.project.resources.linkTypes(ResourcesFrom.localOnly);
+    const linkTypes = ctx.checkout.resources.linkTypes(ResourcesFrom.localOnly);
     const cardTypeFields: Array<
       keyof Pick<LinkType, 'destinationCardTypes' | 'sourceCardTypes'>
     > = ['destinationCardTypes', 'sourceCardTypes'];
@@ -104,8 +103,8 @@ export class CardTypeRenameHandler implements Handler<RenameInput> {
 
   // Cards using this card type: local project cards plus local template cards.
   private affectedCards(ctx: MutationContext, oldName: string): Card[] {
-    const project = [...ctx.project.cardTree.cards()];
-    const templates = ctx.project.resources
+    const project = [...ctx.checkout.cardTree.cards()];
+    const templates = ctx.checkout.resources
       .templates(ResourcesFrom.localOnly)
       .flatMap((t) => t.cardTree.cards());
     return [...project, ...templates].filter(

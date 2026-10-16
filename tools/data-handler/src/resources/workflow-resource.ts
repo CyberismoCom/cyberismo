@@ -17,7 +17,12 @@ import type {
   Workflow,
   WorkflowState,
   WorkflowTransition,
-} from '../interfaces/resource-interfaces.js';
+  Card,
+  ChangeOperation,
+  Operation,
+  RemoveOperation,
+  ResourceName,
+} from '@cyberismo/model';
 import { DefaultContent } from './create-defaults.js';
 import { FileResource } from './file-resource.js';
 import {
@@ -26,14 +31,7 @@ import {
 } from '../utils/resource-utils.js';
 import { sortCards } from '../utils/card-utils.js';
 
-import type { Card } from '../interfaces/project-interfaces.js';
-import type {
-  ChangeOperation,
-  Operation,
-  RemoveOperation,
-} from './resource-object.js';
-import type { Project } from '../containers/project.js';
-import type { ResourceName } from '../utils/resource-utils.js';
+import type { Checkout } from '../infra/checkout.js';
 
 /**
  * Workflow resource class.
@@ -41,11 +39,12 @@ import type { ResourceName } from '../utils/resource-utils.js';
 export class WorkflowResource extends FileResource<Workflow> {
   /**
    * Creates an instance of WorkflowResource
-   * @param project Project to use
+   * @param checkout Project to use
    * @param name Resource name
+   * @internal
    */
-  constructor(project: Project, name: ResourceName) {
-    super(project, name, 'workflows');
+  constructor(checkout: Checkout, name: ResourceName) {
+    super(checkout, name, 'workflows');
 
     this.contentSchemaId = 'workflowSchema';
     this.contentSchema = super.contentSchemaContent(this.contentSchemaId);
@@ -341,7 +340,7 @@ export class WorkflowResource extends FileResource<Workflow> {
   public async usage(cards?: Card[]): Promise<string[]> {
     const resourceName = resourceNameToString(this.resourceName);
     const allCards = cards ?? super.cards();
-    const cardTypes = this.project.resources.cardTypes();
+    const cardTypes = this.checkout.resources.cardTypes();
     const cardTypeReferences = [];
     for (const cardType of cardTypes) {
       if (cardType.data?.workflow === resourceName) {

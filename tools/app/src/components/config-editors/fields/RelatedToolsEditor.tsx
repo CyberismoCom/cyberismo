@@ -29,7 +29,7 @@ import { addNotification } from '@/lib/slices/notifications';
 import { GenericConfirmModal } from '@/components/modals';
 import { EditableRowActions } from './EditableRowActions';
 import { ListRow } from './ListRow';
-import type { Skill } from '@cyberismo/data-handler/interfaces/resource-interfaces';
+import type { Skill } from '@cyberismo/model';
 
 type ToolDraft = { tool: string };
 

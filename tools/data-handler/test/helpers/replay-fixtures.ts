@@ -15,15 +15,15 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { formatSealFileName } from '../../src/mutations/replay/seal-files.js';
-import { toVersion } from '../../src/modules/types.js';
+import { formatSealFileName } from '../../src/infra/replay-log/seal-files.js';
+import { toVersion } from '../../src/utils/version.js';
 
-import type { ConfigurationLogEntry } from '../../src/utils/configuration-logger.js';
+import type { ConfigurationLogEntry } from '../../src/infra/replay-log/configuration-logger.js';
 import type {
   InstallationRef,
   ModuleInstallation,
-} from '../../src/modules/types.js';
-import type { ResolvedModule } from '../../src/modules/resolve/types.js';
+  ResolvedModule,
+} from '../../src/mutations/replay/module-types.js';
 
 // ---------------------------------------------------------------------------
 // Released-format migration log lines and on-disk seal / module fixtures

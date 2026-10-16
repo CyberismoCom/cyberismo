@@ -1,10 +1,9 @@
 import { expect, it, describe } from 'vitest';
 
 import { join, sep } from 'node:path';
-
+import type { ResourceName } from '@cyberismo/model';
 import {
   pathToResourceName,
-  type ResourceName,
   resourceNameToPath,
   resourceName,
   resourceNameToString,
@@ -90,48 +89,48 @@ describe('resource utils with Project instance', async () => {
     baseDir,
     '../test-data/valid/decision-records',
   );
-  const project = getTestProject(decisionRecordsPath);
-  await project.populateCaches();
+  const checkout = getTestProject(decisionRecordsPath);
+  await checkout.populateCaches();
 
   describe('resourceNameToPath', () => {
     it.each([
       [
         {
-          prefix: project.projectPrefix,
+          prefix: checkout.projectPrefix,
           type: 'cardTypes',
           identifier: 'test',
         },
-        `${project.paths.resourcesFolder}${sep}cardTypes${sep}test.json`,
+        `${checkout.paths.resourcesFolder}${sep}cardTypes${sep}test.json`,
       ],
       [
         {
-          prefix: project.projectPrefix,
+          prefix: checkout.projectPrefix,
           type: 'workflows',
           identifier: 'decision',
         },
-        `${project.paths.resourcesFolder}${sep}workflows${sep}decision.json`,
+        `${checkout.paths.resourcesFolder}${sep}workflows${sep}decision.json`,
       ],
     ])('converts the resource name to path', (resourceName, expectedPath) => {
-      const resultPath = resourceNameToPath(project, resourceName);
+      const resultPath = resourceNameToPath(checkout, resourceName);
       expect(resultPath).toBe(expectedPath);
     });
     it('converts ResourceName to path with a custom extension', () => {
       const resultPath = resourceNameToPath(
-        project,
+        checkout,
         {
-          prefix: project.projectPrefix,
+          prefix: checkout.projectPrefix,
           type: 'calculations',
           identifier: 'test',
         },
         '.lp',
       );
       expect(resultPath).toBe(
-        `${project.paths.resourcesFolder}${sep}calculations${sep}test.lp`,
+        `${checkout.paths.resourcesFolder}${sep}calculations${sep}test.lp`,
       );
     });
     it('throws an error if ResourceName has an empty prefix', () => {
       expect(() =>
-        resourceNameToPath(project, {
+        resourceNameToPath(checkout, {
           prefix: '',
           type: '',
           identifier: '',
@@ -143,23 +142,23 @@ describe('resource utils with Project instance', async () => {
   describe('pathToResourceName', () => {
     it.each([
       [
-        `${project.paths.resourcesFolder}${sep}cardTypes${sep}test.json`,
+        `${checkout.paths.resourcesFolder}${sep}cardTypes${sep}test.json`,
         {
-          prefix: project.projectPrefix,
+          prefix: checkout.projectPrefix,
           type: 'cardTypes',
           identifier: 'test',
         },
       ],
       [
-        `${project.paths.resourcesFolder}${sep}workflows${sep}decision.json`,
+        `${checkout.paths.resourcesFolder}${sep}workflows${sep}decision.json`,
         {
-          prefix: project.projectPrefix,
+          prefix: checkout.projectPrefix,
           type: 'workflows',
           identifier: 'decision',
         },
       ],
       [
-        `${project.paths.modulesFolder}${sep}base${sep}workflows${sep}decision.json`,
+        `${checkout.paths.modulesFolder}${sep}base${sep}workflows${sep}decision.json`,
         {
           prefix: 'base',
           type: 'workflows',
@@ -167,7 +166,7 @@ describe('resource utils with Project instance', async () => {
         },
       ],
     ])('converts path to ResourceName', (path, expectedResourceName) => {
-      const resourceName = pathToResourceName(project, path);
+      const resourceName = pathToResourceName(checkout, path);
       expect(resourceName.prefix).toBe(expectedResourceName.prefix);
       expect(resourceName.type).toBe(expectedResourceName.type);
       expect(resourceName.identifier).toBe(expectedResourceName.identifier);
@@ -175,7 +174,7 @@ describe('resource utils with Project instance', async () => {
 
     it.each([
       [
-        `${project.paths.resourcesFolder}${sep}cardTypes${sep}`,
+        `${checkout.paths.resourcesFolder}${sep}cardTypes${sep}`,
         `invalid path:`,
       ],
       [
@@ -183,11 +182,11 @@ describe('resource utils with Project instance', async () => {
         `invalid path:`,
       ],
       [
-        `${project.paths.resourcesFolder}${sep}base${sep}workflows${sep}decision.json`,
+        `${checkout.paths.resourcesFolder}${sep}base${sep}workflows${sep}decision.json`,
         'not a resource path:',
       ],
     ])('throws an error when path is invalid', (path, expectedErrorMessage) => {
-      expect(() => pathToResourceName(project, path)).toThrow(
+      expect(() => pathToResourceName(checkout, path)).toThrow(
         `${expectedErrorMessage} ${path}`,
       );
     });
@@ -197,15 +196,15 @@ describe('resource utils with Project instance', async () => {
     const extension = 'fileName.extension';
     it.each([
       [
-        `${project.paths.resourcesFolder}${sep}type${sep}identifier${sep}${extension}`,
+        `${checkout.paths.resourcesFolder}${sep}type${sep}identifier${sep}${extension}`,
         {
-          prefix: project.projectPrefix,
+          prefix: checkout.projectPrefix,
           type: 'type',
           identifier: 'identifier',
         },
       ],
       [
-        `${project.paths.modulesFolder}${sep}base${sep}type${sep}identifier${sep}${extension}`,
+        `${checkout.paths.modulesFolder}${sep}base${sep}type${sep}identifier${sep}${extension}`,
         {
           prefix: 'base',
           type: 'type',
@@ -215,7 +214,7 @@ describe('resource utils with Project instance', async () => {
     ])(
       'handles the file path correctly when an extension is provided',
       (expectedPath, resourceName) => {
-        const filePath = resourceFilePath(project, resourceName, extension);
+        const filePath = resourceFilePath(checkout, resourceName, extension);
         expect(filePath).toBe(expectedPath);
       },
     );

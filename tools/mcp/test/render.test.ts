@@ -13,9 +13,9 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { beforeAll, afterAll, describe, expect, test } from 'vitest';
-import { CommandManager } from '@cyberismo/data-handler';
-import type { QueryResult } from '@cyberismo/data-handler/types/queries';
+import { beforeAll, describe, expect, test } from 'vitest';
+import { type Workspace } from '@cyberismo/data-handler';
+import type { QueryResult } from '@cyberismo/model';
 import {
   renderCard,
   getCardTree,
@@ -23,19 +23,16 @@ import {
   type RenderedCard,
 } from '../src/lib/render.js';
 import { testDataPath } from './test-utils.js';
+import { openTestWorkspace } from './helpers/open-test-workspace.js';
 
-let commands: CommandManager;
+let ws: Workspace;
 let renderedCard: RenderedCard;
 
 // Fixes weird issue with asciidoctor
 beforeAll(async () => {
   process.argv = [];
-  commands = await CommandManager.getInstance(testDataPath);
-  renderedCard = await renderCard(commands, 'decision_5');
-});
-
-afterAll(async () => {
-  commands.project.dispose();
+  ws = await openTestWorkspace(testDataPath);
+  renderedCard = await renderCard(ws, 'decision_5');
 });
 
 describe('renderCard', () => {
@@ -84,11 +81,11 @@ describe('renderCard', () => {
   });
 
   test('throws for invalid card key', async () => {
-    await expect(renderCard(commands, 'invalid_key')).rejects.toThrow();
+    await expect(renderCard(ws, 'invalid_key')).rejects.toThrow();
   });
 
   test('raw mode skips macro evaluation and transitions', async () => {
-    const card = await renderCard(commands, 'decision_5', { raw: true });
+    const card = await renderCard(ws, 'decision_5', { raw: true });
 
     expect(card.key).toBe('decision_5');
     expect(card.rawContent).toBeDefined();
@@ -157,7 +154,7 @@ describe('transformFields', () => {
 
 describe('getCardTree', () => {
   test('returns non-empty card tree with key and title', async () => {
-    const tree = (await getCardTree(commands)) as Array<{
+    const tree = (await getCardTree(ws)) as Array<{
       key: string;
       title: string;
     }>;

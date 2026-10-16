@@ -16,9 +16,9 @@ import type { Handler, MutationContext } from '../handler.js';
 import { resolveCardTypeRename } from '../handler.js';
 import type { EditInput } from '../types.js';
 import { resourceNameToString } from '../../utils/resource-utils.js';
-import type { ChangeOperation } from '../../resources/resource-object.js';
-import type { Card } from '../../interfaces/project-interfaces.js';
-import type { WorkflowState } from '../../interfaces/resource-interfaces.js';
+import type { ChangeOperation, Card, WorkflowState } from '@cyberismo/model';
+import { updateCardMetadata } from '../../cards/update.js';
+import { allTemplateCards } from '../../cards/read.js';
 
 /**
  * Renaming a workflow state (a 'change' on 'states' whose target name differs
@@ -34,7 +34,7 @@ import type { WorkflowState } from '../../interfaces/resource-interfaces.js';
 export class WorkflowRenameStateHandler implements Handler<EditInput> {
   async apply(ctx: MutationContext<EditInput>): Promise<void> {
     const name = resourceNameToString(ctx.input.target);
-    const resource = ctx.project.resources.byType(name, 'workflows');
+    const resource = ctx.checkout.resources.byType(name, 'workflows');
     if (!resource) {
       throw new Error(`Workflow '${name}' not found`);
     }
@@ -56,7 +56,7 @@ export class WorkflowRenameStateHandler implements Handler<EditInput> {
 
     for (const card of this.cardsInState(ctx, name, oldState)) {
       card.metadata!.workflowState = newState;
-      await ctx.project.updateCardMetadata(card, card.metadata!);
+      await updateCardMetadata(ctx.checkout, card, card.metadata!);
     }
   }
 
@@ -68,7 +68,7 @@ export class WorkflowRenameStateHandler implements Handler<EditInput> {
     state: string,
   ): Card[] {
     const cardTypeNames = new Set(
-      ctx.project.resources
+      ctx.checkout.resources
         .cardTypes()
         .filter((ct) => ct.data?.workflow === workflowName)
         .map((ct) => ct.data!.name),
@@ -86,10 +86,9 @@ export class WorkflowRenameStateHandler implements Handler<EditInput> {
       usesWorkflow(card.metadata.cardType) &&
       card.metadata.workflowState === state;
 
-    const projectCards = ctx.project.cardTree.cards().filter(matches);
-    const templateCards = ctx.project
-      .allTemplateCards()
-      .filter((card) => ctx.project.treeOf(card.key).writable)
+    const projectCards = ctx.checkout.cardTree.cards().filter(matches);
+    const templateCards = allTemplateCards(ctx.checkout)
+      .filter((card) => ctx.checkout.treeOf(card.key).writable)
       .filter(matches);
     return [...projectCards, ...templateCards];
   }

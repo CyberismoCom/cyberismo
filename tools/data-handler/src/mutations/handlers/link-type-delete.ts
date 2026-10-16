@@ -15,14 +15,16 @@
 import type { Handler, MutationContext } from '../handler.js';
 import type { DeleteInput } from '../types.js';
 import { resourceNameToString } from '../../utils/resource-utils.js';
-import type { Card } from '../../interfaces/project-interfaces.js';
+import type { Card } from '@cyberismo/model';
+import { updateCardMetadata } from '../../cards/update.js';
+import { allTemplateCards } from '../../cards/read.js';
 
 export class LinkTypeDeleteHandler implements Handler<DeleteInput> {
   async apply(ctx: MutationContext<DeleteInput>): Promise<void> {
     const name = resourceNameToString(ctx.input.target);
 
     // Interactive deletion of a module-owned link type is not allowed.
-    if (ctx.input.target.prefix !== ctx.project.projectPrefix) {
+    if (ctx.input.target.prefix !== ctx.checkout.projectPrefix) {
       throw new Error(
         `Cannot delete resource ${name}: It is a module resource`,
       );
@@ -31,7 +33,7 @@ export class LinkTypeDeleteHandler implements Handler<DeleteInput> {
     await this.applyCascade(ctx);
 
     // Delete the link type resource itself.
-    const resource = ctx.project.resources.byType(name, 'linkTypes');
+    const resource = ctx.checkout.resources.byType(name, 'linkTypes');
     if (!resource) {
       throw new Error(`Link type '${name}' not found`);
     }
@@ -47,7 +49,7 @@ export class LinkTypeDeleteHandler implements Handler<DeleteInput> {
       metadata.links = (metadata.links ?? []).filter(
         (l) => l.linkType !== name,
       );
-      await ctx.project.updateCardMetadata(card, metadata);
+      await updateCardMetadata(ctx.checkout, card, metadata);
     }
   }
 
@@ -55,10 +57,10 @@ export class LinkTypeDeleteHandler implements Handler<DeleteInput> {
   // read-only from the consumer side and must never be rewritten here.
   private affectedCards(ctx: MutationContext, name: string): Card[] {
     return [
-      ...ctx.project.cardTree.cards(),
-      ...ctx.project
-        .allTemplateCards()
-        .filter((c) => ctx.project.treeOf(c.key).writable),
+      ...ctx.checkout.cardTree.cards(),
+      ...allTemplateCards(ctx.checkout).filter(
+        (c) => ctx.checkout.treeOf(c.key).writable,
+      ),
     ].filter((c) => c.metadata?.links?.some((l) => l.linkType === name));
   }
 }

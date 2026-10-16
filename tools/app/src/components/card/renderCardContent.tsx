@@ -22,7 +22,7 @@ import parseReact, { domToReact } from 'html-react-parser';
 import type { DOMNode } from 'html-react-parser';
 import { Link } from 'react-router';
 
-import { macroMetadata } from '@cyberismo/data-handler/macros/common';
+import { macroMetadata } from '@cyberismo/model';
 
 import type { UIMacroName } from '@/components/macros';
 import { macros as UImacros } from '@/components/macros';

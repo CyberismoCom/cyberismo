@@ -12,10 +12,13 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import type { MutationInput, MutationKind } from './types.js';
-import type { ResourceName } from '../utils/resource-utils.js';
-import type { ChangeOperation } from '../resources/resource-object.js';
-import type { EnumDefinition } from '../interfaces/resource-interfaces.js';
+import type { MutationKind } from './types.js';
+import type {
+  ChangeOperation,
+  EnumDefinition,
+  MutationInput,
+  ResourceName,
+} from '@cyberismo/model';
 
 export type RouteOp = 'add' | 'remove' | 'rank' | 'change' | 'rename-member';
 
@@ -42,6 +45,8 @@ function isMemberRename(key: string, op: ChangeOperation<unknown>): boolean {
 }
 
 export function route(input: MutationInput): RouteKey {
+  if (input.kind === 'create')
+    return { kind: 'create', type: input.target.type };
   if (input.kind === 'rename')
     return { kind: 'rename', type: input.target.type };
   if (input.kind === 'delete')

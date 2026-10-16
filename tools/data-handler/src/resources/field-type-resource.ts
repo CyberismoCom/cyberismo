@@ -19,16 +19,17 @@ import { sortCards } from '../utils/card-utils.js';
 
 import * as EmailValidator from 'email-validator';
 
-import type { ChangeOperation, Operation } from './resource-object.js';
-import type { Card } from '../interfaces/project-interfaces.js';
 import type {
+  ChangeOperation,
+  Operation,
+  Card,
   DataType,
   EnumDefinition,
   FieldType,
   UpdateKey,
-} from '../interfaces/resource-interfaces.js';
-import type { Project } from '../containers/project.js';
-import type { ResourceName } from '../utils/resource-utils.js';
+  ResourceName,
+} from '@cyberismo/model';
+import type { Checkout } from '../infra/checkout.js';
 
 /**
  * Field type resource class.
@@ -36,11 +37,12 @@ import type { ResourceName } from '../utils/resource-utils.js';
 export class FieldTypeResource extends FileResource<FieldType> {
   /**
    * Creates an instance of FieldTypeResource
-   * @param project Project to use
+   * @param checkout Project to use
    * @param name Resource name
+   * @internal
    */
-  constructor(project: Project, name: ResourceName) {
-    super(project, name, 'fieldTypes');
+  constructor(checkout: Checkout, name: ResourceName) {
+    super(checkout, name, 'fieldTypes');
 
     this.contentSchemaId = 'fieldTypeSchema';
     this.contentSchema = super.contentSchemaContent(this.contentSchemaId);
@@ -114,7 +116,7 @@ export class FieldTypeResource extends FileResource<FieldType> {
   // Card types that use field type.
   private relevantCardTypes(): string[] {
     const resourceName = resourceNameToString(this.resourceName);
-    const cardTypes = this.project.resources.cardTypes();
+    const cardTypes = this.checkout.resources.cardTypes();
     const references = [];
     for (const cardType of cardTypes) {
       const found = cardType.data?.customFields.filter(
