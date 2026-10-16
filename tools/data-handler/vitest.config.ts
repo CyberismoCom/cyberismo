@@ -18,4 +18,10 @@ const decorators = defineRolldownBabelPreset({
 
 export default defineConfig({
   plugins: [babel({ presets: [decorators] })],
+  // Autocommit-heavy tests spawn several git processes per write, and Windows
+  // runners are 4-15x slower; Linux keeps the defaults so a hang fails fast.
+  test: {
+    testTimeout: process.platform === 'win32' ? 20_000 : 5_000,
+    hookTimeout: process.platform === 'win32' ? 30_000 : 10_000,
+  },
 });

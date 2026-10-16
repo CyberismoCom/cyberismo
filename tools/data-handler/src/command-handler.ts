@@ -12,10 +12,8 @@
 */
 
 import { join, resolve } from 'node:path';
-import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 
-import { SCHEMA_VERSION } from '@cyberismo/migrations';
 import type {
   Card,
   CardAttachment,
@@ -39,7 +37,6 @@ import type {
   AllCommandOptions,
   CalcCommandOptions,
   ExportCommandOptions,
-  InstallSkillsCommandOptions,
   ReportCommandOptions,
   ShowCommandOptions,
   RenameCommandOptions,
@@ -51,7 +48,6 @@ import type {
 import type { requestStatus } from './interfaces/request-status-interfaces.js';
 
 import { Create } from './commands/create.js';
-import { InstallSkills } from './commands/install-skills.js';
 import { migrate as migrateProject } from './commands/migrate.js';
 import { Validate } from './commands/validate.js';
 import { CommandManager } from './command-manager.js';
@@ -83,7 +79,6 @@ export const Cmd = {
   export: 'export',
   fetch: 'fetch',
   import: 'import',
-  installSkills: 'install-skills',
   migrate: 'migrate',
   move: 'move',
   publish: 'publish',
@@ -93,7 +88,6 @@ export const Cmd = {
   rename: 'rename',
   report: 'report',
   show: 'show',
-  start: 'start',
   transition: 'transition',
   update: 'update',
   updateModules: 'update-modules',
@@ -146,14 +140,9 @@ export class Commands {
   ): Promise<requestStatus> {
     // Set project path and validate it.
     const creatingNewProject = command === Cmd.create && args[0] === 'project';
-    // install-skills writes into a target directory (often a repo root, not a
-    // Cyberismo project), so it does not load/validate a project.
     // migrate must not depend on loading the project it is about to migrate;
     // it only needs a resolved project path.
-    const projectNotRequired =
-      creatingNewProject ||
-      command === Cmd.installSkills ||
-      command === Cmd.migrate;
+    const projectNotRequired = creatingNewProject || command === Cmd.migrate;
     if (!projectNotRequired) {
       try {
         await this.doSetProject(options);
@@ -328,18 +317,6 @@ export class Commands {
         } else {
           throw new Error(`Unknown type to create: '${target}'`);
         }
-      } else if (command === Cmd.installSkills) {
-        const [targetPath] = args;
-        const written = await InstallSkills.install(
-          targetPath,
-          options as InstallSkillsCommandOptions,
-        );
-        return {
-          statusCode: 200,
-          message: `Installed skill discovery into '${targetPath}':\n${written
-            .map((path) => `  ${path}`)
-            .join('\n')}`,
-        };
       } else if (command === Cmd.edit) {
         const [cardKey] = args;
         await this.commands?.editCmd.editCard(cardKey);
@@ -458,8 +435,6 @@ export class Commands {
           (options as ReportCommandOptions).context || 'commandLine',
           outputPath,
         );
-      } else if (command === Cmd.start) {
-        return this.startApp((options as StartCommandOptions).forceStart);
       } else if (command === Cmd.transition) {
         const [cardKey, state] = args;
         await this.commands?.transitionCmd.cardTransition(cardKey, state);
@@ -577,21 +552,6 @@ export class Commands {
       };
     }
     return { statusCode: 200 };
-  }
-
-  /**
-   * Returns the current schema version.
-   */
-  public getSchemaVersion(): number {
-    return SCHEMA_VERSION;
-  }
-
-  /**
-   * Returns project path, if running operation within project folder.
-   * @param path Initial path from where the project path search is started.
-   */
-  public async getProjectPath(path?: string): Promise<string> {
-    return this.setProjectPath(path);
   }
 
   /**
@@ -1059,44 +1019,6 @@ export class Commands {
         throw new Error(`Unknown or not yet handled type ${type}`);
     }
     return { statusCode: 200, payload: await Promise.resolve(promise) };
-  }
-
-  // Starts the Cyberismo app by running npm start in the app project folder
-  private async startApp(forceStart: boolean = false): Promise<requestStatus> {
-    // __dirname when running cards ends with /tools/data-handler/dist - use that to navigate to app path
-    const baseDir =
-      import.meta.dirname ?? new URL('.', import.meta.url).pathname;
-    const appPath = resolve(baseDir, '../../app');
-
-    // since current working directory changes, we need to resolve the project path
-    const projectPath = resolve(this.projectPath);
-
-    if (!this.commands) {
-      return { statusCode: 500, message: 'Commands not initialized' };
-    }
-
-    if (!forceStart) {
-      const validationErrors = await this.validateCmd.validate(
-        projectPath,
-        () => this.commands!.project,
-      );
-      if (validationErrors) {
-        return { statusCode: 400, message: validationErrors };
-      }
-    }
-
-    console.log('Running Cyberismo app on http://localhost:3000/');
-    console.log('Press Control+C to stop.');
-
-    const args = [`start`];
-    execFileSync(`npm`, args, {
-      shell: true,
-      cwd: appPath,
-      stdio: 'ignore',
-      env: { ...process.env, npm_config_project_path: projectPath },
-    });
-
-    return { statusCode: 200 };
   }
 
   // Run migrations to bring project schema to the tool's current version

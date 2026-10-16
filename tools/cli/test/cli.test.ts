@@ -75,6 +75,16 @@ describe('Cli BAT test', function () {
     expect(stdout).toContain('Project structure validated');
     pageCardKey = stdout.substring(16, 28);
   });
+  it('Create a label from outside the project with -p', async () => {
+    const { stdout } = await execAsync(
+      `cd ${tmpPath} && ${cli} create label ${pageCardKey} foo -p cyberismo-cli`,
+    );
+    expect(stdout).toContain('Done');
+    const shown = await execAsync(
+      `cd ${cliPath} && ${cli} show card ${pageCardKey}`,
+    );
+    expect(shown.stdout).toMatch(/"labels": \[\s*"foo"\s*\]/);
+  });
   it('Create a page as a child of the page', async () => {
     const { stdout } = await execAsync(
       `cd ${cliPath} && ${cli} create card test/templates/page ${pageCardKey} && ${cli} validate`,
