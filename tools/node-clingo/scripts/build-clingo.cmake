@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: Cyberismo Ltd and contributors
+# SPDX-License-Identifier: AGPL-3.0-only
+
 # Cross-platform script to build clingo static libraries from the submodule.
 # Invoked via: cmake -P scripts/build-clingo.cmake
 

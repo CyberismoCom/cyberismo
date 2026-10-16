@@ -1,3 +1,6 @@
+% SPDX-FileCopyrightText: Cyberismo Ltd and contributors
+% SPDX-License-Identifier: AGPL-3.0-only
+
 % This is a test version of the tree query which does not use handlebars syntax
 select("title";"statusIndicator";"progress";"rank";"cardType").
 result(Card) :- projectCard(Card), not parent(Card, _), not hiddenInTreeView(Card).

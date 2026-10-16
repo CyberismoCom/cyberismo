@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: Cyberismo Ltd and contributors
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { createServer, type Server } from 'node:http';
 import type { Locator, Page } from '@playwright/test';
 import { test, expect } from '../fixtures.js';

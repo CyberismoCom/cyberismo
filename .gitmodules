@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: Cyberismo Ltd and contributors
+# SPDX-License-Identifier: AGPL-3.0-only
+
 [submodule "clingo"]
 	path = tools/node-clingo/external/clingo
 	url = https://github.com/potassco/clingo.git

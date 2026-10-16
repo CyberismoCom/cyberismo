@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: Cyberismo Ltd and contributors
+# SPDX-License-Identifier: AGPL-3.0-only
+
 # Minimal Verdaccio config for the pack-test CI gate.
 # - @cyberismo/* packages are published anonymously by the workflow
 # - everything else proxies to npmjs so transitive deps still resolve
