@@ -169,8 +169,9 @@ export const CardLayout = forwardRef<CardLayoutHandle, CardLayoutProps>(
     const notificationsBadgeCount =
       card.notifications.length + card.policyChecks.failures.length;
 
-    const attachmentPanel = (
+    const attachmentPanel = (variant: 'sidebar' | 'inline') => (
       <AttachmentPanel
+        variant={variant}
         cardKey={card.key}
         attachments={card.attachments ?? []}
         initialExpanded={editingBody && !isNarrow}
@@ -195,7 +196,7 @@ export const CardLayout = forwardRef<CardLayoutHandle, CardLayoutProps>(
           policyChecks={card.policyChecks}
           onGoToField={onMetadataUpdate ? setFocusFieldKey : undefined}
         />
-        {attachmentPanel}
+        {attachmentPanel('sidebar')}
       </>
     );
 
@@ -257,7 +258,7 @@ export const CardLayout = forwardRef<CardLayoutHandle, CardLayoutProps>(
                 onDeleteLink={onDeleteLink}
               />
             )}
-            {isNarrow && editingBody && attachmentPanel}
+            {isNarrow && editingBody && attachmentPanel('inline')}
             {isNarrow &&
               !editingBody &&
               (hasNotifications || hasPolicyChecks) && (
@@ -304,7 +305,7 @@ export const CardLayout = forwardRef<CardLayoutHandle, CardLayoutProps>(
                 />
               </SidebarPanelAccordion>
             )}
-            {isNarrow && !editingBody && attachmentPanel}
+            {isNarrow && !editingBody && attachmentPanel('inline')}
             <CardBody
               key={`body-${card.key}`}
               ref={bodyRef}
@@ -332,7 +333,7 @@ export const CardLayout = forwardRef<CardLayoutHandle, CardLayoutProps>(
             }}
             data-cy="cardSidebar"
           >
-            {editingBody ? attachmentPanel : viewSidebarContent}
+            {editingBody ? attachmentPanel('sidebar') : viewSidebarContent}
           </Stack>
         )}
       </Stack>

@@ -59,6 +59,7 @@ describe('AttachmentPanel', () => {
     isEditor = editor;
     render(
       <AttachmentPanel
+        variant="inline"
         cardKey="c_1"
         attachments={[file]}
         onInsert={insert ? vi.fn() : undefined}
@@ -72,13 +73,22 @@ describe('AttachmentPanel', () => {
     expect(!!screen.queryByTestId('insertToContentButton')).toBe(insert);
   });
 
-  it('toggles open on click', () => {
-    isEditor = false;
-    render(<AttachmentPanel cardKey="c_1" attachments={[file]} />);
-    expect(screen.getByText('notes.txt')).not.toBeVisible();
-    fireEvent.click(screen.getByText('attachments'));
-    expect(screen.getByText('notes.txt')).toBeVisible();
-  });
+  it.each(['inline', 'sidebar'] as const)(
+    '%s toggles open on click',
+    (variant) => {
+      isEditor = false;
+      render(
+        <AttachmentPanel
+          variant={variant}
+          cardKey="c_1"
+          attachments={[file]}
+        />,
+      );
+      expect(screen.getByText('notes.txt')).not.toBeVisible();
+      fireEvent.click(screen.getByText('attachments'));
+      expect(screen.getByText('notes.txt')).toBeVisible();
+    },
+  );
 
   it.each([
     { editor: false, rendered: false },
@@ -87,7 +97,9 @@ describe('AttachmentPanel', () => {
     'with no attachments renders $rendered for editor=$editor',
     ({ editor, rendered }) => {
       isEditor = editor;
-      render(<AttachmentPanel cardKey="c_1" attachments={[]} />);
+      render(
+        <AttachmentPanel variant="inline" cardKey="c_1" attachments={[]} />,
+      );
       expect(!!screen.queryByText('attachments')).toBe(rendered);
     },
   );
