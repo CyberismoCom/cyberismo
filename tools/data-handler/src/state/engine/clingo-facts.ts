@@ -1,0 +1,756 @@
+/**
+  Cyberismo
+  Copyright © Cyberismo Ltd and contributors 2024
+  This program is free software: you can redistribute it and/or modify it under
+  the terms of the GNU Affero General Public License version 3 as published by
+  the Free Software Foundation.
+  This program is distributed in the hope that it will be useful, but WITHOUT
+  ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+  FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more
+  details. You should have received a copy of the GNU Affero General Public
+  License along with this program. If not, see <https://www.gnu.org/licenses/>.
+*/
+import {
+  type AllowedClingoType,
+  ClingoFactBuilder,
+  encodeClingoValue,
+} from '../../infra/engine/clingo-fact-builder.js';
+import type {
+  CardNode,
+  Context,
+  ModuleContent,
+  CardType,
+  CustomField,
+  ExternalLink,
+  FieldType,
+  Link,
+  LinkType,
+  ReportMetadata,
+  SkillMetadata,
+  TemplateMetadata,
+  Workflow,
+} from '@cyberismo/model';
+import { ClingoProgramBuilder } from '../../infra/engine/clingo-program-builder.js';
+import { isPredefinedField, ROOT } from '../../shared/utils/constants.js';
+import { getChildLogger } from '../../shared/utils/log-utils.js';
+import type { Checkout } from '../checkout/checkout.js';
+import type { CardTreeKind } from '../cards/card-tree.js';
+
+const logger = getChildLogger({ module: 'clingo-facts' });
+
+/**
+ * How a card container is projected into facts. 'name' is what the
+ * container's root cards name as their parent.
+ */
+export interface CardFactContext {
+  kind: CardTreeKind;
+  name: string;
+}
+
+export const PROJECT_CARD_FACTS: CardFactContext = {
+  kind: 'project',
+  name: 'project',
+};
+
+// eslint-disable-next-line @typescript-eslint/no-namespace
+export namespace Facts {
+  export enum Card {
+    FIELD_OVERRIDE = 'fieldOverride',
+    LABEL = 'label',
+    LINK = 'userLink',
+    PARENT = 'parent',
+  }
+
+  export enum Common {
+    FIELD = 'field',
+    MODULE = 'module',
+    PROJECT = 'project',
+  }
+
+  export enum CardType {
+    ALWAYS_VISIBLE_FIELD = 'alwaysVisibleField',
+    CALCULATED_FIELD = 'calculatedField',
+    CARD_TYPE = 'cardType',
+    CUSTOM_FIELD = 'customField',
+    OPTIONALLY_VISIBLE_FIELD = 'optionallyVisibleField',
+    OVERRIDABLE_FIELD = 'overridableField',
+  }
+
+  export enum FieldType {
+    ENUM_VALUE = 'enumValue',
+    FIELD_TYPE = 'fieldType',
+  }
+
+  export enum LinkType {
+    LINK_DESTINATION_CARD_TYPE = 'linkDestinationCardType',
+    LINK_SOURCE_CARD_TYPE = 'linkSourceCardType',
+    LINK_TYPE = 'linkType',
+  }
+
+  export enum Report {
+    REPORT = 'report',
+  }
+
+  export enum Skill {
+    RELATED_TOOL = 'skillRelatedTool',
+    SKILL = 'skill',
+  }
+
+  export enum Template {
+    TEMPLATE = 'template',
+  }
+
+  export enum Workflow {
+    WORKFLOW = 'workflow',
+    WORKFLOW_STATE = 'workflowState',
+    WORKFLOW_TRANSITION = 'workflowTransition',
+  }
+}
+
+// Compares two index values.
+function compareIndex(a: number, b: number): number {
+  if (a === -1 && b === -1) {
+    return 0;
+  } else if (a === -1) {
+    return 1;
+  } else if (b === -1) {
+    return -1;
+  }
+  return a - b;
+}
+
+/**
+ * Creates Clingo facts for a workflow.
+ * @param workflow Workflow metadata
+ * @returns clingo facts as a string
+ */
+export const createWorkflowFacts = (workflow: Workflow) => {
+  const builder = new ClingoProgramBuilder().addFact(
+    Facts.Workflow.WORKFLOW,
+    workflow.name,
+  );
+
+  if (workflow.displayName)
+    builder.addFact(
+      Facts.Common.FIELD,
+      workflow.name,
+      'displayName',
+      workflow.displayName,
+    );
+
+  if (workflow.description)
+    builder.addFact(
+      Facts.Common.FIELD,
+      workflow.name,
+      'description',
+      workflow.description,
+    );
+
+  // add states
+  for (const state of workflow.states) {
+    builder.addFact(
+      Facts.Workflow.WORKFLOW_STATE,
+      workflow.name,
+      state.name,
+      state.category ?? 'none',
+    );
+  }
+
+  // add transitions
+  for (const transition of workflow.transitions) {
+    for (const from of transition.fromState) {
+      builder.addFact(
+        Facts.Workflow.WORKFLOW_TRANSITION,
+        workflow.name,
+        transition.name,
+        from,
+        transition.toState,
+      );
+    }
+    if (transition.fromState.length === 0) {
+      builder.addFact(
+        Facts.Workflow.WORKFLOW_TRANSITION,
+        workflow.name,
+        transition.name,
+        '',
+        transition.toState,
+      );
+    }
+  }
+  return builder.buildAll();
+};
+
+/**
+ * Creates Clingo facts for a card.
+ * @param card Card information
+ * @param checkout Project information
+ * @param container How the card's container is projected into facts.
+ * @returns clingo facts as a string
+ */
+export const createCardFacts = async (
+  card: CardNode,
+  checkout: Checkout,
+  container: CardFactContext = PROJECT_CARD_FACTS,
+) => {
+  // A card names its parent card, or — when it is a root card of a template —
+  // the template itself. Project root cards name nothing.
+  const parentsPath =
+    card.parent !== ROOT
+      ? card.parent
+      : container.kind === 'project'
+        ? ''
+        : `"${container.name}"`;
+
+  const builder = new ClingoProgramBuilder().addComment(card.key);
+  if (container.kind === 'project') {
+    builder.addCustomFact('card', (b) => b.addLiteralArgument(card.key));
+  }
+
+  // Custom fields declared by the card's card type. Stored metadata keys the
+  // card type does not require stay dormant: preserved on disk, no facts.
+  const declaredFields = new Map<string, CustomField>();
+  let cardTypeResolved = false;
+  if (card.metadata?.cardType) {
+    try {
+      const cardType = checkout.resources
+        .byType(card.metadata.cardType, 'cardTypes')
+        .show();
+      for (const customField of cardType.customFields ?? []) {
+        declaredFields.set(customField.name, customField);
+      }
+      cardTypeResolved = true;
+    } catch (error) {
+      logger.warn(
+        error,
+        `Could not resolve card type '${card.metadata.cardType}' of card '${card.key}'; emitting stored values as plain field() facts`,
+      );
+    }
+  }
+
+  if (card.metadata) {
+    for (const [field, value] of Object.entries(card.metadata)) {
+      if (field === 'labels') {
+        for (const label of value as Array<string>) {
+          builder.addCustomFact(Facts.Card.LABEL, (b) =>
+            b.addLiteralArgument(card.key).addArgument(label),
+          );
+        }
+      } else if (field === 'links') {
+        for (const link of value as Link[]) {
+          builder.addCustomFact(Facts.Card.LINK, (b) =>
+            b
+              .addLiteralArguments(card.key, link.cardKey)
+              .addArguments(link.linkType, link.linkDescription ?? null),
+          );
+        }
+      } else if (field === 'externalLinks') {
+        for (const extLink of value as ExternalLink[]) {
+          // Generate: userLink(source, destination, LinkType, LinkDescription).
+          // For outbound: card -> external, for inbound: external -> card
+          if (extLink.direction === 'outbound') {
+            builder.addCustomFact(Facts.Card.LINK, (b) =>
+              b
+                .addLiteralArgument(card.key)
+                .addTupleArgument(extLink.connector, extLink.externalItemKey)
+                .addArguments(
+                  extLink.linkType,
+                  extLink.linkDescription ?? null,
+                ),
+            );
+          } else {
+            // inbound: external is source, card is destination
+            builder.addCustomFact(Facts.Card.LINK, (b) =>
+              b
+                .addTupleArgument(extLink.connector, extLink.externalItemKey)
+                .addLiteralArgument(card.key)
+                .addArguments(
+                  extLink.linkType,
+                  extLink.linkDescription ?? null,
+                ),
+            );
+          }
+        }
+      } else {
+        // Do not write null values
+        if (value == null) {
+          continue;
+        }
+
+        let factName: Facts.Common.FIELD | Facts.Card.FIELD_OVERRIDE =
+          Facts.Common.FIELD;
+        let clingoValue: AllowedClingoType = value.toString();
+
+        // field might be a non-custom field, which cannot use the fieldType method
+        if (!isPredefinedField(field)) {
+          if (cardTypeResolved) {
+            const declared = declaredFields.get(field);
+            if (!declared) {
+              // Dormant: the card type does not declare this field.
+              continue;
+            }
+            if (declared.isCalculated) {
+              if (!declared.enableOverride) {
+                // Dormant: the calculation stays authoritative.
+                continue;
+              }
+              factName = Facts.Card.FIELD_OVERRIDE;
+            }
+          }
+
+          let fieldType: FieldType;
+          try {
+            fieldType = checkout.resources.byType(field, 'fieldTypes').show();
+          } catch (error) {
+            logger.warn(
+              error,
+              `Could not resolve field type '${field}' of card '${card.key}'; skipping the field`,
+            );
+            continue;
+          }
+
+          // if it's a list, let's generate multiple values
+          if (fieldType.dataType === 'list') {
+            if (!Array.isArray(value)) {
+              continue;
+            }
+            for (const listValue of value) {
+              builder.addCustomFact(factName, (b) =>
+                b
+                  .addLiteralArgument(card.key)
+                  .addArguments(field, listValue.toString()),
+              );
+            }
+            continue;
+          }
+
+          clingoValue =
+            fieldType.dataType === 'integer'
+              ? (value as number)
+              : value.toString();
+        }
+
+        builder.addCustomFact(factName, (b) =>
+          b.addLiteralArgument(card.key).addArguments(field, clingoValue),
+        );
+      }
+    }
+  }
+
+  if (parentsPath !== '') {
+    builder.addCustomFact(Facts.Card.PARENT, (b) =>
+      b.addLiteralArguments(card.key, parentsPath),
+    );
+  }
+  builder.addCustomFact(Facts.Common.FIELD, (b) =>
+    b.addLiteralArgument(card.key).addArguments('container', container.kind),
+  );
+
+  return builder.buildAll();
+};
+
+/**
+ * Creates Clingo facts for a field type.
+ * @param fieldType Field type metadata
+ * @returns clingo facts as a string
+ */
+export const createFieldTypeFacts = (fieldType: FieldType) => {
+  const builder = new ClingoProgramBuilder();
+  builder.addFact(Facts.FieldType.FIELD_TYPE, fieldType.name);
+
+  if (fieldType.displayName)
+    builder.addFact(
+      Facts.Common.FIELD,
+      fieldType.name,
+      'displayName',
+      fieldType.displayName,
+    );
+
+  if (fieldType.description)
+    builder.addFact(
+      Facts.Common.FIELD,
+      fieldType.name,
+      'description',
+      fieldType.description,
+    );
+
+  builder.addFact(
+    Facts.Common.FIELD,
+    fieldType.name,
+    'dataType',
+    fieldType.dataType,
+  );
+
+  if (fieldType.enumValues) {
+    let index = 1;
+    for (const enumValue of fieldType.enumValues) {
+      builder.addFact(
+        Facts.FieldType.ENUM_VALUE,
+        fieldType.name,
+        enumValue.enumValue,
+      );
+      builder.addCustomFact(Facts.Common.FIELD, (b) =>
+        b
+          .addArgument((key) =>
+            key.addArguments(fieldType.name, enumValue.enumValue),
+          )
+          .addArguments('index', index++),
+      );
+
+      const keyTuple = new ClingoFactBuilder('', '').addArguments(
+        fieldType.name,
+        enumValue.enumValue,
+      );
+
+      if (enumValue.enumDisplayValue)
+        builder.addCustomFact(Facts.Common.FIELD, (b) =>
+          b
+            .addArgument(keyTuple)
+            .addArguments('enumDisplayValue', enumValue.enumDisplayValue!),
+        );
+
+      if (enumValue.enumDescription)
+        builder.addCustomFact(Facts.Common.FIELD, (b) =>
+          b
+            .addArgument(keyTuple)
+            .addArguments('enumDescription', enumValue.enumDescription!),
+        );
+    }
+  }
+  return builder.buildAll();
+};
+
+/**
+ * Creates Clingo facts for a card type.
+ * @param cardType Card type metadata
+ * @returns clingo facts as a string
+ */
+export const createCardTypeFacts = (cardType: CardType) => {
+  const builder = new ClingoProgramBuilder();
+
+  builder.addFact(Facts.CardType.CARD_TYPE, cardType.name);
+
+  if (cardType.displayName)
+    builder.addFact(
+      Facts.Common.FIELD,
+      cardType.name,
+      'displayName',
+      cardType.displayName,
+    );
+
+  if (cardType.description)
+    builder.addFact(
+      Facts.Common.FIELD,
+      cardType.name,
+      'description',
+      cardType.description,
+    );
+
+  builder.addFact(
+    Facts.Common.FIELD,
+    cardType.name,
+    'workflow',
+    cardType.workflow,
+  );
+
+  const customFields = cardType.customFields.toSorted((a, b) => {
+    const aFirstIndex = cardType.alwaysVisibleFields.indexOf(a.name);
+    const bFirstIndex = cardType.alwaysVisibleFields.indexOf(b.name);
+
+    const aSecondIndex = cardType.optionallyVisibleFields.indexOf(a.name);
+    const bSecondIndex = cardType.optionallyVisibleFields.indexOf(b.name);
+
+    return compareIndex(aFirstIndex, bFirstIndex) === 0
+      ? compareIndex(aSecondIndex, bSecondIndex)
+      : compareIndex(aFirstIndex, bFirstIndex);
+  });
+  let index = 1;
+  for (const customField of customFields) {
+    builder.addFact(
+      Facts.CardType.CUSTOM_FIELD,
+      cardType.name,
+      customField.name,
+    );
+    const keyTuple = new ClingoFactBuilder('', '').addArguments(
+      cardType.name,
+      customField.name,
+    );
+    if (customField.displayName) {
+      builder.addCustomFact(Facts.Common.FIELD, (b) =>
+        b.addArgument(keyTuple).addArguments(
+          'displayName',
+          customField.displayName as string, // not sure why type check doesn't get this
+        ),
+      );
+    }
+    if (customField.isCalculated) {
+      builder.addFact(
+        Facts.CardType.CALCULATED_FIELD,
+        cardType.name,
+        customField.name,
+      );
+    }
+    if (customField.isCalculated && customField.enableOverride) {
+      builder.addFact(
+        Facts.CardType.OVERRIDABLE_FIELD,
+        cardType.name,
+        customField.name,
+      );
+    }
+
+    let visible = false;
+    if (cardType.alwaysVisibleFields.includes(customField.name)) {
+      builder.addFact(
+        Facts.CardType.ALWAYS_VISIBLE_FIELD,
+        cardType.name,
+        customField.name,
+      );
+      visible = true;
+    }
+    if (cardType.optionallyVisibleFields.includes(customField.name)) {
+      builder.addFact(
+        Facts.CardType.OPTIONALLY_VISIBLE_FIELD,
+        cardType.name,
+        customField.name,
+      );
+      visible = true;
+    }
+    if (visible) {
+      builder.addCustomFact(Facts.Common.FIELD, (b) =>
+        b
+          .addArgument((key) =>
+            key.addArguments(cardType.name, customField.name),
+          )
+          .addArguments('index', index++),
+      );
+    }
+  }
+  return builder.buildAll();
+};
+
+/**
+ * Creates the rules that bridge calculated values to the effective field value,
+ * one per distinct calculated field name. The field name must be a constant in
+ * the rule head; a generic field/3 head makes every `not field(...)` in every
+ * calculation undecidable at grounding time.
+ * @param cardTypes Card types of the project
+ * @returns clingo rules as a string
+ */
+export const createCalculatedFieldRules = (cardTypes: CardType[]) => {
+  const fields = new Set<string>();
+  for (const cardType of cardTypes) {
+    for (const customField of cardType.customFields) {
+      if (customField.isCalculated) {
+        fields.add(customField.name);
+      }
+    }
+  }
+
+  const rules = [...fields].sort().map((field) => {
+    const name = `"${encodeClingoValue(field)}"`;
+    return [
+      `field(Card, ${name}, Value) :-`,
+      `    fieldCalculated(Card, ${name}, Value),`,
+      `    field(Card, "cardType", CardType),`,
+      `    calculatedField(CardType, ${name}),`,
+      `    not fieldOverride(Card, ${name}, _).`,
+    ].join('\n');
+  });
+
+  return rules.length > 0 ? rules.join('\n\n') + '\n' : '';
+};
+
+export const createContextFacts = (context: Context) => {
+  const builder = new ClingoProgramBuilder();
+  builder.addFact(context);
+  return builder.buildAll();
+};
+
+/**
+ * Creates Clingo facts for a link type.
+ * @param linkType Link type metadata
+ * @returns clingo facts as a string
+ */
+export const createLinkTypeFacts = (linkType: LinkType) => {
+  const builder = new ClingoProgramBuilder().addFact(
+    Facts.LinkType.LINK_TYPE,
+    linkType.name,
+  );
+
+  if (linkType.displayName)
+    builder.addFact(
+      Facts.Common.FIELD,
+      linkType.name,
+      'displayName',
+      linkType.displayName,
+    );
+
+  if (linkType.description)
+    builder.addFact(
+      Facts.Common.FIELD,
+      linkType.name,
+      'description',
+      linkType.description,
+    );
+  builder
+    .addFact(
+      Facts.Common.FIELD,
+      linkType.name,
+      'outboundDisplayName',
+      linkType.outboundDisplayName,
+    )
+    .addFact(
+      Facts.Common.FIELD,
+      linkType.name,
+      'inboundDisplayName',
+      linkType.inboundDisplayName,
+    )
+    .addFact(
+      Facts.Common.FIELD,
+      linkType.name,
+      'enableLinkDescription',
+      linkType.enableLinkDescription,
+    );
+
+  for (const sourceCardType of linkType.sourceCardTypes) {
+    builder.addFact(
+      Facts.LinkType.LINK_SOURCE_CARD_TYPE,
+      linkType.name,
+      sourceCardType,
+    );
+  }
+
+  for (const destinationCardType of linkType.destinationCardTypes) {
+    builder.addFact(
+      Facts.LinkType.LINK_DESTINATION_CARD_TYPE,
+      linkType.name,
+      destinationCardType,
+    );
+  }
+
+  return builder.buildAll();
+};
+
+/**
+ * Creates Clingo facts for a module.
+ * @param module Module metadata
+ * @returns clingo facts as a string
+ */
+export const createModuleFacts = (module: ModuleContent) => {
+  const builder = new ClingoProgramBuilder();
+  builder.addFact(Facts.Common.MODULE, module.cardKeyPrefix);
+  builder.addFact(
+    Facts.Common.FIELD,
+    module.cardKeyPrefix,
+    'name',
+    module.name,
+  );
+  return builder.buildAll();
+};
+
+/**
+ * Creates Clingo facts for a project.
+ * @param projectPrefix Card prefix of the project
+ * @returns clingo facts as a string
+ */
+export const createProjectFacts = (projectPrefix: string) => {
+  const builder = new ClingoProgramBuilder();
+  builder.addFact(Facts.Common.PROJECT, projectPrefix);
+  return builder.buildAll();
+};
+
+/**
+ * Creates Clingo facts for a report.
+ * @param report Report metadata
+ * @returns clingo facts as a string
+ */
+export const createReportFacts = (report: ReportMetadata) => {
+  const builder = new ClingoProgramBuilder();
+  builder.addFact(Facts.Report.REPORT, report.name);
+
+  if (report.displayName)
+    builder.addFact(
+      Facts.Common.FIELD,
+      report.name,
+      'displayName',
+      report.displayName,
+    );
+  if (report.description)
+    builder.addFact(
+      Facts.Common.FIELD,
+      report.name,
+      'description',
+      report.description,
+    );
+  if (report.category)
+    builder.addFact(
+      Facts.Common.FIELD,
+      report.name,
+      'category',
+      report.category,
+    );
+  return builder.buildAll();
+};
+
+/**
+ * Creates clingo facts for a skill.
+ * @param skill Skill metadata
+ * @returns clingo facts as a string
+ */
+export const createSkillFacts = (skill: SkillMetadata) => {
+  const builder = new ClingoProgramBuilder();
+  builder.addFact(Facts.Skill.SKILL, skill.name);
+
+  if (skill.displayName)
+    builder.addFact(
+      Facts.Common.FIELD,
+      skill.name,
+      'displayName',
+      skill.displayName,
+    );
+  if (skill.description)
+    builder.addFact(
+      Facts.Common.FIELD,
+      skill.name,
+      'description',
+      skill.description,
+    );
+  if (skill.category)
+    builder.addFact(Facts.Common.FIELD, skill.name, 'category', skill.category);
+  for (const relatedTool of skill.relatedTools) {
+    builder.addFact(Facts.Skill.RELATED_TOOL, skill.name, relatedTool);
+  }
+  return builder.buildAll();
+};
+
+/**
+ * Creates Clingo facts about template.
+ * @param template Template metadata
+ * @returns clingo facts as a string
+ */
+export const createTemplateFacts = (template: TemplateMetadata) => {
+  const builder = new ClingoProgramBuilder();
+  builder.addFact(Facts.Template.TEMPLATE, template.name);
+
+  if (template.displayName)
+    builder.addFact(
+      Facts.Common.FIELD,
+      template.name,
+      'displayName',
+      template.displayName,
+    );
+  if (template.description)
+    builder.addFact(
+      Facts.Common.FIELD,
+      template.name,
+      'description',
+      template.description,
+    );
+  if (template.category)
+    builder.addFact(
+      Facts.Common.FIELD,
+      template.name,
+      'category',
+      template.category,
+    );
+  return builder.buildAll();
+};

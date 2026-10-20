@@ -12,9 +12,9 @@ import {
 } from 'node:fs';
 
 // cyberismo
-import { copyDir } from '../src/utils/file-utils.js';
-import { Validate } from '../src/commands/validate.js';
-import { Checkout } from '../src/infra/checkout.js';
+import { copyDir } from '../src/shared/utils/file-utils.js';
+import { Validate } from '../src/domain/validation/validate.js';
+import { Checkout } from '../src/state/checkout/checkout.js';
 
 // The project's validation errors; '' when it is valid.
 async function validate(path: string): Promise<string> {

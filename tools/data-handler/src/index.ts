@@ -10,23 +10,23 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Workspace } from './workspace/workspace.js';
-import { ExportFormats } from './export/export.js';
-import { Validate } from './commands/validate.js';
+import { Workspace } from './api/workspace.js';
+import { ExportFormats } from './api/export.js';
+import { Validate } from './domain/validation/validate.js';
 export { SCHEMA_VERSION } from '@cyberismo/migrations';
-export { createProject } from './directory/create-project.js';
-export { localFolder, openProjectAt } from './directory/local-folder.js';
-export { renameProject } from './directory/rename-project.js';
-export { migrateProject } from './directory/migrate-project.js';
-export type { ProjectDirectory } from './directory/project-directory.js';
-import { macroErrorText } from './macros/render.js';
-import { validBumps } from './versions/version.js';
+export { createProject } from './api/directory/create-project.js';
+export { localFolder, openProjectAt } from './api/directory/local-folder.js';
+export { renameProject } from './api/directory/rename-project.js';
+export { migrateProject } from './api/directory/migrate-project.js';
+export type { ProjectDirectory } from './api/directory/project-directory.js';
+import { macroErrorText } from './api/render.js';
+import { validBumps } from './api/versions.js';
 import {
   isResourceFolderType,
   resourceName,
   resourceNameToString,
-} from './utils/resource-utils.js';
-import { moduleNameFromCardKey } from './utils/card-utils.js';
+} from './shared/utils/resource-utils.js';
+import { moduleNameFromCardKey } from './shared/utils/card-utils.js';
 
 export {
   Workspace,
@@ -57,13 +57,13 @@ export {
   ResourceNotFoundError,
   SchemaNotFound,
   WorkspaceDisposedError,
-} from './exceptions/index.js';
-export { AsciidoctorPdfError } from './export/export.js';
+} from './shared/exceptions/index.js';
+export { AsciidoctorPdfError } from './api/export.js';
 export {
   ModuleReplayFailedError,
   ModuleValidationFailedError,
-} from './mutations/replay/replay.js';
-export { errorFunction } from './utils/error-utils.js';
-export type { WorkspaceOptions } from './workspace/workspace.js';
-export { SYSTEM_ACTOR, type CommitIdentity } from './utils/tx-record.js';
-export { createGit } from './infra/git-config.js';
+} from './domain/resources/changes/replay/replay.js';
+export { errorFunction } from './shared/utils/error-utils.js';
+export type { WorkspaceOptions } from './api/workspace.js';
+export { SYSTEM_ACTOR, type CommitIdentity } from './infra/tx/tx-record.js';
+export { createGit } from './infra/git/git-config.js';

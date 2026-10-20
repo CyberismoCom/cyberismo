@@ -1,69 +1,88 @@
 import { nodeConfig } from '../../eslint.config.js';
 
-// Domain folders: infrastructure (src/infra/), utils (src/utils/) and the
-// root-level files may not import them. exceptions/ is shared by all.
-const DOMAIN = [
-  'workspace',
-  'project',
-  'directory',
-  'cards',
-  'mutations',
-  'resources',
-  'queries',
-  'export',
-  'clean',
-  'versions',
-  'modules',
-  'settings',
-  'macros',
-  'commands',
-];
+// Layers under src/, top to bottom: api/ (the consumer surface), domain/
+// (operations and rules), state/ (the checkout core: I/O plus in-memory
+// state), infra/ (plumbing). shared/ (utilities, types, exceptions) sits
+// beside them. Imports point down only. `*/**` (not `**`) leaves the folder
+// itself unmatched, so an allowlist negation can re-include a file in it.
+const API = '**/api/**';
+const DOMAIN = '**/domain/*/**';
+const STATE = '**/state/**';
+const INFRA = '**/infra/**';
 
-// The infra boundary, minus the allowlisted import paths in `allow`.
-function infraBoundary(allow = []) {
+const allowed = (allow) => allow.map((path) => `!${path}`);
+
+// One restricted-imports rule: `group` is off limits except the allowlisted
+// import paths in `allow`.
+function restrict(group, message, allow = []) {
   return {
     'no-restricted-imports': [
       'error',
-      {
-        patterns: [
-          {
-            group: [
-              ...DOMAIN.map((folder) => `**/${folder}/**`),
-              ...allow.map((path) => `!${path}`),
-            ],
-            message: 'src/infra/ may not import domain code.',
-          },
-        ],
-      },
+      { patterns: [{ group: [...group, ...allowed(allow)], message }] },
     ],
   };
 }
 
-// The utils boundary: no domain code, and infra only as types (utilities
-// take a Checkout parameter). `allow` lists allowlisted import paths.
-function utilsBoundary(allow = []) {
-  const allowed = allow.map((path) => `!${path}`);
-  return {
-    '@typescript-eslint/no-restricted-imports': [
-      'error',
-      {
-        patterns: [
-          {
-            group: [...DOMAIN.map((folder) => `**/${folder}/**`), ...allowed],
-            message:
-              'src/utils/ and root-level files may not import domain code.',
-          },
-          {
-            group: ['**/infra/**', ...allowed],
-            allowTypeImports: true,
-            message:
-              'src/utils/ and root-level files may import infra types only.',
-          },
-        ],
-      },
-    ],
-  };
+// infra/ is plumbing: it imports nothing above it. No allowlist.
+const infraBoundary = restrict(
+  [API, DOMAIN, STATE],
+  'src/infra/ may not import api/, domain/ or state/ code.',
+);
+
+// state/ may not import api/, and imports domain/ only where allowlisted.
+function stateBoundary(allow = []) {
+  return restrict(
+    [API, DOMAIN],
+    'src/state/ may not import api/ or domain/ code.',
+    allow,
+  );
 }
+
+// domain/ may not import api/, bar the allowlisted import paths in `allow`.
+function domainBoundary(allow = []) {
+  return restrict([API], 'src/domain/ may not import api/ code.', allow);
+}
+
+// api/ imports a domain only through its door, domain/<x>/index.ts.
+const apiBoundary = restrict(
+  [DOMAIN, '!**/domain/*/index.js'],
+  'src/api/ imports a domain only through domain/<x>/index.ts.',
+);
+
+// shared/ and the root-level files: no api/ or domain/ code, and state/ and
+// infra/ only as types (utilities take a Checkout parameter).
+const sharedBoundary = {
+  '@typescript-eslint/no-restricted-imports': [
+    'error',
+    {
+      patterns: [
+        {
+          group: [API, DOMAIN],
+          message:
+            'src/shared/ and root-level files may not import api/ or domain/ code.',
+        },
+        {
+          group: [STATE, INFRA],
+          allowTypeImports: true,
+          message:
+            'src/shared/ and root-level files may import state/ and infra/ types only.',
+        },
+      ],
+    },
+  ],
+};
+
+// A relative import() hides a dependency cycle from the layer rules; use a
+// static import.
+const NO_RELATIVE_DYNAMIC_IMPORT = {
+  'no-restricted-syntax': [
+    'error',
+    {
+      selector: 'ImportExpression[source.value=/^\\./]',
+      message: 'Use a static import; a relative import() hides a cycle.',
+    },
+  ],
+};
 
 export default [
   ...nodeConfig,
@@ -77,55 +96,57 @@ export default [
       },
     },
   },
-  { files: ['src/infra/**/*.ts'], rules: infraBoundary() },
-  // Allowlist: the remaining infra -> domain edges, each with its ticket.
+  { files: ['src/infra/**/*.ts'], rules: infraBoundary },
+  { files: ['src/state/**/*.ts'], rules: stateBoundary() },
+  // Allowlist: the state -> domain edges, each with its ticket.
   // Ticket (to file): inject the report runner into the engine.
   {
-    files: ['src/infra/calculation-engine.ts'],
-    rules: infraBoundary(['**/queries/report.js']),
+    files: ['src/state/engine/calculation-engine.ts'],
+    rules: stateBoundary(['**/domain/queries/report.js']),
   },
-  // Ticket (to file): resources-as-data or a resource factory; the cache
-  // constructs the resource classes, which import the checkout back.
-  // Ticket (to file, V-series): Validate's process-wide caches, cleared by
-  // the checkout's repopulate().
+  // Reason: the checkout reads Validate's process-wide caches and clears them
+  // in repopulate() (V-series). The TemplateResource entry is a type import
+  // that this rule cannot tell from a value one. Tickets (to file): the
+  // Validate redesign; resources-as-data.
   {
-    files: ['src/infra/checkout.ts'],
-    rules: infraBoundary([
-      '**/resources/template-resource.js',
-      '**/commands/validate.js',
+    files: ['src/state/checkout/checkout.ts'],
+    rules: stateBoundary([
+      '**/domain/resources/template-resource.js',
+      '**/domain/validation/validate.js',
     ]),
   },
   // Ticket (to file, V-series): the prefix and project-name checks live on
   // Validate; move them out with the validation redesign.
   {
-    files: ['src/infra/project-settings.ts'],
-    rules: infraBoundary(['**/commands/validate.js']),
+    files: ['src/state/checkout/project-settings.ts'],
+    rules: stateBoundary(['**/domain/validation/validate.js']),
   },
+  // Reason: the cache constructs the resource classes, which import the
+  // checkout back. Ticket (to file): resources-as-data or a resource factory.
   {
-    files: ['src/infra/resource-cache.ts'],
-    rules: infraBoundary(['**/resources/**']),
+    files: ['src/state/resources/resource-cache.ts'],
+    rules: stateBoundary(['**/domain/resources/*-resource.js']),
   },
-  // index.ts is the package's public surface and re-exports the domain.
+  { files: ['src/domain/**/*.ts'], rules: domainBoundary() },
+  // Ticket (to file, V-series): Validate takes the Workspace handle; the
+  // validation redesign inverts it.
   {
-    files: ['src/utils/**/*.ts', 'src/*.ts'],
+    files: ['src/domain/validation/validate.ts'],
+    rules: domainBoundary(['**/api/workspace.js']),
+  },
+  { files: ['src/api/**/*.ts'], rules: apiBoundary },
+  // index.ts is the package's public surface and re-exports the API.
+  {
+    files: ['src/shared/**/*.ts', 'src/*.ts'],
     ignores: ['src/index.ts'],
-    rules: utilsBoundary(),
+    rules: sharedBoundary,
   },
-  // Allowlist: the remaining utils -> domain/infra edges, each with its ticket.
-  // Ticket (to file): xref resolution reads cards; move it next to the
-  // xref macro or pass the card lookup in.
+  { files: ['src/**/*.ts'], rules: NO_RELATIVE_DYNAMIC_IMPORT },
+  // File-wide exemptions, reasons only (tickets to file): resource-object.ts
+  // imports Validate lazily to break a cycle (V-series). api/export.ts lazily
+  // imports a module it also imports statically, left as-is in a moves-only PR.
   {
-    files: ['src/utils/asciidoc-xref.ts'],
-    rules: utilsBoundary(['**/cards/read.js']),
-  },
-  // Ticket (to file): prefix rename rewrites cards and resources; it is a
-  // domain operation, not a utility (move it out of utils/).
-  {
-    files: ['src/utils/prefix-rename.ts'],
-    rules: utilsBoundary([
-      '**/cards/attachments.js',
-      '**/cards/update.js',
-      '**/infra/resources-from.js',
-    ]),
+    files: ['src/domain/resources/resource-object.ts', 'src/api/export.ts'],
+    rules: { 'no-restricted-syntax': 'off' },
   },
 ];

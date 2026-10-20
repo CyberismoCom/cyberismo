@@ -1,0 +1,113 @@
+/**
+  Cyberismo
+  Copyright © Cyberismo Ltd and contributors 2024
+
+  This program is free software: you can redistribute it and/or modify it under
+  the terms of the GNU Affero General Public License version 3 as published by
+  the Free Software Foundation. This program is distributed in the hope that it
+  will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty
+  of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+  See the GNU Affero General Public License for more details.
+  You should have received a copy of the GNU Affero General Public
+  License along with this program. If not, see <https://www.gnu.org/licenses/>.
+*/
+
+import { join } from 'node:path';
+
+import { copyDir } from '../../shared/utils/file-utils.js';
+import { DefaultContent } from './create-defaults.js';
+import { FolderResource } from './folder-resource.js';
+import { getStaticDirectoryPath } from '@cyberismo/assets';
+import { resourceNameToString } from '../../shared/utils/resource-utils.js';
+import { sortCards } from '../../shared/utils/card-utils.js';
+import { Validate } from '../validation/validate.js';
+
+import type {
+  Card,
+  ReportContent,
+  ReportMetadata,
+  ResourceName,
+} from '@cyberismo/model';
+import type { Checkout } from '../../state/checkout/checkout.js';
+
+const PARAMETER_SCHEMA_ID = 'jsonSchema';
+
+/**
+ * Report resource class.
+ */
+export class ReportResource extends FolderResource<
+  ReportMetadata,
+  ReportContent
+> {
+  /**
+   * Creates instance of ReportResource
+   * @param checkout Project to use
+   * @param name Resource name
+   * @internal
+   */
+  constructor(checkout: Checkout, name: ResourceName) {
+    super(checkout, name, 'reports');
+
+    this.contentSchemaId = 'reportSchema';
+    this.contentSchema = super.contentSchemaContent(this.contentSchemaId);
+  }
+
+  // Path to content folder.
+  // @todo: create the files' content dynamically.
+  private async getDefaultReportLocation(): Promise<string> {
+    const staticDirectoryPath = await getStaticDirectoryPath();
+    return join(staticDirectoryPath, 'defaultReport');
+  }
+
+  /**
+   * Sets new metadata into the report object.
+   */
+  public async createReport() {
+    const defaultContent = DefaultContent.report(
+      resourceNameToString(this.resourceName),
+    );
+
+    await super.create(defaultContent);
+
+    // Copy report default structure to destination.
+    const defaultReportLocation = await this.getDefaultReportLocation();
+    await copyDir(defaultReportLocation, this.internalFolder);
+    await this.loadContentFiles();
+  }
+
+  /**
+   * List where this resource is used.
+   * Always returns card key references first, then calculation references.
+   *
+   * @param cards Optional. Check these cards for usage of this resource. If undefined, will check all cards.
+   * @returns array of card keys and calculation filenames that refer this resource.
+   */
+  public async usage(cards?: Card[]): Promise<string[]> {
+    const allCards = cards ?? super.cards();
+    const [relevantCards, calculations] = await Promise.all([
+      super.usage(allCards),
+      super.calculations(),
+    ]);
+    return [...relevantCards.sort(sortCards), ...calculations];
+  }
+
+  /**
+   * Validates report.
+   * @param content Content to be validated.
+   * @note If content is not provided, base class validation will use resource's current content.
+   * @throws when there are validation errors.
+   */
+  public async validate(content?: object) {
+    const resourceContent = this.contentData();
+    if (resourceContent.schema) {
+      const errors = Validate.getInstance().validateJson(
+        resourceContent.schema,
+        PARAMETER_SCHEMA_ID,
+      );
+      if (errors.length > 0) {
+        throw new Error(`Invalid parameter schema: ${errors}`);
+      }
+    }
+    return super.validate(content);
+  }
+}

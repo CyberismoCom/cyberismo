@@ -1,0 +1,1013 @@
+/**
+  Cyberismo
+  Copyright © Cyberismo Ltd and contributors 2024
+  This program is free software: you can redistribute it and/or modify it under
+  the terms of the GNU Affero General Public License version 3 as published by
+  the Free Software Foundation.
+  This program is distributed in the hope that it will be useful, but WITHOUT
+  ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+  FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more
+  details. You should have received a copy of the GNU Affero General Public
+  License along with this program. If not, see <https://www.gnu.org/licenses/>.
+*/
+
+// node
+import type { Dirent } from 'node:fs';
+import { dirname, extname, join, parse, resolve } from 'node:path';
+import { readdir } from 'node:fs/promises';
+
+// dependencies
+import type { Ajv, ErrorObject, SchemaObject } from 'ajv';
+import { Validator as DirectoryValidator } from 'directory-schema-validator';
+import { parentSchema } from '@cyberismo/assets';
+
+// data-handler
+import type {
+  Card,
+  DotSchemaContent,
+  ProjectSettings,
+  ResourceTypes,
+  CardType,
+  CustomField,
+  FieldType,
+  ReportMetadata,
+  AnyResourceContent,
+  Workflow,
+  ResourceName,
+} from '@cyberismo/model';
+import { errorFunction } from '../../shared/utils/error-utils.js';
+import { sortCards } from '../../shared/utils/card-utils.js';
+import { isPredefinedField } from '../../shared/utils/constants.js';
+import {
+  invalidNames,
+  isValidFolderName,
+  pathExists,
+} from '../../shared/utils/file-utils.js';
+import type { Checkout } from '../../state/checkout/checkout.js';
+import type { Workspace } from '../../api/workspace.js';
+import { readJsonFile } from '../../shared/utils/json.js';
+import { resourceName } from '../../shared/utils/resource-utils.js';
+import {
+  normalizeSchemaId,
+  schemaValidator,
+} from '../../shared/utils/validate.js';
+
+const SHORT_TEXT_MAX_LENGTH = 80;
+
+import * as EmailValidator from 'email-validator';
+import { evaluateMacros } from '../macros/registry.js';
+import { allTemplateCards } from '../cards/read.js';
+import { checkoutOf } from '../../state/checkout/internal.js';
+const baseDir = import.meta.dirname ?? new URL('.', import.meta.url).pathname;
+const subFoldersToValidate = ['.cards', 'cardRoot'];
+
+export interface LengthProvider {
+  length: number;
+}
+
+/**
+ * Validates content.
+ */
+// ajv locates an error with a JSON pointer, which is empty for the root.
+function errorText(error: ErrorObject): string {
+  return [error.instancePath, error.message].filter(Boolean).join(' ');
+}
+
+export class Validate {
+  private static instance: Validate;
+
+  validator: Ajv;
+  directoryValidator: DirectoryValidator;
+
+  private parentSchema: SchemaObject;
+
+  private validatedCardTypes: Map<string, CardType>;
+  private validatedWorkflows: Map<string, Workflow>;
+  private validatedFieldTypes: Map<string, FieldType>;
+
+  static baseFolder: string;
+  static jsonFileExtension = '.json';
+  static parentSchemaFile: string;
+  static schemaConfigurationFile = '.schema';
+  static projectConfigurationFile = 'cardsConfig.json';
+  static cardMetadataFile = 'index.json';
+  static dotSchemaSchemaId = '/dotSchema';
+  static parameterSchemaFile = 'parameterSchema.json';
+
+  /**
+   * Creates an instance of Validate command.
+   */
+  constructor() {
+    Validate.baseFolder = pathExists(
+      join(process.cwd(), '../../schema', 'cardTreeDirectorySchema.json'),
+    )
+      ? join(process.cwd(), '../../schema')
+      : join(baseDir, '../../../schema');
+    Validate.parentSchemaFile = join(
+      Validate.baseFolder,
+      'cardTreeDirectorySchema.json',
+    );
+    this.validator = schemaValidator();
+    this.directoryValidator = new DirectoryValidator();
+    this.parentSchema = parentSchema;
+    this.validatedFieldTypes = new Map();
+    this.validatedWorkflows = new Map();
+    this.validatedCardTypes = new Map();
+  }
+
+  // Helper to get length from types when needed.
+  private length<T extends LengthProvider>(item: T): number {
+    return item.length;
+  }
+
+  // Validates that 'name' in resources matches filename, location and project prefix.
+  private checkResourceName(
+    file: Dirent,
+    content:
+      | AnyResourceContent
+      | CustomField
+      | DotSchemaContent
+      | ProjectSettings
+      | ReportMetadata,
+    projectPrefixes: string[],
+  ): string[] {
+    const errors: string[] = [];
+    const fullFileNameWithPath = this.fullPath(file);
+    // Exclude cardsConfig.json, .schemas and resource specific JSON files.
+    if (
+      file.name !== Validate.projectConfigurationFile &&
+      file.name !== Validate.cardMetadataFile &&
+      file.name !== Validate.dotSchemaSchemaId &&
+      file.name !== Validate.parameterSchemaFile
+    ) {
+      const namedContent = content as AnyResourceContent | ReportMetadata;
+      if (!namedContent.name) {
+        errors.push(
+          `File '${file.name}' does not contain 'name' property. Cannot validate resource's 'name'.`,
+        );
+        return errors;
+      }
+      let identifier: string, prefix: string, type: string;
+      try {
+        ({ identifier, prefix, type } = resourceName(namedContent.name));
+      } catch (error) {
+        errors.push(
+          `File '${fullFileNameWithPath}' has an invalid 'name' property '${namedContent.name}': ${errorFunction(error)}`,
+        );
+        return errors;
+      }
+      const filenameWithoutExtension = parse(file.name).name;
+
+      if (!projectPrefixes.includes(prefix)) {
+        errors.push(
+          `Wrong prefix in resource '${namedContent.name}'. Project prefixes are '[${projectPrefixes.join(', ')}]'`,
+        );
+      }
+      if (identifier !== filenameWithoutExtension) {
+        errors.push(
+          `Resource 'name' ${namedContent.name} mismatch with file path '${fullFileNameWithPath}'`,
+        );
+      }
+      if (!fullFileNameWithPath.includes(type)) {
+        errors.push(
+          `Wrong type name in resource '${namedContent.name}'. Should match filename path: '${fullFileNameWithPath}'`,
+        );
+      }
+    }
+    return errors;
+  }
+
+  // Return full path and filename.
+  private fullPath(file: Dirent): string {
+    return join(file.parentPath, file.name);
+  }
+
+  // Parses validator messages
+  private parseValidatorMessage(errorObject: object[]): string {
+    let parsedErrorMessage = '';
+    // todo: get schema name here?
+    for (const error of errorObject) {
+      let instancePath = '';
+      let params = '';
+      let message = '';
+      let fileError = false;
+      if (Object.prototype.hasOwnProperty.call(error, 'instancePath')) {
+        const temp = Object(error)['instancePath'];
+        if (temp.endsWith('files')) fileError = true;
+        instancePath = temp;
+        instancePath = instancePath.replace(/\/directories/g, '');
+        instancePath = instancePath.replace(/\/files/g, '');
+        if (instancePath === '') {
+          instancePath = 'project root';
+        }
+        if (instancePath[0] === '/') {
+          instancePath = instancePath.slice(1);
+        }
+      }
+      if (Object.prototype.hasOwnProperty.call(error, 'params')) {
+        params = Object(error)['params']['additionalProperty'];
+      }
+      if (Object.prototype.hasOwnProperty.call(error, 'message')) {
+        message = Object(error)['message'];
+        message = message.replace(
+          'must have required property',
+          fileError ? 'must have file' : 'must have subdirectory',
+        );
+        if (message === 'must NOT have additional properties') {
+          message = message.replace(
+            'must NOT have additional properties',
+            'non-allowed additional property',
+          );
+          message = message + `: ${params}`;
+        }
+      }
+      parsedErrorMessage += `\nAt '${instancePath}' ${message}`;
+    }
+    return parsedErrorMessage;
+  }
+
+  // Handles reading and validating 'contentSchema' in a directory.
+  private async readAndValidateContentFiles(
+    checkout: Checkout,
+    path: string,
+  ): Promise<string[]> {
+    const message: string[] = [];
+    try {
+      const prefixes = checkout.allModulePrefixes();
+      const files = await readdir(path, {
+        withFileTypes: true,
+      });
+
+      const foldersToValidate = files.filter(
+        (dirent) =>
+          dirent.isDirectory() && subFoldersToValidate.includes(dirent.name),
+      );
+
+      // Validate subfolders parallel.
+      const promises: Promise<string[]>[] = [];
+      foldersToValidate.forEach((folder) => {
+        promises.push(this.validateFolder(prefixes, folder));
+      });
+      const result = await Promise.all(promises);
+      message.push(...result.flat(1));
+    } catch (error) {
+      throw new Error(errorFunction(error), { cause: error });
+    }
+    return message;
+  }
+
+  // Removes same items from an array.
+  private removeDuplicateEntries(
+    value: string,
+    index: number,
+    array: string[],
+  ) {
+    return array.indexOf(value) === index;
+  }
+
+  // Validate one subfolder.
+  private async validateFolder(prefixes: string[], path: Dirent) {
+    const messages: string[] = [];
+    const files = await readdir(this.fullPath(path), {
+      withFileTypes: true,
+      recursive: true,
+    });
+    const schemaFiles = files.filter(
+      (dirent) =>
+        dirent.isFile() && dirent.name === Validate.schemaConfigurationFile,
+    );
+
+    messages.push(...(await this.validateSchemaFiles(schemaFiles)));
+
+    // no point in validating contents if .schema files are not valid
+    if (messages.length !== 0) {
+      return messages;
+    }
+
+    const schemaConfigs = (
+      await Promise.all(
+        schemaFiles.map(async (dirent) => ({
+          dirent,
+          content: await readJsonFile(this.fullPath(dirent)),
+        })),
+      )
+    ).reduce<Record<string, DotSchemaContent>>((acc, { dirent, content }) => {
+      acc[dirent.parentPath] = content;
+      return acc;
+    }, {});
+
+    // Fetches nearest parent's .schema file.
+    function schemaConfigFile(
+      path: string,
+      schemaConfigs: Record<string, DotSchemaContent>,
+    ) {
+      let schemas = schemaConfigs[path];
+      let parentPath = path;
+      while (!schemas) {
+        parentPath = resolve(parentPath, '..');
+        if (dirname(parentPath) === parentPath) {
+          break;
+        }
+        schemas = schemaConfigs[parentPath];
+      }
+      return schemas;
+    }
+
+    // Go through every file
+    for (const file of files.filter(
+      (dirent) =>
+        dirent.isFile() &&
+        dirent.name !== Validate.schemaConfigurationFile &&
+        extname(dirent.name) === Validate.jsonFileExtension,
+    )) {
+      const fullPath = this.fullPath(file);
+      const content = await readJsonFile(fullPath);
+      const nameErrors = this.checkResourceName(file, content, prefixes);
+
+      if (nameErrors) {
+        messages.push(...nameErrors);
+      }
+      const schemas = schemaConfigFile(file.parentPath, schemaConfigs);
+      // if schema is not defined for the directory, skip it
+      if (!schemas) {
+        continue;
+      }
+      const fileSchema = schemas.find(
+        (schema) =>
+          schema.file === file.name || (schemas.length === 1 && !schema.file),
+      );
+      if (!fileSchema) {
+        continue;
+      }
+
+      if (!fileSchema.id.startsWith('/')) {
+        fileSchema.id = '/' + fileSchema.id;
+      }
+
+      const validate = this.validator.getSchema(
+        normalizeSchemaId(fileSchema.id),
+      );
+      if (!validate) {
+        throw new Error(`Unknown schema name '${fileSchema.id}', aborting.`);
+      }
+      if (!validate(content)) {
+        for (const error of validate.errors ?? []) {
+          messages.push(
+            `Validation error from '${fullPath}': ${errorText(error)}.`,
+          );
+        }
+      }
+    }
+    return messages;
+  }
+
+  // Handles validating .schema files
+  private async validateSchemaFiles(files: Dirent[]) {
+    const validate = this.validator.getSchema(
+      normalizeSchemaId(Validate.dotSchemaSchemaId),
+    );
+
+    if (!validate) {
+      throw new Error(`'${Validate.dotSchemaSchemaId}' schema not found`);
+    }
+
+    const message: string[] = [];
+
+    for (const file of files) {
+      const fullPath = this.fullPath(file);
+
+      if (!validate(await readJsonFile(fullPath))) {
+        for (const error of validate.errors ?? []) {
+          message.push(
+            `Validation error from '${fullPath}': ${error.message}.`,
+          );
+        }
+      }
+    }
+    return message;
+  }
+
+  // Validate array of custom field names
+  private async validateArrayOfFields(
+    checkout: Checkout,
+    cardType: CardType,
+    fieldArray: string[],
+    nameOfArray: string,
+  ) {
+    const errors: string[] = [];
+    if (cardType && fieldArray) {
+      const validationPromises = fieldArray.map(async (field) => {
+        let fieldType;
+        try {
+          fieldType = checkout.resources.byType(field, 'fieldTypes').show();
+        } catch {
+          fieldType = undefined;
+        }
+
+        if (!fieldType) {
+          return `Card type '${cardType.name}' has invalid reference to unknown ${nameOfArray} '${field}'`;
+        }
+        return null;
+      });
+
+      const results = await Promise.all(validationPromises);
+      errors.push(
+        ...results.filter((result): result is string => result !== null),
+      );
+    }
+    return errors;
+  }
+
+  // Validates that arrays have only string elements.
+  private validateListValues(list: string[]): boolean {
+    let valid = true;
+    list.forEach((value) => {
+      if (typeof value !== 'string') {
+        valid = false;
+      }
+    });
+    return valid;
+  }
+
+  // Validates that card's dataType can be used with JS types.
+  private validType<T>(value: T, fieldType: FieldType): boolean {
+    const field = fieldType.dataType;
+    const typeOfValue = typeof value;
+
+    // Nulls are always accepted.
+    if (typeOfValue === 'object' && value === null) {
+      return true;
+    }
+
+    if (field === 'date' || field === 'dateTime') {
+      return !isNaN(Date.parse(<string>value));
+    }
+    if (field === 'list') {
+      return Array.isArray(value) && this.validateListValues(<string[]>value);
+    }
+    if (field === 'boolean' || field === 'number') {
+      return typeOfValue === field;
+    }
+    if (field === 'shortText') {
+      return (
+        typeOfValue === 'string' &&
+        this.length(<string>value) <= SHORT_TEXT_MAX_LENGTH
+      );
+    }
+    if (field === 'longText') {
+      return typeOfValue === 'string';
+    }
+    if (field === 'integer') {
+      return typeOfValue === 'number' && Number.isInteger(value);
+    }
+    if (field === 'person') {
+      // Accept empty names
+      return (
+        EmailValidator.validate(<string>value) ||
+        this.length(<string>value) === 0
+      );
+    }
+    if (field === 'enum') {
+      const found = fieldType.enumValues?.find(
+        (item) => item.enumValue === value,
+      );
+      return found ? true : false;
+    }
+    console.error(`Type ${field} is not supported`);
+    return false;
+  }
+
+  /**
+   * Validates that new identifier of a resource is according to naming convention.
+   * @param identifier Resource identifier
+   * returns true if identifier is valid, and false otherwise.
+   */
+  public static isValidIdentifierName(identifier: string): boolean {
+    const validIdentifier = new RegExp('^[A-Za-z0-9._-]+$');
+
+    const contentValidated = validIdentifier.test(identifier);
+    const lengthValidated = identifier.length > 0 && identifier.length < 256;
+    const notInvalidIdentifier = !invalidNames.test(identifier);
+    return contentValidated && lengthValidated && notInvalidIdentifier;
+  }
+
+  /**
+   * Validates that 'name' can be used as a project name.
+   * @param name project name
+   * @returns true if name is valid, and false otherwise.
+   * @note that on Windows, if path + filename is longer than 256 characters, some file operations
+   *       are not possible. Thus, setting the maximum length of project name to 64 characters.
+   *       The 192 characters usually should be enough for the path.
+   */
+  public static isValidProjectName(name: string): boolean {
+    const validName = new RegExp('^[A-Za-z ._-]+$');
+    const contentValidated = validName.test(name);
+    const lengthValidated = name.length > 0 && name.length < 64;
+    const notInvalidName = !invalidNames.test(name);
+    return contentValidated && lengthValidated && notInvalidName;
+  }
+
+  /**
+   * Validates that 'name' can be used as label name.
+   * Labels are less restricted than other names, as they are never file names.
+   * @param name label name
+   * @returns true if name is valid, and false otherwise.
+   */
+  public static isValidLabelName(name: string): boolean {
+    const validName = new RegExp('^[-a-zA-Z0-9._-]+(?: [a-zA-Z0-9._-]+)*$');
+    const contentValidated = validName.test(name);
+    const lengthValidated = name.length > 0 && name.length < 256;
+    return contentValidated && lengthValidated;
+  }
+
+  /** Forgets the resources validated so far. */
+  public clearCaches() {
+    this.validatedFieldTypes.clear();
+    this.validatedWorkflows.clear();
+    this.validatedCardTypes.clear();
+  }
+
+  /**
+   * Validates that a given directory path (and its children) conform to a JSON schema.
+   * @note Validates also content in the directory tree, if .schema file is found.
+   * @param projectPath path to validate.
+   * @param projectFn function that returns a Project instance.
+   * @returns string containing all validation errors
+   * @internal
+   */
+  public async validate(
+    projectPath: string,
+    projectFn: () => Checkout,
+  ): Promise<string> {
+    let validationErrors = '';
+    this.clearCaches();
+
+    try {
+      // First, validate that the directory content conforms to the schema.
+      const valid = this.directoryValidator.validate(
+        this.parentSchema,
+        projectPath,
+      );
+      if (!valid && this.directoryValidator.errors) {
+        const errorMsg = this.parseValidatorMessage(
+          this.directoryValidator.errors,
+        );
+        if (errorMsg) {
+          validationErrors = errorMsg;
+        }
+        return validationErrors;
+      } else {
+        const errorMsg: string[] = [];
+        const checkout = projectFn();
+        await checkout.populateCaches();
+
+        // Then, validate that each 'contentSchema' children as well.
+        const result = await this.readAndValidateContentFiles(
+          checkout,
+          projectPath,
+        );
+        if (result.length > 0) {
+          errorMsg.push(...result);
+        }
+
+        // Validate workflow-specific rules; files on disk may have been
+        // edited by hand and bypassed validation at creation or update time.
+        for (const workflow of checkout.resources.workflows()) {
+          try {
+            await workflow.validate();
+          } catch (error) {
+            errorMsg.push(errorFunction(error));
+          }
+        }
+
+        // Validate calculations; files on disk may have been edited by hand
+        // and bypassed validation at creation or update time. Each is checked
+        // independently so all failures are reported.
+        for (const calculation of checkout.resources.calculations()) {
+          try {
+            await calculation.validate();
+          } catch (error) {
+            errorMsg.push(errorFunction(error));
+          }
+        }
+
+        // Finally, validate that each card is correct. Sorted so the reported
+        // errors come out in the same order on every run.
+        const cards = [
+          ...checkout.cardTree.cards(),
+          ...allTemplateCards(checkout),
+        ].sort((a, b) => sortCards(a.key, b.key));
+
+        const allPrefixes = checkout.allModulePrefixes();
+
+        for (const card of cards) {
+          if (card.metadata) {
+            if (checkout.treeOf(card.key).kind === 'project') {
+              const validWorkflow = await this.validateWorkflowState(
+                checkout,
+                card,
+              );
+              if (validWorkflow.length !== 0) {
+                errorMsg.push(validWorkflow);
+              }
+            }
+          }
+          const validCustomFields = await this.validateCustomFields(
+            checkout,
+            card,
+            allPrefixes,
+          );
+          if (validCustomFields.length !== 0) {
+            errorMsg.push(validCustomFields);
+          }
+
+          const validLabels = await this.validateCardLabels(card);
+          if (validLabels.length > 0) {
+            errorMsg.push(validLabels);
+          }
+
+          // Validate macros in content. Each card is isolated: a macro
+          // failure must not abort validation of the rest of the project.
+          if (card.content) {
+            try {
+              await evaluateMacros(card.content, {
+                context: 'localApp',
+                mode: 'validate',
+                checkout,
+                cardKey: card.key,
+              });
+            } catch (error) {
+              errorMsg.push(`Card '${card.key}': ${errorFunction(error)}`);
+            }
+          }
+        }
+        if (errorMsg.length) {
+          validationErrors += errorMsg
+            .filter(this.removeDuplicateEntries)
+            .join('\n');
+        }
+      }
+    } catch (error) {
+      validationErrors += errorFunction(error);
+    }
+    return validationErrors;
+  }
+
+  /** As `validate`, for the handle's project. */
+  public async validateWorkspace(ws: Workspace): Promise<string> {
+    return this.validate(ws.path, () => checkoutOf(ws));
+  }
+
+  /** Whether `path` is a valid folder name; see isValidFolderName. */
+  public static validateFolder(path: string): boolean {
+    return isValidFolderName(path);
+  }
+
+  /**
+   * Validates that 'object' conforms to JSON schema 'schemaId'.
+   * @param content Object to validate.
+   * @param schemaId Schema ID to identify a JSON schema.
+   * @returns string containing all validation errors
+   */
+  public validateJson(content: object, schemaId: string): string {
+    const validationErrors: string[] = [];
+    if (!schemaId.startsWith('/')) {
+      schemaId = '/' + schemaId;
+    }
+    const validate = this.validator.getSchema(normalizeSchemaId(schemaId));
+    if (!validate) {
+      validationErrors.push(`Unknown schema ${schemaId}`);
+    } else if (!validate(content)) {
+      for (const error of validate.errors ?? []) {
+        validationErrors.push(
+          `Schema '${schemaId}' validation Error: ${error.message}\n`,
+        );
+      }
+    }
+    return validationErrors.join('\n');
+  }
+
+  /**
+   * Validate that resource names and identifiers are valid.
+   * @param resourceType Type of resource
+   * @param name Name of resource
+   * @param prefixes currently used project prefixes
+   * @throws when resource is not from given prefixes,
+   *         or when actual resource does not match the type,
+   *         or when identifier name is not valid
+   * @returns resource name as valid resource name; throws in error cases.
+   */
+  public validResourceName(
+    resourceType: ResourceTypes,
+    name: string,
+    prefixes: string[],
+  ): string {
+    const resource = resourceName(name);
+    resource.type = resource.type ? resource.type : resourceType;
+    if (resource.prefix === '') {
+      throw new Error(`Project prefix cannot be empty string`);
+    }
+    if (!prefixes.includes(resource.prefix)) {
+      throw new Error(
+        `Resource name can only refer to project that it is part of. Prefix '${resource.prefix}' is not included in '[${prefixes.join(',')}]'`,
+      );
+    }
+    if (resourceType !== resource.type) {
+      throw new Error(
+        `Resource name must match the resource type. Type '${resource.type}' does not match '${resourceType}'`,
+      );
+    }
+    if (!Validate.isValidIdentifierName(resource.identifier)) {
+      throw new Error(
+        `Resource identifier must follow naming rules. Identifier '${resource.identifier}' is invalid`,
+      );
+    }
+    return `${resource.prefix}/${resourceType}/${resource.identifier}`;
+  }
+
+  /**
+   * Validates that 'prefix' is valid project prefix.
+   * @param prefix project prefix
+   * @returns true, if prefix can be used as project prefix, false otherwise.
+   */
+  public static validatePrefix(prefix: string): boolean {
+    const validPrefix = new RegExp('^[a-z]+$');
+    const contentValidated = validPrefix.test(prefix);
+    const lengthValidated = prefix.length > 2 && prefix.length < 11;
+    return contentValidated && lengthValidated;
+  }
+
+  /**
+   * Validates that card's custom fields are according to schema and have correct data in them.
+   * @param checkout currently used Project
+   * @param card specific card
+   * @throws when card does not have metadata
+   * @returns validation errors, if any.
+   * @internal
+   */
+  public async validateCustomFields(
+    checkout: Checkout,
+    card: Card,
+    prefixes: string[],
+  ): Promise<string> {
+    const validationErrors: string[] = [];
+
+    if (!card.metadata) {
+      throw new Error(
+        `Card '${card.key}' has no metadata. Card object needs to be instantiated with '{metadata: true}'`,
+      );
+    }
+
+    let cardType;
+    try {
+      cardType = checkout.resources
+        .byType(card.metadata?.cardType, 'cardTypes')
+        .show();
+    } catch {
+      cardType = undefined;
+    }
+
+    if (!cardType) {
+      validationErrors.push(
+        `Card '${card.key}' has invalid card type '${card.metadata?.cardType}'`,
+      );
+      return validationErrors.join('\n');
+    }
+
+    // Check that arrays of field types refer to existing fields.
+    let fieldErrors = await this.validateArrayOfFields(
+      checkout,
+      cardType,
+      cardType.optionallyVisibleFields,
+      'optionally visible fields',
+    );
+    validationErrors.push(...fieldErrors);
+    fieldErrors = await this.validateArrayOfFields(
+      checkout,
+      cardType,
+      cardType.alwaysVisibleFields,
+      'always visible fields',
+    );
+    validationErrors.push(...fieldErrors);
+
+    for (const field of cardType.customFields) {
+      let fieldType;
+      try {
+        fieldType = await checkout.resources
+          .byType(field.name, 'fieldTypes')
+          .show();
+      } catch {
+        fieldType = undefined;
+      }
+      if (!fieldType) {
+        validationErrors.push(
+          `In card '${card.key}' field '${field.name}' is missing from project\n`,
+        );
+        continue;
+      }
+      const value = card.metadata[field.name];
+      if (value === undefined || value === null) {
+        continue;
+      }
+      if (field.isCalculated && !field.enableOverride) {
+        // Dormant value: the field became calculated, or override was
+        // disabled. Preserved on disk, excluded from facts; 'cyberismo clean'
+        // removes it.
+        continue;
+      }
+
+      if (!this.validType(value, fieldType)) {
+        const typeOfValue = typeof value;
+        let fieldValue = value;
+        if (typeOfValue === 'string') {
+          fieldValue = value ? `"${value}"` : '""';
+        }
+        if (fieldType.dataType === 'enum') {
+          const listOfEnumValues = fieldType.enumValues?.map(
+            (item) => item.enumValue,
+          );
+          validationErrors.push(
+            `In card '${card.key}' field '${field.name}' is defined as '${fieldType.dataType}', possible enumerations are: ${listOfEnumValues?.join(', ')}\n`,
+          );
+          continue;
+        }
+        if (fieldType.dataType === 'person') {
+          validationErrors.push(
+            `In card '${card.key}' field '${field.name}' value '${value}' cannot be used as '${fieldType.dataType}'. Not a valid email address.'`,
+          );
+          continue;
+        }
+        if (
+          fieldType.dataType === 'shortText' &&
+          typeOfValue === 'string' &&
+          this.length(value as string) > SHORT_TEXT_MAX_LENGTH
+        ) {
+          validationErrors.push(
+            `In card '${card.key}' field '${field.name}' value exceeds the maximum length for 'shortText': ${SHORT_TEXT_MAX_LENGTH} characters allowed, but value has ${this.length(value as string)} characters\n`,
+          );
+          continue;
+        }
+        validationErrors.push(
+          `In card '${card.key}' field '${field.name}' is defined as '${fieldType.dataType}', but it is '${typeOfValue}' with value of ${fieldValue}\n`,
+        );
+      }
+    }
+
+    // Validate that all metadata keys are either predefined fields or valid
+    // field type names. Keys the card type does not declare are dormant, so
+    // their field type does not have to exist; declared fields with a missing
+    // field type are reported by the loop above.
+    for (const key of Object.keys(card.metadata)) {
+      if (isPredefinedField(key) as boolean) {
+        continue;
+      }
+      try {
+        this.validResourceName('fieldTypes', key, prefixes);
+      } catch {
+        validationErrors.push(
+          `Card '${card.key}' has invalid metadata key '${key}'`,
+        );
+      }
+    }
+
+    return validationErrors.join('\n');
+  }
+
+  /**
+   * Validates the labels of a card
+   * @param card card to validate. Card must have metadata.
+   * @returns validation errors, if any.
+   */
+  public validateCardLabels(card: Card): string {
+    const validationErrors: string[] = [];
+    if (!card.metadata) {
+      validationErrors.push(
+        `Card '${card.key}' has no metadata. Card object needs to be instantiated with '{metadata: true}'`,
+      );
+    }
+    // labels are not mandatory
+    if (card.metadata?.labels) {
+      if (!Array.isArray(card.metadata?.labels)) {
+        validationErrors.push(
+          `In card '${card.key}' expected labels to be an array of strings, but instead got ${card.metadata.labels}`,
+        );
+      } else {
+        for (const label of card.metadata.labels) {
+          // labels follow same name guidance as resource names
+          if (!Validate.isValidLabelName(label)) {
+            validationErrors.push(
+              `In card '${card.key}' label '${label}' does not follow naming rules`,
+            );
+          }
+        }
+      }
+    }
+    return validationErrors.join('\n');
+  }
+
+  /**
+   * Checks if card's current workflow state matches workflow that card's card type is using.
+   * Template cards are expected to have empty workflow state.
+   * @param checkout Project object.
+   * @param card Card object to validate
+   * @returns validation errors, if any.
+   * @internal
+   */
+  public async validateWorkflowState(
+    checkout: Checkout,
+    card: Card,
+  ): Promise<string> {
+    const validationErrors: string[] = [];
+
+    if (!card.metadata) {
+      validationErrors.push(
+        `Card '${card.key}' has no metadata. Card object needs to be instantiated with '{metadata: true}'`,
+      );
+    }
+
+    let cardType;
+    try {
+      cardType = card.metadata?.cardType
+        ? checkout.resources.byType(card.metadata?.cardType, 'cardTypes').show()
+        : undefined;
+    } catch {
+      cardType = undefined;
+    }
+    if (!cardType) {
+      validationErrors.push(
+        `Card '${card.key}' has invalid card type '${card.metadata?.cardType}'`,
+      );
+      return validationErrors.join('\n');
+    }
+    if (!cardType.workflow) {
+      validationErrors.push(
+        `Card type '${card.metadata?.cardType}' does not have 'workflow'`,
+      );
+      return validationErrors.join('\n');
+    }
+
+    let workflow;
+    try {
+      workflow = checkout.resources
+        .byType(cardType.workflow, 'workflows')
+        .show();
+    } catch {
+      workflow = undefined;
+    }
+
+    if (!workflow) {
+      validationErrors.push(
+        `Workflow of '${cardType.workflow}' card type '${card.metadata?.cardType}' does not exist in the project`,
+      );
+      return validationErrors.join('\n');
+    }
+
+    const cardState = card.metadata?.workflowState;
+    if (checkout.treeOf(card.key).kind === 'project') {
+      const found = workflow.states.find((item) => item.name === cardState);
+      if (!found) {
+        validationErrors.push(
+          `Card '${card.key}' has invalid state '${cardState}'`,
+        );
+      }
+    } else {
+      if (cardState) {
+        validationErrors.push(
+          `Template card ${card.key} must have empty "workflowState"`,
+        );
+      }
+    }
+    return validationErrors.join('\n');
+  }
+
+  /**
+   * Validates a single resource.
+   * @param resourceName Resource to validate
+   * @param checkout Project instance to use.
+   * @returns validation errors, if any.
+   * @internal
+   */
+  public async validateResource(
+    resourceName: ResourceName,
+    checkout: Checkout,
+  ): Promise<string> {
+    try {
+      const resource = checkout.resources.byType(resourceName);
+      await resource.validate();
+      return '';
+    } catch (error) {
+      return errorFunction(error);
+    }
+  }
+
+  /**
+   * Possibly creates (if no instance exists) and returns an instance of Validate command.
+   * @returns instance of Validate command.
+   */
+  public static getInstance(): Validate {
+    if (!Validate.instance) {
+      Validate.instance = new Validate();
+    }
+    return Validate.instance;
+  }
+}

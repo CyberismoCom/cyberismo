@@ -15,8 +15,8 @@ import { mkdirSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import type { Workspace } from '../src/workspace/workspace.js';
-import { copyDir } from '../src/utils/file-utils.js';
+import type { Workspace } from '../src/api/workspace.js';
+import { copyDir } from '../src/shared/utils/file-utils.js';
 import { getTestBaseDir } from './helpers/test-utils.js';
 import { openTestWorkspace } from './helpers/open-test-workspace.js';
 
@@ -52,7 +52,7 @@ describe('Cards reads return plain data', () => {
     ['attachments', (cards) => cards.attachments()],
     [
       'attachment',
-      // A Buffer is a Uint8Array, which is how bytes cross the façade.
+      // A Buffer is a Uint8Array, which is how bytes cross the API.
       async (cards) => {
         const file = await cards.attachment('decision_1', 'the-needle.heic');
         return { ...file, fileBuffer: new Uint8Array(file.fileBuffer) };

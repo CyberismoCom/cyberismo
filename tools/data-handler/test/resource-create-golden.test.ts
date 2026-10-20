@@ -20,7 +20,7 @@ import { getStaticDirectoryPath } from '@cyberismo/assets';
 
 import type { CreateParamsByType } from '@cyberismo/model';
 
-import type { Workspace } from '../src/workspace/workspace.js';
+import type { Workspace } from '../src/api/workspace.js';
 import { openTestWorkspace } from './helpers/open-test-workspace.js';
 
 const fixture = join(import.meta.dirname, 'test-data/valid/decision-records');
