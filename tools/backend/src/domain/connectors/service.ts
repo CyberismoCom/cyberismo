@@ -11,7 +11,7 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import type { CommandManager } from '@cyberismo/data-handler';
+import type { Workspace } from '@cyberismo/data-handler';
 
 export interface ExternalItem {
   key: string;
@@ -24,13 +24,8 @@ export interface Connector {
   items: ExternalItem[];
 }
 
-export async function getConnectors(
-  commands: CommandManager,
-): Promise<Connector[]> {
-  const results = await commands.calculateCmd.runQuery(
-    'connectors',
-    'localApp',
-  );
+export async function getConnectors(ws: Workspace): Promise<Connector[]> {
+  const results = await ws.queries.runQuery('connectors', 'localApp');
 
   // Separate connectors from items based on type field
   const connectorsMap = new Map<string, Connector>();

@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 import { rewriteAsciidocCardXrefs } from '../../src/utils/asciidoc-xref.js';
-import type { Project } from '../../src/containers/project.js';
-import type { CardNode } from '../../src/interfaces/project-interfaces.js';
+import type { Checkout } from '../../src/infra/checkout.js';
+import type { CardNode } from '@cyberismo/model';
 import type { Mode } from '../../src/interfaces/macros.js';
 import { ROOT } from '../../src/utils/constants.js';
 
@@ -22,8 +22,8 @@ function makeCard(key: string, title: string): CardNode {
   };
 }
 
-function makeProject(byKey: Record<string, CardNode>): Project {
-  // Mirror the real Project.cardNode contract: throw when the key is unknown,
+function makeProject(byKey: Record<string, CardNode>): Checkout {
+  // Mirror the real tree.node contract: throw when the key is unknown,
   // never return undefined.
   const lookup = (k: string) => {
     const card = byKey[k];
@@ -32,7 +32,9 @@ function makeProject(byKey: Record<string, CardNode>): Project {
     }
     return card;
   };
-  return { cardNode: lookup } as unknown as Project;
+  return {
+    treeOf: (k: string) => ({ node: () => lookup(k) }),
+  } as unknown as Checkout;
 }
 
 describe('rewriteAsciidocCardXrefs', () => {
@@ -46,7 +48,7 @@ describe('rewriteAsciidocCardXrefs', () => {
     warnSpy.mockRestore();
   });
 
-  const project = makeProject({
+  const checkout = makeProject({
     docs_12: makeCard('docs_12', 'Demo'),
     docs_2: makeCard('docs_2', 'Getting started tutorial'),
     decision_5: makeCard('decision_5', 'Decision Records'),
@@ -57,7 +59,7 @@ describe('rewriteAsciidocCardXrefs', () => {
     it('rewrites to multi-project link with explicit label', () => {
       const out = rewriteAsciidocCardXrefs(
         'See xref:docs_12.adoc[Demo] please.',
-        project,
+        checkout,
         'inject',
       );
       expect(out).toBe('See link:/projects/docs/cards/docs_12[Demo] please.');
@@ -66,7 +68,7 @@ describe('rewriteAsciidocCardXrefs', () => {
     it('falls back to card title when label is empty', () => {
       const out = rewriteAsciidocCardXrefs(
         'Read xref:docs_2.adoc[].',
-        project,
+        checkout,
         'inject',
       );
       expect(out).toBe(
@@ -77,7 +79,7 @@ describe('rewriteAsciidocCardXrefs', () => {
     it('preserves #anchor in the link target', () => {
       const out = rewriteAsciidocCardXrefs(
         'Jump to xref:docs_12.adoc#installation[Install].',
-        project,
+        checkout,
         'inject',
       );
       expect(out).toBe(
@@ -88,7 +90,7 @@ describe('rewriteAsciidocCardXrefs', () => {
     it('handles multiple xrefs on the same line', () => {
       const out = rewriteAsciidocCardXrefs(
         '* xref:docs_12.adoc[Demo] * xref:docs_2.adoc[Tutorial]',
-        project,
+        checkout,
         'inject',
       );
       expect(out).toBe(
@@ -99,7 +101,7 @@ describe('rewriteAsciidocCardXrefs', () => {
     it('uses the target card key prefix, not the current project', () => {
       const out = rewriteAsciidocCardXrefs(
         'cross: xref:decision_5.adoc[ADR]',
-        project,
+        checkout,
         'inject',
       );
       expect(out).toBe('cross: link:/projects/decision/cards/decision_5[ADR]');
@@ -110,7 +112,7 @@ describe('rewriteAsciidocCardXrefs', () => {
     it('emits the same multi-project link form', () => {
       const out = rewriteAsciidocCardXrefs(
         'xref:docs_12.adoc[Demo]',
-        project,
+        checkout,
         'staticSite',
       );
       expect(out).toBe('link:/projects/docs/cards/docs_12[Demo]');
@@ -121,7 +123,7 @@ describe('rewriteAsciidocCardXrefs', () => {
     it('rewrites xref to an internal anchor reference with label', () => {
       const out = rewriteAsciidocCardXrefs(
         'See xref:docs_12.adoc[Demo].',
-        project,
+        checkout,
         'static',
       );
       expect(out).toBe('See <<docs_12,Demo>>.');
@@ -130,7 +132,7 @@ describe('rewriteAsciidocCardXrefs', () => {
     it('emits a bare anchor reference when the label is empty', () => {
       const out = rewriteAsciidocCardXrefs(
         'Read xref:docs_2.adoc[].',
-        project,
+        checkout,
         'static',
       );
       expect(out).toBe('Read <<docs_2>>.');
@@ -139,7 +141,7 @@ describe('rewriteAsciidocCardXrefs', () => {
     it('drops the #anchor part and warns once per target', () => {
       const out = rewriteAsciidocCardXrefs(
         'Jump to xref:docs_12.adoc#sec[Section] and xref:docs_12.adoc#again[Again].',
-        project,
+        checkout,
         'static',
       );
       expect(out).toBe('Jump to <<docs_12,Section>> and <<docs_12,Again>>.');
@@ -151,7 +153,7 @@ describe('rewriteAsciidocCardXrefs', () => {
     it('rewrites multiple xrefs on one line', () => {
       const out = rewriteAsciidocCardXrefs(
         '* xref:docs_12.adoc[Demo] * xref:docs_2.adoc[]',
-        project,
+        checkout,
         'static',
       );
       expect(out).toBe('* <<docs_12,Demo>> * <<docs_2>>');
@@ -161,21 +163,21 @@ describe('rewriteAsciidocCardXrefs', () => {
   describe('passthrough cases', () => {
     it('leaves content unchanged in validate mode', () => {
       const input = 'xref:docs_12.adoc[Demo]';
-      expect(rewriteAsciidocCardXrefs(input, project, 'validate' as Mode)).toBe(
-        input,
-      );
+      expect(
+        rewriteAsciidocCardXrefs(input, checkout, 'validate' as Mode),
+      ).toBe(input);
     });
 
     it('leaves bare <<anchor>> references untouched', () => {
       const input = 'See <<Data types of custom fields>> below.';
-      expect(rewriteAsciidocCardXrefs(input, project, 'inject')).toBe(input);
+      expect(rewriteAsciidocCardXrefs(input, checkout, 'inject')).toBe(input);
     });
   });
 
   describe('unknown / unparseable keys', () => {
     it('passes through xrefs whose target is not a known card and warns', () => {
       const input = 'xref:missing_99.adoc[Missing]';
-      const out = rewriteAsciidocCardXrefs(input, project, 'inject');
+      const out = rewriteAsciidocCardXrefs(input, checkout, 'inject');
       expect(out).toBe(input);
       expect(warnSpy).toHaveBeenCalledTimes(1);
       expect(warnSpy.mock.calls[0][0]).toContain('missing_99');
@@ -184,7 +186,7 @@ describe('rewriteAsciidocCardXrefs', () => {
     it('warns once per unique unknown key', () => {
       const input =
         'xref:missing_99.adoc[A] and xref:missing_99.adoc[B] and xref:gone_1.adoc[C]';
-      rewriteAsciidocCardXrefs(input, project, 'inject');
+      rewriteAsciidocCardXrefs(input, checkout, 'inject');
       expect(warnSpy).toHaveBeenCalledTimes(2);
     });
 
@@ -193,7 +195,7 @@ describe('rewriteAsciidocCardXrefs', () => {
       // would still succeed if such a key exists, but we cannot form a project
       // URL. Treat it as a non-card target.
       const input = 'xref:bareword.adoc[Bare]';
-      const out = rewriteAsciidocCardXrefs(input, project, 'inject');
+      const out = rewriteAsciidocCardXrefs(input, checkout, 'inject');
       expect(out).toBe(input);
       expect(warnSpy).toHaveBeenCalled();
       expect(warnSpy.mock.calls[0][0]).toContain('bareword');

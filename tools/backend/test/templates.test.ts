@@ -1,20 +1,19 @@
 import { expect, test, beforeEach, afterEach } from 'vitest';
-import { CommandManager } from '@cyberismo/data-handler';
 import { createApp } from '../src/app.js';
-import { ProjectRegistry } from '../src/project-registry.js';
 import { MockAuthProvider } from '../src/auth/mock.js';
 import { createTempTestData, cleanupTempTestData } from './test-utils.js';
+import {
+  openTestWorkspace,
+  directoryOf,
+} from './helpers/open-test-workspace.js';
 
 let app: ReturnType<typeof createApp>;
 let tempTestDataPath: string;
 
 beforeEach(async () => {
   tempTestDataPath = await createTempTestData('module-test');
-  const commands = await CommandManager.getInstance(tempTestDataPath);
-  app = createApp(
-    new MockAuthProvider(),
-    ProjectRegistry.fromCommandManager(commands),
-  );
+  const ws = await openTestWorkspace(tempTestDataPath);
+  app = createApp(new MockAuthProvider(), directoryOf(ws));
 });
 
 afterEach(async () => {

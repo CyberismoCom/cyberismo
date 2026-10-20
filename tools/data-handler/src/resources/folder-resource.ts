@@ -15,25 +15,27 @@
 import { basename, dirname, join, normalize } from 'node:path';
 import { mkdir, readdir, readFile, rename, rm } from 'node:fs/promises';
 
-import { isContentKey } from '../interfaces/resource-interfaces.js';
 import {
+  isContentKey,
   filename,
   contentPropertyName,
   ALL_FILE_MAPPINGS,
-} from '../interfaces/folder-content-interfaces.js';
+  type ResourceName,
+} from '@cyberismo/model';
 import { formatJson } from '../utils/json.js';
 import { VALID_FOLDER_RESOURCE_FILES } from '../utils/constants.js';
 import { writeFileSafe } from '../utils/file-utils.js';
 import { ResourceObject } from './resource-object.js';
 import { resourceName } from '../utils/resource-utils.js';
 
-import type { UpdateKey } from '../interfaces/resource-interfaces.js';
-import type { FolderResourceContent } from '../interfaces/folder-content-interfaces.js';
-import type { Operation } from './resource-object.js';
-import type { Project } from '../containers/project.js';
-import type { ResourceFolderType } from '../interfaces/project-interfaces.js';
-import type { ResourceBaseMetadata } from '../interfaces/resource-interfaces.js';
-import type { ResourceName } from '../utils/resource-utils.js';
+import type {
+  UpdateKey,
+  FolderResourceContent,
+  Operation,
+  ResourceFolderType,
+  ResourceBaseMetadata,
+} from '@cyberismo/model';
+import type { Checkout } from '../infra/checkout.js';
 import type { ShowReturnType } from './resource-object.js';
 
 /**
@@ -49,12 +51,17 @@ export abstract class FolderResource<
 
   /**
    * Constructs a FolderResource object.
-   * @param project Project in which this resource exists.
+   * @param checkout Project in which this resource exists.
    * @param name Name for the resource.
    * @param type Type for this resource.
+   * @internal
    */
-  constructor(project: Project, name: ResourceName, type: ResourceFolderType) {
-    super(project, name, type);
+  constructor(
+    checkout: Checkout,
+    name: ResourceName,
+    type: ResourceFolderType,
+  ) {
+    super(checkout, name, type);
     this.initialize();
   }
 

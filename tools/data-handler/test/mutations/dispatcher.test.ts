@@ -2,15 +2,15 @@ import { describe, it, expect } from 'vitest';
 import { dispatch } from '../../src/mutations/dispatcher.js';
 import { PlainHandler } from '../../src/mutations/handlers/plain-handler.js';
 import { resourceName } from '../../src/utils/resource-utils.js';
-import type { Project } from '../../src/containers/project.js';
+import type { Checkout } from '../../src/infra/checkout.js';
 
 // dispatcher does not touch the Project; pass a stand-in.
-const stubProject = undefined as unknown as Project;
+const stubProject = undefined as unknown as Checkout;
 
 describe('dispatcher', () => {
   it('throws when no route matches (edit on an unregistered key)', () => {
     const ctx = {
-      project: stubProject,
+      checkout: stubProject,
       input: {
         kind: 'edit' as const,
         target: resourceName('test/cardTypes/foo'),
@@ -29,7 +29,7 @@ describe('dispatcher', () => {
     for (const op of ['add', 'remove'] as const) {
       it(`'${op}' routes to the wildcard PlainHandler, classification 'none'`, async () => {
         const ctx = {
-          project: stubProject,
+          checkout: stubProject,
           input: {
             kind: 'edit' as const,
             target: resourceName('decision/cardTypes/decision'),

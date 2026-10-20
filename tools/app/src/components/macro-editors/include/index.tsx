@@ -28,7 +28,7 @@ import {
 } from '@mui/joy';
 import InfoOutlined from '@mui/icons-material/InfoOutlined';
 import { useTranslation } from 'react-i18next';
-import type { IncludeMacroOptions } from '@cyberismo/data-handler';
+import type { IncludeMacroOptions } from '@cyberismo/model';
 import { BaseMacroModal } from '../shared/MacroModal';
 import { useCardOptions } from '../shared/hooks';
 import type { MacroModalProps } from '../shared/types';

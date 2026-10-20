@@ -14,32 +14,15 @@
 */
 
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import type { CommandManager } from '@cyberismo/data-handler';
+import type { ProjectDirectory } from '@cyberismo/data-handler';
 import { registerResources } from './resources/index.js';
 import { registerTools } from './tools/index.js';
 import { registerPrompts } from './prompts/index.js';
-import type { ProjectProvider } from './lib/resolve-project.js';
 import packageJson from '../package.json' with { type: 'json' };
-
-export type { ProjectProvider } from './lib/resolve-project.js';
 
 export interface McpServerOptions {
   name?: string;
   version?: string;
-}
-
-/**
- * Wrap a single CommandManager in a minimal ProjectProvider.
- */
-export function singleProjectProvider(
-  commands: CommandManager,
-): ProjectProvider {
-  const prefix = commands.project.configuration.cardKeyPrefix;
-  const name = commands.project.configuration.name;
-  return {
-    get: (p: string) => (p === prefix ? commands : undefined),
-    list: () => [{ prefix, name }],
-  };
 }
 
 /**
@@ -50,7 +33,7 @@ export function singleProjectProvider(
  * projectPrefix to every tool call.
  */
 export function createMcpServer(
-  provider: ProjectProvider,
+  directory: ProjectDirectory,
   options?: McpServerOptions,
 ): McpServer {
   const instructions =
@@ -64,9 +47,9 @@ export function createMcpServer(
     { instructions },
   );
 
-  registerResources(server, provider);
-  registerTools(server, provider);
-  registerPrompts(server, provider);
+  registerResources(server, directory);
+  registerTools(server, directory);
+  registerPrompts(server, directory);
 
   return server;
 }

@@ -1,0 +1,143 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`POST /api/projects > with autocommit 1`] = `
+{
+  "body": {
+    "category": "Testing",
+    "description": "A golden project",
+    "failures": [],
+    "name": "Golden Project",
+    "prefix": "gold",
+    "warnings": [
+      "Could not fetch hub data - https://raw.githubusercontent.com/CyberismoCom/cyberismo/main/tools/assets/src/hub/: fetch failed",
+    ],
+  },
+  "commits": [
+    "Bea <bea@example.com> | Cyberismo Bot <bot@cyberismo.com> | Add hub https://raw.githubusercontent.com/CyberismoCom/cyberismo/main/tools/assets/src/hub/",
+    "M	.cards/local/cardsConfig.json",
+    "Bea <bea@example.com> | Cyberismo Bot <bot@cyberismo.com> | Initial commit",
+    "A	.cards/local/.schema",
+    "A	.cards/local/cardsConfig.json",
+    "A	.gitignore",
+  ],
+  "files": {
+    ".cards/local/.schema": "[
+    {
+        "id": "cardsConfigSchema",
+        "version": 1
+    }
+]",
+    ".cards/local/cardsConfig.json": "{
+    "schemaVersion": 5,
+    "cardKeyPrefix": "gold",
+    "name": "Golden Project",
+    "category": "Testing",
+    "description": "A golden project",
+    "modules": [],
+    "hubs": [
+        {
+            "location": "https://raw.githubusercontent.com/CyberismoCom/cyberismo/main/tools/assets/src/hub/"
+        }
+    ]
+}",
+    ".gitignore": ".calc
+.asciidoctor
+.vscode
+*.html
+*.pdf
+*.puml
+**/.DS_Store
+*-debug.log
+*-error.log
+.temp
+.logs
+.cache
+",
+    ".temp/moduleList.json": "{
+    "modules": [],
+    "hubs": []
+}",
+  },
+  "listed": [
+    {
+      "category": "Testing",
+      "description": "A golden project",
+      "name": "Golden Project",
+      "prefix": "gold",
+    },
+  ],
+  "status": 201,
+  "uncommitted": [],
+}
+`;
+
+exports[`POST /api/projects > without autocommit 1`] = `
+{
+  "body": {
+    "category": "Testing",
+    "description": "A golden project",
+    "failures": [],
+    "name": "Golden Project",
+    "prefix": "gold",
+    "warnings": [
+      "Could not fetch hub data - https://raw.githubusercontent.com/CyberismoCom/cyberismo/main/tools/assets/src/hub/: fetch failed",
+    ],
+  },
+  "commits": [
+    "Bea <bea@example.com> | Cyberismo Bot <bot@cyberismo.com> | Initial commit",
+    "A	.cards/local/.schema",
+    "A	.cards/local/cardsConfig.json",
+    "A	.gitignore",
+  ],
+  "files": {
+    ".cards/local/.schema": "[
+    {
+        "id": "cardsConfigSchema",
+        "version": 1
+    }
+]",
+    ".cards/local/cardsConfig.json": "{
+    "schemaVersion": 5,
+    "cardKeyPrefix": "gold",
+    "name": "Golden Project",
+    "category": "Testing",
+    "description": "A golden project",
+    "modules": [],
+    "hubs": [
+        {
+            "location": "https://raw.githubusercontent.com/CyberismoCom/cyberismo/main/tools/assets/src/hub/"
+        }
+    ]
+}",
+    ".gitignore": ".calc
+.asciidoctor
+.vscode
+*.html
+*.pdf
+*.puml
+**/.DS_Store
+*-debug.log
+*-error.log
+.temp
+.logs
+.cache
+",
+    ".temp/moduleList.json": "{
+    "modules": [],
+    "hubs": []
+}",
+  },
+  "listed": [
+    {
+      "category": "Testing",
+      "description": "A golden project",
+      "name": "Golden Project",
+      "prefix": "gold",
+    },
+  ],
+  "status": 201,
+  "uncommitted": [
+    " M .cards/local/cardsConfig.json",
+  ],
+}
+`;

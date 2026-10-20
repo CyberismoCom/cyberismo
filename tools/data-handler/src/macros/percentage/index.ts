@@ -14,8 +14,8 @@
 import { createImage, validateMacroContent } from '../index.js';
 
 import type { MacroGenerationContext } from '../../interfaces/macros.js';
-import macroMetadata from './metadata.js';
-import type { PercentageOptions } from './types.js';
+import macroMetadata from '@cyberismo/model/macros/percentage/metadata';
+import type { PercentageOptions } from '@cyberismo/model';
 import BaseMacro from '../base-macro.js';
 import type TaskQueue from '../task-queue.js';
 import { percentage } from '../../svg/index.js';

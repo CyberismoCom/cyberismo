@@ -20,13 +20,14 @@ import { tmpdir } from 'node:os';
 import { join, relative, sep } from 'node:path';
 import { simpleGit } from 'simple-git';
 
-import { Project } from '../../src/containers/project.js';
+import { Checkout } from '../../src/infra/checkout.js';
 import { Validate } from '../../src/commands/validate.js';
 import {
   buildProject,
   type BuiltProject,
   type ProjectSpec,
 } from './project-builder.js';
+import { allTemplateCards, findCard } from '../../src/cards/read.js';
 
 // Wrapped so a test can see which directory the builder created.
 vi.mock('node:fs/promises', async (importOriginal) => {
@@ -67,28 +68,16 @@ function readJson(path: string) {
 }
 
 async function validate(path: string): Promise<string> {
-  let project: Project | undefined;
-  try {
-    return await Validate.getInstance().validate(path, () => {
-      project = new Project(path);
-      return project;
-    });
-  } finally {
-    project?.dispose();
-  }
+  return Validate.getInstance().validate(path, () => new Checkout(path));
 }
 
 async function withProject(
   path: string,
-  check: (project: Project) => void,
+  check: (checkout: Checkout) => void,
 ): Promise<void> {
-  const project = new Project(path);
-  try {
-    await project.populateCaches();
-    check(project);
-  } finally {
-    project.dispose();
-  }
+  const checkout = new Checkout(path);
+  await checkout.populateCaches();
+  check(checkout);
 }
 
 afterEach(async () => {
@@ -131,13 +120,13 @@ describe('buildProject', () => {
     expect(readJson(join(path, '.cards/local/cardsConfig.json')).name).toBe(
       'Flow project',
     );
-    await withProject(path, (project) => {
+    await withProject(path, (checkout) => {
       expect(
-        project.resources.byType('flow/cardTypes/decision', 'cardTypes').show()
+        checkout.resources.byType('flow/cardTypes/decision', 'cardTypes').show()
           .workflow,
       ).toBe('flow/workflows/review');
       expect(
-        keys.map((key) => project.findCard(key).metadata?.workflowState),
+        keys.map((key) => findCard(checkout, key).metadata?.workflowState),
       ).toEqual(['Approved', 'Draft']);
     });
   });
@@ -160,13 +149,81 @@ describe('buildProject', () => {
     for (const key of keys) expect(key).toMatch(/^nest_[0-9a-z]{8}$/);
     expect(await validate(path)).toBe('');
     const [parent, child1, child2, sibling] = keys;
-    await withProject(path, (project) => {
-      const card = project.findCard(parent);
+    await withProject(path, (checkout) => {
+      const card = findCard(checkout, parent);
       expect(card.metadata?.title).toBe('Parent');
       expect(card.metadata?.labels).toEqual(['a']);
       expect(card.content).toBe('Hello');
       expect(card.children).toEqual([child1, child2]);
-      expect(project.findCard(sibling).parent).toBe('root');
+      expect(findCard(checkout, sibling).parent).toBe('root');
+    });
+  });
+
+  it('writes field types and custom fields, and cards carry field values', async () => {
+    const { path, keys } = await build({
+      fieldTypes: [{ name: 'size', dataType: 'integer' }],
+      cardTypes: [{ name: 'page', customFields: [{ name: 'size' }] }],
+      cards: [{ fields: { 'test/fieldTypes/size': 3 } }],
+    });
+
+    expect(await validate(path)).toBe('');
+    await withProject(path, (checkout) => {
+      expect(
+        findCard(checkout, keys[0]).metadata?.['test/fieldTypes/size'],
+      ).toBe(3);
+    });
+  });
+
+  it('declares hubs in the project configuration', async () => {
+    const hubs = [{ location: 'https://hub.example.com/', displayName: 'Hub' }];
+    const { path } = await build({ hubs });
+
+    expect(
+      JSON.parse(
+        readFileSync(join(path, '.cards/local/cardsConfig.json'), 'utf-8'),
+      ).hubs,
+    ).toEqual(hubs);
+  });
+
+  it('writes the values of an enum field type', async () => {
+    const { path, keys } = await build({
+      fieldTypes: [
+        { name: 'level', dataType: 'enum', enumValues: ['low', 'high'] },
+      ],
+      cardTypes: [{ name: 'page', customFields: [{ name: 'level' }] }],
+      cards: [{ fields: { 'test/fieldTypes/level': 'high' } }],
+    });
+
+    expect(await validate(path)).toBe('');
+    await withProject(path, (checkout) => {
+      expect(
+        checkout.resources.byType('test/fieldTypes/level', 'fieldTypes').data
+          ?.enumValues,
+      ).toEqual([{ enumValue: 'low' }, { enumValue: 'high' }]);
+      expect(
+        findCard(checkout, keys[0]).metadata?.['test/fieldTypes/level'],
+      ).toBe('high');
+    });
+  });
+
+  it('writes link types and the links between cards', async () => {
+    const { path, keys } = await build({
+      linkTypes: [{ name: 'rel', enableLinkDescription: true }],
+      cards: [
+        { links: [{ linkType: 'rel', to: 1, linkDescription: 'd' }] },
+        {},
+      ],
+    });
+
+    expect(await validate(path)).toBe('');
+    await withProject(path, (checkout) => {
+      expect(findCard(checkout, keys[0]).metadata?.links).toEqual([
+        {
+          linkType: 'test/linkTypes/rel',
+          cardKey: keys[1],
+          linkDescription: 'd',
+        },
+      ]);
     });
   });
 
@@ -179,10 +236,9 @@ describe('buildProject', () => {
     expect(templateKeys['test/templates/tpl']).toHaveLength(2);
 
     expect(await validate(path)).toBe('');
-    await withProject(path, (project) => {
+    await withProject(path, (checkout) => {
       expect(
-        project
-          .allTemplateCards()
+        allTemplateCards(checkout)
           .map((card) => card.key)
           .sort(),
       ).toEqual([...templateKeys['test/templates/tpl']].sort());
@@ -212,12 +268,12 @@ describe('buildProject', () => {
     const [moduleCard] = templateKeys['mod/templates/modtpl'];
     expect(projectCard).toMatch(/^test_/);
     expect(moduleCard).toMatch(/^mod_/);
-    await withProject(path, (project) => {
-      expect(project.allModulePrefixes()).toEqual(['test', 'mod']);
-      expect(project.findCard(projectCard).metadata?.workflowState).toBe(
+    await withProject(path, (checkout) => {
+      expect(checkout.allModulePrefixes()).toEqual(['test', 'mod']);
+      expect(findCard(checkout, projectCard).metadata?.workflowState).toBe(
         'Open',
       );
-      expect(project.allTemplateCards().map((card) => card.key)).toEqual([
+      expect(allTemplateCards(checkout).map((card) => card.key)).toEqual([
         moduleCard,
       ]);
     });

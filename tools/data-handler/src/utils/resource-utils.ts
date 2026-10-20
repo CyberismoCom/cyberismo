@@ -10,23 +10,13 @@
 // node
 import { join, parse, sep } from 'node:path';
 
-import type { Project } from '../containers/project.js';
-import type { WorkflowTransition } from '../interfaces/resource-interfaces.js';
+import type { Checkout } from '../infra/checkout.js';
+import type { WorkflowTransition, ResourceName } from '@cyberismo/model';
 import { stripExtension } from './file-utils.js';
 
 /** The new-card transition: fromState is [''] or empty. */
 export function isInitialTransition(transition: WorkflowTransition): boolean {
   return transition.fromState.includes('') || transition.fromState.length === 0;
-}
-
-// Resource name parts are:
-// - prefix; name of the project this resource is part of
-// - type; type of resource; in plural
-// - identifier; unique name (within a project/module) for the resource
-export interface ResourceName {
-  prefix: string;
-  type: string; // todo: should be a ResourceFolderType
-  identifier: string;
 }
 
 // Indexes of resource name parts
@@ -94,25 +84,25 @@ export function resourceName(
 
 /**
  * Converts resource name to path.
- * @param project Project
+ * @param checkout Project
  * @param resourceName Name of the resource (e.g. <prefix>/<type>/<name>)
  * @param extension Extension of resource. By default '.json'.
  * @returns path to resource metadata file
  */
 export function resourceNameToPath(
-  project: Project,
+  checkout: Checkout,
   resourceName: ResourceName,
   extension: string = '.json',
 ): string {
-  if (project.projectPrefix === resourceName.prefix) {
+  if (checkout.projectPrefix === resourceName.prefix) {
     return join(
-      project.paths.resourcesFolder,
+      checkout.paths.resourcesFolder,
       resourceName.type,
       resourceName.identifier + extension,
     );
   } else if (resourceName.prefix !== '') {
     return join(
-      project.paths.modulesFolder,
+      checkout.paths.modulesFolder,
       resourceName.prefix,
       resourceName.type,
       resourceName.identifier + extension,
@@ -123,28 +113,28 @@ export function resourceNameToPath(
 
 /**
  * Return path to a file in a folder resource
- * @param project Project
+ * @param checkout Project
  * @param resourceName Resource name
  * @param fileName File name
  * @returns Path to file in folder resource
  */
 export function resourceFilePath(
-  project: Project,
+  checkout: Checkout,
   resourceName: ResourceName,
   fileName: string,
 ): string {
-  const resourcePath = resourceNameToPath(project, resourceName, '');
+  const resourcePath = resourceNameToPath(checkout, resourceName, '');
   return join(resourcePath, fileName);
 }
 
 /**
  * Resource metadata file path to resource name (e.g. <prefix>/<type>/<name>)
- * @param project Project where resource is in
+ * @param checkout Project where resource is in
  * @param path Path to resource metadata file
  * @returns Resource name (<prefix>/<type>/<name>)
  */
 export function pathToResourceName(
-  project: Project,
+  checkout: Checkout,
   path: string,
 ): ResourceName {
   const parts = path.split(sep);
@@ -166,7 +156,7 @@ export function pathToResourceName(
   }
   // Finally check that all relevant parts are defined.
   const prefix =
-    modulesIndex !== -1 ? parts.at(modulesIndex + 1) : project.projectPrefix;
+    modulesIndex !== -1 ? parts.at(modulesIndex + 1) : checkout.projectPrefix;
   const typeIndex = modulesIndex !== -1 ? modulesIndex + 2 : localIndex + 1;
   const identifierIndex =
     modulesIndex !== -1 ? modulesIndex + 3 : localIndex + 2;

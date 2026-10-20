@@ -22,8 +22,12 @@ import {
   type GetPromptResult,
   type ListPromptsResult,
 } from '@modelcontextprotocol/sdk/types.js';
-
-import type { ProjectProvider } from '../lib/resolve-project.js';
+import {
+  ProjectNotFoundError,
+  type ProjectDirectory,
+  type Workspace,
+} from '@cyberismo/data-handler';
+import { actorOf, callerOf, type RequestAuth } from '../lib/resolve-project.js';
 
 // Prompt arguments are untyped on the low-level handler; validate them.
 const promptArguments = z.object({ cardKey: z.string().optional() });
@@ -37,6 +41,23 @@ function textResult(text: string, description?: string): GetPromptResult {
   };
 }
 
+// The caller's handle over a listed project; none if it has gone since.
+async function listedWorkspace(
+  directory: ProjectDirectory,
+  prefix: string,
+  auth: RequestAuth,
+  server: McpServer,
+): Promise<Workspace | undefined> {
+  try {
+    return await directory.open(prefix, ...actorOf(auth, server));
+  } catch (error) {
+    if (error instanceof ProjectNotFoundError) {
+      return undefined;
+    }
+    throw error;
+  }
+}
+
 /**
  * Exposes each currently-enabled skill as an MCP prompt. Uses the low-level
  * request handlers (not the static `registerPrompt`) so the prompt list is
@@ -44,17 +65,18 @@ function textResult(text: string, description?: string): GetPromptResult {
  */
 export function registerPrompts(
   server: McpServer,
-  provider: ProjectProvider,
+  directory: ProjectDirectory,
 ): void {
   server.server.registerCapabilities({ prompts: {} });
 
   server.server.setRequestHandler(
     ListPromptsRequestSchema,
-    async (): Promise<ListPromptsResult> => {
+    async (_request, extra): Promise<ListPromptsResult> => {
+      callerOf(extra);
       const perProject = await Promise.all(
-        provider.list().map(({ prefix }) => {
-          const commands = provider.get(prefix);
-          return commands ? commands.showCmd.listSkills() : [];
+        (await directory.list()).map(async ({ prefix }) => {
+          const ws = await listedWorkspace(directory, prefix, extra, server);
+          return ws ? ws.resources.skills() : [];
         }),
       );
       const prompts: ListPromptsResult['prompts'] = perProject.flatMap(
@@ -81,7 +103,7 @@ export function registerPrompts(
 
   server.server.setRequestHandler(
     GetPromptRequestSchema,
-    async (request): Promise<GetPromptResult> => {
+    async (request, extra): Promise<GetPromptResult> => {
       const { name } = request.params;
       const { cardKey } = promptArguments.parse(request.params.arguments ?? {});
 
@@ -89,12 +111,12 @@ export function registerPrompts(
       // imported into as a module, whose prefix differs from the project's), so
       // resolve by asking each project rather than parsing the name's prefix.
       let anyDisabled = false;
-      for (const { prefix } of provider.list()) {
-        const commands = provider.get(prefix);
-        if (!commands) {
+      for (const { prefix } of await directory.list()) {
+        const ws = await listedWorkspace(directory, prefix, extra, server);
+        if (!ws) {
           continue;
         }
-        const result = await commands.showCmd.getSkill(name, { cardKey });
+        const result = await ws.resources.skill(name, { cardKey });
         if (result.status === 'ok') {
           const { skill } = result;
           const relatedTools = skill.relatedTools.length

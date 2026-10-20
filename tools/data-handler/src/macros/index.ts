@@ -28,12 +28,8 @@ import vegaLite from './vegalite/index.js';
 import { validateJson } from '../utils/validate.js';
 import { DHValidationError, MacroError } from '../exceptions/index.js';
 import type { AdmonitionType } from '../interfaces/adoc.js';
-import type {
-  MacroGenerationContext,
-  MacroMetadata,
-  MacroName,
-  Mode,
-} from '../interfaces/macros.js';
+import type { MacroGenerationContext, Mode } from '../interfaces/macros.js';
+import type { MacroMetadata, MacroName } from '@cyberismo/model';
 import type BaseMacro from './base-macro.js';
 import TaskQueue from './task-queue.js';
 import { ClingoError } from '@cyberismo/node-clingo';

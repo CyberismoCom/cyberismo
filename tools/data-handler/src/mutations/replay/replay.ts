@@ -17,24 +17,24 @@ import { join } from 'node:path';
 
 import semver from 'semver';
 
-import { ProjectPaths } from '../../containers/project/project-paths.js';
+import { ProjectPaths } from '../../infra/project-paths.js';
+import { DomainError } from '../../exceptions/index.js';
 import { ResourceMutations } from '../resource-mutations.js';
-import { checkLinearity, computeChain } from './chain.js';
+import { checkLinearity, computeChain } from '../../infra/replay-log/chain.js';
 import { entryToMutationInput } from './convert.js';
-import { listSealFiles } from './seal-files.js';
+import { listSealFiles } from '../../infra/replay-log/seal-files.js';
 import { resourceName } from '../../utils/resource-utils.js';
 
 import {
   CONFIGURATION_OPERATIONS,
   RETIRED_OPERATIONS,
-} from '../../utils/configuration-logger.js';
+} from '../../infra/replay-log/configuration-logger.js';
 
-import type { ConfigurationLogEntry } from '../../utils/configuration-logger.js';
-import type { ModuleInstallation } from '../../modules/types.js';
-import type { MutationInput } from '../types.js';
-import type { Project } from '../../containers/project.js';
-import type { ResolvedModule } from '../../modules/resolve/types.js';
-import type { SealFile } from './seal-files.js';
+import type { ConfigurationLogEntry } from '../../infra/replay-log/configuration-logger.js';
+import type { ModuleInstallation, ResolvedModule } from './module-types.js';
+import type { ModuleUpdateResult, MutationInput } from '@cyberismo/model';
+import type { Checkout } from '../../infra/checkout.js';
+import type { SealFile } from '../../infra/replay-log/seal-files.js';
 
 /** A reason one module's update cannot be replayed safely. */
 export interface ReplayConflict {
@@ -71,7 +71,8 @@ export interface ReplayStep {
  * user sees every problem at once; planning never touches the project,
  * so nothing needs to be rolled back.
  */
-export class ModuleReplayConflictError extends Error {
+export class ModuleReplayConflictError extends DomainError {
+  readonly code = 'conflict';
   constructor(readonly conflicts: ReplayConflict[]) {
     const lines = conflicts.map(
       (c) => `  - module '${c.modulePrefix}' (${c.kind}): ${c.detail}`,
@@ -90,7 +91,10 @@ export class ModuleReplayConflictError extends Error {
  * conversion or apply fails. By this point module files have already been
  * overwritten and earlier cascades have run, so recovery is via git.
  */
-export class ModuleReplayFailedError extends Error {
+export class ModuleReplayFailedError extends DomainError {
+  readonly code = 'replay-failed';
+  /** What the update did before the replay failed (skipped replays). */
+  result?: ModuleUpdateResult;
   constructor(
     readonly modulePrefix: string,
     readonly sealFileName: string,
@@ -118,7 +122,8 @@ export class ModuleReplayFailedError extends Error {
  * validation after replays ran. The module update and its replays have
  * already been applied to disk.
  */
-export class ModuleValidationFailedError extends Error {
+export class ModuleValidationFailedError extends DomainError {
+  readonly code = 'validation';
   /** Summary of the replay chains that ran before validation failed. */
   readonly steps: {
     modulePrefix: string;
@@ -129,6 +134,8 @@ export class ModuleValidationFailedError extends Error {
   constructor(
     readonly validationErrors: string,
     executedSteps: ReplayStep[],
+    /** What the update did before validation failed. */
+    readonly result?: ModuleUpdateResult,
   ) {
     const steps = executedSteps.map(
       ({ modulePrefix, fromVersion, toVersion }) => ({
@@ -364,7 +371,7 @@ export function filterStepsToApplied(
  * @throws ModuleReplayFailedError on the first failing entry.
  */
 export async function executeModuleReplays(
-  project: Project,
+  checkout: Checkout,
   steps: ReplayStep[],
 ): Promise<void> {
   if (steps.length === 0) return;
@@ -372,7 +379,7 @@ export async function executeModuleReplays(
   // A card keeps its old type until the (later) rename entry applies.
   const cardTypeRenames = buildCardTypeRenameMap(steps);
 
-  const mutations = new ResourceMutations(project);
+  const mutations = new ResourceMutations(checkout);
   for (const step of steps) {
     for (const { seal, entries } of step.seals) {
       for (const [index, entry] of entries.entries()) {
@@ -398,10 +405,10 @@ export async function executeModuleReplays(
   }
 
   // Module trees were overwritten on disk before replay; refresh both caches.
-  project.resources.changed();
-  project.resources.changedModules();
-  project.clearCards();
-  await project.populateCaches();
+  checkout.resources.changed();
+  checkout.resources.changedModules();
+  checkout.clearCards();
+  await checkout.populateCaches();
 }
 
 /** Every card-type rename in the batch (old name -> new). */

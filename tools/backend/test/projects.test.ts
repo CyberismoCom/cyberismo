@@ -1,11 +1,15 @@
 import { expect, test, describe, beforeEach, afterEach } from 'vitest';
-import { CommandManager } from '@cyberismo/data-handler';
 import { createApp } from '../src/app.js';
-import { ProjectRegistry } from '../src/project-registry.js';
 import { MockAuthProvider } from '../src/auth/mock.js';
 import { createTempTestData, cleanupTempTestData } from './test-utils.js';
-import { rm } from 'node:fs/promises';
-import { join } from 'node:path';
+import { mkdtemp, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { dirname, join } from 'node:path';
+import { localFolder, type ProjectDirectory } from '@cyberismo/data-handler';
+import {
+  openTestWorkspace,
+  directoryOf,
+} from './helpers/open-test-workspace.js';
 
 type ProjectsResponse = {
   projects: { prefix: string; name: string }[];
@@ -18,11 +22,8 @@ describe('GET /api/projects', () => {
 
   beforeEach(async () => {
     tempTestDataPath = await createTempTestData('decision-records');
-    const commands = await CommandManager.getInstance(tempTestDataPath);
-    app = createApp(
-      new MockAuthProvider(),
-      ProjectRegistry.fromCommandManager(commands),
-    );
+    const ws = await openTestWorkspace(tempTestDataPath);
+    app = createApp(new MockAuthProvider(), directoryOf(ws));
   });
 
   afterEach(async () => {
@@ -43,12 +44,12 @@ describe('GET /api/projects', () => {
   });
 
   test('returns canCreateProjects true when multiProjectRoot is set', async () => {
-    const commands = await CommandManager.getInstance(tempTestDataPath);
+    const ws = await openTestWorkspace(tempTestDataPath);
     const appWithRoot = createApp(
       new MockAuthProvider(),
-      ProjectRegistry.fromCommandManager(commands),
+      directoryOf(ws),
       undefined,
-      false,
+      undefined,
       tempTestDataPath,
     );
 
@@ -59,7 +60,9 @@ describe('GET /api/projects', () => {
   });
 
   test('returns empty array when no projects', async () => {
-    const emptyApp = createApp(new MockAuthProvider(), new ProjectRegistry());
+    const empty = await mkdtemp(join(tmpdir(), 'cyberismo-test-'));
+    const { directory } = await localFolder(empty);
+    const emptyApp = createApp(new MockAuthProvider(), directory);
 
     const response = await emptyApp.request('/api/projects');
 
@@ -69,17 +72,18 @@ describe('GET /api/projects', () => {
     expect(result.projects).toBeInstanceOf(Array);
     expect(result.projects.length).toBe(0);
     expect(result.canCreateProjects).toBe(false);
+    await rm(empty, { recursive: true, force: true });
   });
 });
 
 describe('POST /api/projects', () => {
   let tempDir: string;
-  let registry: ProjectRegistry;
+  let registry: ProjectDirectory;
 
   beforeEach(async () => {
     tempDir = await createTempTestData('decision-records');
-    const commands = await CommandManager.getInstance(tempDir);
-    registry = ProjectRegistry.fromCommandManager(commands);
+    // The project's folder, which multiRoot names below.
+    ({ directory: registry } = await localFolder(dirname(tempDir)));
   });
 
   afterEach(async () => {
@@ -96,8 +100,9 @@ describe('POST /api/projects', () => {
     });
 
     expect(response.status).toBe(403);
-    const result = (await response.json()) as { error: string };
+    const result = (await response.json()) as { error: string; code: string };
     expect(result.error).toContain('single-project mode');
+    expect(result.code).toBe('permission-denied');
   });
 
   test('returns 409 for duplicate prefix', async () => {
@@ -106,7 +111,7 @@ describe('POST /api/projects', () => {
       new MockAuthProvider(),
       registry,
       undefined,
-      false,
+      undefined,
       multiRoot,
     );
 
@@ -117,8 +122,9 @@ describe('POST /api/projects', () => {
     });
 
     expect(response.status).toBe(409);
-    const result = (await response.json()) as { error: string };
+    const result = (await response.json()) as { error: string; code: string };
     expect(result.error).toContain('already exists');
+    expect(result.code).toBe('conflict');
   });
 
   test('creates a new project successfully', async () => {
@@ -127,7 +133,7 @@ describe('POST /api/projects', () => {
       new MockAuthProvider(),
       registry,
       undefined,
-      false,
+      undefined,
       multiRoot,
     );
 
@@ -151,7 +157,7 @@ describe('POST /api/projects', () => {
     expect(result.prefix).toBe('newproj');
     expect(result.name).toBe('New Project');
     expect(result.category).toBe('Test');
-    expect(registry.has('newproj')).toBe(true);
+    expect((await registry.list()).map((p) => p.prefix)).toContain('newproj');
 
     // Cleanup created project
     await rm(join(multiRoot, 'newproj'), { recursive: true, force: true });
@@ -163,7 +169,7 @@ describe('POST /api/projects', () => {
       new MockAuthProvider(),
       registry,
       undefined,
-      false,
+      undefined,
       multiRoot,
     );
 
@@ -179,12 +185,12 @@ describe('POST /api/projects', () => {
 
 describe('POST /api/projects/clone', () => {
   let tempDir: string;
-  let registry: ProjectRegistry;
+  let registry: ProjectDirectory;
 
   beforeEach(async () => {
     tempDir = await createTempTestData('decision-records');
-    const commands = await CommandManager.getInstance(tempDir);
-    registry = ProjectRegistry.fromCommandManager(commands);
+    // The project's folder, which multiRoot names below.
+    ({ directory: registry } = await localFolder(dirname(tempDir)));
   });
 
   afterEach(async () => {
@@ -201,8 +207,9 @@ describe('POST /api/projects/clone', () => {
     });
 
     expect(response.status).toBe(403);
-    const result = (await response.json()) as { error: string };
+    const result = (await response.json()) as { error: string; code: string };
     expect(result.error).toContain('single-project mode');
+    expect(result.code).toBe('permission-denied');
   });
 
   test('validates url is required', async () => {
@@ -211,7 +218,7 @@ describe('POST /api/projects/clone', () => {
       new MockAuthProvider(),
       registry,
       undefined,
-      false,
+      undefined,
       multiRoot,
     );
 

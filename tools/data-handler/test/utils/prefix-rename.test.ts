@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { mkdir, rm, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
-import { Project } from '../../src/containers/project.js';
+import { Checkout } from '../../src/infra/checkout.js';
 import { copyDir } from '../../src/utils/file-utils.js';
 import { renameProjectPrefix } from '../../src/utils/prefix-rename.js';
 
@@ -16,27 +16,27 @@ const FIXTURE_PATH = join(
 const tmpDir = join(import.meta.dirname, 'tmp-project-rename');
 
 describe('renameProjectPrefix', () => {
-  let project: Project;
+  let checkout: Checkout;
 
   beforeEach(async () => {
     const projectPath = join(tmpDir, `proj-${Date.now()}-${Math.random()}`);
     await mkdir(projectPath, { recursive: true });
     await copyDir(FIXTURE_PATH, projectPath);
-    project = new Project(projectPath);
-    await project.populateCaches();
+    checkout = new Checkout(projectPath);
+    await checkout.populateCaches();
   });
   afterEach(async () => {
     await rm(tmpDir, { recursive: true, force: true });
   });
 
   it('apply rewrites cardType references in every card', async () => {
-    const oldPrefix = project.projectPrefix;
+    const oldPrefix = checkout.projectPrefix;
     const newPrefix = 'renamed';
-    await renameProjectPrefix(project, newPrefix);
+    await renameProjectPrefix(checkout, newPrefix);
 
-    expect(project.projectPrefix).toBe(newPrefix);
+    expect(checkout.projectPrefix).toBe(newPrefix);
 
-    for (const card of project.cardTree.cards()) {
+    for (const card of checkout.cardTree.cards()) {
       // Cards that referenced cardTypes under oldPrefix must now reference newPrefix.
       if (card.metadata?.cardType?.startsWith(`${oldPrefix}/`)) {
         expect.fail(`card '${card.key}' still references old prefix`);
@@ -45,11 +45,11 @@ describe('renameProjectPrefix', () => {
   });
 
   it('apply rewrites resource references in card content adoc files', async () => {
-    const oldPrefix = project.projectPrefix;
+    const oldPrefix = checkout.projectPrefix;
     const newPrefix = 'renamed';
-    await renameProjectPrefix(project, newPrefix);
+    await renameProjectPrefix(checkout, newPrefix);
 
-    for (const card of project.cardTree.cards()) {
+    for (const card of checkout.cardTree.cards()) {
       const adoc = join(card.path, 'index.adoc');
       let content: string;
       try {
@@ -75,9 +75,9 @@ describe('renameProjectPrefix', () => {
 
   it('apply rewrites internal references of card types and link types', async () => {
     const newPrefix = 'renamed';
-    await renameProjectPrefix(project, newPrefix);
+    await renameProjectPrefix(checkout, newPrefix);
 
-    const cardType = project.resources
+    const cardType = checkout.resources
       .byType(`${newPrefix}/cardTypes/decision`, 'cardTypes')
       .show();
     expect(cardType.workflow).toBe(`${newPrefix}/workflows/decision`);
@@ -85,7 +85,7 @@ describe('renameProjectPrefix', () => {
       expect(field.name.startsWith(`${newPrefix}/fieldTypes/`)).toBe(true);
     }
 
-    const linkType = project.resources
+    const linkType = checkout.resources
       .byType(`${newPrefix}/linkTypes/testTypes`, 'linkTypes')
       .show();
     expect(linkType.sourceCardTypes).toEqual([
@@ -97,24 +97,24 @@ describe('renameProjectPrefix', () => {
   });
 
   it('apply renames cards whose key starts with the old prefix', async () => {
-    const oldPrefix = project.projectPrefix;
+    const oldPrefix = checkout.projectPrefix;
     const newPrefix = 'renamed';
-    await renameProjectPrefix(project, newPrefix);
+    await renameProjectPrefix(checkout, newPrefix);
 
-    for (const card of project.cardTree.cards()) {
+    for (const card of checkout.cardTree.cards()) {
       expect(card.key.startsWith(`${oldPrefix}_`)).toBe(false);
     }
   });
 
   it('throws when renaming to the current prefix', async () => {
-    const current = project.projectPrefix;
-    await expect(renameProjectPrefix(project, current)).rejects.toThrow(
+    const current = checkout.projectPrefix;
+    await expect(renameProjectPrefix(checkout, current)).rejects.toThrow(
       `Project prefix is already '${current}'`,
     );
   });
 
   it('throws for an invalid prefix', async () => {
     // Underscore is not a valid prefix character (setCardPrefix rejects it).
-    await expect(renameProjectPrefix(project, 'bad_prefix')).rejects.toThrow();
+    await expect(renameProjectPrefix(checkout, 'bad_prefix')).rejects.toThrow();
   });
 });

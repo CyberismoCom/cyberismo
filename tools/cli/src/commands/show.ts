@@ -13,35 +13,101 @@
 
 import { type Command } from 'commander';
 
-import { Cmd, type CommandOptions } from '@cyberismo/data-handler';
+import { type Workspace } from '@cyberismo/data-handler';
 
-import { CommandWithPath, ResourceTypeParser as Parser } from '../lib/args.js';
-import { commandHandler, program } from '../lib/dispatch.js';
-import { deprecationNote, handleResponse } from '../lib/output.js';
+import {
+  CommandWithPath,
+  commandTarget,
+  commandType,
+  ResourceTypeParser as Parser,
+  Resources,
+} from '../lib/args.js';
+import { program } from '../lib/program.js';
+import { onProject } from '../lib/errors.js';
+import { deprecationNote, printJson } from '../lib/output.js';
+import type { ShowCommandOptions } from '../options.js';
+
+// Card reads of 'show'; a resource name '<prefix>/cards/<x>' shows card <x>.
+const cardReads = new Map<string, (ws: Workspace, detail: string) => unknown>([
+  ['attachments', (ws) => ws.cards.attachments()],
+  ['card', (ws, detail) => ws.cards.details(detail)],
+  ['cards', (ws) => ws.cards.list()],
+  ['labels', (ws) => ws.cards.labels()],
+]);
+
+// Resource and project reads of 'show', by the type the argument names.
+function resourceRead(
+  type: string,
+  options: ShowCommandOptions,
+): ((ws: Workspace, detail: string) => Promise<unknown>) | undefined {
+  if (Resources.includes(type)) {
+    return (ws, detail) =>
+      ws.consistent(async () => {
+        const shown = await ws.resources.show(detail);
+        return options.showUse
+          ? { ...shown, usedIn: await ws.resources.usage(detail) }
+          : shown;
+      });
+  }
+  if (Resources.some((resource) => `${resource}s` === type)) {
+    return (ws) => ws.resources.list(type);
+  }
+  if (type === 'project') {
+    return (ws) => ws.settings.info();
+  }
+  return undefined;
+}
+
+// Module and hub reads of 'show'; listings of hub data refresh it first.
+function moduleRead(
+  type: string,
+  options: ShowCommandOptions,
+): ((ws: Workspace, detail: string) => Promise<unknown>) | undefined {
+  switch (type) {
+    case 'importableModules':
+      return async (ws) => {
+        await ws.modules.ensureModuleListUpToDate();
+        return ws.modules.importable(options?.showAll, options?.details);
+      };
+    case 'module':
+      return (ws, detail) => ws.modules.show(detail);
+    case 'hubs':
+      return async (ws) => {
+        await ws.modules.ensureModuleListUpToDate();
+        return ws.modules.hubs();
+      };
+    case 'modules':
+      return (ws) => ws.modules.list();
+  }
+  return undefined;
+}
 
 export async function showAction(
   type: string,
   typeDetail: string | undefined,
-  options: CommandOptions<'show'>,
+  options: ShowCommandOptions,
 ) {
-  if (type !== '') {
-    const result = await commandHandler.command(
-      Cmd.show,
-      [type, typeDetail!],
-      Object.assign({}, options, program.opts()),
-    );
-    // By default, do not show resources' content files
-    if (!options.details) {
-      if (
-        typeof result.payload === 'object' &&
-        result.payload !== null &&
-        'content' in result.payload
-      ) {
-        delete (result.payload as { content?: unknown }).content;
-      }
-    }
-    handleResponse(result);
+  if (type === '') {
+    return;
   }
+  const target = commandType(type);
+  const read =
+    cardReads.get(target) ??
+    resourceRead(target, options) ??
+    moduleRead(target, options) ??
+    (async () => {
+      throw new Error(`Unknown or not yet handled type ${target}`);
+    });
+  const detail = commandTarget(type, typeDetail!) || '';
+  const result = await onProject(
+    Object.assign({}, options, program.opts()),
+    async (ws) => (await read(ws, detail)) as object,
+  );
+  // By default, do not show the content of a card or of a resource
+  if (!options.details && 'content' in result) {
+    delete (result as { content?: unknown }).content;
+  }
+  printJson(result);
 }
 
 export function registerShow(program: Command) {
@@ -74,12 +140,10 @@ export function registerShow(program: Command) {
       '-u --show-use',
       'Show where resource is used. Only used with resources, otherwise will be ignored.',
     )
-    .action(
-      async (type: string, typeDetail, options: CommandOptions<'show'>) => {
-        if (type === 'modules') {
-          deprecationNote('show modules', 'module list');
-        }
-        await showAction(type, typeDetail, options);
-      },
-    );
+    .action(async (type: string, typeDetail, options: ShowCommandOptions) => {
+      if (type === 'modules') {
+        deprecationNote('show modules', 'module list');
+      }
+      await showAction(type, typeDetail, options);
+    });
 }

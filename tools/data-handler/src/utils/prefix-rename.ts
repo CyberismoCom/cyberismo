@@ -20,10 +20,12 @@ import {
   writeFile,
 } from 'node:fs/promises';
 
-import type { Project } from '../containers/project.js';
-import type { Card } from '../interfaces/project-interfaces.js';
+import type { Checkout } from '../infra/checkout.js';
+import type { Card } from '@cyberismo/model';
 import { resourceName } from './resource-utils.js';
-import { ResourcesFrom } from '../containers/project/resources-from.js';
+import { ResourcesFrom } from '../infra/resources-from.js';
+import { renameCardAttachment } from '../cards/attachments.js';
+import { updateCardMetadata as saveCardMetadata } from '../cards/update.js';
 
 const FILE_TYPES_WITH_PREFIX_REFERENCES = ['adoc', 'hbs', 'json', 'lp'];
 
@@ -37,11 +39,11 @@ const FILE_TYPES_WITH_PREFIX_REFERENCES = ['adoc', 'hbs', 'json', 'lp'];
  * the project consumes: it only ever rewrites the project's own content.
  */
 export async function renameProjectPrefix(
-  project: Project,
+  checkout: Checkout,
   to: string,
 ): Promise<void> {
   // Capture before setCardPrefix changes projectPrefix.
-  const from = project.projectPrefix;
+  const from = checkout.projectPrefix;
   if (!to) {
     throw new Error("Input validation error: empty 'to' is not allowed");
   }
@@ -49,11 +51,17 @@ export async function renameProjectPrefix(
     throw new Error(`Project prefix is already '${from}'`);
   }
 
+  // Everything may change below, so the write is published as a reload.
+  const tx = checkout.lock.currentTx();
+  if (tx) {
+    tx.cause = 'rename';
+  }
+
   // The prefix must change first: resource renames are validated against the
   // current projectPrefix. The cache refresh is also required — local
   // registry keys are derived from projectPrefix at collection time.
-  await project.configuration.setCardPrefix(to);
-  project.resources.changed();
+  await checkout.configuration.setCardPrefix(to);
+  checkout.resources.changed();
 
   // Referenced resource families must rename before their referrers.
   const orderedCategories = [
@@ -69,7 +77,7 @@ export async function renameProjectPrefix(
   ] as const;
 
   for (const category of orderedCategories) {
-    for (const resource of project.resources.resourceTypes(
+    for (const resource of checkout.resources.resourceTypes(
       category,
       ResourcesFrom.localOnly,
     )) {
@@ -84,32 +92,34 @@ export async function renameProjectPrefix(
   }
 
   // Card renames must run after the resource renames above.
-  for (const template of project.resources.templates(ResourcesFrom.localOnly)) {
-    await renameCards(project, template.cardTree.cards(), from, to);
+  for (const template of checkout.resources.templates(
+    ResourcesFrom.localOnly,
+  )) {
+    await renameCards(checkout, template.cardTree.cards(), from, to);
   }
-  await renameCards(project, project.cardTree.cards(), from, to);
+  await renameCards(checkout, checkout.cardTree.cards(), from, to);
 
   // References that renameCards did not reach: card metadata already
   // rewritten above no-ops here, file contents do not.
   const localCards = [
-    ...project.cardTree.cards(),
-    ...project.resources
+    ...checkout.cardTree.cards(),
+    ...checkout.resources
       .templates(ResourcesFrom.localOnly)
       .flatMap((t) => t.cardTree.cards()),
   ];
   for (const card of localCards) {
-    await updateCardMetadata(project, card, from, to);
+    await updateCardMetadata(checkout, card, from, to);
   }
-  await updateFiles(project.paths.cardRootFolder, from, to);
-  await updateFiles(project.paths.resourcesFolder, from, to);
+  await updateFiles(checkout.paths.cardRootFolder, from, to);
+  await updateFiles(checkout.paths.resourcesFolder, from, to);
 
-  project.resources.changed();
-  project.clearCards();
-  await project.populateCaches();
+  checkout.resources.changed();
+  checkout.clearCards();
+  await checkout.populateCaches();
 }
 
 async function renameCards(
-  project: Project,
+  checkout: Checkout,
   cards: Card[],
   from: string,
   to: string,
@@ -123,23 +133,24 @@ async function renameCards(
   const re = new RegExp(`${from}(?!.*${from})`);
 
   for (const card of sortedCards) {
-    card.content = await updateCardAttachments(project, re, card, to);
-    await renameOneCard(project, re, card, from, to);
+    card.content = await updateCardAttachments(checkout, re, card, to);
+    await renameOneCard(checkout, re, card, from, to);
   }
 }
 
 async function updateCardAttachments(
-  project: Project,
+  checkout: Checkout,
   re: RegExp,
   card: Card,
   to: string,
 ): Promise<string | undefined> {
-  if (project.treeOf(card.key).kind === 'project') {
+  if (checkout.treeOf(card.key).kind === 'project') {
     const fileNames = (card.attachments ?? []).map((item) => item.fileName);
     await Promise.all(
       fileNames.map(async (fileName) => {
         // NOTE: file contents are rewritten by updateFiles.
-        await project.renameCardAttachment(
+        await renameCardAttachment(
+          checkout,
           card.key,
           fileName,
           fileName.replace(re, to),
@@ -151,19 +162,19 @@ async function updateCardAttachments(
 }
 
 async function renameOneCard(
-  project: Project,
+  checkout: Checkout,
   re: RegExp,
   card: Card,
   from: string,
   to: string,
 ): Promise<void> {
-  await updateCardMetadata(project, card, from, to);
+  await updateCardMetadata(checkout, card, from, to);
   const newCardPath = card.path.replace(re, to);
   await renameFile(card.path, newCardPath);
 }
 
 async function updateCardMetadata(
-  project: Project,
+  checkout: Checkout,
   card: Card,
   from: string,
   to: string,
@@ -180,7 +191,7 @@ async function updateCardMetadata(
           delete card.metadata[oldKey];
         }
       }
-      await project.updateCardMetadata(card, card.metadata);
+      await saveCardMetadata(checkout, card, card.metadata);
     }
   }
 }

@@ -15,11 +15,12 @@
 import type { Handler, MutationContext } from '../handler.js';
 import type { RenameInput } from '../types.js';
 import { resourceNameToString } from '../../utils/resource-utils.js';
-import { ResourcesFrom } from '../../containers/project/resources-from.js';
+import { ResourcesFrom } from '../../infra/resources-from.js';
 import {
   rewriteCardContentRefs,
   rewriteContentFileRefs,
 } from '../cascades/rewrite-refs.js';
+import { updateCardMetadata } from '../../cards/update.js';
 
 /**
  * Renaming a field type rewrites card-content references, calculations,
@@ -31,7 +32,7 @@ export class FieldTypeRenameHandler implements Handler<RenameInput> {
   async apply(ctx: MutationContext<RenameInput>): Promise<void> {
     const oldName = resourceNameToString(ctx.input.target);
 
-    const resource = ctx.project.resources.byType(oldName, 'fieldTypes');
+    const resource = ctx.checkout.resources.byType(oldName, 'fieldTypes');
     if (!resource) {
       throw new Error(`Field type '${oldName}' not found`);
     }
@@ -39,7 +40,7 @@ export class FieldTypeRenameHandler implements Handler<RenameInput> {
     // Authoring guard: renaming a field type that a local card type still
     // references is refused. Replay never hits this — applyCascade is called
     // directly there and rewrites the references instead.
-    const referencing = ctx.project.resources
+    const referencing = ctx.checkout.resources
       .cardTypes(ResourcesFrom.localOnly)
       .find((cardType) =>
         cardType.data?.customFields?.some((field) => field.name === oldName),
@@ -70,8 +71,8 @@ export class FieldTypeRenameHandler implements Handler<RenameInput> {
     // resource during authoring).
     await this.updateCardTypes(ctx, oldName, newName);
     await this.renameCardMetadataKeys(ctx, oldName, newName);
-    await rewriteContentFileRefs(ctx.project, oldName, newName);
-    await rewriteCardContentRefs(ctx.project, oldName, newName);
+    await rewriteContentFileRefs(ctx.checkout, oldName, newName);
+    await rewriteCardContentRefs(ctx.checkout, oldName, newName);
   }
 
   // Rewrite every LOCAL card type's references to the renamed field type.
@@ -82,7 +83,7 @@ export class FieldTypeRenameHandler implements Handler<RenameInput> {
     oldName: string,
     newName: string,
   ): Promise<void> {
-    const cardTypes = ctx.project.resources.cardTypes(ResourcesFrom.localOnly);
+    const cardTypes = ctx.checkout.resources.cardTypes(ResourcesFrom.localOnly);
     for (const cardType of cardTypes) {
       await cardType.renameFieldTypeReferences(oldName, newName);
     }
@@ -97,8 +98,8 @@ export class FieldTypeRenameHandler implements Handler<RenameInput> {
     newName: string,
   ): Promise<void> {
     const cards = [
-      ...ctx.project.cardTree.cards(),
-      ...ctx.project.resources
+      ...ctx.checkout.cardTree.cards(),
+      ...ctx.checkout.resources
         .templates(ResourcesFrom.localOnly)
         .flatMap((template) => template.cardTree.cards()),
     ];
@@ -107,7 +108,7 @@ export class FieldTypeRenameHandler implements Handler<RenameInput> {
       if (!metadata || !(oldName in metadata)) continue;
       metadata[newName] = metadata[oldName];
       delete metadata[oldName];
-      await ctx.project.updateCardMetadata(card, metadata);
+      await updateCardMetadata(ctx.checkout, card, metadata);
     }
   }
 }

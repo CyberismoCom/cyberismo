@@ -5,8 +5,8 @@
 import { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { vi } from 'vitest';
-import { Project } from '../../src/containers/project.js';
-import { Fetch } from '../../src/commands/index.js';
+import { Checkout } from '../../src/infra/checkout.js';
+import { Fetch } from '../../src/infra/hub-store.js';
 import { SCHEMA_VERSION } from '@cyberismo/migrations';
 
 /**
@@ -27,12 +27,12 @@ export function getTestBaseDir(
 /**
  * Creates a project for tests with schema version injected when missing.
  */
-export function getTestProject(path: string): InstanceType<typeof Project> {
-  const project = new Project(path);
-  if (project.configuration.schemaVersion === undefined) {
-    project.configuration.schemaVersion = SCHEMA_VERSION;
+export function getTestProject(path: string): InstanceType<typeof Checkout> {
+  const checkout = new Checkout(path);
+  if (checkout.configuration.schemaVersion === undefined) {
+    checkout.configuration.schemaVersion = SCHEMA_VERSION;
   }
-  return project;
+  return checkout;
 }
 
 /**

@@ -21,11 +21,13 @@ import { getStaticDirectoryPath } from '@cyberismo/assets';
 import { resourceNameToString } from '../utils/resource-utils.js';
 import { sortCards } from '../utils/card-utils.js';
 
-import type { Card } from '../interfaces/project-interfaces.js';
-import type { GraphViewContent } from '../interfaces/folder-content-interfaces.js';
-import type { GraphViewMetadata } from '../interfaces/resource-interfaces.js';
-import type { Project } from '../containers/project.js';
-import type { ResourceName } from '../utils/resource-utils.js';
+import type {
+  Card,
+  GraphViewContent,
+  GraphViewMetadata,
+  ResourceName,
+} from '@cyberismo/model';
+import type { Checkout } from '../infra/checkout.js';
 
 /**
  * Graph view resource class.
@@ -36,11 +38,12 @@ export class GraphViewResource extends FolderResource<
 > {
   /**
    * Creates instance of GraphViewResource
-   * @param project Project to use
+   * @param checkout Project to use
    * @param name Resource name
+   * @internal
    */
-  constructor(project: Project, name: ResourceName) {
-    super(project, name, 'graphViews');
+  constructor(checkout: Checkout, name: ResourceName) {
+    super(checkout, name, 'graphViews');
 
     this.contentSchemaId = 'graphViewSchema';
     this.contentSchema = super.contentSchemaContent(this.contentSchemaId);

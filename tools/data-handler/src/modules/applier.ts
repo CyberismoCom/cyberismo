@@ -16,14 +16,14 @@ import { randomBytes } from 'node:crypto';
 import { mkdir, rename } from 'node:fs/promises';
 import { join } from 'node:path';
 
-import { ProjectPaths } from '../containers/project/project-paths.js';
-import { readModuleConfig } from '../containers/project/cards-config.js';
+import { ProjectPaths } from '../infra/project-paths.js';
+import { readModuleConfig } from '../infra/cards-config.js';
 import { deleteDir, pathExists } from '../utils/file-utils.js';
 import { getChildLogger } from '../utils/log-utils.js';
 
-import type { ResolvedModule } from './resolve/types.js';
-import type { ModuleSetting } from '../interfaces/project-interfaces.js';
-import type { Project } from '../containers/project.js';
+import type { ResolvedModule } from '../mutations/replay/module-types.js';
+import type { ModuleSetting } from '@cyberismo/model';
+import type { Checkout } from '../infra/checkout.js';
 
 const logger = getChildLogger({ module: 'applier' });
 
@@ -62,11 +62,11 @@ interface StagedModule {
  *   themselves to this set.
  */
 export async function applyModules(
-  project: Project,
+  checkout: Checkout,
   resolved: ResolvedModule[],
   options: ApplyOptions,
 ): Promise<string[]> {
-  const selfPrefix = project.projectPrefix;
+  const selfPrefix = checkout.projectPrefix;
 
   // Skip transitive entries whose prefix matches the host project;
   // a top-level entry with the same collision is caught by
@@ -90,13 +90,13 @@ export async function applyModules(
   // filesystem mutation. Existing top-level modules skip the uniqueness
   // check (re-imports / updates).
   const existingDeclaredNames = new Set(
-    project.configuration.modules.map((m) => m.name),
+    checkout.configuration.modules.map((m) => m.name),
   );
   for (const entry of targets) {
     const name = entry.declaration.name;
     await validateIdentity(entry, name);
     validatePrefix(
-      project,
+      checkout,
       name,
       /* skipIfExists */ existingDeclaredNames.has(name),
     );
@@ -109,7 +109,7 @@ export async function applyModules(
   const applied: StagedModule[] = [];
   for (const stage of staged) {
     try {
-      await applyOne(project, stage);
+      await applyOne(checkout, stage);
       applied.push(stage);
     } catch (error) {
       logger.error(
@@ -131,13 +131,13 @@ export async function applyModules(
     if (entry.declaration.parent !== undefined) {
       continue;
     }
-    await project.configuration.upsertModule(toPersistedSetting(entry));
+    await checkout.configuration.upsertModule(toPersistedSetting(entry));
   }
 
   // Declaration-only rewrites: these modules keep the files they already
   // have, so they are persisted regardless of what landed above.
   for (const setting of options.backfill ?? []) {
-    await project.configuration.upsertModule(setting);
+    await checkout.configuration.upsertModule(setting);
   }
 
   await Promise.all(
@@ -145,7 +145,7 @@ export async function applyModules(
   );
 
   const appliedNames = applied.map((stage) => stage.name);
-  await project.refreshAfterModuleChange(appliedNames);
+  await checkout.refreshAfterModuleChange(appliedNames);
 
   return appliedNames;
 }
@@ -168,9 +168,12 @@ function toStagedModule(entry: ResolvedModule): StagedModule {
  * installation is restored; the destination is never observed in a
  * half-built state.
  */
-async function applyOne(project: Project, stage: StagedModule): Promise<void> {
-  const destinationPath = join(project.paths.modulesFolder, stage.name);
-  await mkdir(project.paths.modulesFolder, { recursive: true });
+async function applyOne(
+  checkout: Checkout,
+  stage: StagedModule,
+): Promise<void> {
+  const destinationPath = join(checkout.paths.modulesFolder, stage.name);
+  await mkdir(checkout.paths.modulesFolder, { recursive: true });
 
   const trashPath = `${destinationPath}.removing-${randomBytes(4).toString('hex')}`;
   const hadPrior = pathExists(destinationPath);
@@ -286,11 +289,11 @@ async function validateIdentity(
  * prefix already in use. Skipped for already-installed modules.
  */
 function validatePrefix(
-  project: Project,
+  checkout: Checkout,
   modulePrefix: string,
   skipIfExists: boolean,
 ): void {
-  const currentlyUsedPrefixes = project.projectPrefixes();
+  const currentlyUsedPrefixes = checkout.projectPrefixes();
   if (!currentlyUsedPrefixes.includes(modulePrefix)) {
     return;
   }

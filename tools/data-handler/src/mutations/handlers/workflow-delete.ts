@@ -15,7 +15,7 @@
 import type { Handler, MutationContext } from '../handler.js';
 import type { DeleteInput } from '../types.js';
 import { resourceNameToString } from '../../utils/resource-utils.js';
-import { ResourcesFrom } from '../../containers/project/resources-from.js';
+import { ResourcesFrom } from '../../infra/resources-from.js';
 import { deleteCardType } from '../cascades/delete-card-type.js';
 
 /**
@@ -29,7 +29,7 @@ export class WorkflowDeleteHandler implements Handler<DeleteInput> {
     const name = resourceNameToString(ctx.input.target);
 
     // Interactive deletion of a module-owned workflow is not allowed.
-    if (ctx.input.target.prefix !== ctx.project.projectPrefix) {
+    if (ctx.input.target.prefix !== ctx.checkout.projectPrefix) {
       throw new Error(
         `Cannot delete resource ${name}: It is a module resource`,
       );
@@ -38,7 +38,7 @@ export class WorkflowDeleteHandler implements Handler<DeleteInput> {
     // Delete dependent card types (and their cards) first, then the workflow.
     await this.applyCascade(ctx);
 
-    const resource = ctx.project.resources.byType(name, 'workflows');
+    const resource = ctx.checkout.resources.byType(name, 'workflows');
     if (!resource) throw new Error(`Workflow '${name}' not found`);
     await resource.delete();
   }
@@ -47,7 +47,7 @@ export class WorkflowDeleteHandler implements Handler<DeleteInput> {
   // type deletion removes the card type resource and all of its cards.
   async applyCascade(ctx: MutationContext<DeleteInput>): Promise<void> {
     const name = resourceNameToString(ctx.input.target);
-    const dependentCardTypes = ctx.project.resources
+    const dependentCardTypes = ctx.checkout.resources
       .cardTypes(ResourcesFrom.localOnly)
       .filter((ct) => ct.data?.workflow === name)
       .map((ct) => ct.data!.name);

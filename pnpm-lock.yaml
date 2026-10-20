@@ -235,9 +235,9 @@ importers:
       '@codemirror/view':
         specifier: ^6.43.13
         version: 6.43.13
-      '@cyberismo/data-handler':
+      '@cyberismo/model':
         specifier: workspace:*
-        version: link:../data-handler
+        version: link:../model
       '@emotion/react':
         specifier: ^11.13.3
         version: 11.14.0(@types/react@19.3.0)(react@19.3.0)(supports-color@7.2.0)
@@ -268,6 +268,9 @@ importers:
       '@testing-library/react':
         specifier: ^16.3.3
         version: 16.3.3(@testing-library/dom@10.4.1)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@types/node':
+        specifier: ^22.20.4
+        version: 22.20.5
       '@types/react':
         specifier: ^19.3.0
         version: 19.3.0
@@ -400,6 +403,9 @@ importers:
       '@cyberismo/mcp':
         specifier: workspace:*
         version: link:../mcp
+      '@cyberismo/model':
+        specifier: workspace:*
+        version: link:../model
       '@hono/mcp':
         specifier: ^0.3.2
         version: 0.3.2(@modelcontextprotocol/sdk@1.32.1(supports-color@7.2.0)(zod@4.6.5))(hono-rate-limiter@0.5.3(hono@4.13.13))(hono@4.13.13)(zod@4.6.5)
@@ -446,6 +452,9 @@ importers:
       '@cyberismo/data-handler':
         specifier: workspace:*
         version: link:../data-handler
+      '@cyberismo/model':
+        specifier: workspace:*
+        version: link:../model
       '@inquirer/confirm':
         specifier: ^6.3.2
         version: 6.3.3(@types/node@22.20.5)
@@ -480,6 +489,9 @@ importers:
       '@cyberismo/migrations':
         specifier: workspace:*
         version: link:../migrations
+      '@cyberismo/model':
+        specifier: workspace:*
+        version: link:../model
       '@cyberismo/node-clingo':
         specifier: workspace:*
         version: link:../node-clingo
@@ -586,6 +598,9 @@ importers:
       '@cyberismo/data-handler':
         specifier: workspace:*
         version: link:../data-handler
+      '@cyberismo/model':
+        specifier: workspace:*
+        version: link:../model
       '@modelcontextprotocol/sdk':
         specifier: ^1.30.1
         version: 1.32.1(supports-color@7.2.0)(zod@4.6.5)
@@ -606,6 +621,18 @@ importers:
       vitest:
         specifier: ^5.0.2
         version: 5.0.3(@types/node@22.20.5)(@vitest/coverage-v8@5.0.3)(jsdom@30.1.2)(vite@8.3.2(@types/node@22.20.5)(esbuild@0.28.2)(tsx@4.23.15))
+
+  tools/model:
+    dependencies:
+      ajv:
+        specifier: ^8.20.0
+        version: 8.20.0
+      vega:
+        specifier: ^6.4.0
+        version: 6.4.0
+      vega-lite:
+        specifier: ^6.4.2
+        version: 6.4.3(vega@6.4.0)
 
   tools/node-clingo:
     dependencies:

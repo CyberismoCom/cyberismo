@@ -13,7 +13,8 @@
 
 import { Hono } from 'hono';
 import { zValidator } from '../../middleware/zvalidator.js';
-import type { ProjectRegistry } from '../../project-registry.js';
+import type { ProjectDirectory } from '@cyberismo/data-handler';
+import { errorBody, errorResponse } from '../../common/errors.js';
 import { requireRole, getCurrentUser } from '../../middleware/auth.js';
 import { isProjectReadOnly } from '../../overlay.js';
 import { UserRole } from '../../types.js';
@@ -21,7 +22,7 @@ import { createProjectSchema, cloneProjectSchema } from './schema.js';
 import * as projectsService from './service.js';
 
 export function createProjectsRouter(
-  registry: ProjectRegistry,
+  directory: ProjectDirectory,
   multiProjectRoot?: string,
 ) {
   const router = new Hono();
@@ -38,9 +39,9 @@ export function createProjectsRouter(
    *       401:
    *         description: Unauthorized
    */
-  router.get('/', requireRole(UserRole.Reader), (c) => {
+  router.get('/', requireRole(UserRole.Reader), async (c) => {
     return c.json({
-      projects: registry.list().map((project) => ({
+      projects: (await directory.list()).map((project) => ({
         ...project,
         readOnly: isProjectReadOnly(project.prefix),
       })),
@@ -62,38 +63,31 @@ export function createProjectsRouter(
     async (c) => {
       if (!multiProjectRoot) {
         return c.json(
-          { error: 'Project creation is not available in single-project mode' },
+          errorBody(
+            'permission-denied',
+            'Project creation is not available in single-project mode',
+          ),
           403,
         );
       }
 
       const params = c.req.valid('json');
 
-      if (registry.has(params.prefix)) {
-        return c.json(
-          { error: `Project with prefix '${params.prefix}' already exists` },
-          409,
-        );
-      }
-
       try {
         const result = await projectsService.createProject(
-          registry,
-          multiProjectRoot,
+          directory,
           params,
           getCurrentUser(c),
         );
         return c.json(result, 201);
       } catch (error) {
-        return c.json(
-          {
-            error:
-              error instanceof Error
-                ? error.message
-                : 'Failed to create project',
-          },
-          500,
+        // A taken prefix is the directory's ProjectExistsError: a 409.
+        const { status, body } = errorResponse(
+          error instanceof Error
+            ? error
+            : new Error('Failed to create project'),
         );
+        return c.json(body, status);
       }
     },
   );
@@ -112,7 +106,10 @@ export function createProjectsRouter(
     async (c) => {
       if (!multiProjectRoot) {
         return c.json(
-          { error: 'Project cloning is not available in single-project mode' },
+          errorBody(
+            'permission-denied',
+            'Project cloning is not available in single-project mode',
+          ),
           403,
         );
       }
@@ -120,18 +117,15 @@ export function createProjectsRouter(
       const { url } = c.req.valid('json');
 
       try {
-        const result = await projectsService.cloneProject(
-          registry,
-          multiProjectRoot,
-          url,
-        );
+        const result = await directory.clone(url);
 
         if (result.projects.length === 0) {
           return c.json(
-            {
-              error: 'All projects in the cloned repository already exist',
-              skippedDuplicates: result.skippedDuplicates,
-            },
+            errorBody(
+              'conflict',
+              'All projects in the cloned repository already exist',
+              { skippedDuplicates: result.skippedDuplicates },
+            ),
             409,
           );
         }
@@ -139,12 +133,12 @@ export function createProjectsRouter(
         return c.json(result, 201);
       } catch (error) {
         return c.json(
-          {
-            error:
-              error instanceof Error
-                ? error.message
-                : 'Failed to clone repository',
-          },
+          errorBody(
+            'internal',
+            error instanceof Error
+              ? error.message
+              : 'Failed to clone repository',
+          ),
           500,
         );
       }

@@ -51,7 +51,7 @@ import {
   isProjectRootKey,
   isTemplateContainerKey,
 } from '@/lib/templateMoveTree';
-import type { QueryResult } from '@cyberismo/data-handler/types/queries';
+import type { QueryResult } from '@cyberismo/model';
 
 export interface MoveCardModalProps {
   open: boolean;

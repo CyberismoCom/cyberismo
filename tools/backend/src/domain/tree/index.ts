@@ -35,12 +35,12 @@ const router = new Hono();
  *         description: project_path not set or other internal error
  */
 router.get('/', requireRole(UserRole.Reader), async (c: AppContext) => {
-  const commands = c.get('commands');
+  const ws = c.get('ws');
   const tree = c.get('tree');
 
   try {
     const response = await treeService.getCardTree(
-      commands,
+      ws,
       isSSGContext(c),
       tree?.cardKey,
       tree?.recursive,

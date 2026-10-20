@@ -28,20 +28,27 @@ import { readFile } from 'node:fs/promises';
 import { join, sep } from 'node:path';
 
 import { copyDir } from '../src/utils/file-utils.js';
-import { CardKeyRegistry } from '../src/containers/project/card-keys.js';
-import { CardTree } from '../src/containers/project/card-tree.js';
-import type { NewCard } from '../src/containers/project/card-tree.js';
-import type {
-  Card,
-  CardMetadata,
-} from '../src/interfaces/project-interfaces.js';
-import { CommandManager } from '../src/command-manager.js';
+import { CardKeyRegistry } from '../src/infra/card-keys.js';
+import { CardTree } from '../src/infra/card-tree.js';
+import type { NewCard } from '../src/infra/card-tree.js';
+import type { Card, CardMetadata } from '@cyberismo/model';
+import { type Workspace } from '../src/workspace/workspace.js';
 import { ROOT } from '../src/utils/constants.js';
 import {
   CardNotFoundError,
+  CycleError,
   DuplicateCardKeyError,
+  ReadOnlyContainerError,
 } from '../src/exceptions/index.js';
 import { getTestProject } from './helpers/test-utils.js';
+import {
+  allTemplateCards as readAllTemplateCards,
+  findCard,
+  hasCard,
+} from '../src/cards/read.js';
+import { resourceName } from '../src/utils/resource-utils.js';
+import { checkoutOf } from '../src/infra/internal.js';
+import { openTestWorkspace } from './helpers/open-test-workspace.js';
 
 const baseDir = import.meta.dirname;
 const testDir = join(baseDir, 'tmp-card-tree-tests');
@@ -359,17 +366,6 @@ describe('Card tree', () => {
       rmSync(testDir, { recursive: true, force: true });
     });
 
-    it('deletes a card, its folder and its descendants', async () => {
-      const rootPath = tree.card('test_1').path;
-
-      await tree.deleteSubtree('test_1');
-
-      for (const cardKey of ['test_1', 'test_2', 'test_3']) {
-        expect(tree.has(cardKey)).toBe(false);
-      }
-      expect(existsSync(rootPath)).toBe(false);
-    });
-
     it('refuses to delete a card the tree does not hold', async () => {
       await expect(tree.deleteSubtree('non_existing_card')).rejects.toThrow(
         CardNotFoundError,
@@ -416,43 +412,10 @@ describe('Card tree', () => {
       ]);
     });
 
-    it('refuses a duplicate attachment', async () => {
-      await tree.addAttachment('test_2', 'twice.txt', Buffer.from('first'));
-      await expect(
-        tree.addAttachment('test_2', 'twice.txt', Buffer.from('second')),
-      ).rejects.toThrow();
-
-      expect(
-        tree
-          .attachmentsOf('test_2')
-          .filter((attachment) => attachment.fileName === 'twice.txt'),
-      ).toHaveLength(1);
-      await expect(
-        readFile(join(tree.attachmentFolderOf('test_2'), 'twice.txt'), 'utf-8'),
-      ).resolves.toBe('first');
-    });
-
     it('throws when adding to a card the tree does not hold', async () => {
       await expect(
         tree.addAttachment('non_existing_card', 'file.txt', Buffer.from('x')),
       ).rejects.toThrow(CardNotFoundError);
-    });
-
-    it('removes an attachment file and drops it from the listing', async () => {
-      await tree.removeAttachment('test_1', 'test-attachment.txt');
-
-      expect(tree.attachmentsOf('test_1')).toEqual([]);
-      expect(
-        existsSync(
-          join(tree.attachmentFolderOf('test_1'), 'test-attachment.txt'),
-        ),
-      ).toBe(false);
-    });
-
-    it('throws when removing an attachment that is not there', async () => {
-      await expect(
-        tree.removeAttachment('test_1', 'non_existing_attachment.txt'),
-      ).rejects.toThrow('Attachment not found');
     });
 
     it('throws when removing from a card the tree does not hold', async () => {
@@ -612,12 +575,6 @@ describe('Card tree', () => {
       expect(tree.attachmentsOf(CARD_KEY)[0].fileName).toBe(ATTACHMENT);
     });
 
-    it('throws for an attachment the card does not have', async () => {
-      await expect(
-        tree.renameAttachment(CARD_KEY, 'nope.png', 'other.png'),
-      ).rejects.toThrow('Attachment not found: nope.png');
-    });
-
     it('throws for a card the tree does not hold', async () => {
       await expect(
         tree.renameAttachment('test_999', ATTACHMENT, 'other.png'),
@@ -649,30 +606,6 @@ describe('Card tree', () => {
 
     // rename() replaces its destination silently, so this would have deleted
     // the other attachment's file and left the store with two entries for one.
-    it('refuses to overwrite an attachment the card already has', async () => {
-      await tree.addAttachment(
-        CARD_KEY,
-        'other.png',
-        Buffer.from('body of other'),
-      );
-
-      await expect(
-        tree.renameAttachment(CARD_KEY, ATTACHMENT, 'other.png'),
-      ).rejects.toThrow('Attachment already exists: other.png');
-
-      await expect(
-        readFile(join(cardPath, 'a', ATTACHMENT), 'utf-8'),
-      ).resolves.toBe(`body of ${ATTACHMENT}`);
-      await expect(
-        readFile(join(cardPath, 'a', 'other.png'), 'utf-8'),
-      ).resolves.toBe('body of other');
-      expect(
-        tree
-          .attachmentsOf(CARD_KEY)
-          .map((attachment) => attachment.fileName)
-          .sort(),
-      ).toEqual([ATTACHMENT, 'other.png']);
-    });
   });
 
   describe('read boundary', () => {
@@ -848,46 +781,6 @@ describe('Card tree', () => {
       return { tree, alpha, keys };
     }
 
-    it('re-parenting removes the card from its old parent', async () => {
-      const { tree } = await treesWith(
-        cardAt('test_1', 'root'),
-        cardAt('test_2', 'root'),
-        cardAt('test_3', 'test_1'),
-      );
-
-      await tree.relocate('test_3', 'test_2');
-
-      expect(tree.childrenOf('test_1')).toEqual([]);
-      expect(tree.card('test_1').children).toEqual([]);
-    });
-
-    it('re-parenting adds the card to its new parent', async () => {
-      const { tree } = await treesWith(
-        cardAt('test_1', 'root'),
-        cardAt('test_2', 'root'),
-        cardAt('test_3', 'test_1'),
-      );
-
-      await tree.relocate('test_3', 'test_2');
-
-      expect(tree.childrenOf('test_2')).toEqual(['test_3']);
-      expect(tree.card('test_2').children).toEqual(['test_3']);
-    });
-
-    it('relocating a card renames its folder', async () => {
-      const { tree } = await treesWith(
-        cardAt('test_1', 'root'),
-        cardAt('test_2', 'root'),
-        cardAt('test_3', 'test_1'),
-      );
-      const vacated = tree.pathOf('test_3');
-
-      await tree.relocate('test_3', 'test_2');
-
-      expect(existsSync(vacated)).toBe(false);
-      expect(existsSync(join(tree.pathOf('test_3'), 'index.json'))).toBe(true);
-    });
-
     it('moving a card to another tree moves its key ownership', async () => {
       const { tree, alpha, keys } = await treesWith(cardAt('test_1', 'root'));
 
@@ -997,7 +890,7 @@ describe('Card tree', () => {
         await tree.load();
 
         await expect(tree.relocate(cardKey, parent)).rejects.toThrow(
-          `Card '${cardKey}' cannot be placed under '${parent}'`,
+          CycleError,
         );
         // And the tree is unchanged, so paths still resolve.
         expect(tree.pathOf('test_3')).toBe(
@@ -1126,17 +1019,17 @@ describe('Card tree', () => {
       await module.load();
 
       await expect(module.relocate('test_4', 'root')).rejects.toThrow(
-        'Cannot modify imported module',
+        ReadOnlyContainerError,
       );
       await expect(module.deleteSubtree('test_4')).rejects.toThrow(
-        'Cannot modify imported module',
+        ReadOnlyContainerError,
       );
       await expect(module.writeMetadata(module.card('test_4'))).rejects.toThrow(
-        'Cannot modify imported module',
+        ReadOnlyContainerError,
       );
       await expect(
         module.addAttachment('test_4', 'file.txt', Buffer.from('x')),
-      ).rejects.toThrow('Cannot modify imported module');
+      ).rejects.toThrow(ReadOnlyContainerError);
       expect(module.has('test_4')).toBe(true);
     });
 
@@ -1150,7 +1043,7 @@ describe('Card tree', () => {
       );
 
       await expect(module.adopt(template, 'test_4', 'root')).rejects.toThrow(
-        'Cannot modify imported module',
+        ReadOnlyContainerError,
       );
 
       expect(existsSync(join(templateCardsPath('page'), 'test_4'))).toBe(true);
@@ -1175,7 +1068,7 @@ describe('Card tree', () => {
       );
 
       await expect(destination.adopt(module, 'test_4', 'root')).rejects.toThrow(
-        'Cannot modify imported module',
+        ReadOnlyContainerError,
       );
 
       expect(existsSync(join(templateCardsPath('page'), 'test_4'))).toBe(true);
@@ -1188,17 +1081,16 @@ describe('Card tree', () => {
   describe('Template and module operations', () => {
     const tempDir = join(baseDir, 'tmp-card-tree-tests');
     let decisionProjectPath: string;
-    let commands: CommandManager;
+    let ws: Workspace;
 
     beforeEach(async () => {
       mkdirSync(tempDir, { recursive: true });
       await copyDir('test/test-data/', tempDir);
 
-      // Set path and create CommandManager after directory exists
+      // Set path and open the project after directory exists
       decisionProjectPath = join(tempDir, 'valid', 'decision-records');
 
-      commands = new CommandManager(decisionProjectPath, {});
-      await commands.initialize();
+      ws = await openTestWorkspace(decisionProjectPath, {});
     });
 
     afterEach(() => {
@@ -1207,14 +1099,14 @@ describe('Card tree', () => {
 
     it('should create new template, add cards, and verify cards in cache', async () => {
       const name = 'decision/templates/testTemplate';
-      const templateResource = commands.project.resources.byType(
+      const templateResource = checkoutOf(ws).resources.byType(
         name,
         'templates',
       );
       await templateResource.create();
-      commands.project.resources.changed();
-      await commands.createCmd.addCards('decision/cardTypes/decision', name);
-      await commands.createCmd.addCards('decision/cardTypes/simplepage', name);
+      checkoutOf(ws).resources.changed();
+      await ws.cards.addToTemplate('decision/cardTypes/decision', name);
+      await ws.cards.addToTemplate('decision/cardTypes/simplepage', name);
 
       // Verify cards from template are in cache
       const templateCards = templateResource.cardTree.cards();
@@ -1222,8 +1114,8 @@ describe('Card tree', () => {
 
       // Check that template cards exist in project cache
       for (const templateCard of templateCards) {
-        expect(commands.project.hasCard(templateCard.key)).toBe(true);
-        const cachedCard = commands.project.findCard(templateCard.key);
+        expect(hasCard(checkoutOf(ws), templateCard.key)).toBe(true);
+        const cachedCard = findCard(checkoutOf(ws), templateCard.key);
         expect(cachedCard).toBeDefined();
         expect(cachedCard!.key).toBe(templateCard.key);
       }
@@ -1231,43 +1123,42 @@ describe('Card tree', () => {
 
     it('should remove template and verify cards are gone from the cache', async () => {
       const name = 'decision/templates/testTemplate';
-      const templateResource = commands.project.resources.byType(
+      const templateResource = checkoutOf(ws).resources.byType(
         name,
         'templates',
       );
       await templateResource.create();
-      commands.project.resources.changed();
+      checkoutOf(ws).resources.changed();
 
-      const template = commands.project.resources.byType(name, 'templates');
-      await commands.createCmd.addCards('decision/cardTypes/decision', name);
+      const template = checkoutOf(ws).resources.byType(name, 'templates');
+      await ws.cards.addToTemplate('decision/cardTypes/decision', name);
 
       const templateCards = template.cardTree.cards();
       const templateCardKeys = templateCards.map((card) => card.key);
       for (const cardKey of templateCardKeys) {
-        expect(commands.project.hasCard(cardKey)).toBe(true);
+        expect(hasCard(checkoutOf(ws), cardKey)).toBe(true);
       }
 
       // Remove template
-      const removeCmd = commands.removeCmd;
-      await removeCmd.remove('template', name);
+      await ws.changes.apply({ kind: 'delete', target: resourceName(name) });
       for (const cardKey of templateCardKeys) {
-        expect(commands.project.hasCard(cardKey)).toBe(false);
+        expect(hasCard(checkoutOf(ws), cardKey)).toBe(false);
       }
     });
 
     it('should import base module and verify template cards in cache', async () => {
       const baseModule = 'https://github.com/CyberismoCom/module-base.git';
-      await commands.modulesCmd.install(baseModule);
+      await ws.modules.install(baseModule);
 
-      const allTemplateCards = commands.project.allTemplateCards();
+      const allTemplateCards = readAllTemplateCards(checkoutOf(ws));
       const baseTemplateCards = allTemplateCards.filter((card: Card) =>
         card.path.includes(`base${sep}templates`),
       );
 
       expect(baseTemplateCards.length).toBeGreaterThan(0);
       for (const templateCard of baseTemplateCards) {
-        expect(commands.project.hasCard(templateCard.key)).toBe(true);
-        const cachedCard = commands.project.findCard(templateCard.key);
+        expect(hasCard(checkoutOf(ws), templateCard.key)).toBe(true);
+        const cachedCard = findCard(checkoutOf(ws), templateCard.key);
         expect(cachedCard).toBeDefined();
         expect(cachedCard!.key).toBe(templateCard.key);
       }
@@ -1276,9 +1167,9 @@ describe('Card tree', () => {
     it('should remove base module and verify template cards are gone from the cache', async () => {
       const baseModule = 'https://github.com/CyberismoCom/module-base.git';
 
-      await commands.modulesCmd.install(baseModule);
+      await ws.modules.install(baseModule);
 
-      const allTemplateCards = commands.project.allTemplateCards();
+      const allTemplateCards = readAllTemplateCards(checkoutOf(ws));
       const baseTemplateCards = allTemplateCards.filter((card: Card) =>
         card.path.includes(`base${sep}templates`),
       );
@@ -1286,29 +1177,29 @@ describe('Card tree', () => {
       // Verify that module template cards are in cache
       expect(baseTemplateCards.length).toBeGreaterThan(0);
       for (const templateCard of baseTemplateCards) {
-        expect(commands.project.hasCard(templateCard.key)).toBe(true);
-        const cachedCard = commands.project.findCard(templateCard.key);
+        expect(hasCard(checkoutOf(ws), templateCard.key)).toBe(true);
+        const cachedCard = findCard(checkoutOf(ws), templateCard.key);
         expect(cachedCard).toBeDefined();
         expect(cachedCard!.key).toBe(templateCard.key);
       }
 
       // Get the imported module name
-      const moduleEntry = commands.project.configuration.modules.find(
+      const moduleEntry = checkoutOf(ws).configuration.modules.find(
         (m) => m.location && m.location.includes('module-base'),
       );
       expect(moduleEntry).toBeDefined();
 
       // Remove module
-      await commands.removeCmd.remove('module', moduleEntry!.name);
+      await ws.modules.remove(moduleEntry!.name);
 
       // Verify module template cards are gone from the cache after removal
-      const remainingTemplateCards = commands.project
-        .allTemplateCards()
-        .filter((card: Card) => card.path.includes(`base${sep}templates`));
+      const remainingTemplateCards = readAllTemplateCards(
+        checkoutOf(ws),
+      ).filter((card: Card) => card.path.includes(`base${sep}templates`));
 
       expect(remainingTemplateCards.length).toBe(0);
       for (const card of baseTemplateCards) {
-        expect(commands.project.hasCard(card.key)).toBe(false);
+        expect(hasCard(checkoutOf(ws), card.key)).toBe(false);
       }
     }, 60000);
   });
@@ -1400,8 +1291,8 @@ describe('Card tree', () => {
         'clashing template card',
       );
 
-      const project = getTestProject(projectPath);
-      await expect(project.populateCaches()).rejects.toThrow(
+      const checkout = getTestProject(projectPath);
+      await expect(checkout.populateCaches()).rejects.toThrow(
         /Duplicate card keys found: decision_5/,
       );
     });

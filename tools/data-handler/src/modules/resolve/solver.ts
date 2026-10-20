@@ -17,36 +17,35 @@ import semver from 'semver';
 
 import { ModuleRequestError, unreachable } from '../../exceptions/index.js';
 import { readJsonFile } from '../../utils/json.js';
-import { checkLinearity, computeChain } from '../../mutations/replay/chain.js';
+import { checkLinearity, computeChain } from '../../infra/replay-log/chain.js';
 import {
   listSealFiles,
   type SealFile,
-} from '../../mutations/replay/seal-files.js';
+} from '../../infra/replay-log/seal-files.js';
 import { installedModulesWithSources, declaredModules } from '../inventory.js';
 import { buildRemoteUrl } from '../remote-url.js';
-import { versionToTag } from '../version.js';
 import {
   DEFAULT_VERSION_RANGE,
   toVersion,
   toVersionRange,
-  type Source,
+  versionToTag,
   type Version,
   type VersionRange,
-} from '../types.js';
-import { createSourceLayer, type SourceLayer } from '../source.js';
-import type { Project } from '../../containers/project.js';
-import type {
-  Credentials,
-  ModuleSetting,
-} from '../../interfaces/project-interfaces.js';
+} from '../../utils/version.js';
+import {
+  createSourceLayer,
+  type SourceLayer,
+} from '../../infra/module-source/source.js';
+import type { Checkout } from '../../infra/checkout.js';
+import type { Credentials, ModuleSetting, Source } from '@cyberismo/model';
 import type {
   Change,
   ConflictDemand,
   ResolveConflict,
-  ResolvedModule,
   ResolveResult,
   UpdateRequest,
 } from './types.js';
+import type { ResolvedModule } from '../../mutations/replay/module-types.js';
 
 export interface Edge {
   name: string;
@@ -147,14 +146,14 @@ function toEdges(config: {
 
 /** Solve `req` without fetching any module tree. The caller owns `source`. */
 export async function solve(
-  project: Project,
+  checkout: Checkout,
   req: UpdateRequest,
   source: SourceLayer,
   credentials?: Credentials,
 ): Promise<SolveOutcome> {
-  const installed = await installedModulesWithSources(project);
+  const installed = await installedModulesWithSources(checkout);
   const declaredByName = new Map(
-    declaredModules(project).map((d) => [d.name, d]),
+    declaredModules(checkout).map((d) => [d.name, d]),
   );
 
   const nodes = new Map<string, Node>();
@@ -244,7 +243,7 @@ export async function solve(
       req.kind === 'updateAll' && v === null && n.installed === null;
     if (n.installed === v && n.path && !refreshUnversioned) {
       edges = toEdges(
-        await readJsonFile(project.paths.moduleConfigurationFile(n.name)),
+        await readJsonFile(checkout.paths.moduleConfigurationFile(n.name)),
       );
       seals = await listSealFiles(join(n.path, 'migrations'));
     } else {
@@ -554,7 +553,7 @@ export async function solve(
 }
 
 export async function resolve(
-  project: Project,
+  checkout: Checkout,
   req: UpdateRequest,
   opts?: {
     sourceLayer?: SourceLayer;
@@ -565,7 +564,7 @@ export async function resolve(
   const ownsSource = !opts?.sourceLayer;
   const source = opts?.sourceLayer ?? createSourceLayer();
   try {
-    return (await solve(project, req, source, opts?.credentials)).result;
+    return (await solve(checkout, req, source, opts?.credentials)).result;
   } finally {
     if (ownsSource) await source.dispose?.();
   }
@@ -579,7 +578,7 @@ export async function resolve(
  * a refused outcome. The caller owns `source`.
  */
 export async function stageResolution(
-  project: Project,
+  checkout: Checkout,
   { result, nodes, assign, rangeWrites }: SolveOutcome,
   opts: { source: SourceLayer; tempDir: string; credentials?: Credentials },
 ): Promise<{
@@ -618,14 +617,14 @@ export async function stageResolution(
         )?.[0];
     resolved.push({
       declaration: {
-        project: project.basePath,
+        project: checkout.basePath,
         name: change.module,
         source: node.source,
         versionRange: node.isRoot
           ? (rangeOf.get(change.module) ?? node.declaredRange ?? undefined)
           : undefined,
         parent: referrer
-          ? { project: project.basePath, name: referrer }
+          ? { project: checkout.basePath, name: referrer }
           : undefined,
       },
       ref,
@@ -653,7 +652,7 @@ export async function stageResolution(
 
 /** {@link solve}, then {@link stageResolution}. */
 export async function resolveForApply(
-  project: Project,
+  checkout: Checkout,
   req: UpdateRequest,
   opts?: {
     sourceLayer?: SourceLayer;
@@ -667,10 +666,10 @@ export async function resolveForApply(
 }> {
   const ownsSource = !opts?.sourceLayer;
   const source = opts?.sourceLayer ?? createSourceLayer();
-  const tempDir = opts?.tempDir ?? join(project.paths.tempFolder, 'resolve');
+  const tempDir = opts?.tempDir ?? join(checkout.paths.tempFolder, 'resolve');
   try {
-    const outcome = await solve(project, req, source, opts?.credentials);
-    const staged = await stageResolution(project, outcome, {
+    const outcome = await solve(checkout, req, source, opts?.credentials);
+    const staged = await stageResolution(checkout, outcome, {
       source,
       tempDir,
       credentials: opts?.credentials,

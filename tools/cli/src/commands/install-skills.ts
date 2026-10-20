@@ -15,7 +15,7 @@ import { resolve } from 'node:path';
 
 import { Command, Option } from 'commander';
 
-import { errorFunction } from '@cyberismo/data-handler/utils/error-utils';
+import { errorFunction } from '@cyberismo/data-handler';
 
 import {
   InstallSkills,

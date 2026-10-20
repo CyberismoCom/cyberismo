@@ -1,18 +1,23 @@
-import { expect, test, beforeAll, afterAll } from 'vitest';
-import { CommandManager } from '@cyberismo/data-handler';
+import { chmodSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { expect, test, beforeAll, afterAll, vi } from 'vitest';
 import { createApp } from '../src/app.js';
-import { ProjectRegistry } from '../src/project-registry.js';
 import { MockAuthProvider } from '../src/auth/mock.js';
-import { type QueryResult } from '@cyberismo/data-handler/types/queries';
+import { type QueryResult } from '@cyberismo/model';
 import type {
   CardType,
   FieldType,
   LinkType,
   TemplateConfiguration,
   Workflow,
-} from '@cyberismo/data-handler/interfaces/resource-interfaces';
-import type { CardAttachment } from '@cyberismo/data-handler/interfaces/project-interfaces';
+  CardAttachment,
+} from '@cyberismo/model';
 import { createTempTestData, cleanupTempTestData } from './test-utils.js';
+import {
+  openTestWorkspace,
+  directoryOf,
+} from './helpers/open-test-workspace.js';
 
 let app: ReturnType<typeof createApp>;
 let tempTestDataPath: string;
@@ -21,11 +26,8 @@ beforeAll(async () => {
   // Fixes weird issue with asciidoctor
   process.argv = [];
   tempTestDataPath = await createTempTestData('decision-records');
-  const commands = await CommandManager.getInstance(tempTestDataPath);
-  app = createApp(
-    new MockAuthProvider(),
-    ProjectRegistry.fromCommandManager(commands),
-  );
+  const ws = await openTestWorkspace(tempTestDataPath);
+  app = createApp(new MockAuthProvider(), directoryOf(ws));
 });
 
 afterAll(async () => {
@@ -121,6 +123,72 @@ test('/api/cards/export-pdf returns a PDF buffer', async () => {
   expect(response.status).toBe(200);
   expect(magicBytes).toBe('%PDF');
 }, 30000);
+
+// Runs `run` with a stub asciidoctor-pdf on PATH.
+async function withPdfStub<T>(script: string, run: () => Promise<T>) {
+  const binDir = mkdtempSync(join(tmpdir(), 'cyberismo-pdf-stub-'));
+  const stub = join(binDir, 'asciidoctor-pdf');
+  writeFileSync(stub, `#!/bin/sh\n${script}`);
+  chmodSync(stub, 0o755);
+  const originalPath = process.env.PATH;
+  process.env.PATH = `${binDir}:${originalPath}`;
+  try {
+    return await run();
+  } finally {
+    process.env.PATH = originalPath;
+    rmSync(binDir, { recursive: true, force: true });
+  }
+}
+
+const exportPdf = () =>
+  app.request('/api/projects/decision/cards/export-pdf', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      title: 'Exported file',
+      cardKey: 'decision_5',
+      name: 'exported-file',
+      exportChildCards: false,
+    }),
+  });
+
+// The stub echoes the AsciiDoc source it is given as the "PDF".
+test.runIf(process.platform === 'linux')(
+  '/api/cards/export-pdf fills in the document fields the request leaves unset',
+  async () => {
+    const today = new Date().toISOString().split('T')[0];
+    const source = await withPdfStub('cat\n', async () =>
+      (await exportPdf()).text(),
+    );
+    expect(source).toMatch(/^= Exported file\nexported-file\n/);
+    expect(source).toContain(':revnumber: 1.0.0\n');
+    expect(source).toContain(`:revdate: ${today}\n`);
+    expect(source).toContain(':revremark: Initial version\n');
+  },
+);
+
+// The stub fails with a server path in its output.
+test.runIf(process.platform === 'linux')(
+  '/api/cards/export-pdf logs failure diagnostics instead of sending them',
+  async () => {
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    try {
+      const response = await withPdfStub(
+        'cat > /dev/null\necho "asciidoctor: ERROR: /srv/secret/path" >&2\nexit 1\n',
+        exportPdf,
+      );
+      expect(response.status).toBe(500);
+      expect(await response.json()).toEqual({
+        error: 'Asciidoctor-pdf failed with code 1',
+      });
+      expect(errorSpy.mock.calls.flat().join(' ')).toContain(
+        '/srv/secret/path',
+      );
+    } finally {
+      errorSpy.mockRestore();
+    }
+  },
+);
 
 test('/api/cards/export-pdf returns a 400 error on a bad request', async () => {
   const response = await app.request(

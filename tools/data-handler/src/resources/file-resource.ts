@@ -14,12 +14,15 @@
 import { resourceName } from '../utils/resource-utils.js';
 import { ResourceObject } from './resource-object.js';
 
-import type { ResourceFolderType } from '../interfaces/project-interfaces.js';
-import type { Project } from '../containers/project.js';
-import type { ResourceBaseMetadata } from '../interfaces/resource-interfaces.js';
-import type { ResourceName } from '../utils/resource-utils.js';
-import type { Operation, ShowReturnType } from './resource-object.js';
-import type { UpdateKey } from '../interfaces/resource-interfaces.js';
+import type {
+  ResourceFolderType,
+  ResourceBaseMetadata,
+  Operation,
+  UpdateKey,
+  ResourceName,
+} from '@cyberismo/model';
+import type { Checkout } from '../infra/checkout.js';
+import type { ShowReturnType } from './resource-object.js';
 
 /**
  * Base class for file based resources (card types, field types, link types, workflows, ...)
@@ -27,8 +30,13 @@ import type { UpdateKey } from '../interfaces/resource-interfaces.js';
 export abstract class FileResource<
   T extends ResourceBaseMetadata,
 > extends ResourceObject<T, never> {
-  constructor(project: Project, name: ResourceName, type: ResourceFolderType) {
-    super(project, name, type);
+  /** @internal */
+  constructor(
+    checkout: Checkout,
+    name: ResourceName,
+    type: ResourceFolderType,
+  ) {
+    super(checkout, name, type);
     this.initialize();
   }
   /**

@@ -14,10 +14,11 @@
 import { validateMacroContent } from '../index.js';
 
 import type { MacroGenerationContext } from '../../interfaces/macros.js';
-import macroMetadata from './metadata.js';
+import macroMetadata from '@cyberismo/model/macros/xref/metadata';
 import BaseMacro from '../base-macro.js';
 import type TaskQueue from '../task-queue.js';
-import type { XrefMacroOptions } from './types.js';
+import type { XrefMacroOptions } from '@cyberismo/model';
+import { cardNode } from '../../cards/read.js';
 
 export default class XrefMacro extends BaseMacro {
   constructor(tasksQueue: TaskQueue) {
@@ -50,7 +51,7 @@ export default class XrefMacro extends BaseMacro {
   };
 
   private getCard(cardKey: string, context: MacroGenerationContext) {
-    return context.project.cardNode(cardKey);
+    return cardNode(context.checkout, cardKey);
   }
 
   private validate(input: unknown): XrefMacroOptions {

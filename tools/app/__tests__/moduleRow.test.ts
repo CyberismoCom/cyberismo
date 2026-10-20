@@ -12,7 +12,7 @@
 */
 
 import { describe, it, expect } from 'vitest';
-import type { UpdatePlan } from '@cyberismo/data-handler';
+import type { UpdatePlan } from '@cyberismo/model';
 import type { ProjectModule } from '@/lib/api/types';
 import {
   bindingOf,

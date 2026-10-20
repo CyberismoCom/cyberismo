@@ -12,8 +12,8 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import type { CardMetadata } from '../interfaces/project-interfaces.js';
 import type {
+  CardMetadata,
   CalculationMetadata,
   CardType,
   DataType,
@@ -26,8 +26,8 @@ import type {
   SkillMetadata,
   TemplateMetadata,
   Workflow,
-} from '../interfaces/resource-interfaces.js';
-import { WorkflowCategory } from '../interfaces/resource-interfaces.js';
+} from '@cyberismo/model';
+import { WorkflowCategory } from '@cyberismo/model';
 
 /**
  * Provides default values for resources and cards.

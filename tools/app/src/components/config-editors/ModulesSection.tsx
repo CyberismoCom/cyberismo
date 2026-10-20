@@ -14,7 +14,7 @@
 import { useState } from 'react';
 import { Alert, Button, Stack, Typography } from '@mui/joy';
 import { useTranslation } from 'react-i18next';
-import type { UpdatePlan } from '@cyberismo/data-handler';
+import type { UpdatePlan } from '@cyberismo/model';
 import type { ProjectModule } from '@/lib/api/types';
 import {
   fetchModuleUpdatePlan,

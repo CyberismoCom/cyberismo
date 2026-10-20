@@ -3,18 +3,20 @@ import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { copyDir } from '../../../src/utils/file-utils.js';
-import type { Project } from '../../../src/containers/project.js';
+import type { Checkout } from '../../../src/infra/checkout.js';
 import { getTestProject } from '../../helpers/test-utils.js';
 import { resourceName } from '../../../src/utils/resource-utils.js';
-import { ResourceMutations } from '../../../src/mutations/resource-mutations.js';
+import { Workspace } from '../../../src/workspace/workspace.js';
+import { SYSTEM_ACTOR } from '../../../src/utils/tx-record.js';
+import { updateCardMetadata } from '../../../src/cards/update.js';
 
 const baseDir = import.meta.dirname;
 const testDir = join(baseDir, 'tmp-field-type-delete');
 const decisionRecordsPath = join(testDir, 'valid/decision-records');
-let project: Project;
+let checkout: Checkout;
 
-const fieldName = () => `${project.projectPrefix}/fieldTypes/testField`;
-const cardTypeName = () => `${project.projectPrefix}/cardTypes/decision`;
+const fieldName = () => `${checkout.projectPrefix}/fieldTypes/testField`;
+const cardTypeName = () => `${checkout.projectPrefix}/cardTypes/decision`;
 
 function seedField() {
   writeFileSync(
@@ -40,18 +42,18 @@ function seedField() {
 
 // Register the field on the decision card type and seed a value onto its cards.
 async function seedCardTypeAndCardValues() {
-  await project.resources
+  await checkout.resources
     .byType(cardTypeName(), 'cardTypes')
     .update(
       { key: 'customFields' },
       { name: 'add' as const, target: { name: fieldName() } },
     );
-  const cards = project.cardTree
+  const cards = checkout.cardTree
     .cards()
     .filter((c) => c.metadata?.cardType === cardTypeName());
   for (const card of cards) {
     card.metadata![fieldName()] = 'a value';
-    await project.updateCardMetadata(card, card.metadata!);
+    await updateCardMetadata(checkout, card, card.metadata!);
   }
 }
 
@@ -60,8 +62,8 @@ describe('FieldTypeDeleteHandler', () => {
     mkdirSync(testDir, { recursive: true });
     await copyDir(join(baseDir, '..', '..', 'test-data'), testDir);
     seedField();
-    project = getTestProject(decisionRecordsPath);
-    await project.populateCaches();
+    checkout = getTestProject(decisionRecordsPath);
+    await checkout.populateCaches();
     await seedCardTypeAndCardValues();
   });
   afterEach(() => {
@@ -69,41 +71,41 @@ describe('FieldTypeDeleteHandler', () => {
   });
 
   it('deletes an unused field type resource from disk', async () => {
-    const name = `${project.projectPrefix}/fieldTypes/unusedField`;
-    await project.resources
+    const name = `${checkout.projectPrefix}/fieldTypes/unusedField`;
+    await checkout.resources
       .byType(name, 'fieldTypes')
       .createFieldType('shortText');
-    expect(project.resources.exists(name)).toBe(true);
+    expect(checkout.resources.exists(name)).toBe(true);
 
-    await new ResourceMutations(project).apply({
+    await Workspace.over(checkout, SYSTEM_ACTOR).changes.apply({
       kind: 'delete',
       target: resourceName(name),
     });
-    expect(project.resources.exists(name)).toBe(false);
+    expect(checkout.resources.exists(name)).toBe(false);
   });
 
   it('deletes an in-use field type resource from disk', async () => {
-    await new ResourceMutations(project).apply({
+    await Workspace.over(checkout, SYSTEM_ACTOR).changes.apply({
       kind: 'delete',
       target: resourceName(fieldName()),
     });
-    expect(project.resources.exists(fieldName())).toBe(false);
+    expect(checkout.resources.exists(fieldName())).toBe(false);
   });
 
   it('strips the field from every card type that declares it', async () => {
     expect(
-      project.resources
+      checkout.resources
         .byType(cardTypeName(), 'cardTypes')
         .data?.customFields?.some((f) => f.name === fieldName()),
     ).toBe(true);
 
-    await new ResourceMutations(project).apply({
+    await Workspace.over(checkout, SYSTEM_ACTOR).changes.apply({
       kind: 'delete',
       target: resourceName(fieldName()),
     });
 
     expect(
-      project.resources
+      checkout.resources
         .byType(cardTypeName(), 'cardTypes')
         .data?.customFields?.some((f) => f.name === fieldName()),
     ).toBe(false);
@@ -113,17 +115,17 @@ describe('FieldTypeDeleteHandler', () => {
   // dormant rather than deleting it - the same outcome as removing the field
   // from the card type directly. 'cyberismo clean' reports it as 'undeclared'.
   it('leaves the stored value dormant on every affected card', async () => {
-    const before = project.cardTree
+    const before = checkout.cardTree
       .cards()
       .filter((c) => c.metadata?.[fieldName()] === 'a value');
     expect(before.length).toBeGreaterThan(0);
 
-    await new ResourceMutations(project).apply({
+    await Workspace.over(checkout, SYSTEM_ACTOR).changes.apply({
       kind: 'delete',
       target: resourceName(fieldName()),
     });
 
-    const after = project.cardTree
+    const after = checkout.cardTree
       .cards()
       .filter((c) => c.metadata?.[fieldName()] === 'a value');
     expect(after).toHaveLength(before.length);
@@ -131,7 +133,7 @@ describe('FieldTypeDeleteHandler', () => {
 
   it('rejects deleting a module-owned field type', async () => {
     await expect(
-      new ResourceMutations(project).apply({
+      Workspace.over(checkout, SYSTEM_ACTOR).changes.apply({
         kind: 'delete',
         target: resourceName('mymod/fieldTypes/dummy'),
       }),

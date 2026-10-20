@@ -50,10 +50,10 @@ router.post(
   requireRole(UserRole.Admin),
   zValidator('json', createSkillSchema),
   async (c) => {
-    const commands = c.get('commands');
+    const ws = c.get('ws');
     const { identifier } = c.req.valid('json');
 
-    await skillService.createSkill(commands, identifier);
+    await skillService.createSkill(ws, identifier);
     return c.json({ message: 'Skill created successfully' });
   },
 );

@@ -11,24 +11,21 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import type { CommandManager } from '@cyberismo/data-handler';
+import type { Workspace } from '@cyberismo/data-handler';
 
-export async function getLinkTypes(commands: CommandManager) {
-  const response = await commands.showCmd.showResources('linkTypes');
+export async function getLinkTypes(ws: Workspace) {
+  const response = await ws.resources.list('linkTypes');
   if (!response) {
     throw new Error('No link types found');
   }
 
   const linkTypes = await Promise.all(
-    response.map((linkType: string) => commands.showCmd.showResource(linkType)),
+    response.map((linkType: string) => ws.resources.show(linkType)),
   );
 
   return linkTypes;
 }
 
-export async function createLinkType(
-  commands: CommandManager,
-  linkTypeName: string,
-) {
-  await commands.createCmd.createLinkType(linkTypeName);
+export async function createLinkType(ws: Workspace, linkTypeName: string) {
+  await ws.resources.create(linkTypeName, 'linkTypes', {});
 }

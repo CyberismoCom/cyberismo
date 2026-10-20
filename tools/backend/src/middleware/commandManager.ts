@@ -11,71 +11,65 @@
 */
 
 import type { Context, MiddlewareHandler } from 'hono';
-import type { CommandManager } from '@cyberismo/data-handler';
+import type { ActorRef } from '@cyberismo/model';
+import type { ProjectDirectory, Workspace } from '@cyberismo/data-handler';
 import { getCurrentUser } from './auth.js';
-import type { ProjectRegistry } from '../project-registry.js';
+import { UserRole, type UserInfo } from '../types.js';
 import type { ProjectEvents } from '../domain/events/project-events.js';
+import type { EventsByProject } from '../domain/events/events-by-project.js';
 
 // Extend Hono Context type to include our custom properties
 declare module 'hono' {
   interface ContextVariableMap {
-    commands: CommandManager;
+    ws: Workspace;
     events: ProjectEvents;
     projectPath: string;
-    registry: ProjectRegistry;
+    directory: ProjectDirectory;
+    eventsByProject: EventsByProject;
   }
 }
 
-/**
- * Set CommandManager on context and run the next handler as the authenticated user.
- */
-async function runWithCommands(
-  c: Context,
-  commands: CommandManager,
-  next: () => Promise<void>,
-) {
-  const user = getCurrentUser(c);
-  if (!user) {
-    throw new Error('CommandManager expects a user');
-  }
-  c.set('commands', commands);
-  c.set('projectPath', commands.project.basePath);
-  await commands.runAsAuthor({ name: user.name, email: user.email }, () =>
-    next(),
-  );
+/** The actor a user acts as. */
+export function actorOf(user: UserInfo): ActorRef {
+  return {
+    kind: user.role === UserRole.Connector ? 'connector' : 'user',
+    id: user.id,
+    name: user.name,
+  };
 }
 
-// TODO: Remove once MCP is made project-scoped via attachProjectRegistry
-export const attachCommandManager = (
-  commands: CommandManager,
-): MiddlewareHandler => {
-  return (c, next) => runWithCommands(c, commands, next);
-};
-
 /**
- * Middleware that resolves the project from the registry and sets the
- * CommandManager on context.
+ * Middleware that opens the authenticated user's handle over the project
+ * and puts it, with the project's events and the directory, on the context.
+ * An unknown project is refused with ProjectNotFoundError (404).
  *
- * @param registry - Project registry to look up projects.
+ * @param directory - Directory the project is opened from.
+ * @param events - Events of the directory's projects.
  * @param fixedPrefix - When provided, used instead of the `:prefix` route
  *   param. This is needed in export/SSG mode where routes are mounted at
  *   concrete paths (e.g. `/api/projects/decision/...`) with no dynamic param.
  */
-export const attachProjectRegistry = (
-  registry: ProjectRegistry,
+export const attachProjectDirectory = (
+  directory: ProjectDirectory,
+  events: EventsByProject,
   fixedPrefix?: string,
 ): MiddlewareHandler => {
   return async (c: Context, next) => {
-    c.set('registry', registry);
     const prefix = c.req.param('prefix') ?? fixedPrefix;
     if (!prefix) {
       return c.json({ error: 'Project prefix is required' }, 400);
     }
-    const commands = registry.get(prefix);
-    if (!commands) {
-      return c.json({ error: `Project '${prefix}' not found` }, 404);
+    const user = getCurrentUser(c);
+    if (!user) {
+      throw new Error('A project handle expects a user');
     }
-    c.set('events', registry.eventsFor(commands));
-    return runWithCommands(c, commands, next);
+    const identity = { name: user.name, email: user.email };
+    const ws = await directory.open(prefix, actorOf(user), identity);
+    c.set('directory', directory);
+    c.set('eventsByProject', events);
+    c.set('events', await events.for(prefix));
+    c.set('ws', ws);
+    c.set('projectPath', ws.path);
+    await next();
   };
 };

@@ -12,10 +12,11 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { ResourcesFrom } from '../../containers/project/resources-from.js';
-import { filename } from '../../interfaces/folder-content-interfaces.js';
+import { ResourcesFrom } from '../../infra/resources-from.js';
+import { filename } from '@cyberismo/model';
 
-import type { Project } from '../../containers/project.js';
+import type { Checkout } from '../../infra/checkout.js';
+import { updateCardContent } from '../../cards/update.js';
 
 /**
  * Update the content files of every local folder resource (calculations,
@@ -23,13 +24,13 @@ import type { Project } from '../../containers/project.js';
  * with `to`. Goes through each resource's own content-file interface
  * (`contentData`/`updateFile`) so the in-memory state stays in sync with
  * disk. Non-string content (e.g. a report's parameter schema) is skipped.
- * @param project Project whose folder resources should be rewritten
+ * @param checkout Project whose folder resources should be rewritten
  * @param from Resource name to update
  * @param to New name for resource
  * @throws if 'from' or 'to' is empty string
  */
 export async function rewriteContentFileRefs(
-  project: Project,
+  checkout: Checkout,
   from: string,
   to: string,
 ) {
@@ -41,10 +42,10 @@ export async function rewriteContentFileRefs(
 
   // Local folder resources only: module content is migrated by the owning module.
   const resources = [
-    ...project.resources.calculations(ResourcesFrom.localOnly),
-    ...project.resources.graphModels(ResourcesFrom.localOnly),
-    ...project.resources.graphViews(ResourcesFrom.localOnly),
-    ...project.resources.reports(ResourcesFrom.localOnly),
+    ...checkout.resources.calculations(ResourcesFrom.localOnly),
+    ...checkout.resources.graphModels(ResourcesFrom.localOnly),
+    ...checkout.resources.graphViews(ResourcesFrom.localOnly),
+    ...checkout.resources.reports(ResourcesFrom.localOnly),
   ];
 
   await Promise.all(
@@ -62,13 +63,13 @@ export async function rewriteContentFileRefs(
 /**
  * Update references in card content.
  * Searches through all card content in the cache and replaces references to the old resource name.
- * @param project Project whose card content should be rewritten
+ * @param checkout Project whose card content should be rewritten
  * @param from Resource name to update
  * @param to New name for resource
  * @throws if 'from' or 'to' is empty string
  */
 export async function rewriteCardContentRefs(
-  project: Project,
+  checkout: Checkout,
   from: string,
   to: string,
 ) {
@@ -79,10 +80,10 @@ export async function rewriteCardContentRefs(
   }
 
   // Local templates only: module content is migrated by the owning module.
-  const localTemplateCards = project.resources
+  const localTemplateCards = checkout.resources
     .templates(ResourcesFrom.localOnly)
     .flatMap((template) => template.cardTree.cards());
-  const allCards = [...project.cardTree.cards(), ...localTemplateCards];
+  const allCards = [...checkout.cardTree.cards(), ...localTemplateCards];
   const cardsToUpdate = allCards.filter(
     (card) => card.content && card.content.includes(from),
   );
@@ -95,7 +96,7 @@ export async function rewriteCardContentRefs(
     cardsToUpdate.map(async (card) => {
       if (card.content) {
         const updatedContent = card.content.replaceAll(from, to);
-        await project.updateCardContent(card.key, updatedContent);
+        await updateCardContent(checkout, card.key, updatedContent);
       }
     }),
   );

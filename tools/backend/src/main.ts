@@ -10,14 +10,13 @@
   details. You should have received a copy of the GNU Affero General Public
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
-import { scanForProjects } from '@cyberismo/data-handler';
+import { localFolder } from '@cyberismo/data-handler';
 import { startServer } from './index.js';
 import { exportSite } from './export.js';
 import { MockAuthProvider } from './auth/mock.js';
 import { KeycloakAuthProvider } from './auth/keycloak.js';
 import type { AuthProvider } from './auth/types.js';
-import { ProjectRegistry } from './project-registry.js';
-import { formatProjectErrors } from './project-errors.js';
+import { formatProjectErrors } from '@cyberismo/model';
 import { gitOptionsFromEnv } from './utils.js';
 import { parseArgs } from 'node:util';
 import dotenv from 'dotenv';
@@ -60,17 +59,6 @@ function createAuthProvider(): AuthProvider {
 }
 
 const projectPath = process.env.npm_config_project_path || process.cwd();
-let projects;
-try {
-  projects = await scanForProjects(projectPath);
-} catch (error) {
-  console.error(
-    error instanceof Error
-      ? error.message
-      : `Failed to scan for projects in '${projectPath}'`,
-  );
-  process.exit(1);
-}
 
 const { values: args } = parseArgs({
   options: {
@@ -80,8 +68,25 @@ const { values: args } = parseArgs({
   strict: false,
 });
 
+let opened;
+try {
+  opened = await localFolder(
+    projectPath,
+    args.export ? undefined : gitOptionsFromEnv(),
+  );
+} catch (error) {
+  console.error(
+    error instanceof Error
+      ? error.message
+      : `Failed to scan for projects in '${projectPath}'`,
+  );
+  process.exit(1);
+}
+const { directory, failed } = opened;
+
 if (args.export) {
-  if (projects.length === 0) {
+  const projects = await directory.list();
+  if (projects.length === 0 && failed.length === 0) {
     console.error('No projects found to export.');
     process.exit(1);
   }
@@ -89,16 +94,14 @@ if (args.export) {
     typeof args['default-project'] === 'string'
       ? args['default-project']
       : undefined;
-  const { registry, failed } =
-    await ProjectRegistry.fromScannedProjects(projects);
   if (
-    registry.list().length === 0 ||
+    projects.length === 0 ||
     failed.some((f) => f.prefix === defaultProject)
   ) {
     console.error(formatProjectErrors(failed));
     process.exit(1);
   }
-  const { errors: exportErrors } = await exportSite(registry, undefined, {
+  const { errors: exportErrors } = await exportSite(directory, undefined, {
     defaultProject,
   });
   const errors = [...failed, ...exportErrors];
@@ -107,13 +110,9 @@ if (args.export) {
     process.exit(1);
   }
 } else {
-  const { registry, failed } = await ProjectRegistry.fromScannedProjects(
-    projects,
-    gitOptionsFromEnv(),
-  );
   if (failed.length > 0) {
     console.error(formatProjectErrors(failed));
   }
   const authProvider = createAuthProvider();
-  await startServer(authProvider, registry, true, projectPath);
+  await startServer(authProvider, directory, true, projectPath);
 }

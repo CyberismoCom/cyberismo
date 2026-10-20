@@ -16,23 +16,27 @@
 import { beforeAll, afterAll, describe, expect, test } from 'vitest';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
-import { CommandManager } from '@cyberismo/data-handler';
-import { createMcpServer, singleProjectProvider } from '../src/server.js';
-import { testDataPath } from './test-utils.js';
+import { type Workspace } from '@cyberismo/data-handler';
+import { createMcpServer } from '../src/server.js';
+import { authenticated, testDataPath } from './test-utils.js';
+import {
+  openTestWorkspace,
+  directoryOf,
+} from './helpers/open-test-workspace.js';
 
-let commands: CommandManager;
+let ws: Workspace;
 let client: Client;
 
 // Fixes weird issue with asciidoctor
 beforeAll(async () => {
   process.argv = [];
-  commands = await CommandManager.getInstance(testDataPath);
+  ws = await openTestWorkspace(testDataPath);
 
-  const server = createMcpServer(singleProjectProvider(commands));
+  const server = createMcpServer(directoryOf(ws));
   const [clientTransport, serverTransport] =
     InMemoryTransport.createLinkedPair();
 
-  await server.connect(serverTransport);
+  await server.connect(authenticated(serverTransport));
 
   client = new Client({ name: 'test-client', version: '1.0.0' });
   await client.connect(clientTransport);
@@ -40,7 +44,6 @@ beforeAll(async () => {
 
 afterAll(async () => {
   await client.close();
-  commands.project.dispose();
 });
 
 describe('MCP Resources via Client', () => {

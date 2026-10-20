@@ -11,9 +11,10 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import type { Project } from '../containers/project.js';
+import type { Checkout } from '../infra/checkout.js';
 import type { Mode } from '../interfaces/macros.js';
 import { moduleNameFromCardKey } from './card-utils.js';
+import { cardNode } from '../cards/read.js';
 
 // xref:<cardKey>.adoc[<label>] or xref:<cardKey>.adoc#<anchor>[<label>]
 // Card key chars: word chars plus hyphen. Anchor (optional) is anything up to
@@ -42,7 +43,7 @@ function isRewriteMode(mode: Mode): mode is RewriteMode {
  */
 export function rewriteAsciidocCardXrefs(
   content: string,
-  project: Project,
+  checkout: Checkout,
   mode: Mode,
   onWarning: (message: string) => void = console.warn,
 ): string {
@@ -59,7 +60,7 @@ export function rewriteAsciidocCardXrefs(
       let card;
 
       try {
-        card = project.cardNode(cardKey);
+        card = cardNode(checkout, cardKey);
       } catch {
         card = undefined;
       }

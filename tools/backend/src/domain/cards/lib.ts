@@ -11,13 +11,11 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import type { Card } from '@cyberismo/data-handler/interfaces/project-interfaces';
-import { type CommandManager, evaluateMacros } from '@cyberismo/data-handler';
-import { preprocessMermaidBlocksForHtml } from '@cyberismo/data-handler/utils/mermaid-renderer';
-import { rewriteAsciidocCardXrefs } from '@cyberismo/data-handler/utils/asciidoc-xref';
+import type { Card, QueryResult } from '@cyberismo/model';
+import type { Workspace } from '@cyberismo/data-handler';
+import { preprocessMermaidBlocksForHtml } from './mermaid.js';
 import { getCardQueryResult } from '../../export.js';
 import type { TreeOptions } from '../../types.js';
-import type { QueryResult } from '@cyberismo/data-handler/types/queries';
 
 interface result {
   status: number;
@@ -26,15 +24,15 @@ interface result {
 }
 
 export async function getCardDetails(
-  commands: CommandManager,
+  ws: Workspace,
   key: string,
   staticMode: boolean,
   raw: boolean,
 ): Promise<result> {
-  return commands.consistent(async () => {
+  return ws.consistent(async () => {
     let cardDetailsResponse: Card;
     try {
-      cardDetailsResponse = await commands.showCmd.showCardDetails(key);
+      cardDetailsResponse = await ws.cards.details(key);
     } catch {
       return { status: 400, message: `Card ${key} not found from project` };
     }
@@ -43,29 +41,23 @@ export async function getCardDetails(
       return { status: 400, message: `Card ${key} not found from project` };
     }
 
-    let asciidocContent = '';
-    try {
-      asciidocContent = await evaluateMacros(
-        cardDetailsResponse.content || '',
-        {
-          context: staticMode ? 'exportedSite' : 'localApp',
-          mode: staticMode ? 'staticSite' : 'inject',
-          project: commands.project,
-          cardKey: key,
-        },
-      );
-    } catch (error) {
-      asciidocContent = `Macro error: ${error instanceof Error ? error.message : 'Unknown error'}\n\n${asciidocContent}`;
-    }
+    let { content: asciidocContent } = await ws.render.macros(
+      cardDetailsResponse.content || '',
+      {
+        context: staticMode ? 'exportedSite' : 'localApp',
+        mode: staticMode ? 'staticSite' : 'inject',
+        cardKey: key,
+        fallback: '',
+      },
+    );
 
     // Convert [mermaid] AsciiDoc blocks to passthrough HTML before asciidoctor processes them
     asciidocContent = preprocessMermaidBlocksForHtml(asciidocContent);
 
     // Rewrite native AsciiDoc xrefs that target other cards into
     // /projects/<prefix>/cards/<key> links.
-    asciidocContent = rewriteAsciidocCardXrefs(
+    asciidocContent = await ws.render.xrefs(
       asciidocContent,
-      commands.project,
       staticMode ? 'staticSite' : 'inject',
     );
 
@@ -73,7 +65,7 @@ export async function getCardDetails(
       if (!cardDetailsResponse.metadata) {
         throw new Error('Card has no metadata');
       }
-      const cardType = await commands.showCmd.showResource(
+      const cardType = await ws.resources.show(
         cardDetailsResponse.metadata.cardType,
         'cardTypes',
       );
@@ -81,7 +73,7 @@ export async function getCardDetails(
       const fields = [];
       let i = 0;
       for (const customField of cardType.customFields) {
-        const fieldType = await commands.showCmd.showResource(
+        const fieldType = await ws.resources.show(
           customField.name,
           'fieldTypes',
         );
@@ -139,8 +131,8 @@ export async function getCardDetails(
     }
 
     const card = staticMode
-      ? await getCardQueryResult(commands, key)
-      : await commands.calculateCmd.runQuery('card', 'localApp', {
+      ? await getCardQueryResult(ws, key)
+      : await ws.queries.runQuery('card', 'localApp', {
           cardKey: key,
         });
 
@@ -162,15 +154,15 @@ export async function getCardDetails(
 }
 /**
  * Returns all cards from a tree query, flattened.
- * @param commands the command manager used for the query
+ * @param ws the command manager used for the query
  * @param options optional tree query options
  * @returns a promise that resolves to an array of all cards
  */
 export async function allCards(
-  commands: CommandManager,
+  ws: Workspace,
   options?: TreeOptions,
 ): Promise<QueryResult<'tree'>[]> {
-  const fetchedCards = await commands.calculateCmd.runQuery(
+  const fetchedCards = await ws.queries.runQuery(
     'tree',
     'exportedSite',
     options || {},

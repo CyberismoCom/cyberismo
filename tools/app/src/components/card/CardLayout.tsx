@@ -41,10 +41,7 @@ import { CountBadge, LeadingSlot } from '@/components/CountBadge';
 import { useAdocHtml, useAppDispatch, useAppSelector } from '@/lib/hooks';
 import { viewChanged } from '@/lib/slices/pageState';
 
-import type {
-  QueryResult,
-  CalculationLink,
-} from '@cyberismo/data-handler/types/queries';
+import type { QueryResult, CalculationLink } from '@cyberismo/model';
 import type { CardResponse, Connector } from '@/lib/api/types';
 import LinkedCardsSection, {
   type LinkFormState,

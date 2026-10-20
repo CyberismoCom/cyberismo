@@ -11,88 +11,28 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { join } from 'node:path';
-import {
-  CommandManager,
-  Create,
-  scanForProjects,
-} from '@cyberismo/data-handler';
-import type { ProjectRegistry } from '../../project-registry.js';
-
-export interface CreateProjectParams {
-  name: string;
-  prefix: string;
-  category?: string;
-  description?: string;
-}
-
-export interface CreateProjectResult {
-  prefix: string;
-  name: string;
-  category?: string;
-  description?: string;
-}
+import { SYSTEM_ACTOR, type ProjectDirectory } from '@cyberismo/data-handler';
+import type { CreateProjectParams } from '@cyberismo/model';
+import { actorOf } from '../../middleware/commandManager.js';
+import type { UserInfo } from '../../types.js';
 
 export async function createProject(
-  registry: ProjectRegistry,
-  rootPath: string,
+  directory: ProjectDirectory,
   params: CreateProjectParams,
-  user?: { name: string; email: string } | null,
-): Promise<CreateProjectResult> {
-  const { name, prefix, category, description } = params;
-  const projectPath = join(rootPath, prefix);
-
-  const commands = await CommandManager.createProjectWithDefaults(
-    projectPath,
+  user?: UserInfo | null,
+) {
+  const { prefix, failures, warnings } = await directory.create(
     params,
-    {
-      ...registry.options,
-      gitUser: user ?? undefined,
-    },
+    user ? actorOf(user) : SYSTEM_ACTOR,
+    user ? { name: user.name, email: user.email } : undefined,
   );
-
-  registry.add(prefix, commands);
-
+  // The project's path stays on the server.
   return {
     prefix,
-    name,
-    category: category || undefined,
-    description: description || undefined,
-  };
-}
-
-export interface CloneProjectResult {
-  projects: { prefix: string; name: string }[];
-  skippedDuplicates?: string[];
-}
-
-export async function cloneProject(
-  registry: ProjectRegistry,
-  rootPath: string,
-  url: string,
-): Promise<CloneProjectResult> {
-  const clonedPath = await Create.cloneProject(url, rootPath);
-  const scanned = await scanForProjects(clonedPath);
-
-  const registered: { prefix: string; name: string }[] = [];
-  const skippedDuplicates: string[] = [];
-
-  for (const project of scanned) {
-    if (registry.has(project.prefix)) {
-      skippedDuplicates.push(project.prefix);
-      continue;
-    }
-    const commands = new CommandManager(project.path, registry.options);
-    await commands.initialize();
-    registry.add(project.prefix, commands);
-    registered.push({
-      prefix: project.prefix,
-      name: project.name,
-    });
-  }
-
-  return {
-    projects: registered,
-    ...(skippedDuplicates.length > 0 && { skippedDuplicates }),
+    name: params.name,
+    category: params.category || undefined,
+    description: params.description || undefined,
+    failures,
+    warnings,
   };
 }

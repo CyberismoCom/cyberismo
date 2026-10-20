@@ -6,11 +6,8 @@ import { tmpdir } from 'node:os';
 
 import { cleanOrphans } from '../../src/modules/orphans.js';
 import { makeProjectStub } from '../helpers/module-fixtures.js';
-import type {
-  ModuleSetting,
-  ModuleSettingOptions,
-} from '../../src/interfaces/project-interfaces.js';
-import type { ModuleInstallation } from '../../src/modules/types.js';
+import type { ModuleSetting, ModuleSettingOptions } from '@cyberismo/model';
+import type { ModuleInstallation } from '../../src/mutations/replay/module-types.js';
 
 interface ChildDep {
   name: string;
@@ -62,11 +59,11 @@ describe('modules/orphans', () => {
     await installModule(projectDir, 'B', [{ name: 'C' }]);
     await installModule(projectDir, 'C', []);
 
-    const { project, refreshAfterModuleChange } = makeProject(projectDir, [
+    const { checkout, refreshAfterModuleChange } = makeProject(projectDir, [
       { name: 'A', location: 'https://example.com/A.git' },
     ]);
 
-    const removed = await cleanOrphans(project);
+    const removed = await cleanOrphans(checkout);
     expect(removed).toBe(0);
     expect(existsSync(join(projectDir, '.cards', 'modules', 'A'))).toBe(true);
     expect(existsSync(join(projectDir, '.cards', 'modules', 'B'))).toBe(true);
@@ -80,9 +77,9 @@ describe('modules/orphans', () => {
     await installModule(projectDir, 'B', [{ name: 'C' }]);
     await installModule(projectDir, 'C', []);
 
-    const { project, refreshAfterModuleChange } = makeProject(projectDir, []);
+    const { checkout, refreshAfterModuleChange } = makeProject(projectDir, []);
 
-    const removed = await cleanOrphans(project);
+    const removed = await cleanOrphans(checkout);
     expect(removed).toBe(3);
     expect(existsSync(join(projectDir, '.cards', 'modules', 'A'))).toBe(false);
     expect(existsSync(join(projectDir, '.cards', 'modules', 'B'))).toBe(false);
@@ -97,11 +94,11 @@ describe('modules/orphans', () => {
     await installModule(projectDir, 'B', []);
     await installModule(projectDir, 'C', []);
 
-    const { project } = makeProject(projectDir, [
+    const { checkout } = makeProject(projectDir, [
       { name: 'A', location: 'https://example.com/A.git' },
     ]);
 
-    const removed = await cleanOrphans(project);
+    const removed = await cleanOrphans(checkout);
     expect(removed).toBe(2);
     expect(existsSync(join(projectDir, '.cards', 'modules', 'A'))).toBe(true);
     expect(existsSync(join(projectDir, '.cards', 'modules', 'B'))).toBe(false);
@@ -112,10 +109,10 @@ describe('modules/orphans', () => {
     await installModule(projectDir, 'A', [{ name: 'B' }]);
     await installModule(projectDir, 'B', []);
 
-    const { project } = makeProject(projectDir, []);
+    const { checkout } = makeProject(projectDir, []);
     const removed: ModuleInstallation[] = [];
 
-    const count = await cleanOrphans(project, {
+    const count = await cleanOrphans(checkout, {
       onRemove: (installation) => removed.push(installation),
     });
 
@@ -132,9 +129,9 @@ describe('modules/orphans', () => {
     const declarations: ModuleSetting[] = [
       { name: 'A', location: 'https://example.com/A.git' },
     ];
-    const { project } = makeProject(projectDir, declarations);
+    const { checkout } = makeProject(projectDir, declarations);
 
-    const removed = await cleanOrphans(project);
+    const removed = await cleanOrphans(checkout);
     expect(removed).toBe(1);
     expect(declarations).toEqual([
       { name: 'A', location: 'https://example.com/A.git' },

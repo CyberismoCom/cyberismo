@@ -18,16 +18,18 @@ import { resourceName, resourceNameToString } from '../utils/resource-utils.js';
 import { sortCards } from '../utils/card-utils.js';
 import { removeValue } from '../utils/common-utils.js';
 import { Validate } from '../commands/validate.js';
+import { ResourceNotFoundError } from '../exceptions/index.js';
 
-import type { Operation, RemoveOperation } from './resource-object.js';
-import type { Card } from '../interfaces/project-interfaces.js';
 import type {
+  Operation,
+  RemoveOperation,
+  Card,
   CardType,
   CustomField,
   UpdateKey,
-} from '../interfaces/resource-interfaces.js';
-import type { Project } from '../containers/project.js';
-import type { ResourceName } from '../utils/resource-utils.js';
+  ResourceName,
+} from '@cyberismo/model';
+import type { Checkout } from '../infra/checkout.js';
 
 /**
  * Card type resource class.
@@ -35,11 +37,12 @@ import type { ResourceName } from '../utils/resource-utils.js';
 export class CardTypeResource extends FileResource<CardType> {
   /**
    * Creates instance of CardTypeResource
-   * @param project Project to use
+   * @param checkout Project to use
    * @param name Resource name
+   * @internal
    */
-  constructor(project: Project, name: ResourceName) {
-    super(project, name, 'cardTypes');
+  constructor(checkout: Checkout, name: ResourceName) {
+    super(checkout, name, 'cardTypes');
 
     this.contentSchemaId = 'cardTypeSchema';
     this.contentSchema = super.contentSchemaContent(this.contentSchemaId);
@@ -58,7 +61,7 @@ export class CardTypeResource extends FileResource<CardType> {
   // Checks if field type exists in the project.
   private async fieldTypeExists(field: Partial<CustomField>) {
     return field && field.name
-      ? this.project.resources.exists(field.name)
+      ? this.checkout.resources.exists(field.name)
       : false;
   }
 
@@ -72,7 +75,7 @@ export class CardTypeResource extends FileResource<CardType> {
   // Return link types that use this card type.
   private relevantLinkTypes(): string[] {
     const resourceName = resourceNameToString(this.resourceName);
-    const allLinkTypes = this.project.resources.linkTypes();
+    const allLinkTypes = this.checkout.resources.linkTypes();
     const references: string[] = [];
 
     for (const linkType of allLinkTypes) {
@@ -145,7 +148,8 @@ export class CardTypeResource extends FileResource<CardType> {
     // Check that field type exists in the project.
     const exists = await this.fieldTypeExists(field);
     if (!exists) {
-      throw new Error(
+      throw new ResourceNotFoundError(
+        field.name,
         `Field type '${field.name}' does not exist in the project`,
       );
     }
@@ -175,13 +179,14 @@ export class CardTypeResource extends FileResource<CardType> {
     const validWorkflowName = Validate.getInstance().validResourceName(
       'workflows',
       resourceNameToString(resourceName(workflowName)),
-      this.project.projectPrefixes(),
+      this.checkout.projectPrefixes(),
     );
-    const workflow = this.project.resources
+    const workflow = this.checkout.resources
       .byType(workflowName, 'workflows')
       .show();
     if (!workflow) {
-      throw new Error(
+      throw new ResourceNotFoundError(
+        workflowName,
         `Workflow '${workflowName}' does not exist in the project`,
       );
     }

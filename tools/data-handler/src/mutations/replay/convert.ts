@@ -12,9 +12,8 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import type { ConfigurationLogEntry } from '../../utils/configuration-logger.js';
-import type { MutationInput } from '../types.js';
-import type { Operation } from '../../resources/resource-object.js';
+import type { ConfigurationLogEntry } from '../../infra/replay-log/configuration-logger.js';
+import type { Operation, MutationInput } from '@cyberismo/model';
 import { resourceName } from '../../utils/resource-utils.js';
 
 /** Reconstruct the MutationInput a released-format log entry records. */

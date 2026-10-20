@@ -16,7 +16,7 @@ import type { DataType, MetadataValue } from '../lib/definitions';
 import FieldEditor from './FieldEditor';
 import { metadataValueToString } from '../lib/utils';
 import { useTranslation } from 'react-i18next';
-import type { EnumDefinition } from '@cyberismo/data-handler/types/queries';
+import type { EnumDefinition } from '@cyberismo/model/types/queries';
 import InfoOutlined from '@mui/icons-material/InfoOutlined';
 import LockOutlined from '@mui/icons-material/LockOutlined';
 

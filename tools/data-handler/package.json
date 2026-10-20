@@ -25,11 +25,8 @@
   },
   "exports": {
     ".": "./dist/index.js",
-    "./interfaces/*": "./dist/interfaces/*.js",
-    "./types/*": "./dist/types/*.js",
-    "./mutations/*": "./dist/mutations/*.js",
-    "./macros/*": "./dist/macros/*.js",
-    "./utils/*": "./dist/utils/*.js"
+    "./utils/file-utils": "./dist/utils/file-utils.js",
+    "./utils/json": "./dist/utils/json.js"
   },
   "devDependencies": {
     "@babel/plugin-proposal-decorators": "^8.0.2",
@@ -46,6 +43,7 @@
     "@asciidoctor/core": "^4.1.0",
     "@cyberismo/assets": "workspace:*",
     "@cyberismo/migrations": "workspace:*",
+    "@cyberismo/model": "workspace:*",
     "@cyberismo/node-clingo": "workspace:*",
     "@types/mime-types": "^3.0.1",
     "@viz-js/viz": "^3.30.0",

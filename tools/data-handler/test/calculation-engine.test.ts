@@ -3,11 +3,11 @@ import { expect, it, describe, beforeAll, afterAll } from 'vitest';
 import { join } from 'node:path';
 import { appendFileSync, mkdirSync, rmSync } from 'node:fs';
 import { copyDir } from '../src/utils/file-utils.js';
-import type { Project } from '../src/containers/project.js';
-import type { QueryResult } from '../src/types/queries.js';
+import type { Checkout } from '../src/infra/checkout.js';
+import type { QueryResult } from '@cyberismo/model';
 import Handlebars from 'handlebars';
 import { lpFiles, pdfReport } from '@cyberismo/assets';
-import { Calculate } from '../src/commands/calculate.js';
+import { Queries } from '../src/queries/queries.js';
 import { getTestProject } from './helpers/test-utils.js';
 
 const expectedTree: QueryResult<'tree'>[] = [
@@ -31,14 +31,14 @@ describe('calculate', () => {
   const baseDir = import.meta.dirname;
   const testDir = join(baseDir, 'tmp-calculate-tests');
   const decisionRecordsPath = join(testDir, 'valid/decision-records');
-  let project: Project;
+  let checkout: Checkout;
 
   beforeAll(async () => {
     mkdirSync(testDir, { recursive: true });
     await copyDir('test/test-data/', testDir);
-    project = getTestProject(decisionRecordsPath);
-    await project.populateCaches();
-    await project.calculationEngine.generate();
+    checkout = getTestProject(decisionRecordsPath);
+    await checkout.populateCaches();
+    await checkout.calculationEngine.generate();
   });
 
   afterAll(() => {
@@ -47,7 +47,7 @@ describe('calculate', () => {
   it('run named queries successfully', async () => {
     const query = 'tree';
 
-    const res = await project.calculationEngine.runQuery(query);
+    const res = await checkout.calculationEngine.runQuery(query);
 
     // remove once select is fixed
     delete res[0].workflowState;
@@ -57,7 +57,7 @@ describe('calculate', () => {
     expect(res).toEqual(expectedTree);
   });
   it('run clingraph successfully', async () => {
-    const res = await project.calculationEngine.runGraph(
+    const res = await checkout.calculationEngine.runGraph(
       lpFiles.test.model,
       'viewAll.',
       'localApp',
@@ -67,7 +67,7 @@ describe('calculate', () => {
   }, 20000);
 
   it('runWorkflowGraph renders the built-in workflow graph', async () => {
-    const calculate = new Calculate(project);
+    const calculate = new Queries(checkout);
     const res = await calculate.runWorkflowGraph('decision/workflows/simple');
     expect(res).not.toBe('');
     const decoded = Buffer.from(res, 'base64').toString('utf-8');
@@ -78,7 +78,7 @@ describe('calculate', () => {
   }, 20000);
 
   it('runWorkflowGraph emphasises the given currentState', async () => {
-    const calculate = new Calculate(project);
+    const calculate = new Queries(checkout);
     const plain = await calculate.runWorkflowGraph('decision/workflows/simple');
     const highlighted = await calculate.runWorkflowGraph(
       'decision/workflows/simple',
@@ -92,66 +92,66 @@ describe('calculate', () => {
 
   describe('python functions', () => {
     it('concatenate a string, a number and a constant', async () => {
-      const res = await project.calculationEngine.runLogicProgram(
+      const res = await checkout.calculationEngine.runLogicProgram(
         'result(@concatenate("string", 1234, constant)).',
       );
       expect(res.results[0].key).toBe('string1234constant');
     });
     it('concatenate without parameters', async () => {
-      const res = await project.calculationEngine.runLogicProgram(
+      const res = await checkout.calculationEngine.runLogicProgram(
         'result(@concatenate()).',
       );
       expect(res.results[0].key).toBe('');
     });
     it('concatenate with 1 parameter', async () => {
-      const res = await project.calculationEngine.runLogicProgram(
+      const res = await checkout.calculationEngine.runLogicProgram(
         'result(@concatenate("parameter")).',
       );
       expect(res.results[0].key).toBe('parameter');
     });
     it('concatenate with 2 parameters', async () => {
-      const res = await project.calculationEngine.runLogicProgram(
+      const res = await checkout.calculationEngine.runLogicProgram(
         'result(@concatenate("one", "two")).',
       );
       expect(res.results[0].key).toBe('onetwo');
     });
     it('calculate daysSince 2024-01-01', async () => {
-      const res = await project.calculationEngine.runLogicProgram(
+      const res = await checkout.calculationEngine.runLogicProgram(
         'result(@daysSince("2024-01-01")).',
       );
       expect(Number(res.results[0].key)).greaterThan(365);
     });
     it('calculate daysSince "2022-01-15T17:08:50.716Z"', async () => {
-      const res = await project.calculationEngine.runLogicProgram(
+      const res = await checkout.calculationEngine.runLogicProgram(
         'result(@daysSince("2022-01-01T17:08:50.716Z")).',
       );
       expect(Number(res.results[0].key)).greaterThan(1000);
     });
     it('daysSince of an invalid date should be zero', async () => {
-      const res = await project.calculationEngine.runLogicProgram(
+      const res = await checkout.calculationEngine.runLogicProgram(
         'result(@daysSince("23232323")).',
       );
       expect(Number(res.results[0].key)).toBe(0);
     });
     it('daysSince of a number date should be zero', async () => {
-      const res = await project.calculationEngine.runLogicProgram(
+      const res = await checkout.calculationEngine.runLogicProgram(
         'result(@daysSince(1)).',
       );
       expect(Number(res.results[0].key)).toBe(0);
     });
     it('the length of today() should be 10', async () => {
       const res =
-        await project.calculationEngine.runLogicProgram('result(@today()).');
+        await checkout.calculationEngine.runLogicProgram('result(@today()).');
       expect(res.results[0].key.length).toBe(10);
     });
     it('wrapping a short string should yield the string itself', async () => {
-      const res = await project.calculationEngine.runLogicProgram(
+      const res = await checkout.calculationEngine.runLogicProgram(
         'result(@wrap("A short string")).',
       );
       expect(res.results[0].key).toBe('A short string');
     });
     it('wrapping a long string', async () => {
-      const res = await project.calculationEngine.runLogicProgram(
+      const res = await checkout.calculationEngine.runLogicProgram(
         'result(@wrap("This is a long string that would be too long as a title of a node in a graph")).',
       );
       expect(res.results[0].key).toBe(
@@ -160,28 +160,28 @@ describe('calculate', () => {
     });
     it('wrapping an empty string', async () => {
       const res =
-        await project.calculationEngine.runLogicProgram('result(@wrap("")).');
+        await checkout.calculationEngine.runLogicProgram('result(@wrap("")).');
       expect(res.results[0].key).toBe('');
     });
     it('wrapping an integer', async () => {
       const res =
-        await project.calculationEngine.runLogicProgram('result(@wrap(5)).');
+        await checkout.calculationEngine.runLogicProgram('result(@wrap(5)).');
       expect(res.results[0].key).toBe('');
     });
     it('wrapping a string with &', async () => {
-      const res = await project.calculationEngine.runLogicProgram(
+      const res = await checkout.calculationEngine.runLogicProgram(
         'result(@wrap("this & that")).',
       );
       expect(res.results[0].key).toBe('this &amp; that');
     });
     it('wrapping a string with <', async () => {
-      const res = await project.calculationEngine.runLogicProgram(
+      const res = await checkout.calculationEngine.runLogicProgram(
         'result(@wrap("this < that")).',
       );
       expect(res.results[0].key).toBe('this &lt; that');
     });
     it('wrapping a string with >', async () => {
-      const res = await project.calculationEngine.runLogicProgram(
+      const res = await checkout.calculationEngine.runLogicProgram(
         'result(@wrap("this > that")).',
       );
       expect(res.results[0].key).toBe('this &gt; that');
@@ -206,7 +206,7 @@ describe('calculate', () => {
       ];
 
       for (const testCase of testCases) {
-        const result = await project.calculationEngine.runLogicProgram(
+        const result = await checkout.calculationEngine.runLogicProgram(
           contextAwareProgram,
           testCase.context,
         );
@@ -218,7 +218,7 @@ describe('calculate', () => {
 
   describe('resultField/3', () => {
     it('types a declared field type by its data type', async () => {
-      const res = await project.calculationEngine.runLogicProgram(`
+      const res = await checkout.calculationEngine.runLogicProgram(`
         result(p).
         resultField(p, "decision/fieldTypes/finished", "true").
         resultField(p, "decision/fieldTypes/numberOfCommits", "3.5").
@@ -228,7 +228,7 @@ describe('calculate', () => {
     });
 
     it('outputs a declared list field type as a list', async () => {
-      const res = await project.calculationEngine.runLogicProgram(`
+      const res = await checkout.calculationEngine.runLogicProgram(`
         result(p).
         resultField(p, "decision/fieldTypes/admins", "a").
         resultField(p, "decision/fieldTypes/admins", "b").
@@ -257,7 +257,7 @@ describe('calculate', () => {
     });
 
     it('outputs an undeclared name as shortText', async () => {
-      const res = await project.calculationEngine.runLogicProgram(`
+      const res = await checkout.calculationEngine.runLogicProgram(`
         result(p).
         resultField(p, "count", 5).
         resultField(p, "title", "x").
@@ -268,7 +268,7 @@ describe('calculate', () => {
 
     it('types a built-in name as shortText on a card key', async () => {
       // decision_5 has a knowledge-layer dataType(_, "lastUpdated", "dateTime")
-      const res = await project.calculationEngine.runLogicProgram(`
+      const res = await checkout.calculationEngine.runLogicProgram(`
         result(decision_5).
         resultField(decision_5, "lastUpdated", "x").
         resultField(decision_5, "seenType", Type) :-
@@ -282,10 +282,10 @@ describe('calculate', () => {
         result(p).
         ${head}
       `;
-      const withThree = await project.calculationEngine.runLogicProgram(
+      const withThree = await checkout.calculationEngine.runLogicProgram(
         program('resultField(p, "count", 5).'),
       );
-      const withFour = await project.calculationEngine.runLogicProgram(
+      const withFour = await checkout.calculationEngine.runLogicProgram(
         program('resultField(p, "count", 5, "shortText").'),
       );
       expect(withThree).toEqual(withFour);
@@ -294,7 +294,7 @@ describe('calculate', () => {
 
   describe('fields/N', () => {
     it('outputs two attributes with fields/5, without a selection', async () => {
-      const res = await project.calculationEngine.runLogicProgram(`
+      const res = await checkout.calculationEngine.runLogicProgram(`
         result(p).
         fields(p, "a", 1, "b", "x").
       `);
@@ -302,7 +302,7 @@ describe('calculate', () => {
     });
 
     it('outputs three attributes with fields/7, without a selection', async () => {
-      const res = await project.calculationEngine.runLogicProgram(`
+      const res = await checkout.calculationEngine.runLogicProgram(`
         result(p).
         fields(p, "a", 1, "b", "x", "c", "y").
       `);
@@ -310,7 +310,7 @@ describe('calculate', () => {
     });
 
     it('types attributes as resultField/3 does', async () => {
-      const res = await project.calculationEngine.runLogicProgram(`
+      const res = await checkout.calculationEngine.runLogicProgram(`
         result(p).
         fields(p, "decision/fieldTypes/finished", "true", "progress", 40).
       `);
@@ -319,7 +319,7 @@ describe('calculate', () => {
     });
 
     it('does not write knowledge-layer fields', async () => {
-      const res = await project.calculationEngine.runLogicProgram(`
+      const res = await checkout.calculationEngine.runLogicProgram(`
         result(p).
         fields(decision_5, "a", 1, "b", 2).
         resultField(p, "seen", V) :- field(decision_5, "a", V).
@@ -333,14 +333,14 @@ describe('urlPath calculated field', () => {
   const baseDir = import.meta.dirname;
   const testDir = join(baseDir, 'tmp-urlpath-tests');
   const decisionRecordsPath = join(testDir, 'valid/decision-records');
-  let project: Project;
+  let checkout: Checkout;
 
   beforeAll(async () => {
     mkdirSync(testDir, { recursive: true });
     await copyDir('test/test-data/', testDir);
-    project = getTestProject(decisionRecordsPath);
-    await project.populateCaches();
-    await project.calculationEngine.generate();
+    checkout = getTestProject(decisionRecordsPath);
+    await checkout.populateCaches();
+    await checkout.calculationEngine.generate();
   });
 
   afterAll(() => {
@@ -348,7 +348,7 @@ describe('urlPath calculated field', () => {
   });
 
   it('computes an app-routable path for a project card', async () => {
-    const res = await project.calculationEngine.runLogicProgram(
+    const res = await checkout.calculationEngine.runLogicProgram(
       'result(Path) :- field(decision_6, "urlPath", Path).',
     );
     expect(res.results).toHaveLength(1);
@@ -360,7 +360,7 @@ describe('policy check failures in the card query', () => {
   const baseDir = import.meta.dirname;
   const testDir = join(baseDir, 'tmp-policy-check-tests');
   const decisionRecordsPath = testDir;
-  let project: Project;
+  let checkout: Checkout;
 
   beforeAll(async () => {
     mkdirSync(testDir, { recursive: true });
@@ -376,9 +376,9 @@ describe('policy check failures in the card query', () => {
         '',
       ].join('\n'),
     );
-    project = getTestProject(decisionRecordsPath);
-    await project.populateCaches();
-    await project.calculationEngine.generate();
+    checkout = getTestProject(decisionRecordsPath);
+    await checkout.populateCaches();
+    await checkout.calculationEngine.generate();
   });
 
   afterAll(() => {
@@ -386,7 +386,7 @@ describe('policy check failures in the card query', () => {
   });
 
   it('lists failures with and without a field name', async () => {
-    const res = await project.calculationEngine.runQuery('card', 'localApp', {
+    const res = await checkout.calculationEngine.runQuery('card', 'localApp', {
       cardKey: 'decision_6',
     });
     expect(res).toHaveLength(1);
@@ -422,13 +422,13 @@ describe('calculation validation on generate', () => {
   const projectPath = join(testDir, 'invalid/invalid-calculations');
   const brokenCalcName = 'mini/calculations/syntaxError';
   const validCalcName = 'mini/calculations/validCalc';
-  let project: Project;
+  let checkout: Checkout;
 
   beforeAll(async () => {
     mkdirSync(testDir, { recursive: true });
     await copyDir('test/test-data/', testDir);
-    project = getTestProject(projectPath);
-    await project.populateCaches();
+    checkout = getTestProject(projectPath);
+    await checkout.populateCaches();
   });
 
   afterAll(() => {
@@ -438,21 +438,21 @@ describe('calculation validation on generate', () => {
   it('skips a broken calculation and keeps queries working', async () => {
     // Guard against a vacuous pass: both fixture calculations must be
     // registered resources and the broken one's cached content invalid.
-    const calculations = project.resources.calculations();
+    const calculations = checkout.resources.calculations();
     const broken = calculations.find((c) => c.data?.name === brokenCalcName);
     expect(broken).toBeDefined();
     expect(broken!.validateLogicProgram().valid).toBe(false);
     expect(calculations.some((c) => c.data?.name === validCalcName)).toBe(true);
 
-    await project.calculationEngine.generate();
+    await checkout.calculationEngine.generate();
 
     // Queries must not throw; a broken calculation registered under the
     // shared category would make every solve fail.
-    await project.calculationEngine.runQuery('tree');
+    await checkout.calculationEngine.runQuery('tree');
 
     // The valid calculation must still be part of the program set; this fails
     // if generate() starts skipping every calculation.
-    const valid = await project.calculationEngine.runLogicProgram(
+    const valid = await checkout.calculationEngine.runLogicProgram(
       'result(X) :- validCalcFact(X).',
     );
     expect(valid.results.map((r) => r.key)).toEqual(['42']);
@@ -462,14 +462,14 @@ describe('calculation validation on generate', () => {
 describe('card query enum field', () => {
   const baseDir = import.meta.dirname;
   const testDir = join(baseDir, 'tmp-card-query-enum-tests');
-  let project: Project;
+  let checkout: Checkout;
 
   beforeAll(async () => {
     mkdirSync(testDir, { recursive: true });
     await copyDir('test/test-data/valid/card-with-enum-field', testDir);
-    project = getTestProject(testDir);
-    await project.populateCaches();
-    await project.calculationEngine.generate();
+    checkout = getTestProject(testDir);
+    await checkout.populateCaches();
+    await checkout.calculationEngine.generate();
   });
 
   afterAll(() => {
@@ -477,7 +477,7 @@ describe('card query enum field', () => {
   });
 
   it('returns the value and enum values of an enum-valued custom field', async () => {
-    const res = await project.calculationEngine.runQuery('card', 'localApp', {
+    const res = await checkout.calculationEngine.runQuery('card', 'localApp', {
       cardKey: 'enumf_1',
     });
     expect(res).toHaveLength(1);
@@ -507,7 +507,7 @@ describe('card query enum field', () => {
 
   it('returns the typed value and display value of an enum field in the PDF export query', async () => {
     const query = Handlebars.compile(pdfReport.query)({ cardKey: 'enumf_1' });
-    const res = await project.calculationEngine.runLogicProgram(
+    const res = await checkout.calculationEngine.runLogicProgram(
       query,
       'exportedDocument',
     );

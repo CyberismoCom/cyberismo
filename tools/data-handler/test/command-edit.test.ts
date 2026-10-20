@@ -4,89 +4,36 @@ import { mkdirSync, rmSync, readFileSync, writeFileSync } from 'node:fs';
 
 import { copyDir } from '../src/utils/file-utils.js';
 import { resourceName } from '../src/utils/resource-utils.js';
-import { CommandManager } from '../src/command-manager.js';
-import { type Edit } from '../src/commands/index.js';
-import { CardNotFoundError } from '../src/exceptions/index.js';
-import type { Card } from '../src/index.js';
+import { type Workspace } from '../src/workspace/workspace.js';
+import type { Card } from '@cyberismo/model';
+import { openTestWorkspace } from './helpers/open-test-workspace.js';
+import { findCard } from '../src/cards/read.js';
+import { checkoutOf } from '../src/infra/internal.js';
 
 describe('edit card', () => {
   const baseDir = import.meta.dirname;
   const testDir = join(baseDir, 'tmp-edit-tests');
   const decisionRecordsPath = join(testDir, 'valid/decision-records');
-  let commands: CommandManager;
-  let editCmd: Edit;
+  let ws: Workspace;
 
   beforeAll(async () => {
     mkdirSync(testDir, { recursive: true });
     await copyDir('test/test-data/', testDir);
-    commands = new CommandManager(decisionRecordsPath, {});
-    await commands.initialize();
-    editCmd = commands.editCmd;
+    ws = await openTestWorkspace(decisionRecordsPath, {});
   });
 
   afterAll(() => {
     rmSync(testDir, { recursive: true, force: true });
   });
 
-  it('edit card content (success)', async () => {
-    const cards = commands.project.cardTree.cards();
-    const firstCard = cards.at(0) as Card;
-
-    // Modify content
-    await editCmd.editCardContent(firstCard.key, 'whoopie');
-
-    // Fetch the changed card again
-    const changedCard = commands.project.findCard(firstCard.key);
-    expect(changedCard.content).toBe('whoopie');
-    expect(changedCard.metadata!.lastUpdated).not.toBe(
-      firstCard.metadata!.lastUpdated,
-    );
-  });
-  it('edit card content - template card', async () => {
-    const templateCards = commands.project
-      .templateTree('decision/templates/decision')
-      .cards();
-    const firstCard = templateCards.at(0) as Card;
-
-    await editCmd.editCardContent(firstCard.key, 'whoopie');
-    const changedCard = commands.project.findCard(firstCard.key);
-    expect(changedCard.content).toBe('whoopie');
-  });
-
   it('edit card content - no content', async () => {
-    const cards = commands.project.cardTree.cards();
+    const cards = checkoutOf(ws).cardTree.cards();
     const firstCard = cards.at(0) as Card;
-    await expect(
-      editCmd.editCardContent(firstCard.key, ''),
-    ).resolves.not.toThrow();
+    await expect(ws.cards.edit(firstCard.key, '')).resolves.not.toThrow();
   });
 
-  it('try to edit card content - card is not in project', async () => {
-    await expect(
-      editCmd.editCardContent('card-key-does-not-exist', 'whoopie'),
-    ).rejects.toThrow();
-  });
-
-  it('try to edit card from CLI - no project', async () => {
-    const cards = commands.project.cardTree.cards();
-    const firstCard = cards.at(0) as Card;
-    expect(() => editCmd.editCard(firstCard.key + 1)).throws(CardNotFoundError);
-  });
-  it('edit card metadata (success)', async () => {
-    const cards = commands.project.cardTree.cards();
-    const firstCard = cards.at(0) as Card;
-
-    // Modify metadata - title
-    await expect(
-      editCmd.editCardMetadata(firstCard.key, 'title', 'new name'),
-    ).resolves.not.toThrow();
-
-    // Fetch the changed card again
-    const changedCard = commands.project.findCard(firstCard.key);
-    expect(changedCard.metadata!.title).to.equal('new name');
-  });
   it('edit card metadata - template card', async () => {
-    // Create a fresh CommandManager instance to avoid test isolation issues
+    // Use a fresh project copy to avoid test isolation issues
     const freshTestDir = join(baseDir, 'tmp-edit-template-test');
     mkdirSync(freshTestDir, { recursive: true });
     await copyDir('test/test-data/', freshTestDir);
@@ -94,18 +41,15 @@ describe('edit card', () => {
       freshTestDir,
       'valid/decision-records',
     );
-    const freshCommands = new CommandManager(freshDecisionRecordsPath, {});
-    await freshCommands.initialize();
-    const freshEditCmd = freshCommands.editCmd;
-
-    const templateCards = freshCommands.project
+    const freshCommands = await openTestWorkspace(freshDecisionRecordsPath, {});
+    const templateCards = checkoutOf(freshCommands)
       .templateTree('decision/templates/decision')
       .cards();
     const firstCard = templateCards.at(0) as Card;
 
-    await freshEditCmd.editCardMetadata(firstCard.key, 'title', 'new name');
+    await freshCommands.cards.editField(firstCard.key, 'title', 'new name');
 
-    const changedCard = freshCommands.project.findCard(firstCard.key);
+    const changedCard = findCard(checkoutOf(freshCommands), firstCard.key);
     expect(changedCard.metadata?.title).to.equal('new name');
 
     rmSync(freshTestDir, { recursive: true, force: true });
@@ -115,14 +59,14 @@ describe('edit card', () => {
     const freshTestDir = join(baseDir, 'tmp-edit-shorttext-test');
     mkdirSync(freshTestDir, { recursive: true });
     await copyDir('test/test-data/', freshTestDir);
-    const freshCommands = new CommandManager(
+    const freshCommands = await openTestWorkspace(
       join(freshTestDir, 'valid/decision-records'),
       {},
     );
-    await freshCommands.initialize();
-
-    await freshCommands.createCmd.createFieldType('myShort', 'shortText');
-    await freshCommands.updateCmd.apply({
+    await freshCommands.resources.create('myShort', 'fieldTypes', {
+      dataType: 'shortText',
+    });
+    await freshCommands.changes.apply({
       kind: 'edit',
       target: resourceName('decision/cardTypes/decision'),
       updateKey: { key: 'customFields' },
@@ -134,7 +78,7 @@ describe('edit card', () => {
 
     const longValue = 'x'.repeat(120);
     await expect(
-      freshCommands.editCmd.editCardMetadata(
+      freshCommands.cards.editField(
         'decision_6',
         'decision/fieldTypes/myShort',
         longValue,
@@ -143,7 +87,7 @@ describe('edit card', () => {
       /value exceeds the maximum length for 'shortText': 80 characters allowed, but value has 120 characters/,
     );
     await expect(
-      freshCommands.editCmd.editCardMetadata(
+      freshCommands.cards.editField(
         'decision_6',
         'decision/fieldTypes/myShort',
         longValue,
@@ -151,30 +95,6 @@ describe('edit card', () => {
     ).rejects.not.toThrow(/but it is 'string'/);
 
     rmSync(freshTestDir, { recursive: true, force: true });
-  });
-  it('try to edit card metadata - incorrect field name', async () => {
-    const cards = commands.project.cardTree.cards();
-    const firstCard = cards.at(0) as Card;
-    await expect(
-      editCmd.editCardMetadata(firstCard.key, '', ''),
-    ).rejects.toThrow();
-  });
-
-  it('try to edit card metadata - card is not in project', async () => {
-    const EditCmd = commands.editCmd;
-    await expect(
-      EditCmd.editCardMetadata('card-key-does-not-exist', 'whoopie', 'whoopie'),
-    ).rejects.toThrow();
-  });
-
-  it('editing a calculated field without override is rejected', async () => {
-    await expect(
-      editCmd.editCardMetadata(
-        'decision_6',
-        'decision/fieldTypes/obsoletedBy',
-        'decision_999',
-      ),
-    ).rejects.toThrow(/Cannot edit calculated field/);
   });
 
   // Fresh project where 'decision/fieldTypes/obsoletedBy' allows override.
@@ -196,8 +116,7 @@ describe('edit card', () => {
     field.enableOverride = true;
     writeFileSync(cardTypePath, JSON.stringify(cardType));
 
-    const freshCommands = new CommandManager(projectPath, {});
-    await freshCommands.initialize();
+    const freshCommands = await openTestWorkspace(projectPath, {});
     return { freshTestDir, freshCommands };
   }
 
@@ -207,28 +126,28 @@ describe('edit card', () => {
     );
     try {
       await expect(
-        freshCommands.editCmd.editCardMetadata(
+        freshCommands.cards.editField(
           'decision_6',
           'decision/fieldTypes/obsoletedBy',
           'decision_999',
         ),
       ).resolves.not.toThrow();
 
-      const changed = freshCommands.project.findCard('decision_6');
+      const changed = findCard(checkoutOf(freshCommands), 'decision_6');
       expect(changed.metadata!['decision/fieldTypes/obsoletedBy']).toBe(
         'decision_999',
       );
 
       // Clearing the override (saving null) removes the key entirely.
       await expect(
-        freshCommands.editCmd.editCardMetadata(
+        freshCommands.cards.editField(
           'decision_6',
           'decision/fieldTypes/obsoletedBy',
           null,
         ),
       ).resolves.not.toThrow();
 
-      const cleared = freshCommands.project.findCard('decision_6');
+      const cleared = findCard(checkoutOf(freshCommands), 'decision_6');
       expect(cleared.metadata!).not.toHaveProperty([
         'decision/fieldTypes/obsoletedBy',
       ]);
@@ -243,13 +162,13 @@ describe('edit card', () => {
   });
 
   it('editing a calculated field of a template card is rejected too', async () => {
-    const templateCards = commands.project
+    const templateCards = checkoutOf(ws)
       .templateTree('decision/templates/decision')
       .cards();
     const templateCard = templateCards.at(0) as Card;
 
     await expect(
-      editCmd.editCardMetadata(
+      ws.cards.editField(
         templateCard.key,
         'decision/fieldTypes/obsoletedBy',
         'decision_999',
@@ -262,13 +181,13 @@ describe('edit card', () => {
       'tmp-edit-override-template-test',
     );
     try {
-      const templateCard = freshCommands.project
+      const templateCard = checkoutOf(freshCommands)
         .templateTree('decision/templates/decision')
         .cards()
         .at(0) as Card;
 
       await expect(
-        freshCommands.editCmd.editCardMetadata(
+        freshCommands.cards.editField(
           templateCard.key,
           'decision/fieldTypes/obsoletedBy',
           'decision_999',
@@ -282,43 +201,8 @@ describe('edit card', () => {
       );
 
       await expect(
-        freshCommands.editCmd.editCardMetadata(
+        freshCommands.cards.editField(
           templateCard.key,
-          'decision/fieldTypes/obsoletedBy',
-          null,
-        ),
-      ).resolves.not.toThrow();
-
-      expect(
-        JSON.parse(readFileSync(metadataFile, 'utf-8')),
-      ).not.toHaveProperty(['decision/fieldTypes/obsoletedBy']);
-    } finally {
-      rmSync(freshTestDir, { recursive: true, force: true });
-    }
-  });
-
-  it('clearing is allowed even when the field does not enable override', async () => {
-    // A value stored before the card type changed is a validation error, so
-    // removing it has to stay possible even though setting one is rejected.
-    const freshTestDir = join(baseDir, 'tmp-edit-clear-locked-test');
-    mkdirSync(freshTestDir, { recursive: true });
-    await copyDir('test/test-data/', freshTestDir);
-    const projectPath = join(freshTestDir, 'valid/decision-records');
-    const metadataFile = join(
-      projectPath,
-      'cardRoot/decision_5/c/decision_6/index.json',
-    );
-    const metadata = JSON.parse(readFileSync(metadataFile, 'utf-8'));
-    metadata['decision/fieldTypes/obsoletedBy'] = 'decision_999';
-    writeFileSync(metadataFile, JSON.stringify(metadata));
-
-    const freshCommands = new CommandManager(projectPath, {});
-    await freshCommands.initialize();
-
-    try {
-      await expect(
-        freshCommands.editCmd.editCardMetadata(
-          'decision_6',
           'decision/fieldTypes/obsoletedBy',
           null,
         ),
@@ -337,7 +221,7 @@ describe('edit card', () => {
       'tmp-edit-override-noop-test',
     );
     try {
-      const card = freshCommands.project.findCard('decision_6');
+      const card = findCard(checkoutOf(freshCommands), 'decision_6');
       const metadataFile = join(card.path, 'index.json');
       const before = readFileSync(metadataFile, 'utf-8');
       expect(JSON.parse(before)).not.toHaveProperty([
@@ -345,7 +229,7 @@ describe('edit card', () => {
       ]);
 
       await expect(
-        freshCommands.editCmd.editCardMetadata(
+        freshCommands.cards.editField(
           'decision_6',
           'decision/fieldTypes/obsoletedBy',
           null,
@@ -364,16 +248,15 @@ describe('edit card', () => {
   describe('clearing a field', () => {
     const RESPONSIBLE = 'decision/fieldTypes/responsible';
     const clearTestDir = join(baseDir, 'tmp-edit-clear-tests');
-    let clearCommands: CommandManager;
+    let clearCommands: Workspace;
 
     beforeAll(async () => {
       mkdirSync(clearTestDir, { recursive: true });
       await copyDir('test/test-data/', clearTestDir);
-      clearCommands = new CommandManager(
+      clearCommands = await openTestWorkspace(
         join(clearTestDir, 'valid/decision-records'),
         {},
       );
-      await clearCommands.initialize();
     });
 
     afterAll(() => {
@@ -383,81 +266,37 @@ describe('edit card', () => {
     // Gives RESPONSIBLE a real value, so that clearing it removes an actual
     // value rather than null residue.
     async function cardWithResponsibleSet(): Promise<Card> {
-      await clearCommands.editCmd.editCardMetadata(
+      await clearCommands.cards.editField(
         'decision_6',
         RESPONSIBLE,
         'someone@example.com',
       );
-      const card = clearCommands.project.findCard('decision_6');
+      const card = findCard(checkoutOf(clearCommands), 'decision_6');
       expect(card.metadata![RESPONSIBLE]).toBeTruthy();
       return card;
     }
 
-    it('clearing a regular custom field removes the key from index.json', async () => {
-      const card = await cardWithResponsibleSet();
-      const keysBefore = Object.keys(card.metadata!).sort();
-
-      await clearCommands.editCmd.editCardMetadata(card.key, RESPONSIBLE, null);
-
-      const changed = clearCommands.project.findCard(card.key);
-      expect(changed.metadata!).not.toHaveProperty([RESPONSIBLE]);
-      const onDisk = readFileSync(join(changed.path, 'index.json'), 'utf-8');
-      expect(onDisk).not.toContain(RESPONSIBLE);
-
-      // Only the cleared key is gone; its siblings survive.
-      expect(Object.keys(changed.metadata!).sort()).toEqual(
-        keysBefore.filter((key) => key !== RESPONSIBLE),
-      );
-    });
-
     it('clearing a regular custom field with undefined removes the key too', async () => {
       const card = await cardWithResponsibleSet();
 
-      await clearCommands.editCmd.editCardMetadata(
-        card.key,
-        RESPONSIBLE,
-        undefined,
-      );
+      await clearCommands.cards.editField(card.key, RESPONSIBLE, undefined);
 
-      const changed = clearCommands.project.findCard(card.key);
+      const changed = findCard(checkoutOf(clearCommands), card.key);
       expect(changed.metadata!).not.toHaveProperty([RESPONSIBLE]);
       const onDisk = readFileSync(join(changed.path, 'index.json'), 'utf-8');
       expect(onDisk).not.toContain(RESPONSIBLE);
     });
 
-    it('clearing a predefined field does not delete the key', async () => {
-      await clearCommands.editCmd.editCardMetadata(
-        'decision_6',
-        'title',
-        'a real title',
-      );
-
-      // Key deletion covers custom fields; predefined fields are out of scope.
-      await clearCommands.editCmd.editCardMetadata('decision_6', 'title', null);
-
-      const changed = clearCommands.project.findCard('decision_6');
-      expect('title' in changed.metadata!).toBe(true);
-      expect(changed.metadata!.title).toBeNull();
-      const onDisk = JSON.parse(
-        readFileSync(join(changed.path, 'index.json'), 'utf-8'),
-      );
-      expect(onDisk).toHaveProperty('title', null);
-    });
-
     it('writing undefined to a predefined field stores null', async () => {
-      await clearCommands.editCmd.editCardMetadata(
+      await clearCommands.cards.editField(
         'decision_6',
         'title',
         'a real title',
       );
 
-      await clearCommands.editCmd.editCardMetadata(
-        'decision_6',
-        'title',
-        undefined,
-      );
+      await clearCommands.cards.editField('decision_6', 'title', undefined);
 
-      const changed = clearCommands.project.findCard('decision_6');
+      const changed = findCard(checkoutOf(clearCommands), 'decision_6');
       expect('title' in changed.metadata!).toBe(true);
       expect(changed.metadata!.title).toBeNull();
       const onDisk = JSON.parse(

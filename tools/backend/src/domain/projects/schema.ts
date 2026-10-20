@@ -30,6 +30,7 @@ export const createProjectSchema = z.object({
     }),
   category: z.string().optional().default(''),
   description: z.string().optional().default(''),
+  skipDefaultHub: z.boolean().optional(),
 });
 
 export const cloneProjectSchema = z.object({

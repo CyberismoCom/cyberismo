@@ -16,7 +16,7 @@ import {
   executeModuleReplays,
   planModuleReplays,
 } from '../../../src/mutations/replay/replay.js';
-import { formatSealFileName } from '../../../src/mutations/replay/seal-files.js';
+import { formatSealFileName } from '../../../src/infra/replay-log/seal-files.js';
 import {
   installedModule,
   logLine,
@@ -28,8 +28,9 @@ import type { SealSpec } from '../../helpers/replay-fixtures.js';
 import type {
   InstallationRef,
   ModuleInstallation,
-} from '../../../src/modules/types.js';
-import type { ResolvedModule } from '../../../src/modules/resolve/types.js';
+  ResolvedModule,
+} from '../../../src/mutations/replay/module-types.js';
+import { SYSTEM_FRAME } from '../../../src/utils/tx-record.js';
 
 const baseDir = import.meta.dirname;
 const testDir = join(baseDir, 'tmp-replay-integration');
@@ -150,9 +151,9 @@ function snapshotTree(dir: string): Map<string, string> {
 }
 
 async function loadProject() {
-  const project = getTestProject(projectPath);
-  await project.populateCaches();
-  return project;
+  const checkout = getTestProject(projectPath);
+  await checkout.populateCaches();
+  return checkout;
 }
 
 describe('module replay end to end', () => {
@@ -197,7 +198,7 @@ describe('module replay end to end', () => {
     seedCardContent(['mod/fieldTypes/severity']);
     seedCalculationContent(['mod/fieldTypes/severity']);
 
-    const project = await loadProject();
+    const checkout = await loadProject();
     const steps = await planModuleReplays([resolved], [installed]);
 
     expect(steps).toHaveLength(1);
@@ -208,7 +209,9 @@ describe('module replay end to end', () => {
     expect(steps[0].seals[0].entries).toHaveLength(1);
 
     const moduleTreeBefore = snapshotTree(installed.path);
-    await executeModuleReplays(project, steps);
+    await checkout.lock.write(SYSTEM_FRAME, () =>
+      executeModuleReplays(checkout, steps),
+    );
 
     // Card content and folder-resource content files are rewritten on disk.
     const adoc = readFileSync(join(cardDir, 'index.adoc'), 'utf8');
@@ -261,9 +264,11 @@ describe('module replay end to end', () => {
       },
     ]);
 
-    const project = await loadProject();
+    const checkout = await loadProject();
     const steps = await planModuleReplays([resolved], [installed]);
-    await executeModuleReplays(project, steps);
+    await checkout.lock.write(SYSTEM_FRAME, () =>
+      executeModuleReplays(checkout, steps),
+    );
 
     // The customFields entry keeps its shape — only the name is rewritten,
     // sibling properties survive.
@@ -309,9 +314,11 @@ describe('module replay end to end', () => {
     seedCardMetadataKey('mod/fieldTypes/severity', 'high');
     seedCardContent(['mod/fieldTypes/severity']);
 
-    const project = await loadProject();
+    const checkout = await loadProject();
     const steps = await planModuleReplays([resolved], [installed]);
-    await executeModuleReplays(project, steps);
+    await checkout.lock.write(SYSTEM_FRAME, () =>
+      executeModuleReplays(checkout, steps),
+    );
 
     const metadata = JSON.parse(
       readFileSync(join(cardDir, 'index.json'), 'utf8'),
@@ -369,7 +376,7 @@ describe('module replay end to end', () => {
     seedCardContent(['alpha/fieldTypes/cost', 'beta/fieldTypes/risk']);
     seedCalculationContent(['alpha/fieldTypes/cost', 'beta/fieldTypes/risk']);
 
-    const project = await loadProject();
+    const checkout = await loadProject();
     // The resolver yields roots before their transitive dependencies.
     const steps = await planModuleReplays(
       [resolvedAlpha, resolvedBeta],
@@ -382,7 +389,9 @@ describe('module replay end to end', () => {
       ['2.0.0', '2.9.0'],
     ]);
 
-    await executeModuleReplays(project, steps);
+    await checkout.lock.write(SYSTEM_FRAME, () =>
+      executeModuleReplays(checkout, steps),
+    );
 
     for (const content of [
       readFileSync(join(cardDir, 'index.adoc'), 'utf8'),
@@ -430,11 +439,13 @@ describe('module replay end to end', () => {
     });
     seedCardContent(['mod/fieldTypes/one', 'mod/fieldTypes/three']);
 
-    const project = await loadProject();
+    const checkout = await loadProject();
     const steps = await planModuleReplays([resolved], [installed]);
     expect(steps[0].seals).toHaveLength(2);
 
-    const error = await executeModuleReplays(project, steps).catch((e) => e);
+    const error = await checkout.lock
+      .write(SYSTEM_FRAME, () => executeModuleReplays(checkout, steps))
+      .catch((e) => e);
 
     expect(error).toBeInstanceOf(ModuleReplayFailedError);
     expect(error.modulePrefix).toBe('mod');
@@ -480,14 +491,16 @@ describe('module replay end to end', () => {
     seedCardContent(['mod/fieldTypes/a']);
     seedCalculationContent(['mod/fieldTypes/a']);
 
-    const project = await loadProject();
+    const checkout = await loadProject();
     const steps = await planModuleReplays([resolved], [installed]);
     expect(steps[0].seals.map((s) => s.seal.fileName)).toEqual([
       formatSealFileName('1.0.0', '1.1.0'),
       formatSealFileName('1.1.0', '1.2.0'),
     ]);
 
-    await executeModuleReplays(project, steps);
+    await checkout.lock.write(SYSTEM_FRAME, () =>
+      executeModuleReplays(checkout, steps),
+    );
 
     for (const content of [
       readFileSync(join(cardDir, 'index.adoc'), 'utf8'),

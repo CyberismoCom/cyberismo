@@ -12,8 +12,8 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import type { Project } from '../containers/project.js';
-import type { MutationInput } from './types.js';
+import type { Checkout } from '../infra/checkout.js';
+import type { MutationInput } from '@cyberismo/model';
 
 export type MutationOrigin =
   | { kind: 'local' }
@@ -44,7 +44,7 @@ export function resolveCardTypeRename(
 }
 
 export interface MutationContext<I extends MutationInput = MutationInput> {
-  project: Project;
+  checkout: Checkout;
   input: I;
   /** Card-type renames in the active replay batch; absent when authoring. */
   cardTypeRenames?: ReadonlyMap<string, string>;

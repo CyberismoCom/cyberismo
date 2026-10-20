@@ -10,7 +10,7 @@ import {
   filterStepsToApplied,
   planModuleReplays,
 } from '../../../src/mutations/replay/replay.js';
-import { formatSealFileName } from '../../../src/mutations/replay/seal-files.js';
+import { formatSealFileName } from '../../../src/infra/replay-log/seal-files.js';
 import { ResourceMutations } from '../../../src/mutations/resource-mutations.js';
 import {
   installedModule,
@@ -19,11 +19,13 @@ import {
 } from '../../helpers/replay-fixtures.js';
 
 import type { SealSpec } from '../../helpers/replay-fixtures.js';
-import type { ConfigurationLogEntry } from '../../../src/utils/configuration-logger.js';
-import type { ModuleInstallation } from '../../../src/modules/types.js';
-import type { Project } from '../../../src/containers/project.js';
+import type { ConfigurationLogEntry } from '../../../src/infra/replay-log/configuration-logger.js';
+import type {
+  ModuleInstallation,
+  ResolvedModule,
+} from '../../../src/mutations/replay/module-types.js';
+import type { Checkout } from '../../../src/infra/checkout.js';
 import type { ReplayStep } from '../../../src/mutations/replay/replay.js';
-import type { ResolvedModule } from '../../../src/modules/resolve/types.js';
 
 const tmpDir = join(import.meta.dirname, 'tmp-replay-test');
 
@@ -494,7 +496,7 @@ describe('executeModuleReplays', () => {
       resources: { changed: vi.fn(), changedModules: vi.fn() },
       clearCards: vi.fn(),
       populateCaches: vi.fn().mockResolvedValue(undefined),
-    } as unknown as Project;
+    } as unknown as Checkout;
   }
 
   function deleteEntry(target: string): ConfigurationLogEntry {
@@ -534,9 +536,9 @@ describe('executeModuleReplays', () => {
     const applySpy = vi
       .spyOn(ResourceMutations.prototype, 'apply')
       .mockResolvedValue(undefined);
-    const project = fakeProject();
+    const checkout = fakeProject();
 
-    await executeModuleReplays(project, [
+    await executeModuleReplays(checkout, [
       step('dep', ['dep/fieldTypes/a', 'dep/fieldTypes/b']),
       step('root', ['root/fieldTypes/c']),
     ]);
@@ -558,16 +560,16 @@ describe('executeModuleReplays', () => {
     const applySpy = vi
       .spyOn(ResourceMutations.prototype, 'apply')
       .mockResolvedValue(undefined);
-    const project = fakeProject();
+    const checkout = fakeProject();
 
-    await executeModuleReplays(project, [
+    await executeModuleReplays(checkout, [
       step('dep', ['dep/fieldTypes/a']),
       step('root', ['root/fieldTypes/b']),
     ]);
 
-    const changed = project.resources.changed as ReturnType<typeof vi.fn>;
-    const clear = project.clearCards as ReturnType<typeof vi.fn>;
-    const populate = project.populateCaches as ReturnType<typeof vi.fn>;
+    const changed = checkout.resources.changed as ReturnType<typeof vi.fn>;
+    const clear = checkout.clearCards as ReturnType<typeof vi.fn>;
+    const populate = checkout.populateCaches as ReturnType<typeof vi.fn>;
     expect(changed).toHaveBeenCalledTimes(1);
     expect(clear).toHaveBeenCalledTimes(1);
     expect(populate).toHaveBeenCalledTimes(1);
@@ -579,12 +581,12 @@ describe('executeModuleReplays', () => {
 
   it('does nothing for an empty plan', async () => {
     const applySpy = vi.spyOn(ResourceMutations.prototype, 'apply');
-    const project = fakeProject();
+    const checkout = fakeProject();
 
-    await executeModuleReplays(project, []);
+    await executeModuleReplays(checkout, []);
 
     expect(applySpy).not.toHaveBeenCalled();
-    expect(project.populateCaches).not.toHaveBeenCalled();
+    expect(checkout.populateCaches).not.toHaveBeenCalled();
   });
 
   it('wraps the first failing apply in ModuleReplayFailedError with a 1-based sequence', async () => {
@@ -592,9 +594,9 @@ describe('executeModuleReplays', () => {
     vi.spyOn(ResourceMutations.prototype, 'apply')
       .mockResolvedValueOnce(undefined)
       .mockRejectedValueOnce(boom);
-    const project = fakeProject();
+    const checkout = fakeProject();
 
-    const error = await executeModuleReplays(project, [
+    const error = await executeModuleReplays(checkout, [
       step('mod', ['mod/fieldTypes/a', 'mod/fieldTypes/b']),
     ]).catch((e) => e);
 
@@ -607,12 +609,12 @@ describe('executeModuleReplays', () => {
     expect(error.input.target.identifier).toBe('b');
     expect(error.message).toContain('mutation: {"kind":"delete"');
     expect(error.message).toContain('restore the previous state from git');
-    expect(project.populateCaches).not.toHaveBeenCalled();
+    expect(checkout.populateCaches).not.toHaveBeenCalled();
   });
 
   it('wraps an entry conversion failure in ModuleReplayFailedError', async () => {
     const applySpy = vi.spyOn(ResourceMutations.prototype, 'apply');
-    const project = fakeProject();
+    const checkout = fakeProject();
     const malformed: ConfigurationLogEntry = {
       timestamp: '2026-01-01T00:00:00.000Z',
       operation: 'resource_update',
@@ -620,7 +622,7 @@ describe('executeModuleReplays', () => {
       // No parameters: entryToMutationInput rejects the entry.
     };
 
-    const error = await executeModuleReplays(project, [
+    const error = await executeModuleReplays(checkout, [
       {
         modulePrefix: 'mod',
         fromVersion: '1.0.0',

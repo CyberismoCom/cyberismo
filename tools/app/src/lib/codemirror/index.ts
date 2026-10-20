@@ -15,7 +15,7 @@ import type { EditorView } from '@uiw/react-codemirror';
 import { keymap, type KeyBinding } from '@codemirror/view';
 import { Compartment, Prec, type Extension } from '@codemirror/state';
 import { projectApiPaths } from '../swr';
-import type { CardAttachment } from '@cyberismo/data-handler/interfaces/project-interfaces';
+import type { CardAttachment } from '@cyberismo/model';
 import type { Document, Section } from '@asciidoctor/core';
 
 /**

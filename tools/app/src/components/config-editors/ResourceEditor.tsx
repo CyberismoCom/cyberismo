@@ -32,11 +32,7 @@ import {
   WorkflowGraph,
   WorkflowStatesEditor,
 } from './fields';
-import type {
-  FieldType,
-  Skill,
-  Workflow,
-} from '@cyberismo/data-handler/interfaces/resource-interfaces';
+import type { FieldType, Skill, Workflow } from '@cyberismo/model';
 import FieldRow from './fields/FieldRow';
 import { resourceFieldConfigs, type FieldConfig } from './resourceFieldConfigs';
 import { FORM_FIELD_MAX_WIDTH } from '@/lib/constants';

@@ -11,16 +11,116 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
+import { readFile } from 'node:fs/promises';
+
 import { Argument, type Command } from 'commander';
 
-import { DEFAULT_HUB } from '@cyberismo/assets';
-import { Cmd, type CommandOptions, validBumps } from '@cyberismo/data-handler';
+import {
+  createProject,
+  validBumps,
+  type Workspace,
+  errorFunction,
+} from '@cyberismo/data-handler';
+import { resolveTilde } from '@cyberismo/data-handler/utils/file-utils';
+import type { DataType } from '@cyberismo/model';
 
-import { CommandGroup, nameGuideline } from '../lib/args.js';
-import { commandHandler } from '../lib/dispatch.js';
-import { handleResponse } from '../lib/output.js';
+import { CommandGroup, commandType, nameGuideline } from '../lib/args.js';
+import { program } from '../lib/program.js';
+import { errorMessage, fail, onProject } from '../lib/errors.js';
+import { existingAncestor, gitAuthor, openWorkspace } from '../lib/open.js';
+import { printResult } from '../lib/output.js';
 import { checkbox } from '../lib/prompts.js';
-import { importableModules } from './module.js';
+import { importableModules, installModule } from './module.js';
+import type {
+  AllCommandOptions,
+  CreateCommandOptions,
+  VersionCommandOptions,
+} from '../options.js';
+
+// Each resource type's create, from the arguments after the type.
+const resourceCreates: Record<
+  string,
+  (ws: Workspace, args: string[]) => Promise<void>
+> = {
+  cardType: (ws, [name, workflow]) =>
+    ws.resources.create(name, 'cardTypes', { workflow }),
+  fieldType: (ws, [name, datatype]) =>
+    ws.resources.create(name, 'fieldTypes', {
+      dataType: datatype as DataType,
+    }),
+  graphModel: (ws, [name]) => ws.resources.create(name, 'graphModels', {}),
+  graphView: (ws, [name]) => ws.resources.create(name, 'graphViews', {}),
+  calculation: (ws, [name]) => ws.resources.create(name, 'calculations', {}),
+  linkType: (ws, [name]) => ws.resources.create(name, 'linkTypes', {}),
+  report: (ws, [name]) => ws.resources.create(name, 'reports', {}),
+  skill: (ws, [name]) => ws.resources.create(name, 'skills', {}),
+  template: (ws, [name, content]) =>
+    ws.resources.create(name, 'templates', {
+      content: content ? JSON.parse(content) : undefined,
+    }),
+  workflow: (ws, [name, content]) =>
+    ws.resources.create(name, 'workflows', {
+      content: content ? JSON.parse(content) : undefined,
+    }),
+};
+
+// The resource type 'create resource' was given, if it names one.
+function resourceTarget(type: string | undefined): string | undefined {
+  try {
+    const target = commandType(type!);
+    return Object.hasOwn(resourceCreates, target) ? target : undefined;
+  } catch {
+    // Not a name; the unknown-type branch reports it.
+    return undefined;
+  }
+}
+
+// Creates a project at 'path' from [name, prefix, category, description],
+// printing what did not happen; a failure exits.
+async function createProjectAt(
+  path: string,
+  args: (string | undefined)[],
+  options: AllCommandOptions,
+  skipDefaultHub = false,
+) {
+  const [name, prefix, category, description] = args;
+  const projectPath = resolveTilde(path);
+  const { actor, identity } = await gitAuthor(existingAncestor(projectPath));
+  const { failures, warnings } = await createProject(
+    projectPath,
+    {
+      name: name!,
+      prefix: prefix!,
+      category: category || '',
+      description: description || '',
+      skipDefaultHub,
+    },
+    actor,
+    identity,
+    {
+      logLevel: options.logLevel,
+      autocommit: options.autocommit,
+      autopush: options.autopush,
+    },
+  ).catch((error: unknown) => fail(errorFunction(error)));
+  for (const warning of warnings) {
+    console.warn(warning);
+  }
+  if (failures.length > 0) {
+    fail(failures.join('\n'));
+  }
+}
+
+async function createResource(
+  options: CreateCommandOptions,
+  type: string,
+  args: string[],
+) {
+  await onProject(Object.assign({}, options, program.opts()), (ws) =>
+    resourceCreates[type](ws, args),
+  );
+  printResult();
+}
 
 export function registerCreate(program: Command) {
   const createCmd = new CommandGroup('create').description(
@@ -38,14 +138,20 @@ export function registerCreate(program: Command) {
       async (
         cardKey: string,
         filename: string,
-        options: CommandOptions<'create'>,
+        options: CreateCommandOptions,
       ) => {
-        const result = await commandHandler.command(
-          Cmd.create,
-          ['attachment', cardKey, filename],
+        await onProject(
           Object.assign({}, options, program.opts()),
+          async (ws) =>
+            ws.cards.addAttachment(
+              cardKey,
+              filename,
+              await readFile(filename).catch(() => {
+                throw new Error(`Attachment file not found: ${filename}`);
+              }),
+            ),
         );
-        handleResponse(result);
+        printResult();
       },
     );
 
@@ -65,14 +171,19 @@ export function registerCreate(program: Command) {
       async (
         template: string,
         parentCardKey: string | undefined,
-        options: CommandOptions<'create'>,
+        options: CreateCommandOptions,
       ) => {
-        const result = await commandHandler.command(
-          Cmd.create,
-          ['card', template, parentCardKey].filter(Boolean) as string[],
+        // Empty arguments are dropped, shifting the rest left, as ever.
+        const [templateName, parent] = [template, parentCardKey].filter(
+          Boolean,
+        ) as string[];
+        const createdCards = await onProject(
           Object.assign({}, options, program.opts()),
+          (ws) => ws.cards.create(templateName, parent),
         );
-        handleResponse(result);
+        printResult(
+          `Created cards ${JSON.stringify(createdCards.map((card) => card.key))}`,
+        );
       },
     );
 
@@ -86,17 +197,8 @@ export function registerCreate(program: Command) {
       'Workflow for the card type. You can list workflows with "show workflows" command',
     )
     .action(
-      async (
-        name: string,
-        workflow: string,
-        options: CommandOptions<'create'>,
-      ) => {
-        const result = await commandHandler.command(
-          Cmd.create,
-          ['cardType', name, workflow],
-          Object.assign({}, options, program.opts()),
-        );
-        handleResponse(result);
+      async (name: string, workflow: string, options: CreateCommandOptions) => {
+        await createResource(options, 'cardType', [name, workflow]);
       },
     );
 
@@ -110,17 +212,8 @@ export function registerCreate(program: Command) {
       'Type of field. You can list field types with "show fieldTypes" command',
     )
     .action(
-      async (
-        name: string,
-        dataType: string,
-        options: CommandOptions<'create'>,
-      ) => {
-        const result = await commandHandler.command(
-          Cmd.create,
-          ['fieldType', name, dataType],
-          Object.assign({}, options, program.opts()),
-        );
-        handleResponse(result);
+      async (name: string, dataType: string, options: CreateCommandOptions) => {
+        await createResource(options, 'fieldType', [name, dataType]);
       },
     );
 
@@ -129,13 +222,8 @@ export function registerCreate(program: Command) {
     .command('graphModel')
     .description('Create a new graph model')
     .argument('<name>', `Name for graph model. ${nameGuideline}`)
-    .action(async (name: string, options: CommandOptions<'create'>) => {
-      const result = await commandHandler.command(
-        Cmd.create,
-        ['graphModel', name],
-        Object.assign({}, options, program.opts()),
-      );
-      handleResponse(result);
+    .action(async (name: string, options: CreateCommandOptions) => {
+      await createResource(options, 'graphModel', [name]);
     });
 
   // Create graphView subcommand
@@ -143,13 +231,8 @@ export function registerCreate(program: Command) {
     .command('graphView')
     .description('Create a new graph view')
     .argument('<name>', `Name for graph view. ${nameGuideline}`)
-    .action(async (name: string, options: CommandOptions<'create'>) => {
-      const result = await commandHandler.command(
-        Cmd.create,
-        ['graphView', name],
-        Object.assign({}, options, program.opts()),
-      );
-      handleResponse(result);
+    .action(async (name: string, options: CreateCommandOptions) => {
+      await createResource(options, 'graphView', [name]);
     });
 
   // Create calculation subcommand
@@ -157,13 +240,8 @@ export function registerCreate(program: Command) {
     .command('calculation')
     .description('Create a new calculation')
     .argument('<name>', `Name for calculation. ${nameGuideline}`)
-    .action(async (name: string, options: CommandOptions<'create'>) => {
-      const result = await commandHandler.command(
-        Cmd.create,
-        ['calculation', name],
-        Object.assign({}, options, program.opts()),
-      );
-      handleResponse(result);
+    .action(async (name: string, options: CreateCommandOptions) => {
+      await createResource(options, 'calculation', [name]);
     });
 
   // Create label subcommand
@@ -176,14 +254,12 @@ export function registerCreate(program: Command) {
       async (
         cardKey: string,
         labelName: string,
-        options: CommandOptions<'create'>,
+        options: CreateCommandOptions,
       ) => {
-        const result = await commandHandler.command(
-          Cmd.create,
-          ['label', cardKey, labelName],
-          Object.assign({}, options, program.opts()),
+        await onProject(Object.assign({}, options, program.opts()), (ws) =>
+          ws.cards.addLabel(cardKey, labelName),
         );
-        handleResponse(result);
+        printResult();
       },
     );
 
@@ -211,16 +287,19 @@ export function registerCreate(program: Command) {
         destination: string,
         linkType: string,
         description: string | undefined,
-        options: CommandOptions<'create'>,
+        options: CreateCommandOptions,
       ) => {
-        const result = await commandHandler.command(
-          Cmd.create,
-          ['link', source, destination, linkType, description].filter(
-            Boolean,
-          ) as string[],
-          Object.assign({}, options, program.opts()),
+        // Empty arguments are dropped, shifting the rest left, as ever.
+        const [from, to, type, linkDescription] = [
+          source,
+          destination,
+          linkType,
+          description,
+        ].filter(Boolean) as string[];
+        await onProject(Object.assign({}, options, program.opts()), (ws) =>
+          ws.cards.addLink(from, to, type, linkDescription),
         );
-        handleResponse(result);
+        printResult();
       },
     );
 
@@ -229,13 +308,8 @@ export function registerCreate(program: Command) {
     .command('linkType')
     .description('Create a new link type')
     .argument('<name>', `Name for link type. ${nameGuideline}`)
-    .action(async (name: string, options: CommandOptions<'create'>) => {
-      const result = await commandHandler.command(
-        Cmd.create,
-        ['linkType', name],
-        Object.assign({}, options, program.opts()),
-      );
-      handleResponse(result);
+    .action(async (name: string, options: CreateCommandOptions) => {
+      await createResource(options, 'linkType', [name]);
     });
 
   // Create project subcommand
@@ -258,48 +332,22 @@ export function registerCreate(program: Command) {
         path: string,
         category: string | undefined,
         description: string | undefined,
-        options: CommandOptions<'create'>,
+        options: CreateCommandOptions,
       ) => {
         // Project path must be set to 'options' when creating a project
         options.projectPath = path;
         const commandOptions = Object.assign({}, options, program.opts());
 
-        const result = await commandHandler.command(
-          Cmd.create,
-          ['project', name, prefix, path, category || '', description || ''],
+        await createProjectAt(
+          commandOptions.projectPath || '',
+          [name, prefix, category, description],
           commandOptions,
+          commandOptions.skipModuleImport,
         );
 
         // Post-handling after creating a new project
-        if (!commandOptions.skipModuleImport && result.statusCode === 200) {
+        if (!commandOptions.skipModuleImport) {
           try {
-            // add default hub
-            const addHubResult = await commandHandler.command(
-              Cmd.add,
-              ['hub', DEFAULT_HUB],
-              commandOptions,
-            );
-            if (addHubResult.statusCode !== 200) {
-              program.error(
-                `Project creation failed: could not add default hub - ${addHubResult.message || 'Unknown error'}`,
-              );
-            }
-
-            // fetch modules from default hub
-            const fetchResult = await commandHandler.command(
-              Cmd.fetch,
-              ['hubs'],
-              commandOptions,
-            );
-            // The project already exists at this point and hubs that could be
-            // read were still refreshed, so an unreachable hub only narrows the
-            // module selection below; it must not fail the creation.
-            if (fetchResult.statusCode !== 200) {
-              console.warn(
-                `Could not fetch hub data - ${fetchResult.message || 'Unknown error'}`,
-              );
-            }
-
             // show importable modules
             const choices = await importableModules(commandOptions);
             const selectedModules = await checkbox({
@@ -311,15 +359,16 @@ export function registerCreate(program: Command) {
             // finally, import the selected modules
             const failedModules: string[] = [];
             for (const module of selectedModules) {
-              const importResult = await commandHandler.command(
-                Cmd.import,
-                ['module', module.location, module.private ? 'true' : 'false'],
-                commandOptions,
-              );
-              if (importResult.statusCode !== 200) {
+              try {
+                await openWorkspace(commandOptions).then((ws) =>
+                  installModule(ws, module.location, {
+                    private: !!module.private,
+                  }),
+                );
+              } catch (error) {
                 console.warn(
                   `Failed to import module '${module.name}':`,
-                  importResult.message || 'Unknown error',
+                  errorMessage(error) || 'Unknown error',
                 );
                 failedModules.push(module.name);
               }
@@ -340,7 +389,7 @@ export function registerCreate(program: Command) {
           }
         }
 
-        handleResponse(result);
+        printResult();
       },
     );
 
@@ -349,13 +398,8 @@ export function registerCreate(program: Command) {
     .command('report')
     .description('Create a new report')
     .argument('<name>', `Name for report. ${nameGuideline}`)
-    .action(async (name: string, options: CommandOptions<'create'>) => {
-      const result = await commandHandler.command(
-        Cmd.create,
-        ['report', name],
-        Object.assign({}, options, program.opts()),
-      );
-      handleResponse(result);
+    .action(async (name: string, options: CreateCommandOptions) => {
+      await createResource(options, 'report', [name]);
     });
 
   // Create skill subcommand
@@ -363,13 +407,8 @@ export function registerCreate(program: Command) {
     .command('skill')
     .description('Create a new skill')
     .argument('<name>', `Name for skill. ${nameGuideline}`)
-    .action(async (name: string, options: CommandOptions<'create'>) => {
-      const result = await commandHandler.command(
-        Cmd.create,
-        ['skill', name],
-        Object.assign({}, options, program.opts()),
-      );
-      handleResponse(result);
+    .action(async (name: string, options: CreateCommandOptions) => {
+      await createResource(options, 'skill', [name]);
     });
 
   // Create template subcommand
@@ -385,14 +424,14 @@ export function registerCreate(program: Command) {
       async (
         name: string,
         content: string | undefined,
-        options: CommandOptions<'create'>,
+        options: CreateCommandOptions,
       ) => {
-        const result = await commandHandler.command(
-          Cmd.create,
-          ['template', name, content].filter(Boolean) as string[],
-          Object.assign({}, options, program.opts()),
+        // Empty arguments are dropped, shifting the rest left, as ever.
+        await createResource(
+          options,
+          'template',
+          [name, content].filter(Boolean) as string[],
         );
-        handleResponse(result);
       },
     );
 
@@ -409,14 +448,14 @@ export function registerCreate(program: Command) {
       async (
         name: string,
         content: string | undefined,
-        options: CommandOptions<'create'>,
+        options: CreateCommandOptions,
       ) => {
-        const result = await commandHandler.command(
-          Cmd.create,
-          ['workflow', name, content].filter(Boolean) as string[],
-          Object.assign({}, options, program.opts()),
+        // Empty arguments are dropped, shifting the rest left, as ever.
+        await createResource(
+          options,
+          'workflow',
+          [name, content].filter(Boolean) as string[],
         );
-        handleResponse(result);
       },
     );
 
@@ -436,14 +475,33 @@ export function registerCreate(program: Command) {
       async (
         resourceName: string,
         content: string | undefined,
-        options: CommandOptions<'create'>,
+        options: CreateCommandOptions,
       ) => {
-        const result = await commandHandler.command(
-          Cmd.create,
-          [resourceName, content].filter(Boolean) as string[],
-          Object.assign({}, options, program.opts()),
-        );
-        handleResponse(result);
+        // Empty arguments are dropped, shifting the rest left, as ever.
+        const args = [resourceName, content].filter(Boolean) as string[];
+        const target = resourceTarget(args[0]);
+        if (target) {
+          // A resource name stays the first argument.
+          await createResource(
+            options,
+            target,
+            target !== args[0] ? args : args.slice(1),
+          );
+          return;
+        }
+        if (args[0] === 'project') {
+          await createProjectAt(
+            options.projectPath || '',
+            args.slice(1),
+            Object.assign({}, options, program.opts()),
+          );
+          printResult();
+          return;
+        }
+        // Unknown types.
+        await onProject(Object.assign({}, options, program.opts()), () => {
+          throw new Error(`Unknown type to create: '${commandType(args[0])}'`);
+        });
       },
     );
 
@@ -456,12 +514,14 @@ export function registerCreate(program: Command) {
     .addArgument(
       new Argument('<bump>', 'Version bump type').choices([...validBumps]),
     )
-    .action(async (bump: string, options: CommandOptions<'version'>) => {
-      const result = await commandHandler.command(
-        Cmd.version,
-        [bump],
+    .action(async (bump: string, options: VersionCommandOptions) => {
+      const result = await onProject(
         Object.assign({}, options, program.opts()),
+        (ws) => ws.versions.bump(bump as (typeof validBumps)[number]),
       );
-      handleResponse(result);
+      const previousInfo = result.previousVersion
+        ? ` (was v${result.previousVersion})`
+        : '';
+      printResult(`Bumped to v${result.newVersion}${previousInfo}`);
     });
 }

@@ -18,8 +18,7 @@ import type {
   Card,
   CardAttachment,
   CardWithChildrenCards,
-} from '../interfaces/project-interfaces.js';
-import type { Project } from '../containers/project.js';
+} from '@cyberismo/model';
 
 /**
  * Builds card hierarchy from flat card list with nested card objects.
@@ -72,38 +71,6 @@ export const buildCardHierarchy = (
 
   const rootCards = cards(flatCards);
   return rootCards.map(convert);
-};
-
-/**
- * Flattens card tree so that children are shown on same level regardless of nesting level.
- * @param array Card tree to flatten
- * @param project Project to use
- * @returns Flattened card tree.
- */
-export const flattenCardArray = (array: Card[], project: Project) => {
-  const result: Card[] = [];
-
-  array.forEach((item) => {
-    const { key, path, parent, children, attachments, metadata } = item;
-    const childCardIds = project
-      .cardKeysToCards(children)
-      .map((item) => item.key);
-
-    result.push({
-      key,
-      path,
-      parent,
-      children: [...childCardIds],
-      attachments,
-      metadata,
-    });
-    if (children) {
-      result.push(
-        ...flattenCardArray(project.cardKeysToCards(children), project),
-      );
-    }
-  });
-  return result;
 };
 
 /**

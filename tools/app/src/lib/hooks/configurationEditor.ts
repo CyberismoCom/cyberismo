@@ -19,7 +19,7 @@ import type {
   AddOperation,
   ChangeOperation,
   RemoveOperation,
-} from '@cyberismo/data-handler';
+} from '@cyberismo/model';
 import { useAppRouter } from '@/lib/hooks/redux';
 import { useAppDispatch } from '@/lib/hooks';
 import { addNotification } from '@/lib/slices/notifications';

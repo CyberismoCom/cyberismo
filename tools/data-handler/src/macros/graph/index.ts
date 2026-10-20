@@ -15,10 +15,10 @@ import BaseMacro from '../base-macro.js';
 import { createImage, validateMacroContent } from '../index.js';
 import { registerComparisonHelpers } from '../../utils/handlebars-helpers.js';
 import Handlebars from 'handlebars';
-import macroMetadata from './metadata.js';
+import macroMetadata from '@cyberismo/model/macros/graph/metadata';
 import { ClingoError } from '@cyberismo/node-clingo';
 
-import type { GraphOptions } from './types.js';
+import type { GraphOptions } from '@cyberismo/model';
 import type { MacroGenerationContext } from '../../interfaces/macros.js';
 import type TaskQueue from '../task-queue.js';
 
@@ -34,13 +34,13 @@ class GraphMacro extends BaseMacro {
   handleStatic = async (context: MacroGenerationContext, input: unknown) => {
     const options = this.parseOptions(input, context);
 
-    const modelResource = context.project.resources.byType(
+    const modelResource = context.checkout.resources.byType(
       options.model,
       'graphModels',
     );
     const modelContent = modelResource.contentData();
 
-    const viewResource = context.project.resources.byType(
+    const viewResource = context.checkout.resources.byType(
       options.view,
       'graphViews',
     );
@@ -62,7 +62,7 @@ class GraphMacro extends BaseMacro {
 
     let result: string;
     try {
-      result = await context.project.calculationEngine.runGraph(
+      result = await context.checkout.calculationEngine.runGraph(
         modelContent.model,
         view,
         context.context,
@@ -92,7 +92,7 @@ class GraphMacro extends BaseMacro {
     const options = validateMacroContent<GraphOptions>(this.metadata, input);
 
     // Get schema from view resource content if available
-    const resource = context.project.resources.byType(
+    const resource = context.checkout.resources.byType(
       options.view,
       'graphViews',
     );

@@ -12,9 +12,9 @@
 
 import { createHtmlPlaceholder, validateMacroContent } from '../index.js';
 
-import type { CreateCardsOptions } from './types.js';
+import type { CreateCardsOptions } from '@cyberismo/model';
 import type { MacroGenerationContext } from '../../interfaces/macros.js';
-import macroMetadata from './metadata.js';
+import macroMetadata from '@cyberismo/model/macros/createCards/metadata';
 import BaseMacro from '../base-macro.js';
 import type TaskQueue from '../task-queue.js';
 

@@ -5,14 +5,7 @@ import { mkdirSync, readFileSync, rmSync } from 'node:fs';
 
 import { copyDir } from '../src/utils/file-utils.js';
 import { getTestProject } from './helpers/test-utils.js';
-import {
-  Create,
-  Fetch,
-  Modules,
-  Remove,
-  Update,
-} from '../src/commands/index.js';
-import type { Project } from '../src/containers/project.js';
+import type { Checkout } from '../src/infra/checkout.js';
 import { resourceName } from '../src/utils/resource-utils.js';
 
 import type {
@@ -24,164 +17,28 @@ import type {
   GraphView,
   LinkType,
   Report,
-  TemplateMetadata,
   Workflow,
   WorkflowState,
   WorkflowTransition,
-} from '../src/interfaces/resource-interfaces.js';
-
-import type {
-  AddOperation,
   ChangeOperation,
   RemoveOperation,
-} from '../src/resources/resource-object.js';
-
-// Helper type for resource test configurations
-type ResourceType =
-  | 'calculations'
-  | 'cardTypes'
-  | 'fieldTypes'
-  | 'graphModels'
-  | 'graphViews'
-  | 'linkTypes'
-  | 'reports'
-  | 'templates'
-  | 'workflows';
-
-type ResourceConfig = {
-  type: ResourceType;
-  identifier: string;
-  createMethod?:
-    'create' | 'createCardType' | 'createFieldType' | 'createReport';
-  createArgs?: string[];
-  createContent?: unknown;
-  expectedData?: unknown;
-  hasContent?: boolean;
-};
-
-const resourceConfigs: ResourceConfig[] = [
-  {
-    type: 'calculations',
-    identifier: 'newCALC',
-    createMethod: 'create',
-    expectedData: {
-      name: 'decision/calculations/newCALC',
-      displayName: '',
-      description: undefined,
-      calculation: 'calculation.lp',
-    },
-  },
-  {
-    type: 'cardTypes',
-    identifier: 'newCT',
-    createMethod: 'createCardType',
-    createArgs: ['decision/workflows/decision'],
-    expectedData: {
-      name: 'decision/cardTypes/newCT',
-      displayName: '',
-      workflow: 'decision/workflows/decision',
-      customFields: [],
-      alwaysVisibleFields: [],
-      optionallyVisibleFields: [],
-    },
-  },
-  {
-    type: 'fieldTypes',
-    identifier: 'newFT',
-    createMethod: 'createFieldType',
-    createArgs: ['shortText'],
-    expectedData: {
-      name: 'decision/fieldTypes/newFT',
-      displayName: '',
-      dataType: 'shortText',
-    },
-  },
-  {
-    type: 'graphModels',
-    identifier: 'newGM',
-    createMethod: 'create',
-    hasContent: true,
-    expectedData: {
-      name: 'decision/graphModels/newGM',
-      displayName: '',
-    },
-  },
-  {
-    type: 'graphViews',
-    identifier: 'newGV',
-    createMethod: 'create',
-    hasContent: true,
-    expectedData: {
-      name: 'decision/graphViews/newGV',
-      displayName: '',
-    },
-  },
-  {
-    type: 'linkTypes',
-    identifier: 'newLT',
-    createMethod: 'create',
-    expectedData: {
-      name: 'decision/linkTypes/newLT',
-      displayName: '',
-      outboundDisplayName: 'decision/linkTypes/newLT',
-      inboundDisplayName: 'decision/linkTypes/newLT',
-      sourceCardTypes: [],
-      destinationCardTypes: [],
-      enableLinkDescription: false,
-    },
-  },
-  {
-    type: 'reports',
-    identifier: 'newREP',
-    createMethod: 'createReport',
-    hasContent: true,
-    expectedData: {
-      name: 'decision/reports/newREP',
-      displayName: '',
-    },
-  },
-  {
-    type: 'templates',
-    identifier: 'newTEMP',
-    createMethod: 'create',
-    expectedData: {
-      name: 'decision/templates/newTEMP',
-      displayName: '',
-    },
-  },
-  {
-    type: 'workflows',
-    identifier: 'newWF',
-    createMethod: 'create',
-    expectedData: {
-      name: 'decision/workflows/newWF',
-      displayName: '',
-      states: [
-        { name: 'Draft', category: 'initial' },
-        { name: 'Approved', category: 'closed' },
-        { name: 'Deprecated', category: 'closed' },
-      ],
-      transitions: [
-        { name: 'Create', fromState: [''], toState: 'Draft' },
-        { name: 'Approve', fromState: ['Draft'], toState: 'Approved' },
-        { name: 'Archive', fromState: ['*'], toState: 'Deprecated' },
-      ],
-    },
-  },
-];
+} from '@cyberismo/model';
+import { Workspace } from '../src/workspace/workspace.js';
+import { SYSTEM_ACTOR } from '../src/utils/tx-record.js';
+import { updateCardContent, updateCardMetadata } from '../src/cards/update.js';
+import { findCard } from '../src/cards/read.js';
 
 describe('resources', function () {
   const baseDir = import.meta.dirname;
   const testDir = join(baseDir, 'tmp-resource-tests');
   const decisionRecordsPath = join(testDir, 'valid/decision-records');
-  const minimalPath = join(testDir, 'valid/minimal');
-  let project: Project;
+  let checkout: Checkout;
 
   beforeAll(async () => {
     mkdirSync(testDir, { recursive: true });
     await copyDir('test/test-data/', testDir);
-    project = getTestProject(decisionRecordsPath);
-    await project.populateCaches();
+    checkout = getTestProject(decisionRecordsPath);
+    await checkout.populateCaches();
   });
 
   afterAll(() => {
@@ -191,15 +48,15 @@ describe('resources', function () {
   describe('resource-cache', () => {
     it('collect local resources', () => {
       // Resources should be automatically collected on Project initialization
-      const calcCount = project.resources.calculations().length;
-      const cardTypesCount = project.resources.cardTypes().length;
-      const fieldTypesCount = project.resources.fieldTypes().length;
-      const graphModelCount = project.resources.graphModels().length;
-      const graphViewCount = project.resources.graphViews().length;
-      const linkTypesCount = project.resources.linkTypes().length;
-      const reportsCount = project.resources.reports().length;
-      const templatesCount = project.resources.templates().length;
-      const workflowsCount = project.resources.workflows().length;
+      const calcCount = checkout.resources.calculations().length;
+      const cardTypesCount = checkout.resources.cardTypes().length;
+      const fieldTypesCount = checkout.resources.fieldTypes().length;
+      const graphModelCount = checkout.resources.graphModels().length;
+      const graphViewCount = checkout.resources.graphViews().length;
+      const linkTypesCount = checkout.resources.linkTypes().length;
+      const reportsCount = checkout.resources.reports().length;
+      const templatesCount = checkout.resources.templates().length;
+      const workflowsCount = checkout.resources.workflows().length;
 
       expect(calcCount).not.toBe(0);
       expect(cardTypesCount).not.toBe(0);
@@ -214,192 +71,38 @@ describe('resources', function () {
 
     it('resource existence checks', () => {
       // Test that basic resources exist
-      const testWorkflow = `${project.projectPrefix}/workflows/decision`;
-      const testCardType = `${project.projectPrefix}/cardTypes/decision`;
-      const testFieldType = `${project.projectPrefix}/fieldTypes/finished`;
+      const testWorkflow = `${checkout.projectPrefix}/workflows/decision`;
+      const testCardType = `${checkout.projectPrefix}/cardTypes/decision`;
+      const testFieldType = `${checkout.projectPrefix}/fieldTypes/finished`;
 
-      expect(project.resources.exists(testWorkflow)).toBe(true);
-      expect(project.resources.exists(testCardType)).toBe(true);
-      expect(project.resources.exists(testFieldType)).toBe(true);
+      expect(checkout.resources.exists(testWorkflow)).toBe(true);
+      expect(checkout.resources.exists(testCardType)).toBe(true);
+      expect(checkout.resources.exists(testFieldType)).toBe(true);
 
       // Test non-existent resource
-      expect(project.resources.exists('nonexistent')).toBe(false);
+      expect(checkout.resources.exists('nonexistent')).toBe(false);
     });
   });
 
   describe('resource basic operations', () => {
-    // Helper to avoid OS specific linebreaks in comparisons
-    function removeLineBreaks(data: Report): Report {
-      const re = /[\r\n]+/gm;
-      data.content.contentTemplate = data.content.contentTemplate.replace(
-        re,
-        ' ',
-      );
-      data.content.queryTemplate = data.content.queryTemplate.replace(re, ' ');
-      return data;
-    }
-
     const baseDir = import.meta.dirname;
     const testDir = join(baseDir, 'tmp-resource-classes-tests');
     const decisionRecordsPath = join(testDir, 'valid/decision-records');
-    let project: Project;
+    let checkout: Checkout;
 
     beforeAll(async () => {
       mkdirSync(testDir, { recursive: true });
       await copyDir('test/test-data/', testDir);
-      project = getTestProject(decisionRecordsPath);
-      await project.populateCaches();
+      checkout = getTestProject(decisionRecordsPath);
+      await checkout.populateCaches();
     });
 
     afterAll(() => {
       rmSync(testDir, { recursive: true, force: true });
     });
 
-    // Parameterized create tests
-    resourceConfigs.forEach((config) => {
-      it(`create ${config.type}`, async () => {
-        const name = `decision/${config.type}/${config.identifier}`;
-        const before = project.resources.resourceTypes(config.type);
-        let found = before.find((item) => item.data?.name === name);
-        expect(found).toBeUndefined();
-
-        if (config.type === 'cardTypes') {
-          const res = project.resources.byType(name, config.type);
-          const args = config.createArgs || [];
-          await res.createCardType(args[0]);
-          const after = project.resources.cardTypes();
-          found = after.find((item) => item.data?.name === res.data?.name);
-        } else if (config.type === 'fieldTypes') {
-          const res = project.resources.byType(name, config.type);
-          const args = config.createArgs || [];
-          await res.createFieldType(args[0] as 'shortText');
-          const after = project.resources.fieldTypes();
-          found = after.find((item) => item.data?.name === res.data?.name);
-        } else if (config.type === 'reports') {
-          const res = project.resources.byType(name, config.type);
-          await res.createReport();
-          const after = project.resources.reports();
-          found = after.find((item) => item.data?.name === res.data?.name);
-        } else {
-          const res = project.resources.byType(name, config.type);
-          await res.create();
-          const after = project.resources.resourceTypes(config.type);
-          found = after.find((item) => item.data?.name === res.data?.name);
-        }
-
-        expect(found).not.toBeUndefined();
-      });
-    });
-    // Special create tests with provided content
-    it('create link type with provided content', async () => {
-      const name = 'decision/linkTypes/newLTWithContent';
-      const before = project.resources.linkTypes();
-      let found = before.find((item) => item.data?.name === name);
-      expect(found).toBeUndefined();
-      const linkTypeData = {
-        name: name,
-        displayName: name,
-        inboundDisplayName: 'in',
-        outboundDisplayName: 'out',
-        destinationCardTypes: ['decision/cardTypes/decision'],
-        sourceCardTypes: ['decision/cardTypes/decision'],
-        enableLinkDescription: false,
-      } as LinkType;
-      const res = project.resources.byType(name, 'linkTypes');
-      await res.create(linkTypeData);
-      const after = project.resources.linkTypes();
-      found = after.find((item) => item.data?.name === name);
-      expect(found).not.toBeUndefined();
-    });
-    it('try to create link type with invalid provided content', async () => {
-      const name = 'decision/linkTypes/invalidLTWithContent';
-      const before = project.resources.linkTypes();
-      const found = before.find((item) => item.data?.name === name);
-      expect(found).toBeUndefined();
-      const linkTypeData = {
-        // missing mandatory value 'enableLinkDescription'
-        name: name,
-        displayName: name,
-        inboundDisplayName: 'in',
-        outboundDisplayName: 'out',
-        destinationCardTypes: ['decision/cardTypes/decision'],
-        sourceCardTypes: ['decision/cardTypes/decision'],
-      } as LinkType;
-      const res = project.resources.byType(name, 'linkTypes');
-      await expect(res.create(linkTypeData)).rejects.toThrow(
-        `Invalid content JSON: Schema '/linkTypeSchema' validation Error: must have required property 'enableLinkDescription'`,
-      );
-    });
-    it('create template with provided content', async () => {
-      const name = 'decision/templates/newTEMPWithContent';
-      const before = project.resources.templates();
-      let found = before.find((item) => item.data?.name === name);
-      expect(found).toBeUndefined();
-      const templateData = {
-        name: name,
-        displayName: 'Test template with content',
-        description: 'No description',
-        category: 'Random category',
-      } as TemplateMetadata;
-      const res = project.resources.byType(name, 'templates');
-      await res.create(templateData);
-      const after = project.resources.templates();
-      found = after.find((item) => item.data?.name === name);
-      expect(found).not.toBeUndefined();
-    });
-    it('try to create template with invalid provided content', async () => {
-      const name = 'decision/templates/newTEMPWithInvalidContent';
-      const before = project.resources.templates();
-      const found = before.find((item) => item.data?.name === name);
-      expect(found).toBeUndefined();
-      const templateData = {
-        // missing name
-        displayName: 'Test template with content',
-        description: 'No description',
-        category: 'Random category',
-      } as TemplateMetadata;
-      const res = project.resources.byType(name, 'templates');
-      await expect(res.create(templateData)).rejects.toThrow(
-        `Invalid content JSON: Schema '/templateSchema' validation Error: must have required property 'name'`,
-      );
-    });
-    it('create workflow with provided content', async () => {
-      const name = 'decision/workflows/newWFWithContent';
-      const before = project.resources.workflows();
-      let found = before.find((item) => item.data?.name === name);
-      expect(found).toBeUndefined();
-      const workflowData = {
-        name: name,
-        displayName: name,
-        states: [{ name: 'Draft', category: 'initial' }],
-        transitions: [{ name: 'Create', fromState: [''], toState: 'Draft' }],
-      } as Workflow;
-      const res = project.resources.byType(name, 'workflows');
-      await res.create(workflowData);
-      const after = project.resources.workflows();
-      found = after.find((item) => item.data?.name === name);
-      expect(found).not.toBeUndefined();
-    });
-    it('create calculation with provided content', async () => {
-      const name = 'decision/calculations/newCALCWithContent';
-
-      const before = project.resources.calculations();
-      let found = before.find((item) => item.data?.name === name);
-      expect(found).toBeUndefined();
-      const calculationData = {
-        name: name,
-        displayName: 'Test calculation with content',
-        description: 'A test calculation for unit tests',
-        calculation: '',
-      } as CalculationMetadata;
-      const res = project.resources.byType(name, 'calculations');
-      await res.create(calculationData);
-      const after = project.resources.calculations();
-      found = after.find((item) => item.data?.name === name);
-      expect(found).not.toBeUndefined();
-    });
     it('calculation category lifecycle', async () => {
-      const existingCalculations = project.resources.calculations();
+      const existingCalculations = checkout.resources.calculations();
       let found;
 
       // Verify no calculation with the test names exists
@@ -433,15 +136,15 @@ describe('resources', function () {
         calculation: '',
       } as CalculationMetadata;
 
-      await project.resources
+      await checkout.resources
         .byType(withCategoryCalculationsName, 'calculations')
         .create(calculationDataWithCategory);
-      await project.resources
+      await checkout.resources
         .byType(withoutCategoryCalculationsName, 'calculations')
         .create(calculationDataWithoutCategory);
 
       // Verify created calculations
-      const afterCreation = project.resources.calculations();
+      const afterCreation = checkout.resources.calculations();
 
       const foundWithCategory = afterCreation.find(
         (item) => item.data?.name === withCategoryCalculationsName,
@@ -456,14 +159,14 @@ describe('resources', function () {
       expect(foundWithoutCategory!.data!.category).toBeUndefined();
 
       // Update created calculations
-      await project.resources
+      await checkout.resources
         .byType(withCategoryCalculationsName, 'calculations')
         .update({ key: 'category' }, {
           name: 'change',
           to: 'calculation1',
         } as ChangeOperation<string>);
 
-      await project.resources
+      await checkout.resources
         .byType(withoutCategoryCalculationsName, 'calculations')
         .update({ key: 'category' }, {
           name: 'change',
@@ -471,7 +174,7 @@ describe('resources', function () {
         } as ChangeOperation<string>);
 
       // Verify updated calculations
-      const afterUpdate = project.resources.calculations();
+      const afterUpdate = checkout.resources.calculations();
 
       const updatedFoundWithCategory = afterUpdate.find(
         (item) => item.data?.name === withCategoryCalculationsName,
@@ -486,7 +189,7 @@ describe('resources', function () {
       expect(updatedFoundWithoutCategory!.data!.category).toBe('calculation2');
     });
     it('cardType category lifecycle', async () => {
-      const existingCardTypes = project.resources.cardTypes();
+      const existingCardTypes = checkout.resources.cardTypes();
       let found;
 
       // Verify no card type with the test names exists
@@ -524,15 +227,15 @@ describe('resources', function () {
         optionallyVisibleFields: [],
       } as CardType;
 
-      await project.resources
+      await checkout.resources
         .byType(withCategoryCardTypeName, 'cardTypes')
         .create(cardTypeDataWithCategory);
-      await project.resources
+      await checkout.resources
         .byType(withoutCategoryCardTypeName, 'cardTypes')
         .create(cardTypeDataWithoutCategory);
 
       // Verify created card types
-      const afterCreation = project.resources.cardTypes();
+      const afterCreation = checkout.resources.cardTypes();
 
       const foundWithCategory = afterCreation.find(
         (item) => item.data?.name === withCategoryCardTypeName,
@@ -547,14 +250,14 @@ describe('resources', function () {
       expect(foundWithoutCategory!.data!.category).toBeUndefined();
 
       // Update created card types
-      await project.resources
+      await checkout.resources
         .byType(withCategoryCardTypeName, 'cardTypes')
         .update({ key: 'category' }, {
           name: 'change',
           to: 'cardType1',
         } as ChangeOperation<string>);
 
-      await project.resources
+      await checkout.resources
         .byType(withoutCategoryCardTypeName, 'cardTypes')
         .update({ key: 'category' }, {
           name: 'change',
@@ -562,7 +265,7 @@ describe('resources', function () {
         } as ChangeOperation<string>);
 
       // Verify updated card types
-      const afterUpdate = project.resources.cardTypes();
+      const afterUpdate = checkout.resources.cardTypes();
 
       const updatedFoundWithCategory = afterUpdate.find(
         (item) => item.data?.name === withCategoryCardTypeName,
@@ -577,7 +280,7 @@ describe('resources', function () {
       expect(updatedFoundWithoutCategory!.data!.category).toBe('cardType2');
     });
     it('linkType category lifecycle', async () => {
-      const existingLinkTypes = project.resources.linkTypes();
+      const existingLinkTypes = checkout.resources.linkTypes();
       let found;
 
       // Verify no link type with the test names exists
@@ -617,15 +320,15 @@ describe('resources', function () {
         enableLinkDescription: false,
       } as LinkType;
 
-      await project.resources
+      await checkout.resources
         .byType(withCategoryLinkTypeName, 'linkTypes')
         .create(linkTypeDataWithCategory);
-      await project.resources
+      await checkout.resources
         .byType(withoutCategoryLinkTypeName, 'linkTypes')
         .create(linkTypeDataWithoutCategory);
 
       // Verify created link types
-      const afterCreation = project.resources.linkTypes();
+      const afterCreation = checkout.resources.linkTypes();
 
       const foundWithCategory = afterCreation.find(
         (item) => item.data?.name === withCategoryLinkTypeName,
@@ -640,14 +343,14 @@ describe('resources', function () {
       expect(foundWithoutCategory!.data!.category).toBeUndefined();
 
       // Update created link types
-      await project.resources
+      await checkout.resources
         .byType(withCategoryLinkTypeName, 'linkTypes')
         .update({ key: 'category' }, {
           name: 'change',
           to: 'linkType1',
         } as ChangeOperation<string>);
 
-      await project.resources
+      await checkout.resources
         .byType(withoutCategoryLinkTypeName, 'linkTypes')
         .update({ key: 'category' }, {
           name: 'change',
@@ -655,7 +358,7 @@ describe('resources', function () {
         } as ChangeOperation<string>);
 
       // Verify updated link types
-      const afterUpdate = project.resources.linkTypes();
+      const afterUpdate = checkout.resources.linkTypes();
 
       const updatedFoundWithCategory = afterUpdate.find(
         (item) => item.data?.name === withCategoryLinkTypeName,
@@ -670,7 +373,7 @@ describe('resources', function () {
       expect(updatedFoundWithoutCategory?.data?.category).toBe('linkType2');
     });
     it('fieldType category lifecycle', async () => {
-      const existingFieldTypes = project.resources.fieldTypes();
+      const existingFieldTypes = checkout.resources.fieldTypes();
       let found;
 
       // Verify no field type with the test names exists
@@ -702,15 +405,15 @@ describe('resources', function () {
         dataType: 'shortText',
       } as FieldType;
 
-      await project.resources
+      await checkout.resources
         .byType(withCategoryFieldTypeName, 'fieldTypes')
         .create(fieldTypeDataWithCategory);
-      await project.resources
+      await checkout.resources
         .byType(withoutCategoryFieldTypeName, 'fieldTypes')
         .create(fieldTypeDataWithoutCategory);
 
       // Verify created field types
-      const afterCreation = project.resources.fieldTypes();
+      const afterCreation = checkout.resources.fieldTypes();
 
       const foundWithCategory = afterCreation.find(
         (item) => item.data?.name === withCategoryFieldTypeName,
@@ -725,14 +428,14 @@ describe('resources', function () {
       expect(foundWithoutCategory!.data!.category).toBeUndefined();
 
       // Update created field types
-      await project.resources
+      await checkout.resources
         .byType(withCategoryFieldTypeName, 'fieldTypes')
         .update({ key: 'category' }, {
           name: 'change',
           to: 'fieldType1',
         } as ChangeOperation<string>);
 
-      await project.resources
+      await checkout.resources
         .byType(withoutCategoryFieldTypeName, 'fieldTypes')
         .update({ key: 'category' }, {
           name: 'change',
@@ -740,7 +443,7 @@ describe('resources', function () {
         } as ChangeOperation<string>);
 
       // Verify updated field types
-      const afterUpdate = project.resources.fieldTypes();
+      const afterUpdate = checkout.resources.fieldTypes();
 
       const updatedFoundWithCategory = afterUpdate.find(
         (item) => item.data?.name === withCategoryFieldTypeName,
@@ -755,7 +458,7 @@ describe('resources', function () {
       expect(updatedFoundWithoutCategory!.data!.category).toBe('fieldType2');
     });
     it('report category lifecycle', async () => {
-      const existingReports = project.resources.reports();
+      const existingReports = checkout.resources.reports();
       let found;
 
       // Verify no report with the test names exists
@@ -785,15 +488,15 @@ describe('resources', function () {
         displayName: 'Test report without category',
       } as Report;
 
-      await project.resources
+      await checkout.resources
         .byType(withCategoryReportName, 'reports')
         .create(reportDataWithCategory);
-      await project.resources
+      await checkout.resources
         .byType(withoutCategoryReportName, 'reports')
         .create(reportDataWithoutCategory);
 
       // Verify created reports
-      const afterCreation = project.resources.reports();
+      const afterCreation = checkout.resources.reports();
 
       const foundWithCategory = afterCreation.find(
         (item) => item.data?.name === withCategoryReportName,
@@ -808,14 +511,14 @@ describe('resources', function () {
       expect(foundWithoutCategory?.data?.category).toBeUndefined();
 
       // Update created reports
-      await project.resources
+      await checkout.resources
         .byType(withCategoryReportName, 'reports')
         .update({ key: 'category' }, {
           name: 'change',
           to: 'report1',
         } as ChangeOperation<string>);
 
-      await project.resources
+      await checkout.resources
         .byType(withoutCategoryReportName, 'reports')
         .update({ key: 'category' }, {
           name: 'change',
@@ -823,7 +526,7 @@ describe('resources', function () {
         } as ChangeOperation<string>);
 
       // Verify updated reports
-      const afterUpdate = project.resources.reports();
+      const afterUpdate = checkout.resources.reports();
 
       const updatedFoundWithCategory = afterUpdate.find(
         (item) => item.data?.name === withCategoryReportName,
@@ -838,7 +541,7 @@ describe('resources', function () {
       expect(updatedFoundWithoutCategory?.data?.category).toBe('report2');
     });
     it('workflow category lifecycle', async () => {
-      const existingWorkflows = project.resources.workflows();
+      const existingWorkflows = checkout.resources.workflows();
       let found;
 
       // Verify no workflow with the test names exists
@@ -884,15 +587,15 @@ describe('resources', function () {
         ],
       } as Workflow;
 
-      await project.resources
+      await checkout.resources
         .byType(withCategoryWorkflowName, 'workflows')
         .create(workflowDataWithCategory);
-      await project.resources
+      await checkout.resources
         .byType(withoutCategoryWorkflowName, 'workflows')
         .create(workflowDataWithoutCategory);
 
       // Verify created workflows
-      const afterCreation = project.resources.workflows();
+      const afterCreation = checkout.resources.workflows();
 
       const foundWithCategory = afterCreation.find(
         (item) => item.data?.name === withCategoryWorkflowName,
@@ -907,14 +610,14 @@ describe('resources', function () {
       expect(foundWithoutCategory?.data?.category).toBeUndefined();
 
       // Update created workflows
-      await project.resources
+      await checkout.resources
         .byType(withCategoryWorkflowName, 'workflows')
         .update({ key: 'category' }, {
           name: 'change',
           to: 'workflow1',
         } as ChangeOperation<string>);
 
-      await project.resources
+      await checkout.resources
         .byType(withoutCategoryWorkflowName, 'workflows')
         .update({ key: 'category' }, {
           name: 'change',
@@ -922,7 +625,7 @@ describe('resources', function () {
         } as ChangeOperation<string>);
 
       // Verify updated workflows
-      const afterUpdate = project.resources.workflows();
+      const afterUpdate = checkout.resources.workflows();
 
       const updatedFoundWithCategory = afterUpdate.find(
         (item) => item.data?.name === withCategoryWorkflowName,
@@ -936,351 +639,33 @@ describe('resources', function () {
       expect(updatedFoundWithoutCategory).not.toBeUndefined();
       expect(updatedFoundWithoutCategory?.data?.category).toBe('workflow2');
     });
-    it('try to create calculation with invalid provided content', async () => {
-      const name = 'decision/calculations/invalidCALCWithContent';
-      const before = project.resources.calculations();
-      const found = before.find((item) => item.data?.name === name);
-      expect(found).toBeUndefined();
-      const calculationData = {
-        // missing name
-        displayName: 'Test calculation with content',
-        description: 'A test calculation for unit tests',
-        calculation: '',
-      } as CalculationMetadata;
-      const res = project.resources.byType(name, 'calculations');
-      await expect(res.create(calculationData)).rejects.toThrow(
-        `Invalid content JSON: Schema '/calculationSchema' validation Error: must have required property 'name'`,
-      );
-    });
 
-    // Parameterized invalid name tests
-    resourceConfigs.forEach((config) => {
-      it(`try to create ${config.type} with invalid name`, async () => {
-        const invalidChar =
-          config.type === 'graphModels'
-            ? 'Ä'
-            : config.type === 'graphViews'
-              ? 'Ö'
-              : '-ööö';
-        const name = `decision/${config.type}/new${invalidChar}`;
-
-        let createPromise: Promise<unknown>;
-        if (config.type === 'cardTypes') {
-          const res = project.resources.byType(name, config.type);
-          const args = config.createArgs || [];
-          createPromise = res.createCardType(args[0]);
-        } else if (config.type === 'fieldTypes') {
-          const res = project.resources.byType(name, config.type);
-          const args = config.createArgs || [];
-          createPromise = res.createFieldType(args[0] as 'shortText');
-        } else if (config.type === 'reports') {
-          const res = project.resources.byType(name, config.type);
-          createPromise = res.createReport();
-        } else {
-          const res = project.resources.byType(name, config.type);
-          createPromise = res.create();
-        }
-
-        await expect(createPromise).rejects.toThrow(
-          'Resource identifier must follow naming rules',
-        );
-      });
-    });
-    // Parameterized invalid prefix tests
-    it('try to create card type with invalid project prefix', async () => {
-      const name = 'unknown/cardTypes/new-one';
-      const res = project.resources.byType(name, 'cardTypes');
-      await expect(
-        res.createCardType('decision/workflows/decision'),
-      ).rejects.toThrow(
-        "Resource name can only refer to project that it is part of. Prefix 'unknown' is not included in '[decision]'",
-      );
-    });
-    it('try to create field type with invalid project prefix', async () => {
-      const name = 'unknown/fieldTypes/new-one';
-      const res = project.resources.byType(name, 'fieldTypes');
-      await expect(res.createFieldType('shortText')).rejects.toThrow(
-        "Resource name can only refer to project that it is part of. Prefix 'unknown' is not included in '[decision]'",
-      );
-    });
-    it('try to create resources with invalid project prefix', async () => {
-      const resources = [
-        project.resources.byType(
-          'unknown/calculations/new-one',
-          'calculations',
-        ),
-        project.resources.byType('unknown/graphModels/new-one', 'graphModels'),
-        project.resources.byType('unknown/graphViews/new-one', 'graphViews'),
-        project.resources.byType('unknown/linkTypes/new-one', 'linkTypes'),
-        project.resources.byType('unknown/templates/new-one', 'templates'),
-        project.resources.byType('unknown/workflows/new-one', 'workflows'),
-      ];
-      for (const res of resources) {
-        await expect(res.create()).rejects.toThrow(
-          "Resource name can only refer to project that it is part of. Prefix 'unknown' is not included in '[decision]'",
-        );
-      }
-    });
-    it('try to create report with invalid project prefix', async () => {
-      const name = 'unknown/reports/new-one';
-      const res = project.resources.byType(name, 'reports');
-      await expect(res.createReport()).rejects.toThrow(
-        "Resource name can only refer to project that it is part of. Prefix 'unknown' is not included in '[decision]'",
-      );
-    });
-    it('try to create card type with invalid content', async () => {
-      const name = 'decision/cardTypes/new-one';
-      const res = project.resources.byType(name, 'cardTypes');
-      await expect(
-        res.createCardType('decision/workflows/does-not-exist'),
-      ).rejects.toThrow(
-        "Workflow 'decision/workflows/does-not-exist' does not exist in the project",
-      );
-    });
-
-    // Parameterized data tests
-    resourceConfigs.forEach((config) => {
-      it(`data of ${config.type}`, () => {
-        const name = `decision/${config.type}/${config.identifier}`;
-        const res = project.resources.byType(name, config.type);
-        expect(res.data).to.deep.equal(config.expectedData);
-      });
-    });
-
-    // Parameterized show tests
-    resourceConfigs
-      .filter(
-        (config) =>
-          !config.hasContent &&
-          !['calculations', 'templates'].includes(config.type),
-      )
-      .forEach((config) => {
-        it(`show ${config.type}`, async () => {
-          const name = `decision/${config.type}/${config.identifier}`;
-          const res = project.resources.byType(name, config.type);
-          const data = await res.show();
-          expect(data).to.deep.equal(config.expectedData);
-        });
-      });
-    it('show graph model', async () => {
-      const name = 'decision/graphModels/newGM';
-      const res = project.resources.byType(name, 'graphModels');
-      const data = await res.show();
-      expect(data).to.deep.equal({
-        name: 'decision/graphModels/newGM',
-        displayName: '',
-        content: { model: "% add your calculations here for 'newGM'" },
-      });
-    });
-    it('show graph view', async () => {
-      const name = 'decision/graphViews/newGV';
-      const res = project.resources.byType(name, 'graphViews');
-      const data = await res.show();
-      expect(data).to.deep.equal({
-        content: {
-          schema: {
-            $id: 'myGraphMacroSchema',
-            additionalProperties: false,
-            description: 'Parameters for the graph macro',
-            properties: {
-              model: {
-                description: 'The name of the graph model',
-                type: 'string',
-              },
-              view: {
-                description: 'The name of the graph view',
-                type: 'string',
-              },
-              cardKey: {
-                description:
-                  'Override default cardKey of the macro with another cardKey. Default cardKey is the card where the macro is defined in.',
-                type: 'string',
-              },
-            },
-            required: ['model', 'view'],
-            title: 'Graph view',
-            type: 'object',
-          },
-          viewTemplate: '',
-        },
-        name: 'decision/graphViews/newGV',
-        displayName: '',
-      });
-    });
-    it('show report', async () => {
-      const name = 'decision/reports/newREP';
-      const res = project.resources.byType(name, 'reports');
-      let data = await res.show();
-      data = removeLineBreaks(data);
-      expect(data).to.deep.equal({
-        content: {
-          contentTemplate: `{{#each results}} * {{this.title}} {{/each}} `,
-          schema: {
-            $id: 'reportMacroDefaultSchema',
-            additionalProperties: false,
-            description:
-              'A report object provides supplemental information about a report',
-            properties: {
-              cardKey: {
-                description:
-                  'Used to override the default cardKey, which is the cardKey of the card, in which the report macro is used',
-                type: 'string',
-              },
-              name: {
-                description: 'The name of the report',
-                type: 'string',
-              },
-            },
-            required: ['name'],
-            title: 'Report',
-            type: 'object',
-          },
-          queryTemplate: `select("title"). result(Card) :- parent(Card, {{cardKey}}).`,
-        },
-        name: 'decision/reports/newREP',
-        displayName: '',
-      });
-    });
-    it('show calculation', async () => {
-      const name = 'decision/calculations/newCALC';
-      const res = project.resources.byType(name, 'calculations');
-      const data = await res.show();
-      expect(data).to.have.property('name', 'decision/calculations/newCALC');
-      expect(data).to.have.property('displayName', '');
-      expect(data).to.have.property('description');
-      expect(data).to.have.property('calculation', 'calculation.lp');
-      expect(data).to.have.property('content');
-      expect(data.content).to.have.property('calculation');
-    });
-    it('show imported report', async () => {
-      const projectMini = getTestProject(minimalPath);
-      await projectMini.populateCaches();
-      const fetchCmd = new Fetch(projectMini);
-      const modulesCmdMini = new Modules(projectMini, fetchCmd);
-      await modulesCmdMini.install(decisionRecordsPath);
-      const name = 'decision/reports/newREP';
-      const res = project.resources.byType(name, 'reports');
-      let data = await res.show();
-      data = removeLineBreaks(data);
-
-      expect(data).to.deep.equal({
-        content: {
-          contentTemplate: `{{#each results}} * {{this.title}} {{/each}} `,
-          schema: {
-            $id: 'reportMacroDefaultSchema',
-            additionalProperties: false,
-            description:
-              'A report object provides supplemental information about a report',
-            properties: {
-              cardKey: {
-                description:
-                  'Used to override the default cardKey, which is the cardKey of the card, in which the report macro is used',
-                type: 'string',
-              },
-              name: {
-                description: 'The name of the report',
-                type: 'string',
-              },
-            },
-            required: ['name'],
-            title: 'Report',
-            type: 'object',
-          },
-          queryTemplate: `select("title"). result(Card) :- parent(Card, {{cardKey}}).`,
-        },
-        name: 'decision/reports/newREP',
-        displayName: '',
-      });
-    });
-    it('show template', async () => {
-      const name = 'decision/templates/newTEMP';
-      const res = project.resources.byType(name, 'templates');
-      const data = await res.show();
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const { path, ...others } = data;
-      expect(others).to.deep.equal({
-        description: undefined,
-        category: undefined,
-        name: 'decision/templates/newTEMP',
-        displayName: '',
-        numberOfCards: 0,
-      });
-    });
-    // Parameterized validate tests
-    it('validate resources', async () => {
-      const resources = resourceConfigs.map((config) =>
-        project.resources.byType(
-          `decision/${config.type}/${config.identifier}`,
-          config.type,
-        ),
-      );
-      for (const resource of resources) {
-        await resource.validate();
-        await expect(resource.validate()).resolves.toBeUndefined();
-      }
-    });
     it('try to validate missing resource types', async () => {
       const resources = [
-        project.resources.byType(
+        checkout.resources.byType(
           'unknown/calculations/not-exist',
           'calculations',
         ),
-        project.resources.byType('unknown/cardTypes/not-exist', 'cardTypes'),
-        project.resources.byType('unknown/fieldTypes/not-exist', 'fieldTypes'),
-        project.resources.byType(
+        checkout.resources.byType('unknown/cardTypes/not-exist', 'cardTypes'),
+        checkout.resources.byType('unknown/fieldTypes/not-exist', 'fieldTypes'),
+        checkout.resources.byType(
           'unknown/graphModels/not-exist',
           'graphModels',
         ),
-        project.resources.byType('unknown/graphViews/not-exist', 'graphViews'),
-        project.resources.byType('unknown/linkTypes/not-exist', 'linkTypes'),
-        project.resources.byType('unknown/reports/not-exist', 'reports'),
-        project.resources.byType('unknown/templates/not-exist', 'templates'),
-        project.resources.byType('decision/workflows/not-exist', 'workflows'),
+        checkout.resources.byType('unknown/graphViews/not-exist', 'graphViews'),
+        checkout.resources.byType('unknown/linkTypes/not-exist', 'linkTypes'),
+        checkout.resources.byType('unknown/reports/not-exist', 'reports'),
+        checkout.resources.byType('unknown/templates/not-exist', 'templates'),
+        checkout.resources.byType('decision/workflows/not-exist', 'workflows'),
       ];
       for (const resource of resources) {
         await expect(resource.validate()).rejects.toThrow();
       }
     });
-    // Parameterized rename tests
-    const renameConfigs = resourceConfigs.filter(
-      (config) => !['templates'].includes(config.type),
-    );
-    renameConfigs.forEach((config) => {
-      it(`rename ${config.type}`, async () => {
-        const name = `decision/${config.type}/newResForRename`;
-
-        if (config.type === 'cardTypes') {
-          const res = project.resources.byType(name, config.type);
-          const args = config.createArgs || [];
-          await res.createCardType(args[0]);
-          await res.rename('newname');
-          expect(res.data?.name).equals(`decision/${config.type}/newname`);
-          await res.delete();
-        } else if (config.type === 'fieldTypes') {
-          const res = project.resources.byType(name, config.type);
-          const args = config.createArgs || [];
-          await res.createFieldType(args[0] as 'shortText');
-          await res.rename('newname');
-          expect(res.data?.name).equals(`decision/${config.type}/newname`);
-          await res.delete();
-        } else if (config.type === 'reports') {
-          const res = project.resources.byType(name, config.type);
-          await res.createReport();
-          await res.rename('newname');
-          expect(res.data?.name).equals(`decision/${config.type}/newname`);
-          await res.delete();
-        } else {
-          const res = project.resources.byType(name, config.type);
-          await res.create();
-          await res.rename('newname');
-          expect(res.data?.name).equals(`decision/${config.type}/newname`);
-          await res.delete();
-        }
-      });
-    });
+    // The only test to rename a template no card read has loaded a tree for.
     it('rename template', async () => {
       const name = 'decision/templates/newResForRename';
-      const res = project.resources.byType(name, 'templates');
+      const res = checkout.resources.byType(name, 'templates');
       await res.create();
       await res.rename('newname');
       expect(res.data?.name).equals('decision/templates/newname');
@@ -1288,7 +673,7 @@ describe('resources', function () {
     });
     it('rename card type to contain number', async () => {
       const name = 'decision/cardTypes/newResForRename';
-      const res = project.resources.byType(name, 'cardTypes');
+      const res = checkout.resources.byType(name, 'cardTypes');
       await res.createCardType('decision/workflows/decision');
       await res.rename('newnameWithNumber2');
       expect(res.data?.name).equals('decision/cardTypes/newnameWithNumber2');
@@ -1305,18 +690,9 @@ describe('resources', function () {
       expect(res.data?.name).equals('decision/cardTypes/newnameWithNumber3');
       await res.delete();
     });
-    it('try to rename workflow - attempt to use invalid name', async () => {
-      const name = 'decision/workflows/newResForRename';
-      const res = project.resources.byType(name, 'workflows');
-      await res.create();
-      await expect(res.rename('newname-ööö')).rejects.toThrow(
-        'Resource identifier must follow naming',
-      );
-      await res.delete();
-    });
     it('update card type - name', async () => {
       const name = 'decision/cardTypes/forRename';
-      const res = project.resources.byType(name, 'cardTypes');
+      const res = checkout.resources.byType(name, 'cardTypes');
       await res.createCardType('decision/workflows/decision');
       await res.update(
         { key: 'name' },
@@ -1330,7 +706,7 @@ describe('resources', function () {
     });
     it('update card type - try to "rank" scalar "name"', async () => {
       const name = 'decision/cardTypes/tryForUpdate';
-      const res = project.resources.byType(name, 'cardTypes');
+      const res = checkout.resources.byType(name, 'cardTypes');
       await res.createCardType('decision/workflows/decision');
       await expect(
         res.update(
@@ -1345,7 +721,7 @@ describe('resources', function () {
     });
     it('update card type - try to "add" scalar "name"', async () => {
       const name = 'decision/cardTypes/tryForUpdate';
-      const res = project.resources.byType(name, 'cardTypes');
+      const res = checkout.resources.byType(name, 'cardTypes');
       await expect(
         res.update(
           { key: 'name' },
@@ -1358,7 +734,7 @@ describe('resources', function () {
     });
     it('update card type - try to "remove" scalar "name"', async () => {
       const name = 'decision/cardTypes/tryForUpdate';
-      const res = project.resources.byType(name, 'cardTypes');
+      const res = checkout.resources.byType(name, 'cardTypes');
       await expect(
         res.update(
           { key: 'name' },
@@ -1371,11 +747,11 @@ describe('resources', function () {
     });
     it('update card type - add element to alwaysVisibleFields', async () => {
       const nameFT = 'decision/fieldTypes/newOne';
-      const newFieldType = project.resources.byType(nameFT, 'fieldTypes');
+      const newFieldType = checkout.resources.byType(nameFT, 'fieldTypes');
       await newFieldType.createFieldType('shortText');
 
       const name = 'decision/cardTypes/updateAlwaysVisible';
-      const res = project.resources.byType(name, 'cardTypes');
+      const res = checkout.resources.byType(name, 'cardTypes');
       await res.createCardType('decision/workflows/decision');
       expect(res.data?.alwaysVisibleFields.length).toBe(0);
 
@@ -1398,7 +774,7 @@ describe('resources', function () {
     });
     it('update card type - remove element from alwaysVisibleFields', async () => {
       const name = 'decision/cardTypes/updateAlwaysVisible';
-      const res = project.resources.byType(name, 'cardTypes');
+      const res = checkout.resources.byType(name, 'cardTypes');
       expect(res.data?.alwaysVisibleFields.length).toBe(1);
       await res.update(
         { key: 'alwaysVisibleFields' },
@@ -1411,11 +787,14 @@ describe('resources', function () {
     });
     it('update card type - add two elements to alwaysVisibleFields and move the latter to first', async () => {
       const nameFT = 'decision/fieldTypes/secondNewOne';
-      const secondNewFieldType = project.resources.byType(nameFT, 'fieldTypes');
+      const secondNewFieldType = checkout.resources.byType(
+        nameFT,
+        'fieldTypes',
+      );
       await secondNewFieldType.createFieldType('shortText');
 
       const name = 'decision/cardTypes/updateAlwaysVisible';
-      const res = project.resources.byType(name, 'cardTypes');
+      const res = checkout.resources.byType(name, 'cardTypes');
       expect(res.data?.alwaysVisibleFields.length).toBe(0);
 
       await res.update(
@@ -1456,7 +835,7 @@ describe('resources', function () {
     });
     it('update card type - add element to optionallyVisibleFields', async () => {
       const name = 'decision/cardTypes/optionallyVisible';
-      const res = project.resources.byType(name, 'cardTypes');
+      const res = checkout.resources.byType(name, 'cardTypes');
       await res.createCardType('decision/workflows/decision');
 
       await res.update(
@@ -1479,7 +858,7 @@ describe('resources', function () {
     });
     it('update card type - remove element from optionallyVisibleFields', async () => {
       const name = 'decision/cardTypes/optionallyVisible';
-      const res = project.resources.byType(name, 'cardTypes');
+      const res = checkout.resources.byType(name, 'cardTypes');
       expect(res.data?.optionallyVisibleFields.length).toBe(1);
       await res.update(
         { key: 'optionallyVisibleFields' },
@@ -1492,7 +871,7 @@ describe('resources', function () {
     });
     it('update card type - add two elements to optionallyVisibleFields and move the latter to first', async () => {
       const name = 'decision/cardTypes/optionallyVisible';
-      const res = project.resources.byType(name, 'cardTypes');
+      const res = checkout.resources.byType(name, 'cardTypes');
       expect(res.data?.optionallyVisibleFields.length).toBe(0);
 
       await res.update(
@@ -1533,7 +912,7 @@ describe('resources', function () {
     });
     it('update card type - workflow', async () => {
       const name = 'decision/cardTypes/updateWorkflow';
-      const res = project.resources.byType(name, 'cardTypes');
+      const res = checkout.resources.byType(name, 'cardTypes');
       await res.createCardType('decision/workflows/decision');
       await res.update(
         { key: 'workflow' },
@@ -1549,7 +928,7 @@ describe('resources', function () {
     });
     it('update card type - add element to customFields', async () => {
       const nameCT = 'decision/cardTypes/customFields';
-      const res = project.resources.byType(nameCT, 'cardTypes');
+      const res = checkout.resources.byType(nameCT, 'cardTypes');
       await res.createCardType('decision/workflows/decision');
       expect((res.data as CardType).customFields.length).toBe(0);
       await res.update(
@@ -1563,7 +942,7 @@ describe('resources', function () {
     });
     it('update card type - try to add non-existing element to customFields', async () => {
       const name = 'decision/cardTypes/checkNonExistingItems';
-      const res = project.resources.byType(name, 'cardTypes');
+      const res = checkout.resources.byType(name, 'cardTypes');
       await res.createCardType('decision/workflows/decision');
       expect(res.data?.customFields.length).toBe(0);
       await expect(
@@ -1578,7 +957,7 @@ describe('resources', function () {
     });
     it('update card type - try to add non-existing element to alwaysVisibleFields', async () => {
       const name = 'decision/cardTypes/checkNonExistingItems';
-      const res = project.resources.byType(name, 'cardTypes');
+      const res = checkout.resources.byType(name, 'cardTypes');
       expect(res.data?.customFields.length).toBe(0);
       await expect(
         res.update(
@@ -1601,7 +980,7 @@ describe('resources', function () {
     });
     it('update card type - try to add non-existing element to optionallyVisibleFields', async () => {
       const name = 'decision/cardTypes/checkNonExistingItems';
-      const res = project.resources.byType(name, 'cardTypes');
+      const res = checkout.resources.byType(name, 'cardTypes');
       expect(res.data?.customFields.length).toBe(0);
       await expect(
         res.update(
@@ -1624,7 +1003,7 @@ describe('resources', function () {
     });
     it('update card type - remove element from customFields', async () => {
       const nameCT = 'decision/cardTypes/customFields';
-      const res = project.resources.byType(nameCT, 'cardTypes');
+      const res = checkout.resources.byType(nameCT, 'cardTypes');
 
       await res.update(
         { key: 'optionallyVisibleFields' },
@@ -1655,7 +1034,7 @@ describe('resources', function () {
     });
     it('update card type - add two elements to customFields, then move last one to first', async () => {
       const nameCT = 'decision/cardTypes/customFields';
-      const res = project.resources.byType(nameCT, 'cardTypes');
+      const res = checkout.resources.byType(nameCT, 'cardTypes');
 
       const currentFields = [...(res.data?.customFields || [])];
       for (const field of currentFields) {
@@ -1699,7 +1078,7 @@ describe('resources', function () {
     });
     it('update field type', async () => {
       const name = 'decision/fieldTypes/dateFieldType';
-      const res = project.resources.byType(name, 'fieldTypes');
+      const res = checkout.resources.byType(name, 'fieldTypes');
       await res.createFieldType('dateTime');
       await res.update(
         { key: 'name' },
@@ -1713,7 +1092,7 @@ describe('resources', function () {
     });
     it('try to update field type with invalid name', async () => {
       const name = 'decision/fieldTypes/dateFieldType1';
-      const res = project.resources.byType(name, 'fieldTypes');
+      const res = checkout.resources.byType(name, 'fieldTypes');
       await res.createFieldType('dateTime');
       await expect(
         res.update(
@@ -1727,12 +1106,12 @@ describe('resources', function () {
       ).rejects.toThrow('Resource identifier must follow naming rules.');
     });
     it('update field type - change data type (number -> integer) does not cascade to cards via resource class', async () => {
-      let card6 = project.findCard('decision_6');
+      let card6 = findCard(checkout, 'decision_6');
       expect(card6.metadata!['decision/fieldTypes/numberOfCommits']).equals(
         1.5,
       );
       const name = 'decision/fieldTypes/numberOfCommits';
-      const res = project.resources.byType(name, 'fieldTypes');
+      const res = checkout.resources.byType(name, 'fieldTypes');
       await res.update(
         { key: 'dataType' },
         {
@@ -1744,14 +1123,14 @@ describe('resources', function () {
       // The resource-level update persists the new dataType but no longer
       // converts card values; FieldTypeDataTypeHandler owns that cascade.
       expect(res.data?.dataType).toBe('integer');
-      card6 = project.findCard('decision_6');
+      card6 = findCard(checkout, 'decision_6');
       expect(card6.metadata!['decision/fieldTypes/numberOfCommits']).equals(
         1.5,
       );
     });
     it('update field type - change displayName and description', async () => {
       const name = 'decision/fieldTypes/dateFieldType2';
-      const res = project.resources.byType(name, 'fieldTypes');
+      const res = checkout.resources.byType(name, 'fieldTypes');
       await res.createFieldType('shortText');
       await res.update(
         { key: 'displayName' },
@@ -1774,7 +1153,7 @@ describe('resources', function () {
     });
     it('update field type - change enumValues', async () => {
       const name = 'decision/fieldTypes/enumFieldType';
-      const res = project.resources.byType(name, 'fieldTypes');
+      const res = checkout.resources.byType(name, 'fieldTypes');
       await res.createFieldType('enum');
       await res.update(
         {
@@ -1813,47 +1192,9 @@ describe('resources', function () {
       expect(enums?.at(0)?.enumValue).toBe('yes');
       expect(enums?.at(1)?.enumValue).toBe('no');
     });
-    it('update calculation scalar values', async () => {
-      const name = 'decision/calculations/newCALCWithContent';
-      const res = project.resources.byType(name, 'calculations');
-      await res.update(
-        { key: 'displayName' },
-        {
-          name: 'change',
-          target: '',
-          to: 'Updated Calculation Display Name',
-        },
-      );
-      await res.update(
-        { key: 'description' },
-        {
-          name: 'change',
-          target: '',
-          to: 'Updated calculation description',
-        },
-      );
-      expect(res.data?.displayName).toBe('Updated Calculation Display Name');
-      expect(res.data?.description).toBe('Updated calculation description');
-    });
-    it('update calculation - change calculation content', async () => {
-      const name = 'decision/calculations/newCALCWithContent';
-      const res = project.resources.byType(name, 'calculations');
-      const newCalculationContent =
-        '% Updated calculation content\nupdated_rule(X) :- some_fact(X).';
-      await res.update(
-        { key: 'content', subKey: 'calculation' },
-        {
-          name: 'change',
-          target: '',
-          to: newCalculationContent,
-        },
-      );
-      const data = await res.show();
-      expect(data.content.calculation).toBe(newCalculationContent);
-    });
     it('update calculation - valid logic program is written to disk', async () => {
       const name = 'decision/calculations/newCALCWithContent';
-      const res = project.resources.byType(name, 'calculations');
+      const res = checkout.resources.byType(name, 'calculations');
       const validContent = 'validGateFact(42).';
       await res.update(
         { key: 'content', subKey: 'calculation' },
@@ -1871,7 +1212,7 @@ describe('resources', function () {
     });
     it('update calculation - invalid logic program is rejected and file unchanged', async () => {
       const name = 'decision/calculations/newCALCWithContent';
-      const res = project.resources.byType(name, 'calculations');
+      const res = checkout.resources.byType(name, 'calculations');
       const baselineContent = 'gateBaselineFact(1).';
       await res.update(
         { key: 'content', subKey: 'calculation' },
@@ -1901,7 +1242,7 @@ describe('resources', function () {
     });
     it('update calculation - name', async () => {
       const name = 'decision/calculations/calcForRename';
-      const res = project.resources.byType(name, 'calculations');
+      const res = checkout.resources.byType(name, 'calculations');
       await res.create();
       await res.update(
         { key: 'name' },
@@ -1915,7 +1256,7 @@ describe('resources', function () {
     });
     it('update link type scalar values', async () => {
       const name = 'decision/linkTypes/newLinkType';
-      const res = project.resources.byType(name, 'linkTypes');
+      const res = checkout.resources.byType(name, 'linkTypes');
       await res.create();
       await res.update(
         { key: 'displayName' },
@@ -1968,7 +1309,7 @@ describe('resources', function () {
     });
     it('update graph model scalar values', async () => {
       const name = 'decision/graphModels/newGraphModel';
-      const res = project.resources.byType(name, 'graphModels');
+      const res = checkout.resources.byType(name, 'graphModels');
       await res.create();
       await res.update(
         { key: 'displayName' },
@@ -2001,7 +1342,7 @@ describe('resources', function () {
     });
     it('update graph view scalar values', async () => {
       const name = 'decision/graphViews/newGraphView';
-      const res = project.resources.byType(name, 'graphViews');
+      const res = checkout.resources.byType(name, 'graphViews');
       await res.create();
       await res.update(
         { key: 'displayName' },
@@ -2032,152 +1373,12 @@ describe('resources', function () {
       expect(data.description).toBe('updated');
       expect(data.category).toBe('updated');
     });
-    it('update link type arrays', async () => {
-      const name = 'decision/linkTypes/newLT';
-      const res = project.resources.byType(name, 'linkTypes');
-      await res.update(
-        { key: 'sourceCardTypes' },
-        {
-          name: 'add',
-          target: 'CT1',
-        },
-      );
-      await res.update(
-        { key: 'destinationCardTypes' },
-        {
-          name: 'add',
-          target: 'CT1',
-        },
-      );
-      await res.update(
-        { key: 'sourceCardTypes' },
-        {
-          name: 'change',
-          target: 'CT1',
-          to: 'CT1NEW',
-        },
-      );
-      await res.update(
-        { key: 'destinationCardTypes' },
-        {
-          name: 'change',
-          target: 'CT1',
-          to: 'CT1NEW',
-        },
-      );
-      const data = res.data as LinkType;
-      expect(data.sourceCardTypes).toContain('CT1NEW');
-      expect(data.destinationCardTypes).toContain('CT1NEW');
-    });
-    it('update report scalar values', async () => {
-      const name = 'decision/reports/newREP';
-      const res = project.resources.byType(name, 'reports');
-      await res.update(
-        { key: 'description' },
-        {
-          name: 'change',
-          target: '',
-          to: 'Updated description',
-        },
-      );
-      await res.update(
-        { key: 'displayName' },
-        {
-          name: 'change',
-          target: '',
-          to: 'Updated display name',
-        },
-      );
-      await res.update(
-        { key: 'category' },
-        {
-          name: 'change',
-          target: '',
-          to: 'Updated category',
-        },
-      );
-      const data = await res.show();
-      expect(data?.description).toContain('Updated');
-      expect(data?.displayName).toContain('Updated');
-      expect(data?.category).toContain('Updated');
-    });
-    it('update report content file', async () => {
-      const name = 'decision/reports/newREP';
-      const res = project.resources.byType(name, 'reports');
-      await res.update(
-        {
-          key: 'content',
-          subKey: 'contentTemplate',
-        },
-        {
-          name: 'change',
-          target: '',
-          to: 'Updated template',
-        },
-      );
-      const data = await res.show();
-      expect(data.content.contentTemplate).toContain('Updated');
-    });
-    it('update template scalar values', async () => {
-      const name = 'decision/templates/newTEMP';
-      const res = project.resources.byType(name, 'templates');
-      await res.update(
-        { key: 'description' },
-        {
-          name: 'change',
-          target: '',
-          to: 'Updated description',
-        },
-      );
-      await res.update(
-        { key: 'displayName' },
-        {
-          name: 'change',
-          target: '',
-          to: 'Updated display name',
-        },
-      );
-      await res.update(
-        { key: 'category' },
-        {
-          name: 'change',
-          target: '',
-          to: 'Updated category',
-        },
-      );
-      const data = res.data as TemplateMetadata;
-      expect(data.description).toContain('Updated');
-      expect(data.displayName).toContain('Updated');
-      expect(data.category).toContain('Updated');
-    });
-    it('update workflow - rename state', async () => {
-      const name = 'decision/workflows/newWF';
-      const res = project.resources.byType(name, 'workflows');
-      const expectedItem = { name: 'Deprecated', category: 'closed' };
-      const updatedItem = { name: 'ReallyDeprecated', category: 'closed' };
-      let found = res.data?.states.find(
-        (item) => item.name === expectedItem.name,
-      );
-      expect(found).not.toBeUndefined();
-      const op = {
-        name: 'change',
-        target: expectedItem,
-        to: updatedItem,
-      } as ChangeOperation<WorkflowState>;
-      await res.update({ key: 'states' }, op);
-      found = (res.data as Workflow).states.find(
-        (item) => item.name === expectedItem.name,
-      );
-      expect(found).toBeUndefined();
-      found = res.data?.states.find((item) => item.name === updatedItem.name);
-      expect(found).not.toBeUndefined();
-    });
     it('update existing workflow - rename state (resource-level does NOT migrate cards)', async () => {
       const name = 'decision/workflows/decision';
-      const res = project.resources.byType(name, 'workflows');
-      const cards = project.cardTree.cards();
+      const res = checkout.resources.byType(name, 'workflows');
+      const cards = checkout.cardTree.cards();
       const cardsWithThisWorkflow = cards.filter((card) => {
-        const ct = project.resources.byType(
+        const ct = checkout.resources.byType(
           card.metadata?.cardType as string,
           'cardTypes',
         );
@@ -2190,7 +1391,7 @@ describe('resources', function () {
       // card migration.
       const target = cardsWithThisWorkflow.at(0)!;
       target.metadata!.workflowState = 'Approved';
-      await project.updateCardMetadata(target, target.metadata!);
+      await updateCardMetadata(checkout, target, target.metadata!);
 
       const op = {
         name: 'change',
@@ -2209,7 +1410,7 @@ describe('resources', function () {
       expect((res.data as Workflow).states.map((s) => s.name)).not.toContain(
         'Approved',
       );
-      const updatedCard = project.findCard(target.key);
+      const updatedCard = findCard(checkout, target.key);
       expect(updatedCard.metadata!.workflowState).toBe('Approved');
 
       const opRevert = {
@@ -2221,7 +1422,7 @@ describe('resources', function () {
     });
     it('try to update existing workflow - rename state with incomplete state', async () => {
       const name = 'decision/workflows/decision';
-      const res = project.resources.byType(name, 'workflows');
+      const res = checkout.resources.byType(name, 'workflows');
       const expectedItem = { name: 'Approved', category: 'closed' };
       const updatedItem = { name: 'ReallyApproved' };
       const op = {
@@ -2232,112 +1433,6 @@ describe('resources', function () {
       await expect(res.update({ key: 'states' }, op)).rejects.toThrow(
         "Cannot change state 'Approved' for workflow 'decision/workflows/decision'.",
       );
-    });
-    it('update workflow - rename transition', async () => {
-      const name = 'decision/workflows/newWF';
-      const res = project.resources.byType(name, 'workflows');
-      const expectedItem = {
-        name: 'Approve',
-        fromState: ['Draft'],
-        toState: 'Approved',
-      };
-      const updatedItem = {
-        name: 'RemoveDraftStatus',
-        fromState: ['Draft'],
-        toState: 'Approved',
-      };
-      let found = res.data?.transitions.find(
-        (item) => item.name === expectedItem.name,
-      );
-      expect(found).not.toBeUndefined();
-      const op = {
-        name: 'change',
-        target: expectedItem,
-        to: updatedItem,
-      } as ChangeOperation<WorkflowState>;
-      await res.update({ key: 'transitions' }, op);
-      found = res.data?.transitions.find(
-        (item) => item.name === expectedItem.name,
-      );
-      expect(found).toBeUndefined();
-      found = res.data?.transitions.find(
-        (item) => item.name === updatedItem.name,
-      );
-      expect(found).not.toBeUndefined();
-    });
-    it('update workflow - add state', async () => {
-      const name = 'decision/workflows/newWF';
-      const res = project.resources.byType(name, 'workflows');
-      const newState = { name: 'OrphanState', category: 'closed' };
-      let found = res.data?.states.find((item) => item.name === newState.name);
-      expect(found).toBeUndefined();
-      const op = {
-        name: 'add',
-        target: newState,
-      } as AddOperation<WorkflowState>;
-      await res.update({ key: 'states' }, op);
-      found = res.data?.states.find((item) => item.name === newState.name);
-      expect(found).not.toBeUndefined();
-    });
-    it('update workflow - add transition', async () => {
-      const name = 'decision/workflows/newWF';
-      const res = project.resources.byType(name, 'workflows');
-      const newTransition = {
-        name: 'Orphaned',
-        fromState: ['*'],
-        toState: 'OrphanState',
-      };
-      let found = res.data?.transitions.find(
-        (item) => item.name === newTransition.name,
-      );
-      expect(found).toBeUndefined();
-      const op = {
-        name: 'add',
-        target: newTransition,
-      } as AddOperation<WorkflowState>;
-      await res.update({ key: 'transitions' }, op);
-      found = res.data?.transitions.find(
-        (item) => item.name === newTransition.name,
-      );
-      expect(found).not.toBeUndefined();
-    });
-    it('update workflow - remove state', async () => {
-      const name = 'decision/workflows/newWF';
-      const res = project.resources.byType(name, 'workflows');
-      const expectedItem = { name: 'ReallyDeprecated', category: 'closed' };
-      let found = res.data?.states.find(
-        (item) => item.name === expectedItem.name,
-      );
-      expect(found).not.toBeUndefined();
-      const op = {
-        name: 'remove',
-        target: expectedItem,
-      } as RemoveOperation<WorkflowState>;
-      await res.update({ key: 'states' }, op);
-      found = res.data?.states.find((item) => item.name === expectedItem.name);
-      expect(found).toBeUndefined();
-    });
-    it('update workflow - remove transition', async () => {
-      const name = 'decision/workflows/newWF';
-      const res = project.resources.byType(name, 'workflows');
-      const expectedItem = {
-        name: 'RemoveDraftStatus',
-        fromState: ['Draft'],
-        toState: 'Approved',
-      };
-      let found = res.data?.transitions.find(
-        (item) => item.name === expectedItem.name,
-      );
-      expect(found).not.toBeUndefined();
-      const op = {
-        name: 'remove',
-        target: expectedItem,
-      } as RemoveOperation<WorkflowTransition>;
-      await res.update({ key: 'transitions' }, op);
-      found = res.data?.transitions.find(
-        (item) => item.name === expectedItem.name,
-      );
-      expect(found).toBeUndefined();
     });
     it('try to create workflow without new card transition', async () => {
       const name = 'decision/workflows/noNewCardTransition';
@@ -2352,7 +1447,7 @@ describe('resources', function () {
           { name: 'Complete', fromState: ['Draft'], toState: 'Done' },
         ],
       } as Workflow;
-      const res = project.resources.byType(name, 'workflows');
+      const res = checkout.resources.byType(name, 'workflows');
       await expect(res.create(workflowData)).rejects.toThrow(
         `Workflow '${name}' must have exactly one transition from "New Card" (empty fromState), found 0.`,
       );
@@ -2371,7 +1466,7 @@ describe('resources', function () {
           { name: 'CreateForReview', fromState: [''], toState: 'Review' },
         ],
       } as Workflow;
-      const res = project.resources.byType(name, 'workflows');
+      const res = checkout.resources.byType(name, 'workflows');
       await expect(res.create(workflowData)).rejects.toThrow(
         `Workflow '${name}' must have exactly one transition from "New Card" (empty fromState), found 2.`,
       );
@@ -2392,7 +1487,7 @@ describe('resources', function () {
           { name: 'Finish', fromState: ['Draft'], toState: 'Gone' },
         ],
       } as Workflow;
-      const res = project.resources.byType(name, 'workflows');
+      const res = checkout.resources.byType(name, 'workflows');
       await expect(res.create(workflowData)).rejects.toThrow(
         `Workflow '${name}' has several transitions named 'Finish'; transition names must be unique`,
       );
@@ -2414,7 +1509,7 @@ describe('resources', function () {
           { name: 'Resolve', fromState: ['Approved'], toState: 'Deprecated' },
         ],
       } as Workflow;
-      const res = project.resources.byType(name, 'workflows');
+      const res = checkout.resources.byType(name, 'workflows');
       await expect(res.create(workflowData)).rejects.toThrow(
         `Workflow '${name}' has several transitions named 'Resolve'; transition names must be unique`,
       );
@@ -2434,7 +1529,7 @@ describe('resources', function () {
           { name: 'Finish', fromState: ['Draft', 'InReview'], toState: 'Done' },
         ],
       } as Workflow;
-      const res = project.resources.byType(name, 'workflows');
+      const res = checkout.resources.byType(name, 'workflows');
       await expect(res.create(workflowData)).resolves.not.toThrow();
     });
     it('try to remove the only new card transition from workflow', async () => {
@@ -2451,7 +1546,7 @@ describe('resources', function () {
           { name: 'Complete', fromState: ['Draft'], toState: 'Done' },
         ],
       } as Workflow;
-      const res = project.resources.byType(name, 'workflows');
+      const res = checkout.resources.byType(name, 'workflows');
       await res.create(workflowData);
 
       const op = {
@@ -2462,126 +1557,33 @@ describe('resources', function () {
         `Workflow '${name}' must have exactly one transition from "New Card" (empty fromState), found 0.`,
       );
     });
-    // Parameterized delete tests
-    resourceConfigs.forEach((config) => {
-      it(`delete ${config.type}`, async () => {
-        const name = `decision/${config.type}/${config.identifier}`;
-        const before = project.resources.resourceTypes(config.type);
-        let found = before.find((item) => item.data?.name === name);
-        expect(found).not.toBeUndefined();
-
-        const res = project.resources.byType(name, config.type);
-        await res.delete();
-        const after = project.resources.resourceTypes(config.type);
-        found = after.find((item) => item.data?.name === name);
-        expect(found).toBeUndefined();
-      });
-    });
-    // Parameterized delete non-existing tests
-    resourceConfigs.forEach((config) => {
-      it(`try to delete ${config.type} that does not exist`, async () => {
-        const name = `decision/${config.type}/nonExisting`;
-        const before = project.resources.resourceTypes(config.type);
-        const found = before.find((item) => item.data?.name === name);
-        expect(found).toBeUndefined();
-
-        const res = project.resources.byType(name, config.type);
-        await expect(res.delete()).rejects.toThrow(
-          `Resource 'nonExisting' does not exist in the project`,
-        );
-      });
-    });
     it('try to check usage of nonExisting resource', async () => {
       const name = 'decision/workflows/nonExisting';
-      const before = project.resources.workflows();
+      const before = checkout.resources.workflows();
       const found = before.find((item) => item.data?.name === name);
       expect(found).toBeUndefined();
 
-      const res = project.resources.byType(name, 'workflows');
+      const res = checkout.resources.byType(name, 'workflows');
       await expect(res.usage()).rejects.toThrow(
         `Resource 'nonExisting' does not exist in the project`,
       );
-    });
-    it('check usage of cardType resource', async () => {
-      const name = 'decision/cardTypes/decision';
-      const res = project.resources.byType(name, 'cardTypes');
-      await res.usage().then((references) => {
-        expect(references).toContain('decision_1');
-        expect(references).toContain('decision_6');
-        expect(references).toContain('decision/linkTypes/testTypes');
-      });
-    });
-    it('check usage of calculation resource', async () => {
-      const name = 'decision/calculations/test';
-      const res = project.resources.byType(name, 'calculations');
-      const references = await res.usage();
-      expect(references.length).to.be.greaterThanOrEqual(0);
-    });
-    it('check usage of fieldType resource', async () => {
-      const name = 'decision/fieldTypes/finished';
-      const res = project.resources.byType(name, 'fieldTypes');
-      await res
-        .usage()
-        .then((references) =>
-          expect(references).toContain('decision/cardTypes/decision'),
-        );
-    });
-    it('check usage of graphModel resource', async () => {
-      const name = 'decision/graphModels/test';
-      const res = project.resources.byType(name, 'graphModels');
-      await res.usage().then((references) => expect(references.length).toBe(0));
-    });
-    it('check usage of graphView resource', async () => {
-      const name = 'decision/graphViews/test';
-      const res = project.resources.byType(name, 'graphViews');
-      await res.usage().then((references) => expect(references.length).toBe(0));
-    });
-    it('check usage of linkType resource', async () => {
-      const name = 'decision/linkTypes/test';
-      const res = project.resources.byType(name, 'linkTypes');
-      await res.usage().then((references) => expect(references.length).toBe(0));
-    });
-    it('check usage of report resource', async () => {
-      const name = 'decision/reports/testReport';
-      const res = project.resources.byType(name, 'reports');
-      await res
-        .usage()
-        .then((references) => expect(references).toContain('decision_5'));
-    });
-    it('check usage of template resource', async () => {
-      const name = 'decision/templates/simplepage';
-      const res = project.resources.byType(name, 'templates');
-      await res
-        .usage()
-        .then((references) => expect(references).toContain('decision_5'));
-    });
-    it('check usage of workflow resource', async () => {
-      const name = 'decision/workflows/decision';
-      const res = project.resources.byType(name, 'workflows');
-      await res
-        .usage()
-        .then((references) =>
-          expect(references).toContain('decision/cardTypes/decision'),
-        );
     });
   });
 
   describe('card content reference updates on resource rename', () => {
     async function cleanup(cardKey: string) {
-      const fetch = new Fetch(project);
-      const remove = new Remove(project, fetch, new Modules(project, fetch));
-      await remove.remove('card', cardKey);
+      await Workspace.over(checkout, SYSTEM_ACTOR).cards.remove(cardKey);
     }
 
     it('should not update card contents when renaming template via resource class (cascade moved to handler)', async () => {
       const cardKey = 'decision_5';
-      const card = project.findCard(cardKey);
+      const card = findCard(checkout, cardKey);
       expect(card.content).toContain('decision/templates/simplepage');
 
       const templateName = 'decision/templates/simplepage';
-      const template = project.resources.byType(templateName, 'templates');
+      const template = checkout.resources.byType(templateName, 'templates');
       await template.rename('renamedpage');
-      const updatedCard = project.findCard(cardKey);
+      const updatedCard = findCard(checkout, cardKey);
 
       expect(template.data?.name).toBe('decision/templates/renamedpage');
       // The resource-level rename no longer cascades; LeafResourceRenameHandler does.
@@ -2595,13 +1597,13 @@ describe('resources', function () {
 
     it('should not update card contents when renaming report via resource class (cascade moved to handler)', async () => {
       const cardKey = 'decision_5';
-      const card = project.findCard(cardKey);
+      const card = findCard(checkout, cardKey);
       expect(card.content).toContain('decision/reports/testReport');
 
       const reportName = 'decision/reports/testReport';
-      const report = project.resources.byType(reportName, 'reports');
+      const report = checkout.resources.byType(reportName, 'reports');
       await report.rename('renamedReport');
-      const updatedCard = project.findCard(cardKey);
+      const updatedCard = findCard(checkout, cardKey);
 
       expect(report.data?.name).toBe('decision/reports/renamedReport');
       // The resource-level rename no longer cascades; LeafResourceRenameHandler does.
@@ -2615,18 +1617,19 @@ describe('resources', function () {
 
     it('should not update card contents when renaming workflow via resource class (cascade moved to handler)', async () => {
       const workflowName = 'decision/workflows/testWorkflowForContent';
-      const workflow = project.resources.byType(workflowName, 'workflows');
+      const workflow = checkout.resources.byType(workflowName, 'workflows');
       await workflow.create();
-
-      const create = new Create(project);
-      const result = await create.createCard('decision/templates/simplepage');
+      const result = await Workspace.over(checkout, SYSTEM_ACTOR).cards.create(
+        'decision/templates/simplepage',
+      );
       const cardKey = result[0].key;
-      await project.updateCardContent(
+      await updateCardContent(
+        checkout,
         cardKey,
         `This card references ${workflowName} in its content.`,
       );
 
-      let card = project.findCard(cardKey);
+      let card = findCard(checkout, cardKey);
       expect(card.content).toContain(workflowName);
 
       await workflow.rename('renamedWorkflow');
@@ -2634,7 +1637,7 @@ describe('resources', function () {
       expect(workflow.data?.name).toBe('decision/workflows/renamedWorkflow');
 
       // The resource-level rename no longer cascades; WorkflowRenameHandler does.
-      card = project.findCard(cardKey);
+      card = findCard(checkout, cardKey);
       expect(card.content).toContain(workflowName);
       expect(card.content).not.toContain('decision/workflows/renamedWorkflow');
 
@@ -2644,26 +1647,27 @@ describe('resources', function () {
 
     it('should not update card contents when renaming field type via resource class (cascade moved to handler)', async () => {
       const fieldTypeName = 'decision/fieldTypes/testFieldForContent';
-      const fieldType = project.resources.byType(fieldTypeName, 'fieldTypes');
+      const fieldType = checkout.resources.byType(fieldTypeName, 'fieldTypes');
       await fieldType.createFieldType('shortText');
-
-      const create = new Create(project);
-      const result = await create.createCard('decision/templates/simplepage');
+      const result = await Workspace.over(checkout, SYSTEM_ACTOR).cards.create(
+        'decision/templates/simplepage',
+      );
       const cardKey = result[0].key;
 
-      await project.updateCardContent(
+      await updateCardContent(
+        checkout,
         cardKey,
         `This card references ${fieldTypeName} in its content.`,
       );
 
-      let card = project.findCard(cardKey);
+      let card = findCard(checkout, cardKey);
       expect(card.content).toContain(fieldTypeName);
 
       await fieldType.rename('renamedField');
       expect(fieldType.data?.name).toBe('decision/fieldTypes/renamedField');
 
       // The resource-level rename no longer cascades; FieldTypeRenameHandler does.
-      card = project.findCard(cardKey);
+      card = findCard(checkout, cardKey);
       expect(card.content).toContain(fieldTypeName);
       expect(card.content).not.toContain('decision/fieldTypes/renamedField');
 
@@ -2673,26 +1677,27 @@ describe('resources', function () {
 
     it('should not update card contents when renaming card type via resource class (cascade moved to handler)', async () => {
       const cardTypeName = 'decision/cardTypes/testTypeForContent';
-      const cardType = project.resources.byType(cardTypeName, 'cardTypes');
+      const cardType = checkout.resources.byType(cardTypeName, 'cardTypes');
       await cardType.createCardType('decision/workflows/decision');
-
-      const create = new Create(project);
-      const result = await create.createCard('decision/templates/simplepage');
+      const result = await Workspace.over(checkout, SYSTEM_ACTOR).cards.create(
+        'decision/templates/simplepage',
+      );
       const cardKey = result[0].key;
 
-      await project.updateCardContent(
+      await updateCardContent(
+        checkout,
         cardKey,
         `This card references ${cardTypeName} in its content.`,
       );
 
-      let card = project.findCard(cardKey);
+      let card = findCard(checkout, cardKey);
       expect(card.content).toContain(cardTypeName);
 
       await cardType.rename('renamedType');
       expect(cardType.data?.name).toBe('decision/cardTypes/renamedType');
 
       // The resource-level rename no longer cascades; CardTypeRenameHandler does.
-      card = project.findCard(cardKey);
+      card = findCard(checkout, cardKey);
       expect(card.content).toContain(cardTypeName);
       expect(card.content).not.toContain('decision/cardTypes/renamedType');
 
@@ -2706,22 +1711,23 @@ describe('resources', function () {
       // LinkTypeResource.rename(). A 'change' on 'name' is normalized to a
       // rename input by the engine.
       const linkTypeName = 'decision/linkTypes/testLinkForContent';
-      const linkType = project.resources.byType(linkTypeName, 'linkTypes');
+      const linkType = checkout.resources.byType(linkTypeName, 'linkTypes');
       await linkType.create();
-
-      const create = new Create(project);
-      const result = await create.createCard('decision/templates/simplepage');
+      const result = await Workspace.over(checkout, SYSTEM_ACTOR).cards.create(
+        'decision/templates/simplepage',
+      );
       const cardKey = result[0].key;
 
-      await project.updateCardContent(
+      await updateCardContent(
+        checkout,
         cardKey,
         `This card references ${linkTypeName} in its content.`,
       );
 
-      let card = project.findCard(cardKey);
+      let card = findCard(checkout, cardKey);
       expect(card.content).toContain(linkTypeName);
 
-      const update = new Update(project);
+      const update = Workspace.over(checkout, SYSTEM_ACTOR).changes;
       await update.apply({
         kind: 'edit',
         target: resourceName(linkTypeName),
@@ -2732,13 +1738,13 @@ describe('resources', function () {
           to: 'decision/linkTypes/renamedLink',
         } as ChangeOperation<string>,
       });
-      const renamed = project.resources.byType(
+      const renamed = checkout.resources.byType(
         'decision/linkTypes/renamedLink',
         'linkTypes',
       );
       expect(renamed.data?.name).toBe('decision/linkTypes/renamedLink');
 
-      card = project.findCard(cardKey);
+      card = findCard(checkout, cardKey);
       expect(card.content).toContain('decision/linkTypes/renamedLink');
       expect(card.content).not.toContain(linkTypeName);
 
@@ -2748,28 +1754,29 @@ describe('resources', function () {
 
     it('should not update card contents when renaming calculations via resource class (cascade moved to handler)', async () => {
       const calculationName = 'decision/calculations/testCalcForContent';
-      const calculation = project.resources.byType(
+      const calculation = checkout.resources.byType(
         calculationName,
         'calculations',
       );
       await calculation.create();
-
-      const create = new Create(project);
-      const result = await create.createCard('decision/templates/simplepage');
+      const result = await Workspace.over(checkout, SYSTEM_ACTOR).cards.create(
+        'decision/templates/simplepage',
+      );
       const cardKey = result[0].key;
-      await project.updateCardContent(
+      await updateCardContent(
+        checkout,
         cardKey,
         `This card references ${calculationName} in its content.`,
       );
 
-      let card = project.findCard(cardKey);
+      let card = findCard(checkout, cardKey);
       expect(card.content).toContain(calculationName);
       await calculation.rename('renamedCalc');
 
       expect(calculation.data?.name).toBe('decision/calculations/renamedCalc');
 
       // The resource-level rename no longer cascades; LeafResourceRenameHandler does.
-      card = project.findCard(cardKey);
+      card = findCard(checkout, cardKey);
       expect(card.content).toContain(calculationName);
       expect(card.content).not.toContain('decision/calculations/renamedCalc');
 
@@ -2779,28 +1786,29 @@ describe('resources', function () {
 
     it('should not update card contents when renaming graph models via resource class (cascade moved to handler)', async () => {
       const graphModelName = 'decision/graphModels/testGraphForContent';
-      const graphModel = project.resources.byType(
+      const graphModel = checkout.resources.byType(
         graphModelName,
         'graphModels',
       );
       await graphModel.create();
-
-      const create = new Create(project);
-      const result = await create.createCard('decision/templates/simplepage');
+      const result = await Workspace.over(checkout, SYSTEM_ACTOR).cards.create(
+        'decision/templates/simplepage',
+      );
       const cardKey = result[0].key;
-      await project.updateCardContent(
+      await updateCardContent(
+        checkout,
         cardKey,
         `This card references ${graphModelName} in its content.`,
       );
 
-      let card = project.findCard(cardKey);
+      let card = findCard(checkout, cardKey);
       expect(card.content).toContain(graphModelName);
 
       await graphModel.rename('renamedGraph');
       expect(graphModel.data?.name).toBe('decision/graphModels/renamedGraph');
 
       // The resource-level rename no longer cascades; LeafResourceRenameHandler does.
-      card = project.findCard(cardKey);
+      card = findCard(checkout, cardKey);
       expect(card.content).toContain(graphModelName);
       expect(card.content).not.toContain('decision/graphModels/renamedGraph');
 
@@ -2810,25 +1818,26 @@ describe('resources', function () {
 
     it('should not update card contents when renaming graph views via resource class (cascade moved to handler)', async () => {
       const graphViewName = 'decision/graphViews/testViewForContent';
-      const graphView = project.resources.byType(graphViewName, 'graphViews');
+      const graphView = checkout.resources.byType(graphViewName, 'graphViews');
       await graphView.create();
-
-      const create = new Create(project);
-      const result = await create.createCard('decision/templates/simplepage');
+      const result = await Workspace.over(checkout, SYSTEM_ACTOR).cards.create(
+        'decision/templates/simplepage',
+      );
       const cardKey = result[0].key;
-      await project.updateCardContent(
+      await updateCardContent(
+        checkout,
         cardKey,
         `This card references ${graphViewName} in its content.`,
       );
 
-      let card = project.findCard(cardKey);
+      let card = findCard(checkout, cardKey);
       expect(card.content).toContain(graphViewName);
 
       await graphView.rename('renamedView');
       expect(graphView.data?.name).toBe('decision/graphViews/renamedView');
 
       // The resource-level rename no longer cascades; LeafResourceRenameHandler does.
-      card = project.findCard(cardKey);
+      card = findCard(checkout, cardKey);
       expect(card.content).toContain(graphViewName);
       expect(card.content).not.toContain('decision/graphViews/renamedView');
 
@@ -2838,17 +1847,20 @@ describe('resources', function () {
 
     it('should not rename card content references via resource class (cascade moved to handler)', async () => {
       const templateName = 'decision/templates/multiRefTemplate';
-      const template = project.resources.byType(templateName, 'templates');
+      const template = checkout.resources.byType(templateName, 'templates');
       await template.create();
 
       const cardKeys: string[] = [];
       for (let i = 0; i < 3; i++) {
-        const create = new Create(project);
-        const result = await create.createCard('decision/templates/simplepage');
+        const result = await Workspace.over(
+          checkout,
+          SYSTEM_ACTOR,
+        ).cards.create('decision/templates/simplepage');
         const cardKey = result[0].key;
         cardKeys.push(cardKey);
 
-        await project.updateCardContent(
+        await updateCardContent(
+          checkout,
           cardKey,
           `Card references ${templateName}.`,
         );
@@ -2858,7 +1870,7 @@ describe('resources', function () {
 
       // The resource-level rename no longer cascades; LeafResourceRenameHandler does.
       for (const cardKey of cardKeys) {
-        const card = project.findCard(cardKey);
+        const card = findCard(checkout, cardKey);
         expect(card.content).toContain(templateName);
         expect(card.content).not.toContain(
           'decision/templates/renamedMultiRef',
@@ -2866,17 +1878,15 @@ describe('resources', function () {
       }
 
       // Cleanup
-      const fetch = new Fetch(project);
-      const remove = new Remove(project, fetch, new Modules(project, fetch));
       for (const cardKey of cardKeys) {
-        await remove.remove('card', cardKey);
+        await Workspace.over(checkout, SYSTEM_ACTOR).cards.remove(cardKey);
       }
       await template.delete();
     });
 
     it('should not make changes to card content if no references', async () => {
       const workflowName = 'decision/workflows/noReferencesWorkflow';
-      const workflow = project.resources.byType(workflowName, 'workflows');
+      const workflow = checkout.resources.byType(workflowName, 'workflows');
       await workflow.create();
 
       await workflow.rename('renamedNoRef');
@@ -2891,18 +1901,21 @@ describe('resources', function () {
       // LinkTypeResource.rename().
       const linkTypeName = 'decision/linkTypes/testLinkForMetadata';
       const linkTypeRenamed = 'decision/linkTypes/renamedLink';
-      const linkType = project.resources.byType(linkTypeName, 'linkTypes');
+      const linkType = checkout.resources.byType(linkTypeName, 'linkTypes');
       await linkType.create();
 
       // Create two cards
-      const create = new Create(project);
-      const result1 = await create.createCard('decision/templates/simplepage');
+      const result1 = await Workspace.over(checkout, SYSTEM_ACTOR).cards.create(
+        'decision/templates/simplepage',
+      );
       const cardKey1 = result1[0].key;
-      const result2 = await create.createCard('decision/templates/simplepage');
+      const result2 = await Workspace.over(checkout, SYSTEM_ACTOR).cards.create(
+        'decision/templates/simplepage',
+      );
       const cardKey2 = result2[0].key;
 
       // Link card1 -> card2
-      let card1 = project.findCard(cardKey1);
+      let card1 = findCard(checkout, cardKey1);
 
       card1.metadata!.links.push({
         linkType: linkTypeName,
@@ -2910,20 +1923,20 @@ describe('resources', function () {
         linkDescription: 'test link',
       });
 
-      await project.updateCardMetadata(card1, card1.metadata!);
-      card1 = project.findCard(cardKey1);
+      await updateCardMetadata(checkout, card1, card1.metadata!);
+      card1 = findCard(checkout, cardKey1);
       expect(card1.metadata?.links).to.have.lengthOf(1);
       expect(card1.metadata?.links[0].linkType).toBe(linkTypeName);
 
-      const update = new Update(project);
+      const update = Workspace.over(checkout, SYSTEM_ACTOR).changes;
       await update.apply({
         kind: 'rename',
         target: resourceName(linkTypeName),
         newIdentifier: 'renamedLink',
       });
-      const renamed = project.resources.byType(linkTypeRenamed, 'linkTypes');
+      const renamed = checkout.resources.byType(linkTypeRenamed, 'linkTypes');
       expect(renamed.data?.name).toBe(linkTypeRenamed);
-      card1 = project.findCard(cardKey1);
+      card1 = findCard(checkout, cardKey1);
       expect(card1.metadata?.links).to.have.lengthOf(1);
       expect(card1.metadata?.links[0].linkType).toBe(linkTypeRenamed);
       expect(card1.metadata?.links[0].cardKey).toBe(cardKey2);

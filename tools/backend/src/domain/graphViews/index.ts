@@ -50,9 +50,9 @@ router.post(
   requireRole(UserRole.Admin),
   zValidator('json', createGraphViewSchema),
   async (c) => {
-    const commands = c.get('commands');
+    const ws = c.get('ws');
     const { identifier } = c.req.valid('json');
-    await graphViewService.createGraphView(commands, identifier);
+    await graphViewService.createGraphView(ws, identifier);
     return c.json({ message: 'Graph view created successfully' });
   },
 );

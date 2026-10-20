@@ -50,10 +50,10 @@ router.post(
   requireRole(UserRole.Admin, [UserRole.Connector]),
   zValidator('json', createCalculationSchema),
   async (c) => {
-    const commands = c.get('commands');
+    const ws = c.get('ws');
     const { identifier } = c.req.valid('json');
 
-    await calculationService.createCalculation(commands, identifier);
+    await calculationService.createCalculation(ws, identifier);
     return c.json({ message: 'Calculation created successfully' });
   },
 );
