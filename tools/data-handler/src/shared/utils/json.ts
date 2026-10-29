@@ -2,6 +2,8 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { readFileSync } from 'node:fs';
+
+import { readFileNoFollow, readFileNoFollowSync } from './file-utils.js';
 import { type FileHandle, readFile, writeFile } from 'node:fs/promises';
 
 /**
@@ -64,6 +66,38 @@ export async function readJsonFile(file: string) {
       });
     }
   }
+}
+
+function parseJson(file: string, raw: string) {
+  try {
+    return JSON.parse(raw);
+  } catch (error) {
+    if (error instanceof Error) {
+      throw new Error(`Invalid JSON in file '${file}': ${error.message}`, {
+        cause: error,
+      });
+    }
+  }
+}
+
+/**
+ * Like {@link readJsonFileSync}, but refuses to follow a symlink at `file`.
+ * @param file file name (and path) to read.
+ * @returns Parsed JSON content.
+ * @throws if file is not found, is a symlink, or is not a JSON file.
+ */
+export function readJsonFileNoFollowSync(file: string) {
+  return parseJson(file, readFileNoFollowSync(file).toString('utf-8'));
+}
+
+/**
+ * Like {@link readJsonFile}, but refuses to follow a symlink at `file`.
+ * @param file file name (and path) to read.
+ * @returns Parsed JSON content.
+ * @throws if file is not found, is a symlink, or is not a JSON file.
+ */
+export async function readJsonFileNoFollow(file: string) {
+  return parseJson(file, (await readFileNoFollow(file)).toString('utf-8'));
 }
 
 /**
