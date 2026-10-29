@@ -1,4 +1,4 @@
-import { expect, describe, it } from 'vitest';
+import { afterEach, expect, describe, it } from 'vitest';
 import ClingoParser, {
   decodeClingoValue,
 } from '../../../src/infra/engine/clingo-parser.js';
@@ -361,6 +361,35 @@ describe('ClingoParser', () => {
       expect(result.results[0].mainObject.results[0].nestedObject.name).toBe(
         'nested',
       );
+    });
+  });
+  describe('prototype pollution', () => {
+    const polluted = 'polluted';
+
+    afterEach(() => {
+      delete (Object.prototype as any)[polluted];
+    });
+
+    it.each([
+      ['field', `field("__proto__", "${polluted}", "yes", "shortText")`],
+      [
+        'childResultCollection',
+        `childResultCollection("__proto__", "${polluted}")`,
+      ],
+      ['childResult', `childResult("__proto__", "child", "${polluted}")`],
+      ['childObject', `childObject("__proto__", "child", "${polluted}")`],
+    ])('should not write to Object.prototype via %s', async (_, input) => {
+      await parser.parseInput(input);
+      expect(Object.prototype).not.toHaveProperty(polluted);
+    });
+
+    it('should not change the prototype of a result via a field name', async () => {
+      const input = `
+        result("key1")
+        field("key1", "__proto__", "yes", "stringList")
+      `;
+      const result = await parser.parseInput(input);
+      expect(Object.getPrototypeOf(result.results[0])).toBe(Object.prototype);
     });
   });
 });
