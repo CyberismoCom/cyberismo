@@ -722,12 +722,12 @@ test.describe('Navigation', () => {
       'WILL CANCEL',
     );
 
-    // The content editor saves with Ctrl+S (no button click), like the normal
+    // The content editor saves with Cmd/Ctrl+S (no button click), like the normal
     // card body.
     await page.getByTestId('editTab').click();
     await typeIntoCodeMirror(page, ['Body edited via keyboard']);
     await expect(page.getByTestId('contentSaveButton')).toBeEnabled();
-    await page.keyboard.press('Control+s');
+    await page.keyboard.press('ControlOrMeta+s');
     const contentToast = page
       .getByRole('presentation')
       .filter({ hasText: t.saveCard.success });
