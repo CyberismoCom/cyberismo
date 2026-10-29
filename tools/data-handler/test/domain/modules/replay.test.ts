@@ -105,6 +105,7 @@ describe('modules.update replaying what the release changed', () => {
       rename,
       logLine('project_rename' as never, 'other'),
       logLine('resource_frobnicate' as never, 'lib/workflows/moved'),
+      logLine('resource_delete', 'test/cardTypes/consumer'),
     ]);
 
     const result = await ws.modules.update({ module: 'lib', version: '2.0.0' });
@@ -118,6 +119,7 @@ describe('modules.update replaying what the release changed', () => {
           seals: 1,
           retired: ['project_rename'],
           unknown: ['resource_frobnicate'],
+          foreign: ['test/cardTypes/consumer'],
         },
       ],
       skippedReplays: [],

@@ -54,9 +54,10 @@ export interface ReplaySeal {
    * Operations of entries skipped rather than replayed. A seal is an
    * immutable record of what a published version did, so the reader
    * accommodates entries it cannot act on: `retired` ones no build applies,
-   * `unknown` ones a newer build may.
+   * `unknown` ones a newer build may, `foreign` ones (by target) that name
+   * a resource outside the module.
    */
-  skipped: { retired: string[]; unknown: string[] };
+  skipped: { retired: string[]; unknown: string[]; foreign: string[] };
 }
 
 /** The replay work for one module update, seals ascending by version. */
@@ -444,7 +445,11 @@ async function readSealEntries(
   );
   const lines = content.split('\n');
   const entries: ConfigurationLogEntry[] = [];
-  const skipped: ReplaySeal['skipped'] = { retired: [], unknown: [] };
+  const skipped: ReplaySeal['skipped'] = {
+    retired: [],
+    unknown: [],
+    foreign: [],
+  };
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i].trim();
     if (line === '') continue;
@@ -476,6 +481,12 @@ async function readSealEntries(
     }
     if (!isKnownOperation(parsed.operation)) {
       skipped.unknown.push(parsed.operation);
+      continue;
+    }
+    // A module migrates only its own resources; anything else would let a
+    // module's log rewrite the host or another module.
+    if (parsed.target.split('/')[0] !== modulePrefix) {
+      skipped.foreign.push(parsed.target);
       continue;
     }
     entries.push(parsed);

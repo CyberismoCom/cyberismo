@@ -778,5 +778,6 @@ function replayedModule(step: ReplayStep): ReplayedModule {
     seals: step.seals.length,
     retired: step.seals.flatMap((s) => s.skipped.retired),
     unknown: step.seals.flatMap((s) => s.skipped.unknown),
+    foreign: step.seals.flatMap((s) => s.skipped.foreign),
   };
 }

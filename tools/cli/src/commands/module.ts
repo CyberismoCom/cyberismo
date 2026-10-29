@@ -101,7 +101,12 @@ function printModuleResult(result: ModuleUpdateResult | ModuleInstallResult) {
 
 // Retired entries are expected and no build will apply them; unknown ones
 // were most likely written by a newer build, so upgrading may apply them.
-function describeSkipped({ retired, unknown }: ReplayedModule): string {
+// Foreign ones target resources the module does not own and never apply.
+function describeSkipped({
+  retired,
+  unknown,
+  foreign,
+}: ReplayedModule): string {
   const count = (n: number) => `${n} ${n === 1 ? 'entry' : 'entries'}`;
   const ops = (list: string[]) => [...new Set(list)].join(', ');
   let text = '';
@@ -115,6 +120,11 @@ function describeSkipped({ retired, unknown }: ReplayedModule): string {
       `; skipped ${count(unknown.length)} this version does not recognise ` +
       `(${ops(unknown)}) — upgrade cyberismo to apply ` +
       `${unknown.length === 1 ? 'it' : 'them'}`;
+  }
+  if (foreign.length > 0) {
+    text +=
+      `; skipped ${count(foreign.length)} targeting resources outside ` +
+      `the module (${ops(foreign)})`;
   }
   return text;
 }
