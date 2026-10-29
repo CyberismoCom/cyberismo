@@ -188,16 +188,16 @@ async function fetchMetadata(currentPath: string): Promise<string> {
  * anywhere else it is in its parent's 'c' folder.
  * @param rootPath Folder the tree's cards are rooted at.
  * @param treeName Tree the cards are read for; names the scan in the log.
- * @param projectRoot Project folder; a root reached through a symlink below
- *   it yields no cards.
+ * @param projectRoot Project folder; a root reached through a symlink, or
+ *   outside it, yields no cards.
  */
 export async function scanCardTree(
   rootPath: string,
   treeName: string,
-  projectRoot?: string,
+  projectRoot: string,
 ): Promise<StoredCard[]> {
   const root = resolve(rootPath);
-  const link = projectRoot && symlinkBelow(projectRoot, rootPath);
+  const link = symlinkBelow(projectRoot, rootPath);
   if (link) {
     logger.warn(`Skipping symbolic link '${link}'`);
     return [];
