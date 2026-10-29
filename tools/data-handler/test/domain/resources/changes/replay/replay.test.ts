@@ -389,7 +389,7 @@ describe('planModuleReplays', () => {
     expect(error.message).toContain('line 2');
   });
 
-  it('retired and unknown operations are skipped and reported apart, not fatal', async () => {
+  it('retired, unknown and foreign entries are skipped and reported apart, not fatal', async () => {
     // A seal is an immutable record of what a published version did. An
     // operation this build lacks is the tool's gap, so the entries around
     // it still replay and the skip is reported rather than silent.
@@ -411,6 +411,7 @@ describe('planModuleReplays', () => {
             target: 'newmod',
             parameters: { oldPrefix: 'mod', newPrefix: 'newmod' },
           }),
+          logLine('resource_delete', 'host/cardTypes/a'),
         ],
       },
     ]);
@@ -424,6 +425,7 @@ describe('planModuleReplays', () => {
     expect(steps[0].seals[0].skipped).toEqual({
       retired: ['project_rename'],
       unknown: ['resource_frobnicate'],
+      foreign: ['host/cardTypes/a'],
     });
   });
 
@@ -529,7 +531,7 @@ describe('executeModuleReplays', () => {
             fileName: formatSealFileName(sealFrom, sealTo),
           },
           entries: targets.map(deleteEntry),
-          skipped: { retired: [], unknown: [] },
+          skipped: { retired: [], unknown: [], foreign: [] },
         },
       ],
     };
@@ -638,7 +640,7 @@ describe('executeModuleReplays', () => {
               fileName: formatSealFileName('1.0.0', '2.0.0'),
             },
             entries: [malformed],
-            skipped: { retired: [], unknown: [] },
+            skipped: { retired: [], unknown: [], foreign: [] },
           },
         ],
       },
