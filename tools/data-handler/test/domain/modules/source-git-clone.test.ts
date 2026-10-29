@@ -27,11 +27,8 @@ const fetchAt = (ref?: string) =>
 
 describe('git source layer cloning', () => {
   it.each([
-    [undefined, ['--depth', '1', '--config', 'core.symlinks=false']],
-    [
-      'v1.2.0',
-      ['--depth', '1', '--branch', 'v1.2.0', '--config', 'core.symlinks=false'],
-    ],
+    [undefined, ['--depth', '1']],
+    ['v1.2.0', ['--depth', '1', '--branch', 'v1.2.0']],
   ])('clones a ref of %s with the options %j', async (ref, options) => {
     clone.mockResolvedValue(undefined);
 
