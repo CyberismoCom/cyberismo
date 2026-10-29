@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { serve } from '@hono/node-server';
-import type { Env, Schema } from 'hono';
+import type { Context, Env, Schema } from 'hono';
 import { Hono } from 'hono';
 import { serveStatic } from '@hono/node-server/serve-static';
 import path from 'node:path';
@@ -20,14 +20,35 @@ export { exportSite, type ExportSiteOptions } from './export.js';
 const DEFAULT_PORT = 3000;
 const DEFAULT_MAX_PORT = DEFAULT_PORT + 100;
 
+// serveStatic only decodeURI's the path, leaving %23, %26 etc. encoded, and the
+// callback gets that already-decoded path (a literal '%' would double-decode).
+// Decode each segment of the raw URL instead; refuse segments that could escape.
+function decodeStaticPath(c: Context): string {
+  const segments = new URL(c.req.url).pathname.split('/').map((s) => {
+    try {
+      return decodeURIComponent(s);
+    } catch {
+      return undefined;
+    }
+  });
+  const unsafe = segments.some(
+    (s) => s === undefined || s === '..' || s === '.' || /[/\\\0]/.test(s),
+  );
+  return unsafe ? '\0' : segments.join('/');
+}
+
 /**
- * Preview the exported site
- * @param dir - Directory to preview
- * @param findPort - If true, find a free port
+ * Build the app that serves an exported site
+ * @param dir - Directory to serve
  */
-export async function previewSite(dir: string, findPort: boolean = true) {
+export function createPreviewApp(dir: string) {
   const app = new Hono();
-  app.use(serveStatic({ root: dir }));
+  app.use(
+    serveStatic({
+      root: dir,
+      rewriteRequestPath: (_, c) => decodeStaticPath(c),
+    }),
+  );
   app.get('*', async (c) => {
     if (c.req.path.startsWith('/api/')) {
       return c.json({ error: 'Resource not found' }, 404);
@@ -35,7 +56,16 @@ export async function previewSite(dir: string, findPort: boolean = true) {
     const file = await readFile(path.join(dir, 'index.html'));
     return c.html(file.toString());
   });
+  return app;
+}
 
+/**
+ * Preview the exported site
+ * @param dir - Directory to preview
+ * @param findPort - If true, find a free port
+ */
+export async function previewSite(dir: string, findPort: boolean = true) {
+  const app = createPreviewApp(dir);
   let port = parseInt(process.env.PORT || DEFAULT_PORT.toString(), 10);
 
   if (findPort) {
