@@ -26,6 +26,12 @@ export function decodeClingoValue(value: string) {
 // Enums and lists are handled by the query language
 type FieldDataType = Omit<DataType, 'list' | 'enum'> | 'stringList';
 
+// Names come from query output, so assigning them as properties must not
+// reach an object's prototype setter.
+function isSafeName(name: string) {
+  return name !== '__proto__';
+}
+
 class ClingoParser {
   private keywords = [
     'queryError',
@@ -54,7 +60,7 @@ class ClingoParser {
     name: string;
     collection: string;
   }[] = [];
-  private tempResults: { [key: string]: BaseResult } = {};
+  private tempResults = new Map<string, BaseResult>();
   private orderQueue: {
     level: number;
     collection: string;
@@ -71,7 +77,7 @@ class ClingoParser {
     this.resultQueue = [];
     this.childResultQueue = [];
     this.childObjectQueue = [];
-    this.tempResults = {};
+    this.tempResults = new Map();
     this.orderQueue = [];
     this.collections = new Set();
   }
@@ -90,16 +96,19 @@ class ClingoParser {
       this.resultQueue.push({ key });
     },
     childResult: (parentKey: string, childKey: string, collection: string) => {
+      if (!isSafeName(collection)) return;
       this.childResultQueue.push({ parentKey, childKey, collection });
       this.collections.add(collection);
     },
     childResultCollection: (parentKey: string, collection: string) => {
+      if (!isSafeName(collection)) return;
       const parent = this.getOrInitResult(parentKey);
       if (!parent[collection] || !Array.isArray(parent[collection])) {
         parent[collection] = [];
       }
     },
     childObject: (parentKey: string, name: string, collection: string) => {
+      if (!isSafeName(collection)) return;
       this.childObjectQueue.push({ parentKey, name, collection });
     },
     field: (
@@ -108,6 +117,7 @@ class ClingoParser {
       fieldValue: string,
       dataType: FieldDataType,
     ) => {
+      if (!isSafeName(fieldName)) return;
       const res = this.getOrInitResult(key);
       const decoded = decodeClingoValue(fieldValue);
       switch (dataType) {
@@ -155,12 +165,12 @@ class ClingoParser {
   };
 
   private getOrInitResult(key: string): BaseResult {
-    if (!this.tempResults[key]) {
-      this.tempResults[key] = {
-        key,
-      };
+    let result = this.tempResults.get(key);
+    if (!result) {
+      result = { key };
+      this.tempResults.set(key, result);
     }
-    return this.tempResults[key];
+    return result;
   }
   private sortByLevel(
     results: BaseResult[],
