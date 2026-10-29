@@ -6,6 +6,7 @@ import { expect, describe, it, beforeEach, afterEach } from 'vitest';
 import { join } from 'node:path';
 import {
   mkdirSync,
+  readFileSync,
   renameSync,
   rmSync,
   symlinkSync,
@@ -105,6 +106,32 @@ describe('Resource cache', () => {
     });
     afterEach(() => {
       rmSync(testDir, { recursive: true, force: true });
+    });
+
+    it('does not read a resource file replaced by a symlink after load', async () => {
+      const checkout = getTestProject(testProjectPath);
+      await checkout.populateCaches();
+      const file = join(
+        testProjectPath,
+        '.cards',
+        'local',
+        'workflows',
+        'decision.json',
+      );
+      const outside = join(testDir, 'outside.json');
+      writeFileSync(
+        outside,
+        readFileSync(file, 'utf-8').replace('decision', 'LEAKED'),
+      );
+      rmSync(file);
+      symlinkSync(outside, file);
+
+      const workflow = checkout.resources.byType(
+        'decision/workflows/decision',
+        'workflows',
+      );
+
+      expect(JSON.stringify(workflow.data ?? {})).not.toContain('LEAKED');
     });
 
     it('does not collect from a resource folder that is a symlink', async () => {
