@@ -6,8 +6,7 @@
 // LICENSE covers them.
 //
 //   pnpm lint-headers    report (also part of `pnpm lint`)
-//   pnpm fix-headers     insert missing headers and replace the legacy AGPL
-//                        block
+//   pnpm fix-headers     insert missing headers and repair their spacing
 //
 // A header that is not ours is reported and never rewritten; the exit code is
 // non-zero while any file is left unfixed.
@@ -68,13 +67,6 @@ function styleOf(path, shebang) {
   return undefined;
 }
 
-// The old header: a block comment opening with a "Cyberismo" line. Other
-// block comments are never treated as legacy.
-const LEGACY =
-  /^\/\*\*?[ \t]*\n[ \t]*Cyberismo[ \t]*\n(?:(?!\*\/)[\s\S])*\*\/[ \t]*\n/;
-const isLegacy = (block) =>
-  block.includes('Copyright © Cyberismo Ltd') &&
-  block.includes('GNU Affero General Public License');
 const NOTICE = /SPDX-|Copyright|©|Permission is hereby|Licensed under/i;
 
 // The comment lines (and blank lines) the file opens with.
@@ -96,8 +88,8 @@ function leadingComments(text) {
 
 /**
  * The text a file should have: its own text if the header is fine, otherwise
- * the text with the header inserted (or the legacy block replaced). Returns
- * `{ problem }` for a header that is not ours.
+ * the text with the header inserted. Returns `{ problem }` for a header that
+ * is not ours.
  */
 function expected(path, text) {
   const shebang = /^#![^\n]*/.exec(text)?.[0];
@@ -114,19 +106,6 @@ function expected(path, text) {
 
   if (rest.startsWith(header)) {
     return { fixed: compose(rest.slice(header.length).replace(/^\n+/, '')) };
-  }
-  // Single-line pragmas (`/* globals x */`) may precede the legacy block; they
-  // stay, below the new header.
-  const pragmas = /^(?:\/\*[^*\n][^\n]*\*\/[ \t]*\n+)*/.exec(rest)[0];
-  const afterPragmas = rest.slice(pragmas.length);
-  const legacy = LEGACY.exec(afterPragmas);
-  if (legacy && isLegacy(legacy[0])) {
-    return {
-      fixed: compose(
-        pragmas + afterPragmas.slice(legacy[0].length).replace(/^\n+/, ''),
-      ),
-      problem: 'legacy AGPL block instead of the SPDX header',
-    };
   }
   if (NOTICE.test(leadingComments(rest))) {
     return { problem: 'carries a header that is not ours; fix by hand' };
