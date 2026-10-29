@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: Cyberismo Ltd and contributors
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { test as base, expect } from '@playwright/test';
 import { spawn, type ChildProcess } from 'node:child_process';
 import { cp, rm } from 'node:fs/promises';

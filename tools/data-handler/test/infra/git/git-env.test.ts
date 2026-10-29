@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: Cyberismo Ltd and contributors
+// SPDX-License-Identifier: AGPL-3.0-only
+
 // simple-git's `.env(object)` REPLACES the child environment rather than
 // extending it, AND it refuses to pass GIT_SSH_COMMAND, GIT_CONFIG_* and
 // friends at all, treating them as unsafe. Inherited environment is not

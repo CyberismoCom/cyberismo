@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: Cyberismo Ltd and contributors
+// SPDX-License-Identifier: AGPL-3.0-only
+
 /**
  * Setup script for e2e tests.
  * Creates the test project before the backend starts, so that

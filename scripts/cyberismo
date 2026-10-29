@@ -1,2 +1,5 @@
 #!/bin/bash
+# SPDX-FileCopyrightText: Cyberismo Ltd and contributors
+# SPDX-License-Identifier: AGPL-3.0-only
+
 docker run --init --rm -i --user $(id -u):$(id -g) -e HOME=/tmp -v $(pwd):/project:Z -p 3000:3000 cyberismo:latest cyberismo "$@"

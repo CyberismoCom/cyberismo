@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: Cyberismo Ltd and contributors
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { mkdirSync, rmSync } from 'node:fs';
 import { readdir, writeFile } from 'node:fs/promises';
 import { join, resolve, sep } from 'node:path';

@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: Cyberismo Ltd and contributors
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import type { Project } from '@/lib/definitions';
 
 import type { QueryResult, CalculationLink } from '@cyberismo/model';
