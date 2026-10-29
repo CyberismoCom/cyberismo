@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import path from 'node:path';
-import { createServer } from 'node:net';
+import { serve, type ServerType } from '@hono/node-server';
 
 /**
  * The relative path to the static frontend directory.
@@ -13,43 +13,32 @@ export const staticFrontendDirRelative = path.relative(
 );
 
 /**
- * Finds a free port.
- * @param port - The port to start looking for.
- * @param maxAttempts - The maximum number of attempts to find a free port.
- * @returns The free port.
+ * Starts the server, moving to the next port while the current one is taken.
+ * The bind itself is the check, so a port can't be taken between check and use.
+ * @param fetch - Request handler.
+ * @param port - The first port to try.
+ * @param host - The host to bind.
+ * @param maxPort - The last port to try; defaults to `port` (no retry).
+ * @returns The listening server and the port it bound.
  */
-export async function findFreePort(
-  minPort: number,
-  maxPort: number,
-): Promise<number> {
-  for (let i = minPort; i < maxPort; i++) {
-    try {
-      await testPort(i);
-      return i;
-    } catch (err) {
-      if (err instanceof Error && err.message.includes('EADDRINUSE')) {
-        console.log(`Port ${i} is already in use, trying next port...`);
-      } else {
-        throw err;
-      }
-    }
-  }
-  throw new Error('Failed to find free port');
-}
-
-function testPort(port: number) {
+export function listen(
+  fetch: Parameters<typeof serve>[0]['fetch'],
+  port: number,
+  host: string,
+  maxPort: number = port,
+): Promise<{ server: ServerType; port: number }> {
   return new Promise((resolve, reject) => {
-    const server = createServer();
-    server.listen(port, () => {
-      server.close();
-      resolve(true);
+    const server = serve({ fetch, port, hostname: host }, (info) =>
+      resolve({ server, port: info.port }),
+    );
+    server.once('error', (err: NodeJS.ErrnoException) => {
+      if (err.code === 'EADDRINUSE' && port < maxPort) {
+        console.log(`Port ${port} is already in use, trying next port...`);
+        resolve(listen(fetch, port + 1, host, maxPort));
+      } else {
+        reject(err);
+      }
     });
-    server.on('error', (err) => {
-      reject(err);
-    });
-    setTimeout(() => {
-      reject(new Error('Timed out waiting for port to be free'));
-    }, 2000);
   });
 }
 
