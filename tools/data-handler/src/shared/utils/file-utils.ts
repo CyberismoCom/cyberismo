@@ -11,14 +11,25 @@ import {
   writeFile,
 } from 'node:fs/promises';
 import {
+  type Dirent,
   closeSync,
   constants,
   existsSync,
+  lstatSync,
   openSync,
+  realpathSync,
   readdirSync,
   readFileSync,
 } from 'node:fs';
-import { basename, dirname, join, sep } from 'node:path';
+import {
+  basename,
+  dirname,
+  isAbsolute,
+  join,
+  relative,
+  resolve,
+  sep,
+} from 'node:path';
 import { homedir } from 'node:os';
 
 /**
@@ -43,6 +54,64 @@ export async function copyDir(source: string, destination: string) {
       await copyFile(sourcePath, destinationPath);
     }
   }
+}
+
+/**
+ * Every entry under `root`, recursively, without following symlinks: a
+ * symlink is returned as an entry but never descended into, on any Node
+ * version (`readdir`'s own `recursive` option follows them on some).
+ * @param root folder to walk
+ * @param onSymlink called with the path of each symlink found
+ */
+export async function walkEntries(
+  root: string,
+  onSymlink?: (path: string) => void,
+): Promise<Dirent[]> {
+  const entries = await readdir(root, { withFileTypes: true });
+  const nested = await Promise.all(
+    entries.map(async (entry) => {
+      const path = join(root, entry.name);
+      if (entry.isSymbolicLink()) {
+        onSymlink?.(path);
+        return [entry];
+      }
+      return entry.isDirectory()
+        ? [entry, ...(await walkEntries(path, onSymlink))]
+        : [entry];
+    }),
+  );
+  return nested.flat();
+}
+
+/**
+ * The first symlink on the way from `base` down to `path`, if any. `base`
+ * itself may be reached through a symlink; only what is below it counts.
+ * A `path` outside `base` or not on disk has none.
+ * @param base project folder
+ * @param path folder or file below `base`
+ */
+export function symlinkBelow(base: string, path: string): string | undefined {
+  const below = relative(resolve(base), resolve(path));
+  if (
+    below === '' ||
+    below === '..' ||
+    below.startsWith('..' + sep) ||
+    isAbsolute(below)
+  ) {
+    return undefined;
+  }
+  let current = realpathSync(base);
+  for (const part of below.split(sep)) {
+    current = join(current, part);
+    try {
+      if (lstatSync(current).isSymbolicLink()) {
+        return current;
+      }
+    } catch {
+      return undefined;
+    }
+  }
+  return undefined;
 }
 
 // Opening with O_NOFOLLOW makes the read fail on a symlink, closing the gap
