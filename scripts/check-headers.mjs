@@ -12,7 +12,7 @@
 // non-zero while any file is left unfixed.
 
 import { execFileSync } from 'node:child_process';
-import { lstatSync, readFileSync, writeFileSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
 import { basename, extname } from 'node:path';
 
 const COPYRIGHT = 'Cyberismo Ltd and contributors';
@@ -117,13 +117,16 @@ const root = execFileSync('git', ['rev-parse', '--show-toplevel'], {
   encoding: 'utf8',
 }).trim();
 const fix = process.argv.includes('--fix');
-const files = execFileSync('git', ['ls-files', '-z'], {
+// Regular files only (mode 100644/100755): no symlinks, no submodules.
+const files = execFileSync('git', ['ls-files', '--stage', '-z'], {
   cwd: root,
   encoding: 'utf8',
   maxBuffer: 1 << 28,
 })
   .split('\0')
-  .filter((path) => path && !isExcluded(path));
+  .filter((entry) => /^100(?:644|755) /.test(entry))
+  .map((entry) => entry.slice(entry.indexOf('\t') + 1))
+  .filter((path) => !isExcluded(path));
 
 const failures = [];
 let fixedCount = 0;
@@ -131,7 +134,6 @@ for (const path of files) {
   const full = `${root}/${path}`;
   let text;
   try {
-    if (!lstatSync(full).isFile()) continue;
     text = readFileSync(full, 'utf8');
   } catch {
     continue;
