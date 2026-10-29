@@ -14,7 +14,7 @@ Use `pnpm`, never `npm` or `yarn`.
 - `pnpm build` — build all packages
 - `pnpm test` — run all tests
 - `pnpm test-<package>` — one package's tests (e.g. `pnpm test-data-handler`, `test-cli`, `test-app`, `test-backend`, `test-clingo`, `test-mcp`)
-- `pnpm lint` — eslint all packages
+- `pnpm lint` — check SPDX headers and eslint all packages
 - `pnpm prettier-check` / `pnpm prettier-fix` — formatting
 - `pnpm dev` — run all packages in dev/watch mode
 - `pnpm cyberismo` — run the CLI from source
@@ -47,7 +47,13 @@ Internal deps use `"workspace:*"` and are imported as `@cyberismo/<package>`.
   import { Project } from './containers/project';
   ```
 - Use `node:` prefix on Node built-ins: `import { join } from 'node:path'`
-- New source files start with the AGPL-3.0 copyright header — copy the `/** Cyberismo ... */` block from any existing source file
+- Every source file we own (TS/JS, C++, CSS, HTML, `.lp`, shell and other scripts) starts with exactly these two lines (directly after the shebang, if any), no year, no other text, in the file's comment style (`//` TS/JS/C++, `/* */` CSS, `<!-- -->` HTML, `%` `.lp`, `#` shell):
+  ```typescript
+  // SPDX-FileCopyrightText: Cyberismo Ltd and contributors
+  // SPDX-License-Identifier: AGPL-3.0-only
+  ```
+- No headers on configuration files (YAML, JSON, dotfiles, Dockerfiles), under the prefixes in `EXCLUDES` in `scripts/check-headers.mjs` (vendored `external/`, `docs/`, `module-test/`, test data), or on the non-`.ts` files in `tools/assets/src`. Never edit third-party headers or files.
+- `pnpm lint` checks the headers (`scripts/check-headers.mjs`); `pnpm fix-headers` adds or repairs them
 - C++ code in `node-clingo` is format-checked in CI: `pnpm --filter node-clingo format:cpp:check`
 
 ## Testing
