@@ -4,12 +4,20 @@
 import {
   copyFile,
   mkdir,
+  open,
   readdir,
   rm,
   unlink,
   writeFile,
 } from 'node:fs/promises';
-import { existsSync, readdirSync } from 'node:fs';
+import {
+  closeSync,
+  constants,
+  existsSync,
+  openSync,
+  readdirSync,
+  readFileSync,
+} from 'node:fs';
 import { basename, dirname, join, sep } from 'node:path';
 import { homedir } from 'node:os';
 
@@ -24,6 +32,9 @@ export async function copyDir(source: string, destination: string) {
   for (const entry of entries) {
     const sourcePath = join(source, entry.name);
     const destinationPath = join(destination, entry.name);
+    if (entry.isSymbolicLink()) {
+      throw new Error(`Cannot copy symbolic link '${sourcePath}'`);
+    }
     if (entry.isDirectory()) {
       await mkdir(destinationPath, { recursive: true });
       await copyDir(sourcePath, destinationPath);
@@ -31,6 +42,36 @@ export async function copyDir(source: string, destination: string) {
       await mkdir(destination, { recursive: true });
       await copyFile(sourcePath, destinationPath);
     }
+  }
+}
+
+// Opening with O_NOFOLLOW makes the read fail on a symlink, closing the gap
+// between the load-time check and the read.
+const NO_FOLLOW = constants.O_RDONLY | constants.O_NOFOLLOW;
+
+/**
+ * Reads a file's bytes, refusing to follow a symlink at `path`.
+ * @param path file to read
+ */
+export async function readFileNoFollow(path: string): Promise<Buffer> {
+  const handle = await open(path, NO_FOLLOW);
+  try {
+    return await handle.readFile();
+  } finally {
+    await handle.close();
+  }
+}
+
+/**
+ * Synchronous variant of {@link readFileNoFollow}.
+ * @param path file to read
+ */
+export function readFileNoFollowSync(path: string): Buffer {
+  const fd = openSync(path, NO_FOLLOW);
+  try {
+    return readFileSync(fd);
+  } finally {
+    closeSync(fd);
   }
 }
 

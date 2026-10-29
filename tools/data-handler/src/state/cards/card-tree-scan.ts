@@ -3,7 +3,7 @@
 
 // node
 import type { Dirent } from 'node:fs';
-import { basename, dirname, join, relative, resolve } from 'node:path';
+import { basename, dirname, join, relative, resolve, sep } from 'node:path';
 import { readdir, readFile } from 'node:fs/promises';
 
 import type { CardMetadata, MetadataContent } from '@cyberismo/model';
@@ -92,6 +92,9 @@ function attachmentsByCard(
   const seen = new Set<string>();
 
   for (const entry of allEntries) {
+    if (entry.isSymbolicLink()) {
+      continue;
+    }
     const owner = attachmentOwner(entry, cardFolders, root);
     if (!owner) {
       continue;
@@ -142,6 +145,31 @@ function attachmentOwner(
   return undefined;
 }
 
+// Symlinks are never followed: they could point outside the project. Warns on
+// each one and returns the card folders whose index files are symlinks; such
+// a card is not loaded, nor is anything beneath it.
+function skipSymlinks(allEntries: Dirent[]): { cardFolders: string[] } {
+  const cardFolders: string[] = [];
+  for (const entry of allEntries) {
+    if (!entry.isSymbolicLink()) {
+      continue;
+    }
+    const path = join(entry.parentPath, entry.name);
+    logger.warn(`Skipping symbolic link '${path}'`);
+    if (entry.name === CARD_CONTENT_FILE || entry.name === CARD_METADATA_FILE) {
+      cardFolders.push(resolve(entry.parentPath));
+    }
+  }
+  return { cardFolders };
+}
+
+function isUnderFolder(path: string, folders: string[]): boolean {
+  const resolved = resolve(path);
+  return folders.some(
+    (folder) => resolved === folder || resolved.startsWith(folder + sep),
+  );
+}
+
 // Gets content from disk.
 async function fetchContent(currentPath: string): Promise<string> {
   return readFile(join(currentPath, CARD_CONTENT_FILE), {
@@ -169,8 +197,12 @@ export async function scanCardTree(
 ): Promise<StoredCard[]> {
   const root = resolve(rootPath);
   const allEntries = await entries(rootPath);
+  const skipped = skipSymlinks(allEntries);
   const cardEntries = allEntries.filter(
-    (entry) => entry.isDirectory() && CardNameRegEx.test(entry.name),
+    (entry) =>
+      entry.isDirectory() &&
+      CardNameRegEx.test(entry.name) &&
+      !isUnderFolder(join(entry.parentPath, entry.name), skipped.cardFolders),
   );
 
   // Card folder -> card key, so an entry can be traced back to the card
