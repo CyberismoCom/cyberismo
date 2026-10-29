@@ -17,9 +17,6 @@ import type { FetchTarget, SourceLayer } from './source.js';
 import type { Source } from '@cyberismo/model';
 import type { ProjectSettings } from '@cyberismo/model';
 
-// Checks a symlink out as a plain text file, so it cannot point outside.
-const NO_SYMLINKS = ['--config', 'core.symlinks=false'];
-
 function cloneOptions(ref?: string): string[] {
   const options = ['--depth', '1'];
   if (ref) {
@@ -47,10 +44,11 @@ export class GitSourceLayer implements SourceLayer {
     const git = createGit({ timeout: gitTimeout() });
 
     try {
-      await git.clone(target.remoteUrl, destinationPath, [
-        ...cloneOptions(target.ref),
-        ...NO_SYMLINKS,
-      ]);
+      await git.clone(
+        target.remoteUrl,
+        destinationPath,
+        cloneOptions(target.ref),
+      );
     } catch (error) {
       if (error instanceof Error) {
         throw new Error(
