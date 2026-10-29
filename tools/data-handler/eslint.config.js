@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: Cyberismo Ltd and contributors
 // SPDX-License-Identifier: AGPL-3.0-only
 
-import { nodeConfig } from '../../eslint.config.js';
+import { NO_SIMPLE_GIT, nodeConfig } from '../../eslint.config.js';
 
 // Layers under src/, top to bottom: api/ (the consumer surface), domain/
 // (operations and rules), state/ (the checkout core: I/O plus in-memory
@@ -21,7 +21,12 @@ function restrict(group, message, allow = []) {
   return {
     'no-restricted-imports': [
       'error',
-      { patterns: [{ group: [...group, ...allowed(allow)], message }] },
+      {
+        patterns: [
+          { group: [...group, ...allowed(allow)], message },
+          NO_SIMPLE_GIT,
+        ],
+      },
     ],
   };
 }
@@ -145,6 +150,11 @@ export default [
     rules: sharedBoundary,
   },
   { files: ['src/**/*.ts'], rules: NO_RELATIVE_DYNAMIC_IMPORT },
+  // The one place simple-git is imported; it imports nothing else.
+  {
+    files: ['src/infra/git/git-config.ts'],
+    rules: { 'no-restricted-imports': 'off' },
+  },
   // File-wide exemptions, reasons only (tickets to file): resource-object.ts
   // imports Validate lazily to break a cycle (V-series). api/export.ts lazily
   // imports a module it also imports statically, left as-is in a moves-only PR.
