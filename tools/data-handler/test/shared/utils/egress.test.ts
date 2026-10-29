@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: Cyberismo Ltd and contributors
+// SPDX-License-Identifier: AGPL-3.0-only
+
 // The point of routing outbound traffic per call rather than through
 // setGlobalDispatcher is that a plain `fetch()`, in our code or inside any
 // dependency, has no route out. These pin that.

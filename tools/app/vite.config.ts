@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: Cyberismo Ltd and contributors
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
 import license from 'rollup-plugin-license';

@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: Cyberismo Ltd and contributors
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { describe, it, expect, afterEach, beforeEach } from 'vitest';
 import { ClingoContext, clearCache } from '../lib/index.js';
 

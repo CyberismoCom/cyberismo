@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: Cyberismo Ltd and contributors
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { zValidator as zv } from '@hono/zod-validator';
 import type { ZodType } from 'zod';
 import type { ValidationTargets } from 'hono';

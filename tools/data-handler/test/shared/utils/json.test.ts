@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: Cyberismo Ltd and contributors
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { expect, describe, it, afterAll } from 'vitest';
 
 import { mkdirSync, rmSync } from 'node:fs';

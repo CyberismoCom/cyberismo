@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: Cyberismo Ltd and contributors
+// SPDX-License-Identifier: AGPL-3.0-only
+
 import { defineConfig } from 'vitest/config';
 import babel, { defineRolldownBabelPreset } from '@rolldown/plugin-babel';
 
