@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { dirname, extname, join } from 'node:path';
-import { type Dirent, readdirSync, readFileSync } from 'node:fs';
+import { type Dirent, lstatSync, readdirSync, readFileSync } from 'node:fs';
 
 import { getChildLogger } from '../../shared/utils/log-utils.js';
 import {
@@ -237,12 +237,25 @@ export class ResourceCache {
     if (FOLDER_RESOURCE_TYPES.includes(type)) {
       const internalFolder = join(entry.parentPath, identifier);
       try {
+        // Symlinks are never followed, a symlinked internal folder included.
+        if (lstatSync(internalFolder).isSymbolicLink()) {
+          ResourceCache.logger.warn(
+            `Skipping symbolic link '${internalFolder}'`,
+          );
+          return undefined;
+        }
         const contentEntries = readdirSync(internalFolder, {
           withFileTypes: true,
         });
         const files = new Map<string, string>();
 
         for (const contentEntry of contentEntries) {
+          if (contentEntry.isSymbolicLink()) {
+            ResourceCache.logger.warn(
+              `Skipping symbolic link '${join(internalFolder, contentEntry.name)}'`,
+            );
+            continue;
+          }
           if (
             contentEntry.isFile() &&
             VALID_FOLDER_RESOURCE_FILES.includes(contentEntry.name)
@@ -282,6 +295,13 @@ export class ResourceCache {
       const entries = readdirSync(resourceFolder, { withFileTypes: true });
 
       for (const entry of entries) {
+        // Only regular files are admitted; symlinks are never followed.
+        if (entry.isSymbolicLink()) {
+          ResourceCache.logger.warn(
+            `Skipping symbolic link '${join(resourceFolder, entry.name)}'`,
+          );
+          continue;
+        }
         if (entry.isFile() && allowedExtensions.includes(extname(entry.name))) {
           const name =
             source === 'local'

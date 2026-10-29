@@ -41,7 +41,8 @@ export async function cloneProject(
     tempDir = await mkdtemp(join(destPath, '.cyberismo-clone-'));
     tempClonePath = join(tempDir, repoName);
     const git = createGit({ timeout: gitTimeout() });
-    await git.clone(url, tempClonePath);
+    // Checks a symlink out as a plain text file, so it cannot point outside.
+    await git.clone(url, tempClonePath, ['--config', 'core.symlinks=false']);
 
     // Validate that the cloned repo contains Cyberismo projects
     folders = await configuredFolders(tempClonePath);

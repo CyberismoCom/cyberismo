@@ -13,7 +13,13 @@ import {
 } from 'vitest';
 
 // node
-import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import {
+  existsSync,
+  mkdirSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { join, sep } from 'node:path';
 
@@ -170,6 +176,53 @@ async function loadedTree(): Promise<CardTree> {
 }
 
 describe('Card tree', () => {
+  describe.skipIf(process.platform === 'win32')('symlinks', () => {
+    const secret = join(testDir, 'secret');
+    const SECRET = 'top secret';
+
+    beforeEach(() => {
+      createTestData();
+      mkdirSync(secret, { recursive: true });
+      writeFileSync(join(secret, 'index.adoc'), SECRET);
+      writeFileSync(join(secret, 'index.json'), '{"title":"secret"}');
+    });
+    afterEach(() => {
+      rmSync(testDir, { recursive: true, force: true });
+    });
+
+    it.each([
+      ['index.adoc', 'adoc'],
+      ['index.json', 'json'],
+    ])('does not load a card whose %s is a symlink', async (file) => {
+      const dir = join(testCardsPath, 'test_1', 'c', 'test_2');
+      rmSync(join(dir, file));
+      symlinkSync(join(secret, file), join(dir, file));
+
+      const tree = await loadedTree();
+
+      expect(tree.keys()).toEqual(['test_1', 'test_3']);
+    });
+
+    it('does not load a symlinked card folder', async () => {
+      symlinkSync(secret, join(testCardsPath, 'test_9'));
+
+      const tree = await loadedTree();
+
+      expect(tree.keys()).toEqual(['test_1', 'test_2', 'test_3']);
+    });
+
+    it('does not list a symlinked attachment', async () => {
+      const dir = join(testCardsPath, 'test_1', 'a');
+      symlinkSync(join(secret, 'index.adoc'), join(dir, 'link.txt'));
+
+      const tree = await loadedTree();
+
+      expect(tree.attachmentsOf('test_1').map((a) => a.fileName)).toEqual([
+        'test-attachment.txt',
+      ]);
+    });
+  });
+
   describe('lifecycle', () => {
     beforeAll(() => {
       createTestData();

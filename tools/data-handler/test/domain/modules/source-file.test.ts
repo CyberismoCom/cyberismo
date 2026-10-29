@@ -2,7 +2,14 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
+import {
+  mkdtemp,
+  mkdir,
+  readFile,
+  rm,
+  symlink,
+  writeFile,
+} from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
@@ -79,6 +86,28 @@ describe('modules/source-file', () => {
     const sourceResources = new ProjectPaths(sourcePath).resourcesFolder;
     expect(existsSync(join(sourceResources, 'marker.txt'))).toBe(true);
   });
+
+  it.skipIf(process.platform === 'win32')(
+    'fetch rejects a source whose resources contain a symlink',
+    async () => {
+      const secret = join(tmpRoot, 'secret.txt');
+      await writeFile(secret, 'secret');
+      const sourcePath = join(tmpRoot, 'source-tree');
+      await makeProjectAt(sourcePath, { 'marker.txt': 'hello' });
+      const resources = new ProjectPaths(sourcePath).resourcesFolder;
+      await symlink(secret, join(resources, 'link.txt'));
+      const destRoot = join(tmpRoot, 'file-dest');
+
+      await expect(
+        new FileSourceLayer().fetch(
+          { location: sourcePath, remoteUrl: sourcePath },
+          destRoot,
+          'my-mod',
+        ),
+      ).rejects.toThrow('Cannot copy symbolic link');
+      expect(existsSync(join(destRoot, 'my-mod', 'link.txt'))).toBe(false);
+    },
+  );
 
   it('fetch does not copy ambient parts of the source project (e.g., .temp, .cards/modules)', async () => {
     const layer: SourceLayer = new FileSourceLayer();
