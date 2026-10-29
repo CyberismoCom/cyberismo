@@ -4,11 +4,12 @@
 // node
 import type { Dirent } from 'node:fs';
 import { basename, dirname, join, relative, resolve, sep } from 'node:path';
-import { readdir, readFile } from 'node:fs/promises';
+import { readFile } from 'node:fs/promises';
 
 import type { CardMetadata, MetadataContent } from '@cyberismo/model';
 import { CardNameRegEx } from '@cyberismo/model';
 import { getChildLogger } from '../../shared/utils/log-utils.js';
+import { symlinkBelow, walkEntries } from '../../shared/utils/file-utils.js';
 import { ROOT } from '../../shared/utils/constants.js';
 
 // A card's own files, inside its folder.
@@ -70,10 +71,13 @@ function frozenList(values: unknown[]): MetadataContent {
 
 const logger = getChildLogger({ module: 'cardTree' });
 
-// Gets all directory entries recursively.
+// Gets all directory entries recursively. Symlinks are never followed, as
+// they could point outside the project; each one is warned about and skipped.
 async function entries(path: string): Promise<Dirent[]> {
   try {
-    return await readdir(path, { withFileTypes: true, recursive: true });
+    return await walkEntries(path, (link) =>
+      logger.warn(`Skipping symbolic link '${link}'`),
+    );
   } catch (error) {
     logger.error({ error }, 'Reading entries');
     return [];
@@ -145,22 +149,16 @@ function attachmentOwner(
   return undefined;
 }
 
-// Symlinks are never followed: they could point outside the project. Warns on
-// each one and returns the card folders whose index files are symlinks; such
-// a card is not loaded, nor is anything beneath it.
-function skipSymlinks(allEntries: Dirent[]): { cardFolders: string[] } {
-  const cardFolders: string[] = [];
-  for (const entry of allEntries) {
-    if (!entry.isSymbolicLink()) {
-      continue;
-    }
-    const path = join(entry.parentPath, entry.name);
-    logger.warn(`Skipping symbolic link '${path}'`);
-    if (entry.name === CARD_CONTENT_FILE || entry.name === CARD_METADATA_FILE) {
-      cardFolders.push(resolve(entry.parentPath));
-    }
-  }
-  return { cardFolders };
+// Card folders whose index files are symlinks; such a card is not loaded, nor
+// is anything beneath it.
+function symlinkedCardFolders(allEntries: Dirent[]): string[] {
+  return allEntries
+    .filter(
+      (entry) =>
+        entry.isSymbolicLink() &&
+        (entry.name === CARD_CONTENT_FILE || entry.name === CARD_METADATA_FILE),
+    )
+    .map((entry) => resolve(entry.parentPath));
 }
 
 function isUnderFolder(path: string, folders: string[]): boolean {
@@ -190,19 +188,27 @@ async function fetchMetadata(currentPath: string): Promise<string> {
  * anywhere else it is in its parent's 'c' folder.
  * @param rootPath Folder the tree's cards are rooted at.
  * @param treeName Tree the cards are read for; names the scan in the log.
+ * @param projectRoot Project folder; a root reached through a symlink below
+ *   it yields no cards.
  */
 export async function scanCardTree(
   rootPath: string,
   treeName: string,
+  projectRoot?: string,
 ): Promise<StoredCard[]> {
   const root = resolve(rootPath);
+  const link = projectRoot && symlinkBelow(projectRoot, rootPath);
+  if (link) {
+    logger.warn(`Skipping symbolic link '${link}'`);
+    return [];
+  }
   const allEntries = await entries(rootPath);
-  const skipped = skipSymlinks(allEntries);
+  const symlinked = symlinkedCardFolders(allEntries);
   const cardEntries = allEntries.filter(
     (entry) =>
       entry.isDirectory() &&
       CardNameRegEx.test(entry.name) &&
-      !isUnderFolder(join(entry.parentPath, entry.name), skipped.cardFolders),
+      !isUnderFolder(join(entry.parentPath, entry.name), symlinked),
   );
 
   // Card folder -> card key, so an entry can be traced back to the card

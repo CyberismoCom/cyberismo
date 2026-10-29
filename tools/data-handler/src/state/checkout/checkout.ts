@@ -96,6 +96,7 @@ export class Checkout {
     this.projectCardTree = new CardTree({
       name: 'project',
       rootPath: join(path, 'cardRoot'),
+      projectRoot: path,
       kind: 'project',
       writable: true,
       keys: this.keyRegistry,
@@ -302,6 +303,7 @@ export class Checkout {
     const tree = new CardTree({
       name: templateName,
       rootPath,
+      projectRoot: this.basePath,
       kind: 'template',
       writable: !isModulePath(rootPath),
       keys: this.keyRegistry,

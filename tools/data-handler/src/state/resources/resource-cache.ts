@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { dirname, extname, join } from 'node:path';
-import { type Dirent, lstatSync, readdirSync, readFileSync } from 'node:fs';
+import { type Dirent, readdirSync, readFileSync } from 'node:fs';
 
 import { getChildLogger } from '../../shared/utils/log-utils.js';
 import {
@@ -10,7 +10,7 @@ import {
   resourceName,
   resourceNameToString,
 } from '../../shared/utils/resource-utils.js';
-import { stripExtension } from '../../shared/utils/file-utils.js';
+import { stripExtension, symlinkBelow } from '../../shared/utils/file-utils.js';
 import { VALID_FOLDER_RESOURCE_FILES } from '../../shared/utils/constants.js';
 
 import { CalculationResource } from '../../domain/resources/calculation-resource.js';
@@ -236,26 +236,16 @@ export class ResourceCache {
     // Set content files for folder resources
     if (FOLDER_RESOURCE_TYPES.includes(type)) {
       const internalFolder = join(entry.parentPath, identifier);
+      if (this.insideSymlink(internalFolder)) {
+        return undefined;
+      }
       try {
-        // Symlinks are never followed, a symlinked internal folder included.
-        if (lstatSync(internalFolder).isSymbolicLink()) {
-          ResourceCache.logger.warn(
-            `Skipping symbolic link '${internalFolder}'`,
-          );
-          return undefined;
-        }
         const contentEntries = readdirSync(internalFolder, {
           withFileTypes: true,
         });
         const files = new Map<string, string>();
 
         for (const contentEntry of contentEntries) {
-          if (contentEntry.isSymbolicLink()) {
-            ResourceCache.logger.warn(
-              `Skipping symbolic link '${join(internalFolder, contentEntry.name)}'`,
-            );
-            continue;
-          }
           if (
             contentEntry.isFile() &&
             VALID_FOLDER_RESOURCE_FILES.includes(contentEntry.name)
@@ -280,6 +270,16 @@ export class ResourceCache {
     return contentFiles;
   }
 
+  // Symlinks are never followed: a project folder reached through one is
+  // skipped.
+  private insideSymlink(path: string): boolean {
+    const link = symlinkBelow(this.checkout.basePath, path);
+    if (link) {
+      ResourceCache.logger.warn(`Skipping symbolic link '${link}'`);
+    }
+    return link !== undefined;
+  }
+
   // Collect resources of a specific type
   private collectResourcesOfType(
     type: ResourceFolderType,
@@ -291,17 +291,13 @@ export class ResourceCache {
         ? this.checkout.paths.resourcePath(type)
         : join(this.checkout.paths.modulesFolder, moduleName!, type);
 
+    if (this.insideSymlink(resourceFolder)) {
+      return;
+    }
     try {
       const entries = readdirSync(resourceFolder, { withFileTypes: true });
 
       for (const entry of entries) {
-        // Only regular files are admitted; symlinks are never followed.
-        if (entry.isSymbolicLink()) {
-          ResourceCache.logger.warn(
-            `Skipping symbolic link '${join(resourceFolder, entry.name)}'`,
-          );
-          continue;
-        }
         if (entry.isFile() && allowedExtensions.includes(extname(entry.name))) {
           const name =
             source === 'local'
