@@ -474,6 +474,35 @@ describe('module replay end to end', () => {
     expect(adoc).toContain('mod/fieldTypes/four');
   });
 
+  it('a seal entry targeting another prefix does not touch the host', async () => {
+    const installed = installModule({
+      prefix: 'mod',
+      location: 'file:/modules/mod',
+      version: '1.0.0',
+    });
+    const resolved = stageModule({
+      prefix: 'mod',
+      location: 'file:/modules/mod',
+      version: '2.0.0',
+      seals: [
+        {
+          from: '1.0.0',
+          to: '2.0.0',
+          lines: [logLine('resource_delete', 'decision/cardTypes/decision')],
+        },
+      ],
+    });
+    const hostCard = join(cardDir, 'c', 'decision_6');
+
+    const checkout = await loadProject();
+    const steps = await planModuleReplays([resolved], [installed]);
+    await checkout.lock.write(SYSTEM_FRAME, () =>
+      executeModuleReplays(checkout, steps),
+    );
+
+    expect(existsSync(hostCard)).toBe(true);
+  });
+
   it('chained renames replay existence-blind across intermediate names', async () => {
     const installed = installModule({
       prefix: 'mod',
