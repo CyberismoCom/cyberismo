@@ -131,6 +131,7 @@ function projectTree(
   return new CardTree({
     name: 'project',
     rootPath,
+    projectRoot: testProjectPath,
     kind: 'project',
     writable: true,
     keys,
@@ -146,6 +147,7 @@ function newTemplateTree(
   return new CardTree({
     name,
     rootPath,
+    projectRoot: testProjectPath,
     kind: 'template',
     writable,
     keys,

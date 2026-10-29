@@ -84,8 +84,8 @@ export interface CardTreeChange {
 export interface CardTreeOptions {
   name: string;
   rootPath: string;
-  /** Project folder; a tree root reached through a symlink below it is not loaded. */
-  projectRoot?: string;
+  /** Project folder; a tree root reached through a symlink, or outside it, is not loaded. */
+  projectRoot: string;
   kind: CardTreeKind;
   writable: boolean;
   keys: CardKeyRegistry;

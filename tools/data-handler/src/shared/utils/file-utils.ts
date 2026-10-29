@@ -84,24 +84,33 @@ export async function walkEntries(
 }
 
 /**
- * The first symlink on the way from `base` down to `path`, if any. `base`
+ * The first path on the way from `base` down to `path` that must not be
+ * read: a symlink, or `path` itself when it is not below `base`. `base`
  * itself may be reached through a symlink; only what is below it counts.
- * A `path` outside `base` or not on disk has none.
+ * A `base` or `path` that is not on disk is clean.
  * @param base project folder
  * @param path folder or file below `base`
  */
 export function symlinkBelow(base: string, path: string): string | undefined {
-  const below = relative(resolve(base), resolve(path));
-  if (
-    below === '' ||
-    below === '..' ||
-    below.startsWith('..' + sep) ||
-    isAbsolute(below)
-  ) {
+  let realBase: string;
+  try {
+    realBase = realpathSync(base);
+  } catch {
+    // Nothing exists below a base that does not.
     return undefined;
   }
-  let current = realpathSync(base);
-  for (const part of below.split(sep)) {
+  const target = resolve(path);
+  // The path may be spelled through the base's own symlink or its real name.
+  const below = [resolve(base), realBase]
+    .map((root) => relative(root, target))
+    .find(
+      (rel) => rel !== '..' && !rel.startsWith('..' + sep) && !isAbsolute(rel),
+    );
+  if (below === undefined) {
+    return target;
+  }
+  let current = realBase;
+  for (const part of below.split(sep).filter(Boolean)) {
     current = join(current, part);
     try {
       if (lstatSync(current).isSymbolicLink()) {

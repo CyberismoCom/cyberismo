@@ -15,6 +15,7 @@ import {
   pathExists,
   readFileNoFollow,
   readFileNoFollowSync,
+  symlinkBelow,
   resolveTilde,
   stripExtension,
 } from '../../../src/shared/utils/file-utils.js';
@@ -68,6 +69,31 @@ describe('file utils', () => {
         );
         expect(existsSync(join(destination, name))).toBe(false);
       }
+    },
+  );
+  it.skipIf(process.platform === 'win32')(
+    'symlinkBelow refuses a symlink or a path outside the base',
+    async () => {
+      const real = join(testDir, 'real-project');
+      const alias = join(testDir, 'alias-project');
+      await mkdir(join(real, 'cardRoot'), { recursive: true });
+      await mkdir(join(real, 'moved'), { recursive: true });
+      await symlink(real, alias);
+      await symlink(join(real, 'moved'), join(real, 'linked'));
+      const outside = join(testDir, 'elsewhere');
+
+      // Clean, whether spelled through the base's alias or its real name.
+      expect(symlinkBelow(alias, join(alias, 'cardRoot'))).toBeUndefined();
+      expect(symlinkBelow(alias, join(real, 'cardRoot'))).toBeUndefined();
+      expect(symlinkBelow(real, join(real, 'missing'))).toBeUndefined();
+      // Refused: a symlink below the base, however spelled, or outside it.
+      expect(symlinkBelow(alias, join(real, 'linked'))).toBe(
+        join(real, 'linked'),
+      );
+      expect(symlinkBelow(alias, join(alias, 'linked', 'c'))).toBe(
+        join(real, 'linked'),
+      );
+      expect(symlinkBelow(real, outside)).toBe(outside);
     },
   );
   it.skipIf(process.platform === 'win32')(
