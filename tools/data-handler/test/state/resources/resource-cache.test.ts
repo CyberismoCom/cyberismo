@@ -4,7 +4,13 @@
 import { expect, describe, it, beforeEach, afterEach } from 'vitest';
 
 import { join } from 'node:path';
-import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import {
+  mkdirSync,
+  renameSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from 'node:fs';
 
 import { type Workspace } from '../../../src/api/workspace.js';
 import { copyDir, pathExists } from '../../../src/shared/utils/file-utils.js';
@@ -89,6 +95,27 @@ describe('Resource cache', () => {
         ResourcesFrom.localOnly,
       ).length;
       expect(afterRefresh).toBe(beforeRefresh);
+    });
+  });
+
+  describe.skipIf(process.platform === 'win32')('symlinks', () => {
+    beforeEach(async () => {
+      mkdirSync(testDir, { recursive: true });
+      await copyDir('test/test-data/', testDir);
+    });
+    afterEach(() => {
+      rmSync(testDir, { recursive: true, force: true });
+    });
+
+    it('does not collect from a resource folder that is a symlink', async () => {
+      const folder = join(testProjectPath, '.cards', 'local', 'workflows');
+      const moved = join(testDir, 'moved-workflows');
+      renameSync(folder, moved);
+      symlinkSync(moved, folder);
+      const checkout = getTestProject(testProjectPath);
+      await checkout.populateCaches();
+
+      expect(checkout.resources.workflows(ResourcesFrom.localOnly)).toEqual([]);
     });
   });
 

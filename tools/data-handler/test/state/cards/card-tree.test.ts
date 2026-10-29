@@ -16,6 +16,7 @@ import {
 import {
   existsSync,
   mkdirSync,
+  renameSync,
   rmSync,
   symlinkSync,
   writeFileSync,
@@ -203,12 +204,37 @@ describe('Card tree', () => {
       expect(tree.keys()).toEqual(['test_1', 'test_3']);
     });
 
-    it('does not load a symlinked card folder', async () => {
-      symlinkSync(secret, join(testCardsPath, 'test_9'));
+    it('does not follow a symlinked children folder', async () => {
+      createTestCard('test_8', join(secret, 'c'), pageCard('Outside'), 'out');
+      rmSync(join(testCardsPath, 'test_1', 'c'), { recursive: true });
+      symlinkSync(join(secret, 'c'), join(testCardsPath, 'test_1', 'c'));
 
       const tree = await loadedTree();
 
-      expect(tree.keys()).toEqual(['test_1', 'test_2', 'test_3']);
+      expect(tree.keys()).toEqual(['test_1']);
+    });
+
+    // A tree root reached through a symlink below the project is not scanned.
+    it.each([
+      ['cardRoot', () => testCardsPath],
+      ['a template internal folder', () => templateCardsPath('page')],
+    ])('does not load when %s is a symlink', async (_name, rootOf) => {
+      const root = rootOf();
+      const target = join(testDir, 'moved');
+      renameSync(root, target);
+      symlinkSync(target, root);
+      const tree = new CardTree({
+        name: 'project',
+        rootPath: root,
+        projectRoot: testProjectPath,
+        kind: 'project',
+        writable: true,
+        keys: new CardKeyRegistry(() => 'test'),
+      });
+
+      await tree.load();
+
+      expect(tree.keys()).toEqual([]);
     });
 
     it('does not list a symlinked attachment', async () => {
