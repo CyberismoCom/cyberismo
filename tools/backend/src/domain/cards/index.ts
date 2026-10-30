@@ -199,7 +199,7 @@ router.get(
  *         in: body
  *         type: object
  *         required: false
- *         description: New metadata for the card. Must be an object with key-value pairs.
+ *         description: New metadata for the card. Must be an object with key-value pairs. Setting a custom field to null or an empty string clears it.
  *       - name: raw
  *         in: query
  *         required: false

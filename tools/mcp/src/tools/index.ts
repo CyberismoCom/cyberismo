@@ -126,7 +126,9 @@ export function registerTools(
             z.array(z.string()),
             z.null(),
           ])
-          .describe('New field value'),
+          .describe(
+            'New field value. null or an empty string clears a custom field',
+          ),
       },
     },
     async ({ projectPrefix, cardKey, field, value }, extra) => {

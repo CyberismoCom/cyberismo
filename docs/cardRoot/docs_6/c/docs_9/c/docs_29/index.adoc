@@ -11,6 +11,8 @@ field(CardKey, Field, Value).
 
 Card keys work directly as constants in ASP encodings. Field names are encoded as strings, and field values either as strings or integers.
 
+A custom field without a value has no field term. A custom field is without a value when it is missing from the card, or when its value is null or an empty string. To test that a card has no value for a field, use `not field(CardKey, Field, _)` rather than comparing the value with `""`.
+
 If the card is not directly under the card root, a parent term is generated to declare the card key of the card in the parent directory:
 
 [source]
