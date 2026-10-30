@@ -52,6 +52,22 @@ describe('cardFetcher', () => {
     ]);
   });
 
+  it('splits more than 100 concurrent reads into batches of 100', async () => {
+    fetchMock.mockImplementation(async (_, init) => {
+      const { keys } = JSON.parse(String(init?.body)) as { keys: string[] };
+      return json(Object.fromEntries(keys.map((key) => [key, row(key)])));
+    });
+    const keys = Array.from({ length: 101 }, (_, i) => `A_${i}`);
+
+    await Promise.all(keys.map((key) => cardFetcher(`${cards}/${key}`)));
+
+    expect(
+      fetchMock.mock.calls.map(
+        ([, init]) => JSON.parse(String(init?.body)).keys.length,
+      ),
+    ).toEqual([100, 1]);
+  });
+
   it('reads a lone card with GET', async () => {
     fetchMock.mockResolvedValue(json(row('A_1')));
 
