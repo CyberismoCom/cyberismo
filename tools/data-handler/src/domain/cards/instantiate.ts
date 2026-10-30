@@ -13,7 +13,11 @@ import {
 } from '../../shared/utils/resource-utils.js';
 import { getChildLogger } from '../../shared/utils/log-utils.js';
 import { compare, EMPTY_RANK, sortItems } from '../../shared/utils/lexorank.js';
-import { isPredefinedField, ROOT } from '../../shared/utils/constants.js';
+import {
+  isEmptyFieldValue,
+  isPredefinedField,
+  ROOT,
+} from '../../shared/utils/constants.js';
 import { findCard } from './read.js';
 import { runCreationSideEffects } from './transition.js';
 
@@ -357,11 +361,9 @@ function instantiatedMetadata(
     }));
   }
 
-  // Authored custom-field values. A null or an empty string on a template
-  // card is its 'no value' marker rather than content, so that slot is left
-  // absent.
+  // Authored custom-field values. A field without a value is left absent.
   for (const [key, value] of Object.entries(templateMetadata)) {
-    if (!isPredefinedField(key) && value !== null && value !== '') {
+    if (!isPredefinedField(key) && !isEmptyFieldValue(value)) {
       metadata[key] = value;
     }
   }

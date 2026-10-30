@@ -3,7 +3,10 @@
 
 import type { Checkout } from '../state/checkout/checkout.js';
 import { ResourcesFrom } from '../state/resources/resources-from.js';
-import { isPredefinedField } from '../shared/utils/constants.js';
+import {
+  isEmptyFieldValue,
+  isPredefinedField,
+} from '../shared/utils/constants.js';
 import { getChildLogger } from '../shared/utils/log-utils.js';
 import { sortCards } from '../shared/utils/card-utils.js';
 import { read, write } from '../infra/tx/rw-lock.js';
@@ -187,7 +190,7 @@ export class Clean {
       if (isPredefinedField(field)) continue;
 
       const declaration = declared.get(field);
-      if (value === null) {
+      if (isEmptyFieldValue(value)) {
         unused.push({ field, reason: 'null-value' });
       } else if (!declaration) {
         unused.push({ field, reason: 'undeclared' });

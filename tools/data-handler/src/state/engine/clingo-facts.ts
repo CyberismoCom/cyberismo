@@ -22,7 +22,11 @@ import type {
   Workflow,
 } from '@cyberismo/model';
 import { ClingoProgramBuilder } from '../../infra/engine/clingo-program-builder.js';
-import { isPredefinedField, ROOT } from '../../shared/utils/constants.js';
+import {
+  isEmptyFieldValue,
+  isPredefinedField,
+  ROOT,
+} from '../../shared/utils/constants.js';
 import { getChildLogger } from '../../shared/utils/log-utils.js';
 import type { Checkout } from '../checkout/checkout.js';
 import type { CardTreeKind } from '../cards/card-tree.js';
@@ -262,8 +266,11 @@ export const createCardFacts = async (
           }
         }
       } else {
-        // Do not write null values
-        if (value == null) {
+        // Do not write values that mean 'no value'
+        if (
+          value == null ||
+          (isEmptyFieldValue(value) && !isPredefinedField(field))
+        ) {
           continue;
         }
 
