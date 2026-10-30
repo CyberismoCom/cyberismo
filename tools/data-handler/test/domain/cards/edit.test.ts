@@ -22,11 +22,13 @@ const open = projects();
 const size = 'test/fieldTypes/size';
 const score = 'test/fieldTypes/score';
 const bonus = 'test/fieldTypes/bonus';
+const note = 'test/fieldTypes/note';
 const spec = {
   fieldTypes: [
     { name: 'size', dataType: 'integer' },
     { name: 'score', dataType: 'integer' },
     { name: 'bonus', dataType: 'integer' },
+    { name: 'note', dataType: 'shortText' },
   ],
   cardTypes: [
     {
@@ -35,6 +37,7 @@ const spec = {
         { name: 'size' },
         { name: 'score', isCalculated: true },
         { name: 'bonus', isCalculated: true, enableOverride: true },
+        { name: 'note' },
       ],
     },
   ],
@@ -114,21 +117,24 @@ describe('cards.editField', () => {
     });
   });
 
-  // The stored value after clearing: absent for custom fields, null for predefined ones.
+  // The stored value after clearing: absent for custom fields, whether cleared
+  // with null or an empty string; predefined fields keep what they are given.
   it.each([
-    ['a custom field', size, {}],
-    ['a calculated field without override', score, {}],
-    ['a field with no stored value', 'test/fieldTypes/nothing', {}],
-    ['a predefined field', 'title', { title: null }],
-  ] as [string, string, Record<string, null>][])(
+    ['a custom field', size, null, {}],
+    ['a custom field with an empty string', note, '', {}],
+    ['a calculated field without override', score, null, {}],
+    ['a field with no stored value', 'test/fieldTypes/nothing', null, {}],
+    ['a predefined field', 'title', null, { title: null }],
+    ['a predefined field with an empty string', 'title', '', { title: '' }],
+  ] as [string, string, null | '', Record<string, null | ''>][])(
     'clears %s',
-    async (_name, field, expected) => {
+    async (_name, field, value, expected) => {
       const { ws, path, keys } = await open({
         ...spec,
-        cards: [{ fields: { [size]: 1, [score]: 3 } }],
+        cards: [{ fields: { [size]: 1, [score]: 3, [note]: 'text' } }],
       });
 
-      await ws.cards.editField(keys[0], field, null as never);
+      await ws.cards.editField(keys[0], field, value as never);
 
       const stored = JSON.parse(
         readFileSync(join(path, 'cardRoot', keys[0], 'index.json'), 'utf-8'),

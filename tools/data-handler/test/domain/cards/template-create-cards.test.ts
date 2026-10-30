@@ -255,10 +255,6 @@ describe('instantiateTemplate', () => {
     expect(metadata.links).toEqual([]);
     expect('lastTransitioned' in metadata).toBe(false);
 
-    // A null custom-field value is the template's 'no value' marker, so the
-    // slot is absent rather than null.
-    expect('decision/fieldTypes/admins' in metadata).toBe(false);
-
     // And nothing of this touched the template card.
     expect(await readJsonFile(templateCardFile)).toMatchObject({
       links: [
@@ -270,6 +266,60 @@ describe('instantiateTemplate', () => {
       lastTransitioned: '2020-01-01T00:00:00.000Z',
     });
   });
+
+  // A template field without a value gives the new card no value for it,
+  // whether the template stores it as null or as an empty string. A real
+  // value, even a falsy one, is carried over.
+  it.each([
+    { field: 'decision/fieldTypes/admins', stored: null, expected: undefined },
+    {
+      field: 'decision/fieldTypes/commitDescription',
+      stored: '',
+      expected: undefined,
+    },
+    {
+      field: 'decision/fieldTypes/responsible',
+      stored: '',
+      expected: undefined,
+    },
+    { field: 'decision/fieldTypes/finished', stored: false, expected: false },
+    { field: 'decision/fieldTypes/numberOfCommits', stored: 0, expected: 0 },
+    {
+      field: 'decision/fieldTypes/commitDescription',
+      stored: 'text',
+      expected: 'text',
+    },
+  ])(
+    'instantiates template value $stored of $field as $expected',
+    async ({ field, stored, expected }) => {
+      const templateCardFile = join(
+        decisionRecordsPath,
+        '.cards/local/templates/decision/c/decision_1/index.json',
+      );
+      await writeFile(
+        templateCardFile,
+        JSON.stringify({
+          ...((await readJsonFile(templateCardFile)) as object),
+          [field]: stored,
+        }),
+      );
+      const reloaded = getTestProject(decisionRecordsPath);
+      await reloaded.populateCaches();
+      const template: TemplateResource = reloaded.resources.byType(
+        'decision/templates/decision',
+        'templates',
+      );
+
+      const [created] = await instantiateTemplate(reloaded, template.cardTree);
+      const metadata = created.metadata as Record<string, unknown>;
+
+      if (expected === undefined) {
+        expect(field in metadata).toBe(false);
+      } else {
+        expect(metadata[field]).toBe(expected);
+      }
+    },
+  );
 
   it('caches the content it actually wrote', async () => {
     const template = templateOf('decision/templates/simplepage');
