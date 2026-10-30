@@ -19,7 +19,8 @@ displayName(Card, (Card, Field), DisplayName) :-
     fieldType(Field),
     field((CardType, Field), "displayName", DisplayName).
 
-% the second level includes metadata for the always visible and optionally visible fields
+% the second level includes every custom field of the card type;
+% only the always and optionally visible ones carry visibility and index
 % we include the card key in the key of the fields, because the same query is used
 % when generating static sites for all project cards at the same time
 
@@ -129,12 +130,7 @@ childResultCollection(Card, "fields") :-
     result(Card).
 
 childResult(Card, (Card, Field), "fields") :-
-    alwaysVisibleField(CardType, Field),
-    field(Card, "cardType", CardType),
-    result(Card).
-
-childResult(Card, (Card, Field), "fields") :-
-    optionallyVisibleField(CardType, Field),
+    customField(CardType, Field),
     field(Card, "cardType", CardType),
     result(Card).
 

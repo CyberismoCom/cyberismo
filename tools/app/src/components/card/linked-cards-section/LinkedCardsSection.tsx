@@ -9,7 +9,7 @@ import Edit from '@mui/icons-material/Edit';
 import AddLink from '@mui/icons-material/AddLink';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import type { ExpandedLinkType } from '@/lib/definitions';
-import type { CardResponse, Connector } from '@/lib/api/types';
+import type { CardView, Connector } from '@/lib/api/types';
 import type { CalculationLink, QueryResult } from '@cyberismo/model';
 import { useModals } from '@/lib/utils';
 import { UserRole, useHasMinRole } from '@/lib/auth';
@@ -25,7 +25,7 @@ export type { LinkFormState, LinkFormSubmitData };
 export { LinkForm } from './EditMode';
 
 type LinkedCardSectionProps = {
-  card: CardResponse;
+  card: CardView;
   cards: QueryResult<'tree'>[];
   linkTypes: ExpandedLinkType[];
   connectors?: Connector[];

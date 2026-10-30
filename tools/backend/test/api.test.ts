@@ -14,7 +14,6 @@ import type {
   LinkType,
   TemplateConfiguration,
   Workflow,
-  CardAttachment,
 } from '@cyberismo/model';
 import { createTempTestData, cleanupTempTestData } from './test-utils.js';
 import {
@@ -37,11 +36,7 @@ afterAll(async () => {
   await cleanupTempTestData(tempTestDataPath);
 });
 
-type CardApiResponse = QueryResult<'card'> & {
-  rawContent: string;
-  adocContent: string;
-  attachments?: CardAttachment[];
-};
+type CardApiResponse = QueryResult<'card'>;
 
 type ProjectInfoResponse = {
   name: string;
@@ -61,39 +56,37 @@ test('/api/projects/:prefix/cards returns a project with a list of cards', async
   expect(result.cardTypes.length).toBeGreaterThan(0);
 });
 
-test('/api/projects/decision/cards/decision_5 returns a card object', async () => {
-  const response = await app.request('/api/projects/decision/cards/decision_5');
-  expect(response).not.toBe(null);
+test.each([
+  ['', ['deniedOperations', 'fields'], ['rawContent', 'adocContent']],
+  ['/content', ['adocContent'], []],
+  ['/source', ['content', 'metadata', 'attachments', 'path'], []],
+])(
+  'GET /api/projects/decision/cards/decision_5%s returns its part of the card',
+  async (route, mustHave, mustNotHave) => {
+    const response = await app.request(
+      `/api/projects/decision/cards/decision_5${route}`,
+    );
+    expect(response.status).toBe(200);
+    const result = await response.json();
+    for (const property of mustHave) {
+      expect(result).toHaveProperty(property);
+    }
+    for (const property of mustNotHave) {
+      expect(result).not.toHaveProperty(property);
+    }
+  },
+);
 
-  const result = (await response.json()) as CardApiResponse;
-  expect(response.status).toBe(200);
-  expect(result.title).toBe('Decision Records');
-  expect(result.rawContent).not.toBe(null);
-  expect(result.labels).not.toBe(null);
-  expect(result.links).not.toBe(null);
-  expect(result.notifications).not.toBe(null);
-  expect(result.policyChecks).not.toBe(null);
-  expect(result.deniedOperations).not.toBe(null);
-  expect(result.fields).not.toBe(null);
-  expect(result.cardTypeDisplayName).toBe('Simple card type');
-  expect(result.cardType).toBe('decision/cardTypes/simplepage');
-});
-
-test('/api/projects/decision/cards/decision_5?raw=true returns raw card data without calculated extras', async () => {
-  const response = await app.request(
-    '/api/projects/decision/cards/decision_5?raw=true',
-  );
-  expect(response).not.toBe(null);
-
-  const result = (await response.json()) as CardApiResponse;
-  expect(response.status).toBe(200);
-  expect(result.title).toBe('Decision Records');
-  expect(result.workflowState).toBe('');
-  expect(Array.isArray(result.links)).toBe(true);
-  expect(Array.isArray(result.notifications)).toBe(true);
-  expect(Array.isArray(result.attachments)).toBe(true);
-  expect(result.cardTypeDisplayName).toBe('decision/cardTypes/simplepage');
-});
+test.each(['', '/content', '/source'])(
+  'GET /api/projects/decision/cards/bogus_999%s returns 400',
+  async (route) => {
+    const response = await app.request(
+      `/api/projects/decision/cards/bogus_999${route}`,
+    );
+    expect(response.status).toBe(400);
+    expect(await response.json()).toHaveProperty('error');
+  },
+);
 
 test('/api/projects/decision/cards/decision_1/a/the-needle.heic returns an attachment file', async () => {
   const response = await app.request(
@@ -612,6 +605,7 @@ test('PATCH /api/projects/:prefix/cards/:key updates a single metadata field and
     expect(response.status).toBe(200);
     const result = (await response.json()) as CardApiResponse;
     expect(result.title).toBe('Updated Title');
+    expect(result).not.toHaveProperty('adocContent');
   } finally {
     // Restore original title
     const restore = await app.request(

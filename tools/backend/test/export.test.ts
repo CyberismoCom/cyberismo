@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
-import { mkdtemp, rm } from 'node:fs/promises';
+import { access, mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { getCardQueryResult, reset, exportSite } from '../src/export.js';
@@ -212,6 +212,45 @@ describe('export module', () => {
 
       expect(errors.map((e) => e.prefix)).toEqual(['decision']);
       expect(errors[0].errors.length).toBeGreaterThan(0);
+    });
+
+    test('writes the data, content and source files of an exported card', async () => {
+      const { directory: registry } = await localFolder(folder);
+
+      await exportSite(registry, tempDir, { cardKey: 'decision_5' });
+
+      const cards = join(tempDir, 'api', 'projects', 'decision', 'cards');
+      for (const file of [
+        'decision_5.json',
+        join('decision_5', 'content.json'),
+        join('decision_5', 'source.json'),
+      ]) {
+        await expect(access(join(cards, file))).resolves.toBeUndefined();
+      }
+    });
+
+    test('publishes no hidden field and no stored metadata of a card', async () => {
+      const { directory: registry } = await localFolder(folder);
+
+      // decision_6's card type declares fields in neither visibility list.
+      await exportSite(registry, tempDir, { cardKey: 'decision_6' });
+
+      const cards = join(tempDir, 'api', 'projects', 'decision', 'cards');
+      const read = async (file: string) =>
+        JSON.parse(await readFile(join(cards, file), 'utf8'));
+      const data = await read('decision_6.json');
+      const source = await read(join('decision_6', 'source.json'));
+
+      expect(data.fields.length).toBeGreaterThan(0);
+      expect(
+        data.fields.filter((f: { visibility?: string }) => !f.visibility),
+      ).toEqual([]);
+      expect(Object.keys(source).sort()).toEqual([
+        'attachments',
+        'content',
+        'key',
+        'path',
+      ]);
     });
   });
 });

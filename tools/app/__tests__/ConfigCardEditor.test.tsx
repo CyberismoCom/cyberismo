@@ -1,8 +1,15 @@
 // SPDX-FileCopyrightText: Cyberismo Ltd and contributors
 // SPDX-License-Identifier: AGPL-3.0-only
 
+import type { ReactNode } from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, within } from '@testing-library/react';
+import {
+  render,
+  screen,
+  fireEvent,
+  within,
+  waitFor,
+} from '@testing-library/react';
 import type * as Utils from '@/lib/utils';
 import type * as HooksUtils from '@/lib/hooks/utils';
 
@@ -21,11 +28,15 @@ vi.mock('@/components/card/AttachmentPanel', () => ({
   AttachmentPanel: () => null,
 }));
 
-// Preview renders through the shared CardLayout (read-only). Mock it and
-// capture the previewCard it receives.
+// Preview renders through the shared CardLayout (read-only). Mock it, capture
+// the previewCard it receives and keep its header (the Edit toggle).
 let previewTitle: unknown;
 let previewCardArg:
-  | { rawContent?: string; fields?: { key: string; value: unknown }[] }
+  | {
+      rawContent?: string;
+      adocContent?: string;
+      fields?: { key: string; value: unknown }[];
+    }
   | undefined;
 vi.mock('@/components/card/CardLayout', () => ({
   CardLayout: (props: {
@@ -34,17 +45,35 @@ vi.mock('@/components/card/CardLayout', () => ({
       rawContent?: string;
       fields?: { key: string; value: unknown }[];
     };
+    header?: ReactNode;
   }) => {
     previewTitle = props.card.title;
     previewCardArg = props.card;
-    return null;
+    return props.header;
   },
 }));
 
 const updateCard = vi.fn().mockResolvedValue(undefined);
-const useRawCard = vi.fn();
+// The adapter is covered by templateCardView.test.ts; here it hands the editor
+// the fixture card.
+const { adapted } = vi.hoisted(() => ({
+  adapted: { card: undefined as unknown },
+}));
+vi.mock('@/components/config-editors/template-card/source-view', () => ({
+  templateCardView: () => adapted.card,
+}));
 vi.mock('@/lib/api', () => ({
-  useRawCard: (...args: unknown[]) => useRawCard(...args),
+  useCardSource: () => ({
+    cardSource: { metadata: { cardType: 'ct' } },
+    isLoading: false,
+    error: null,
+  }),
+  useProject: () => ({
+    project: { cardTypes: [{ name: 'ct' }] },
+    isLoading: false,
+    error: null,
+  }),
+  useFieldTypes: () => ({ fieldTypes: [], isLoading: false, error: null }),
   useResourceTree: () => ({ resourceTree: [] }),
   useCardMutations: () => ({ updateCard }),
 }));
@@ -104,7 +133,7 @@ const baseCard = {
       value: null,
     },
     {
-      // Raw card endpoint returns list values as plain strings (not items).
+      // templateCardView yields list values as plain strings (not items).
       key: 'flist',
       dataType: 'list',
       fieldDisplayName: 'A list',
@@ -128,11 +157,7 @@ type CardFixture = Omit<typeof baseCard, 'fields'> & {
 };
 
 const renderEditor = (overrides?: Partial<CardFixture>, node?: object) => {
-  useRawCard.mockReturnValue({
-    card: { ...baseCard, ...overrides },
-    isLoading: false,
-    error: null,
-  });
+  adapted.card = { ...baseCard, ...overrides };
   return render(
     <ConfigCardEditor node={{ id: 'c1', readOnly: false, ...node } as never} />,
   );
@@ -142,6 +167,11 @@ const fieldInput = (container: HTMLElement, key: string) =>
   within(
     container.querySelector(`#metadata-field-${key}`) as HTMLElement,
   ).getByRole('textbox');
+
+const openPreview = async () => {
+  fireEvent.click(screen.getByRole('button', { name: 'preview' }));
+  await waitFor(() => expect(previewCardArg).toBeDefined());
+};
 
 const rowButton = (container: HTMLElement, key: string, dataCy: string) =>
   container.querySelector(
@@ -231,7 +261,23 @@ describe('ConfigCardEditor (template card editor)', () => {
     expect(updateCard).not.toHaveBeenCalled();
   });
 
-  it('Preview reflects the current unsaved draft (title + field)', () => {
+  it('each Preview shows the loading state until the draft is parsed', async () => {
+    renderEditor();
+
+    fireEvent.click(screen.getByRole('button', { name: 'preview' }));
+    expect(screen.getByText('loading')).toBeVisible();
+    expect(previewCardArg).toBeUndefined();
+    await waitFor(() =>
+      expect(previewCardArg?.adocContent).toBe('preview adoc'),
+    );
+
+    // Reopening must not show the earlier render while the new parse runs.
+    fireEvent.click(screen.getByRole('button', { name: 'edit' }));
+    fireEvent.click(screen.getByRole('button', { name: 'preview' }));
+    expect(screen.getByText('loading')).toBeVisible();
+  });
+
+  it('Preview reflects the current unsaved draft (title + field)', async () => {
     const { container } = renderEditor();
 
     const title = within(
@@ -242,7 +288,7 @@ describe('ConfigCardEditor (template card editor)', () => {
     const field = fieldInput(container, 'f1');
     fireEvent.change(field, { target: { value: 'draft value' } });
 
-    fireEvent.click(screen.getByRole('button', { name: 'preview' }));
+    await openPreview();
 
     expect(previewTitle).toBe('Unsaved title');
     expect(previewCardArg?.fields?.find((f) => f.key === 'f1')?.value).toBe(
@@ -250,7 +296,7 @@ describe('ConfigCardEditor (template card editor)', () => {
     );
   });
 
-  it('preserves list field values in the draft/preview (not corrupted)', () => {
+  it('preserves list field values in the draft/preview (not corrupted)', async () => {
     const { container } = renderEditor();
 
     // A list field is not falsely dirty on load.
@@ -258,7 +304,7 @@ describe('ConfigCardEditor (template card editor)', () => {
 
     // ...and its value survives intact into the preview (regression: it used
     // to become [undefined] for raw string-array list values).
-    fireEvent.click(screen.getByRole('button', { name: 'preview' }));
+    await openPreview();
     expect(
       previewCardArg?.fields?.find((f) => f.key === 'flist')?.value,
     ).toEqual(['option1']);
@@ -296,11 +342,7 @@ describe('ConfigCardEditor (template card editor)', () => {
       utils: ReturnType<typeof renderEditor>,
       next: Partial<CardFixture>,
     ) => {
-      useRawCard.mockReturnValue({
-        card: { ...baseCard, ...next },
-        isLoading: false,
-        error: null,
-      });
+      adapted.card = { ...baseCard, ...next };
       dispatchSpy.mockClear();
       utils.rerender(
         <ConfigCardEditor node={{ id: 'c1', readOnly: false } as never} />,
@@ -325,7 +367,7 @@ describe('ConfigCardEditor (template card editor)', () => {
       expect(dispatchSpy).not.toHaveBeenCalledWith(isEdited(true));
     });
 
-    it('shows the new content and does not report unsaved changes', () => {
+    it('shows the new content and does not report unsaved changes', async () => {
       const utils = renderEditor();
       const { container } = utils;
 
@@ -337,7 +379,7 @@ describe('ConfigCardEditor (template card editor)', () => {
       expect(dispatchSpy).not.toHaveBeenCalledWith(isEdited(true));
 
       // The draft feeding both the editor and Preview holds the new content.
-      fireEvent.click(screen.getByRole('button', { name: 'preview' }));
+      await openPreview();
       expect(previewCardArg?.rawContent).toBe('== Edited elsewhere');
     });
 

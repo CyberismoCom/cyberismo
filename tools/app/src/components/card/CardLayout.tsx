@@ -31,7 +31,7 @@ import { useAdocHtml, useAppDispatch, useAppSelector } from '@/lib/hooks';
 import { viewChanged } from '@/lib/slices/pageState';
 
 import type { QueryResult, CalculationLink } from '@cyberismo/model';
-import type { CardResponse, Connector } from '@/lib/api/types';
+import type { CardView, Connector } from '@/lib/api/types';
 import LinkedCardsSection, {
   type LinkFormState,
   type LinkFormSubmitData,
@@ -130,7 +130,7 @@ function SidebarPanelAccordion({
 
 type CardLayoutProps = {
   cards: QueryResult<'tree'>[];
-  card: CardResponse;
+  card: CardView;
   linkTypes: ExpandedLinkType[];
   connectors?: Connector[];
   onMetadataUpdate?: (update: {

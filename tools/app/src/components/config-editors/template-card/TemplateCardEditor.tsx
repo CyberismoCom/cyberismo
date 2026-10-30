@@ -11,7 +11,7 @@ import { useCardMutations, useResourceTree } from '@/lib/api';
 import CardToolbar from '@/components/toolbar/CardToolbar';
 import { AttachmentPanel } from '@/components/card/AttachmentPanel';
 import { CardLayout } from '@/components/card/CardLayout';
-import type { AnyNode, CardResponse } from '@/lib/api/types';
+import type { AnyNode, CardView } from '@/lib/api/types';
 import type { MetadataValue } from '@/lib/definitions';
 import { findCardParentInResourceTree, metadataValuesEqual } from '@/lib/utils';
 import { UserRole, useHasMinRole } from '@/lib/auth';
@@ -38,7 +38,7 @@ export function TemplateCardEditor({
   card,
 }: {
   node: AnyNode;
-  card: CardResponse;
+  card: CardView;
 }) {
   const { updateCard } = useCardMutations(node.id);
   const { resourceTree } = useResourceTree();
@@ -134,13 +134,13 @@ export function TemplateCardEditor({
     }
   };
 
-  const previewCard = useMemo<CardResponse>(
+  const previewCard = useMemo<CardView>(
     () => ({
       ...card,
       title: (draft[TITLE_KEY] as string) ?? card.title,
       labels: (draft[LABELS_KEY] as string[]) ?? card.labels,
       rawContent: content,
-      adocContent: previewAdoc ?? card.adocContent,
+      adocContent: previewAdoc ?? '',
       fields: (card.fields ?? []).map((f) => ({
         ...f,
         value: draft[f.key] as typeof f.value,
@@ -153,7 +153,14 @@ export function TemplateCardEditor({
     ? findCardParentInResourceTree(resourceTree, node.id)
     : null;
 
-  const togglePreview = () => setIsPreview((p) => !p);
+  // Each Preview parses afresh, so it never shows an earlier draft's render.
+  const togglePreview = () => {
+    setPreviewAdoc(null);
+    setIsPreview((p) => !p);
+  };
+  const previewToggle = (
+    <PreviewToggle isPreview={isPreview} onToggle={togglePreview} />
+  );
 
   return (
     <Stack height="100%">
@@ -168,14 +175,17 @@ export function TemplateCardEditor({
         presenceMode={editable && !isPreview ? 'editing' : 'viewing'}
       />
       <Box flexGrow={1} minHeight={0} display="flex" flexDirection="column">
-        {isPreview ? (
+        {isPreview && previewAdoc === null ? (
+          <Stack spacing={2} padding={{ xs: 2, sm: 3 }}>
+            {previewToggle}
+            <div>{t('loading')}</div>
+          </Stack>
+        ) : isPreview ? (
           <CardLayout
             card={previewCard}
             preview
             hideLinks
-            header={
-              <PreviewToggle isPreview={isPreview} onToggle={togglePreview} />
-            }
+            header={previewToggle}
             cards={[]}
             linkTypes={[]}
             linkFormState="hidden"
@@ -197,7 +207,7 @@ export function TemplateCardEditor({
               sx={{ overflowY: { lg: 'auto' }, scrollbarWidth: 'thin' }}
             >
               <Stack spacing={2}>
-                <PreviewToggle isPreview={isPreview} onToggle={togglePreview} />
+                {previewToggle}
                 <TitleEditor
                   value={(draft[TITLE_KEY] as string) ?? ''}
                   dirty={titleDirty}

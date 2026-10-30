@@ -19,6 +19,7 @@ import {
   findAllCards,
   findRelevantAttachments,
 } from './domain/cards/service.js';
+import { CARD_ROUTES_PER_KEY } from './domain/cards/index.js';
 
 export interface ExportSiteOptions extends TreeOptions {
   defaultProject?: string;
@@ -116,7 +117,7 @@ export async function exportSite(
     const ws = await directory.open(prefix, SYSTEM_ACTOR);
     const cards = await findAllCards(ws, opts);
     const attachments = await findRelevantAttachments(ws, opts);
-    total += cards.length + attachments.length;
+    total += cards.length * CARD_ROUTES_PER_KEY + attachments.length;
   }
 
   // One pass per project so an error is attributed to the project whose route

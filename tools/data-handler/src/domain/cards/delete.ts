@@ -117,7 +117,7 @@ export async function removeCard(checkout: Checkout, cardKey: string) {
     throw new Error(`Cannot modify imported module`);
   }
 
-  // Only a card in a workflow has a delete transition to permit.
+  // Template cards are configuration; workflow guards apply to project cards only.
   if (checkout.treeOf(cardKey).kind === 'project') {
     await assertAllowed(checkout, 'delete', cardKey);
   }

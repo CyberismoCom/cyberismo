@@ -35,7 +35,8 @@ export function projectApiPaths(projectPrefix?: string) {
   return {
     cards: () => `${base}/cards`,
     card: (key: string) => `${base}/cards/${key}`,
-    rawCard: (key: string) => `${base}/cards/${key}?raw=true`,
+    cardContent: (key: string) => `${base}/cards/${key}/content`,
+    cardSource: (key: string) => `${base}/cards/${key}/source`,
     calculations: () => `${base}/calculations`,
     calculation: (name: string) => `${base}/calculations/${name}`,
     cardTypes: () => `${base}/cardTypes`,

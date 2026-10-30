@@ -9,7 +9,6 @@ import type {
   Link,
   LinkType,
   Workflow,
-  CardAttachment,
   LinkDirection,
 } from '@cyberismo/model';
 
@@ -42,16 +41,6 @@ export interface Card {
   path: string;
   metadata?: CardMetadata;
   children?: Card[];
-}
-
-// Single card with content and metadata, but no info of children.
-// Used for displaying card details view.
-export interface CardDetails {
-  key: string;
-  path: string;
-  content?: string;
-  metadata?: CardMetadata;
-  attachments?: CardAttachment[];
 }
 
 // Card's metadata as a record.

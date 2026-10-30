@@ -90,12 +90,13 @@ function setup() {
       const presence = usePresence(card, mode);
       useCardUpdates(card, mode, 'TST');
       const { data } = useSWR<string>(`/api/projects/TST/cards/${card}`);
-      const { data: raw } = useSWR<string>(
-        `/api/projects/TST/cards/${card}?raw=true`,
+      const { data: content } = useSWR<string>(
+        `/api/projects/TST/cards/${card}/content`,
       );
+      useSWR<string>(`/api/projects/TST/cards/${card}/source`);
       useSWR<string>(projectApiPaths('TST').tree());
       const [draft, setDraft] = useSavedDraft(data ?? '');
-      return { presence, data, raw, draft, setDraft };
+      return { presence, data, content, draft, setDraft };
     },
     {
       wrapper,
@@ -115,8 +116,8 @@ function setup() {
 
 const lastBody = () => JSON.parse(fetchMock.mock.calls.at(-1)![1].body);
 const loaded = (hook: {
-  result: { current: { data?: string; raw?: string } };
-}) => `${hook.result.current.data}/${hook.result.current.raw}`;
+  result: { current: { data?: string; content?: string } };
+}) => `${hook.result.current.data}/${hook.result.current.content}`;
 // Drains a promise chain of unknown depth without depending on real time.
 async function flushPromises() {
   for (let i = 0; i < 10; i++) await Promise.resolve();
@@ -388,7 +389,8 @@ describe('project events and presence', () => {
       expect(hook.result.current.draft).toBe('Unsaved draft');
       expect(fetcher.mock.calls.map((call) => call[0]).sort()).toEqual([
         '/api/projects/TST/cards/TST_1',
-        '/api/projects/TST/cards/TST_1?raw=true',
+        '/api/projects/TST/cards/TST_1/content',
+        '/api/projects/TST/cards/TST_1/source',
         '/api/projects/TST/tree',
       ]);
       expect(notifications()).toHaveLength(1);

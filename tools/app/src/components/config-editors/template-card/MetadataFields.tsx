@@ -8,7 +8,7 @@ import {
   getDefaultValue,
   metadataFieldRowId,
 } from '@/lib/utils';
-import type { CardResponse } from '@/lib/api/types';
+import type { CardView } from '@/lib/api/types';
 import type { MetadataValue } from '@/lib/definitions';
 import { MetadataFieldRow } from './MetadataFieldRow';
 import { LABELS_KEY } from './draft';
@@ -21,7 +21,7 @@ export function MetadataFields({
   onSave,
   onCancel,
 }: {
-  card: CardResponse;
+  card: CardView;
   draft: Record<string, MetadataValue>;
   editable: boolean;
   onChange: (key: string, value: MetadataValue) => void;

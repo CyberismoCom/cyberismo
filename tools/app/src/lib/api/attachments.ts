@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import type { SWRConfiguration } from 'swr';
-import { useCard } from './card';
+import { useCardSource } from './card';
 import { useUpdating } from '../hooks';
 import { addAttachments, removeAttachment } from './actions';
 import { mutate } from 'swr';
@@ -14,10 +14,10 @@ export const useAttachments = (
   options?: SWRConfiguration,
   projectPrefix?: string,
 ) => {
-  const { card } = useCard(key, options);
+  const { cardSource } = useCardSource(key, options, projectPrefix);
   const apiPaths = projectApiPaths(projectPrefix);
   // NOTE: not an swrkey, but this pretends to be one
-  const swrKey = key != null && card ? `${key}/a` : null;
+  const swrKey = key != null && cardSource ? `${key}/a` : null;
   const { isUpdating, call } = useUpdating(swrKey);
   return {
     addAttachments: (files: File[]) =>
@@ -26,8 +26,8 @@ export const useAttachments = (
         const formData = new FormData();
         files.forEach((file) => formData.append('files', file));
         return addAttachments(key, formData, projectPrefix).then(() => {
-          mutate(apiPaths.card(key));
-          mutate(apiPaths.rawCard(key));
+          mutate(apiPaths.cardSource(key));
+          mutate(apiPaths.cardContent(key));
         });
       }, 'add'),
     removeAttachment: (fileName: string) =>
@@ -35,8 +35,8 @@ export const useAttachments = (
       call(
         () =>
           removeAttachment(key, fileName, projectPrefix).then(() => {
-            mutate(apiPaths.card(key));
-            mutate(apiPaths.rawCard(key));
+            mutate(apiPaths.cardSource(key));
+            mutate(apiPaths.cardContent(key));
           }),
         'remove',
       ),

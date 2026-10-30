@@ -67,6 +67,64 @@ describe('queries.runQuery', () => {
   });
 });
 
+describe('queries.runQuery card fields', () => {
+  const fieldSpec = {
+    fieldTypes: [
+      { name: 'always', dataType: 'shortText' },
+      { name: 'optional', dataType: 'integer' },
+      { name: 'hidden', dataType: 'longText' },
+    ],
+    cardTypes: [
+      {
+        name: 'page',
+        customFields: [
+          { name: 'always' },
+          { name: 'optional' },
+          { name: 'hidden' },
+        ],
+        alwaysVisibleFields: ['always'],
+        optionallyVisibleFields: ['optional'],
+      },
+    ],
+    cards: [
+      {
+        title: 'Card',
+        fields: {
+          'test/fieldTypes/always': 'a',
+          'test/fieldTypes/optional': 7,
+          'test/fieldTypes/hidden': 'h',
+        },
+      },
+    ],
+  };
+
+  it.each([
+    ['always', 'always', 'number', 'a', 'shortText'],
+    ['optional', 'optional', 'number', 7, 'integer'],
+    ['hidden', undefined, 'undefined', 'h', 'longText'],
+  ])(
+    'gives the %s field with its value',
+    async (name, visibility, indexType, value, dataType) => {
+      const { ws, keys } = await open(fieldSpec);
+
+      const [card] = await ws.queries.runQuery('card', 'localApp', {
+        cardKey: keys[0],
+      });
+
+      const field = card.fields!.find(
+        (f) => f.key === `test/fieldTypes/${name}`,
+      );
+      expect(field?.visibility).toBe(visibility);
+      expect(typeof field?.index).toBe(indexType);
+      expect(field).toMatchObject({
+        value,
+        dataType,
+        fieldDisplayName: name,
+      });
+    },
+  );
+});
+
 describe('queries.program', () => {
   it('puts a named query before the whole program', async () => {
     const { ws } = await open(spec);
