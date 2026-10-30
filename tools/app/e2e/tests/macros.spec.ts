@@ -853,7 +853,9 @@ test.describe('Field macro', () => {
     page,
   }) => {
     await editPage(page);
-    await page.locator('.cm-content').fill(fieldMacros);
+    const cardKey = cardPath.split('/').pop();
+    const selfXref = `{{#xref}}"cardKey": "${cardKey}"{{/xref}}`;
+    await page.locator('.cm-content').fill(`${fieldMacros}\n\n${selfXref}`);
     await page.getByTestId('contentSaveButton').click();
     await dismissSaveToast(page);
 
@@ -949,6 +951,9 @@ test.describe('Field macro', () => {
     await expect(
       page.locator('.breadcrumbs').getByRole('link', { name: title }),
     ).toBeVisible();
+    await expect(
+      page.locator(`.doc [href$="/cards/${cardPath.split('/').pop()}"]`),
+    ).toContainText(title);
   });
 
   test('a transition in the body updates the header', async ({ page }) => {
