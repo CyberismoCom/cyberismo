@@ -153,7 +153,14 @@ export function TemplateCardEditor({
     ? findCardParentInResourceTree(resourceTree, node.id)
     : null;
 
-  const togglePreview = () => setIsPreview((p) => !p);
+  // Each Preview parses afresh, so it never shows an earlier draft's render.
+  const togglePreview = () => {
+    setPreviewAdoc(null);
+    setIsPreview((p) => !p);
+  };
+  const previewToggle = (
+    <PreviewToggle isPreview={isPreview} onToggle={togglePreview} />
+  );
 
   return (
     <Stack height="100%">
@@ -168,14 +175,17 @@ export function TemplateCardEditor({
         presenceMode={editable && !isPreview ? 'editing' : 'viewing'}
       />
       <Box flexGrow={1} minHeight={0} display="flex" flexDirection="column">
-        {isPreview ? (
+        {isPreview && previewAdoc === null ? (
+          <Stack spacing={2} padding={{ xs: 2, sm: 3 }}>
+            {previewToggle}
+            <div>{t('loading')}</div>
+          </Stack>
+        ) : isPreview ? (
           <CardLayout
             card={previewCard}
             preview
             hideLinks
-            header={
-              <PreviewToggle isPreview={isPreview} onToggle={togglePreview} />
-            }
+            header={previewToggle}
             cards={[]}
             linkTypes={[]}
             linkFormState="hidden"
@@ -197,7 +207,7 @@ export function TemplateCardEditor({
               sx={{ overflowY: { lg: 'auto' }, scrollbarWidth: 'thin' }}
             >
               <Stack spacing={2}>
-                <PreviewToggle isPreview={isPreview} onToggle={togglePreview} />
+                {previewToggle}
                 <TitleEditor
                   value={(draft[TITLE_KEY] as string) ?? ''}
                   dirty={titleDirty}
