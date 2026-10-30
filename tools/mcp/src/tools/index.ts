@@ -384,7 +384,7 @@ export function registerTools(
         - workflowState: Current workflow state name
         - availableTransitions: Array of {name, toState, toStateCategory} - valid transitions from current state
         - rawContent: Original AsciiDoc content
-        - parsedContent: HTML-rendered content with macros evaluated
+        - parsedContent: HTML-rendered content with macros evaluated; field macros appear as <card-field> placeholders and their values are in fields
         - fields: Array of field metadata including:
           - key, displayName, description, dataType, value
           - isCalculated, isEditable
