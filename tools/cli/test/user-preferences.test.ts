@@ -6,19 +6,21 @@ import { expect, describe, it, beforeEach, afterEach } from 'vitest';
 import { UserPreferences } from '../src/lib/user-preferences.js';
 import { platform, tmpdir } from 'os';
 import { join } from 'path';
-import { unlinkSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 
 describe('UserPreferences', () => {
-  const TMP_PREFS_PATH = join(tmpdir(), '.cards.prefs.json');
-
+  let tmpDir: string;
+  let TMP_PREFS_PATH: string;
   let userPrefs: UserPreferences;
 
   beforeEach(() => {
+    tmpDir = mkdtempSync(join(tmpdir(), 'cyberismo-prefs-'));
+    TMP_PREFS_PATH = join(tmpDir, '.cards.prefs.json');
     userPrefs = new UserPreferences(TMP_PREFS_PATH);
   });
 
   afterEach(() => {
-    unlinkSync(TMP_PREFS_PATH);
+    rmSync(tmpDir, { recursive: true, force: true });
   });
 
   it('gets preferences', () => {
