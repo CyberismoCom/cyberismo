@@ -99,12 +99,12 @@ describe('queries.runQuery card fields', () => {
   };
 
   it.each([
-    ['always', 'always', 'a', 'shortText'],
-    ['optional', 'optional', 7, 'integer'],
-    ['hidden', undefined, 'h', 'longText'],
+    ['always', 'always', 'number', 'a', 'shortText'],
+    ['optional', 'optional', 'number', 7, 'integer'],
+    ['hidden', undefined, 'undefined', 'h', 'longText'],
   ])(
     'gives the %s field with its value',
-    async (name, visibility, value, dataType) => {
+    async (name, visibility, indexType, value, dataType) => {
       const { ws, keys } = await open(fieldSpec);
 
       const [card] = await ws.queries.runQuery('card', 'localApp', {
@@ -115,6 +115,7 @@ describe('queries.runQuery card fields', () => {
         (f) => f.key === `test/fieldTypes/${name}`,
       );
       expect(field?.visibility).toBe(visibility);
+      expect(typeof field?.index).toBe(indexType);
       expect(field).toMatchObject({
         value,
         dataType,

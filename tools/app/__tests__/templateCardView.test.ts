@@ -73,6 +73,7 @@ describe('templateCardView', () => {
       'calc',
       source,
       {
+        isCalculated: true,
         isOverridable: false,
         overrideValue: undefined,
         value: 'stored',
@@ -83,6 +84,7 @@ describe('templateCardView', () => {
       'over',
       source,
       {
+        isCalculated: true,
         isOverridable: true,
         overrideValue: 'stored',
         value: 'stored',
@@ -93,6 +95,7 @@ describe('templateCardView', () => {
       'over',
       { ...source, metadata: { ...source.metadata, over: undefined } } as Card,
       {
+        isCalculated: true,
         isOverridable: true,
         overrideValue: undefined,
         value: undefined,
