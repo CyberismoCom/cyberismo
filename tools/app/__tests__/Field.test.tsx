@@ -65,8 +65,8 @@ const textField = (key: string, value: string) => ({
   enumValues: [],
 });
 
-const placeholder = (field: string) =>
-  `<card-field options="${btoa(JSON.stringify({ cardKey: 'k_1', field, showLabel: true }))}"></card-field>`;
+const placeholder = (field: string, showLabel = true) =>
+  `<card-field options="${btoa(JSON.stringify({ cardKey: 'k_1', field, showLabel }))}"></card-field>`;
 
 function Body({ html, preview = false }: { html: string; preview?: boolean }) {
   return (
@@ -121,6 +121,31 @@ describe('Field macro', () => {
       'B',
     );
   });
+
+  it.each([
+    { showLabel: true, hidden: false },
+    { showLabel: false, hidden: true },
+  ])(
+    'hides the label visually but keeps its name when showLabel is $showLabel',
+    ({ showLabel, hidden }) => {
+      render(<Body html={placeholder('m/fieldTypes/a', showLabel)} />);
+      const label = screen.getByText('m/fieldTypes/a');
+      if (hidden) {
+        expect(label).toHaveStyle({ width: '1px', height: '1px' });
+      } else {
+        expect(label).not.toHaveStyle({ width: '1px' });
+      }
+
+      fireEvent.click(screen.getByText('A'));
+
+      if (hidden) {
+        expect(
+          screen.getByRole('textbox', { name: 'm/fieldTypes/a' }),
+        ).toBeInTheDocument();
+      }
+      expect(screen.getByRole('textbox')).toBeInTheDocument();
+    },
+  );
 
   it('shows the value read-only in a preview', () => {
     render(<Body html={placeholder('m/fieldTypes/a')} preview />);
