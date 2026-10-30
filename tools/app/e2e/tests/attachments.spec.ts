@@ -4,7 +4,7 @@
 import { readFileSync } from 'node:fs';
 import type { Page } from '@playwright/test';
 import { test, expect } from '../fixtures.js';
-import { editPage, dismissSaveToast } from '../helpers.js';
+import { editPage, dismissSaveToast, createPage } from '../helpers.js';
 import t from '../../src/locales/en/translation.json' with { type: 'json' };
 
 // Open the golden project's root card (the only card after a reset).
@@ -35,6 +35,28 @@ async function addPngAttachment(page: Page) {
   await expect(toast).toHaveCount(0);
 }
 
+// Upload cyberismo.png to the open card through the API.
+async function uploadPngViaApi(page: Page) {
+  const urlMatch = page.url().match(/\/projects\/([^/]+)\/cards\/([^/?#]+)/);
+  if (!urlMatch) {
+    throw new Error(`expected /projects/<prefix>/cards/<key>: ${page.url()}`);
+  }
+  const [, prefix, cardKey] = urlMatch;
+  const response = await page.request.post(
+    `/api/projects/${prefix}/cards/${cardKey}/attachments`,
+    {
+      multipart: {
+        files: {
+          name: 'cyberismo.png',
+          mimeType: 'image/png',
+          buffer: readFileSync('./e2e/assets/cyberismo.png'),
+        },
+      },
+    },
+  );
+  expect(response.ok()).toBeTruthy();
+}
+
 test.describe('Attachments', () => {
   test.beforeEach(async ({ page, resetProject }) => {
     await resetProject();
@@ -46,7 +68,7 @@ test.describe('Attachments', () => {
     await openRootCard(page);
 
     await page.getByTestId('contextMenuButton').click();
-    await page.getByTestId('addAttachmentButton').click();
+    await page.getByRole('menuitem', { name: t.addAttachment }).click();
 
     // Verify add attachment dialog contents
     await expect(
@@ -87,24 +109,7 @@ test.describe('Attachments', () => {
   test('removes the attachment', async ({ page }) => {
     await openRootCard(page);
 
-    const urlMatch = page.url().match(/\/projects\/([^/]+)\/cards\/([^/?#]+)/);
-    if (!urlMatch) {
-      throw new Error(`expected /projects/<prefix>/cards/<key>: ${page.url()}`);
-    }
-    const [, prefix, cardKey] = urlMatch;
-    const response = await page.request.post(
-      `/api/projects/${prefix}/cards/${cardKey}/attachments`,
-      {
-        multipart: {
-          files: {
-            name: 'cyberismo.png',
-            mimeType: 'image/png',
-            buffer: readFileSync('./e2e/assets/cyberismo.png'),
-          },
-        },
-      },
-    );
-    expect(response.ok()).toBeTruthy();
+    await uploadPngViaApi(page);
     await page.reload();
 
     // Enter inline edit mode so the AttachmentPanel is rendered
@@ -158,5 +163,91 @@ test.describe('Attachments', () => {
 
     // Both attachments ended up on the card
     await expect(page.getByTestId('attachmentCountBadge')).toHaveText('2');
+  });
+
+  // Either side of the 1200px (lg) breakpoint.
+  const WIDE = { width: 1400, height: 800 };
+  const NARROW = { width: 1000, height: 800 };
+
+  const defaultCases = [
+    { name: 'wide view', viewport: WIDE, edit: false, expanded: false },
+    { name: 'wide edit', viewport: WIDE, edit: true, expanded: true },
+    { name: 'narrow view', viewport: NARROW, edit: false, expanded: false },
+    { name: 'narrow edit', viewport: NARROW, edit: true, expanded: false },
+  ];
+
+  for (const { name, viewport, edit, expanded } of defaultCases) {
+    test(`panel starts ${expanded ? 'expanded' : 'collapsed'}: ${name}`, async ({
+      page,
+    }) => {
+      await page.setViewportSize(viewport);
+      await openRootCard(page);
+      await uploadPngViaApi(page);
+      await page.reload();
+      if (edit) {
+        await editPage(page);
+        await expect(page.locator('.cm-editor')).toBeVisible();
+      }
+
+      const panel = page.getByTestId('cardAttachmentsPanel');
+      await expect(page.getByTestId('attachmentCountBadge')).toHaveText('1');
+      const toggle = panel.getByRole('button', { name: t.attachments });
+      await expect(toggle).toHaveAttribute('aria-expanded', String(expanded));
+
+      // Toggling works from either default.
+      await toggle.click();
+      await expect(toggle).toHaveAttribute('aria-expanded', String(!expanded));
+      if (expanded === false) {
+        await expect(panel.locator('a[download]')).toHaveAttribute(
+          'href',
+          /cyberismo\.png$/,
+        );
+      }
+    });
+  }
+
+  test('returning from edit to view collapses the panel again', async ({
+    page,
+  }) => {
+    await page.setViewportSize(WIDE);
+    await openRootCard(page);
+    await uploadPngViaApi(page);
+    await page.reload();
+
+    const toggle = page
+      .getByTestId('cardAttachmentsPanel')
+      .getByRole('button', { name: t.attachments });
+    await toggle.click();
+    await expect(toggle).toHaveAttribute('aria-expanded', 'true');
+
+    await editPage(page);
+    await expect(page.locator('.cm-editor')).toBeVisible();
+    await page.getByTestId('contentCancelButton').click();
+    await expect(page.locator('.cm-editor')).toHaveCount(0);
+    await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+  });
+
+  test('navigating to another card collapses an expanded panel', async ({
+    page,
+  }) => {
+    await page.setViewportSize(WIDE);
+    await openRootCard(page);
+    // Visit both cards first so switching between them is served from the
+    // SWR cache and the card layout stays mounted.
+    await createPage(page);
+    const tree = (name: RegExp) => page.locator('p').filter({ hasText: name });
+    await tree(/^Untitled page content$/).click();
+
+    const toggle = page
+      .getByTestId('cardAttachmentsPanel')
+      .getByRole('button', { name: t.attachments });
+    await toggle.click();
+    await expect(toggle).toHaveAttribute('aria-expanded', 'true');
+
+    await tree(/^Untitled page$/).click();
+    await expect(
+      page.getByRole('heading', { level: 1, name: /^Untitled page$/ }),
+    ).toBeVisible();
+    await expect(toggle).toHaveAttribute('aria-expanded', 'false');
   });
 });

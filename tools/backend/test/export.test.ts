@@ -2,12 +2,21 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
-import { mkdtemp, rm } from 'node:fs/promises';
+import {
+  mkdir,
+  mkdtemp,
+  readdir,
+  readFile,
+  rm,
+  symlink,
+  writeFile,
+} from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { getCardQueryResult, reset, exportSite } from '../src/export.js';
 import {
   localFolder,
+  SYSTEM_ACTOR,
   type ProjectDirectory,
   type Workspace,
 } from '@cyberismo/data-handler';
@@ -211,7 +220,96 @@ describe('export module', () => {
       const { errors } = await exportSite(registry, tempDir);
 
       expect(errors.map((e) => e.prefix)).toEqual(['decision']);
-      expect(errors[0].errors.length).toBeGreaterThan(0);
+      expect(errors[0].errors).toHaveLength(1);
+      expect(errors[0].errors[0]).toMatch(/^decision_5\/games\.jpg: /);
+    });
+  });
+
+  describe('exportSite attachments', () => {
+    let tempDir: string;
+    let folder: string;
+
+    beforeEach(async () => {
+      tempDir = await mkdtemp(join(tmpdir(), 'cyberismo-export-test-'));
+      folder = await createTempTestFolder('decision-records', 'minimal');
+    });
+
+    afterEach(async () => {
+      await rm(tempDir, { recursive: true, force: true });
+      await rm(folder, { recursive: true, force: true });
+    });
+
+    test('writes every attachment of an exported card under its own name', async () => {
+      const card = join(folder, 'decision-records', 'cardRoot', 'decision_5');
+      const docx = Buffer.from([0x50, 0x4b, 0x03, 0x04, 0x00, 0xff]);
+      await writeFile(join(card, 'a', 'notes.docx'), docx);
+      const { directory: registry } = await localFolder(folder);
+
+      const { errors } = await exportSite(registry, tempDir);
+
+      expect(errors).toEqual([]);
+      const exported = join(
+        tempDir,
+        'api/projects/decision/cards/decision_5/a',
+      );
+      expect(await readdir(exported)).toEqual(['games.jpg', 'notes.docx']);
+      expect(await readFile(join(exported, 'games.jpg'))).toEqual(
+        await readFile(join(card, 'a', 'games.jpg')),
+      );
+      expect(await readFile(join(exported, 'notes.docx'))).toEqual(docx);
+    });
+
+    // Only regular files are exported; links and folders are skipped silently.
+    test.each([
+      {
+        name: 'a symlink',
+        add: async (a: string, secret: string) => {
+          await symlink(secret, join(a, 'link.txt'));
+        },
+      },
+      {
+        name: 'a subfolder',
+        add: async (a: string) => {
+          await mkdir(join(a, 'sub'));
+          await writeFile(join(a, 'sub', 'inner.txt'), 'inner');
+        },
+      },
+    ])('skips $name in a/', async ({ add }) => {
+      const card = join(folder, 'decision-records', 'cardRoot', 'decision_5');
+      const secret = join(folder, 'secret.txt');
+      await writeFile(secret, 'secret');
+      await add(join(card, 'a'), secret);
+      const { directory: registry } = await localFolder(folder);
+
+      const { errors } = await exportSite(registry, tempDir);
+
+      expect(errors).toEqual([]);
+      expect(
+        await readdir(
+          join(tempDir, 'api/projects/decision/cards/decision_5/a'),
+        ),
+      ).toEqual(['games.jpg']);
+    });
+
+    test('exports the top-level file when a subfolder link has the same name', async () => {
+      const card = join(folder, 'decision-records', 'cardRoot', 'decision_5');
+      const secret = join(folder, 'secret.png');
+      await writeFile(secret, 'secret');
+      await mkdir(join(card, 'a', 'sub'));
+      await symlink(secret, join(card, 'a', 'sub', 'x.png'));
+      const { directory: registry } = await localFolder(folder);
+      const top = Buffer.from('top-level');
+      const ws = await registry.open('decision', SYSTEM_ACTOR);
+      await ws.cards.addAttachment('decision_5', 'x.png', top);
+
+      const { errors } = await exportSite(registry, tempDir);
+
+      expect(errors).toEqual([]);
+      expect(
+        await readFile(
+          join(tempDir, 'api/projects/decision/cards/decision_5/a/x.png'),
+        ),
+      ).toEqual(top);
     });
   });
 });

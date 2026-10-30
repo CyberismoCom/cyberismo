@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: Cyberismo Ltd and contributors
 // SPDX-License-Identifier: AGPL-3.0-only
 
-import { type Context, Hono } from 'hono';
+import { Hono } from 'hono';
 import type { ContentfulStatusCode } from 'hono/utils/http-status';
 import { getCardDetails } from './lib.js';
 import * as cardService from './service.js';
@@ -734,49 +734,41 @@ router.put(
  *       500:
  *         description: project_path not set.
  */
-router.get(
-  '/:key/a/:attachment',
-  requireRole(UserRole.Reader),
-  ssgParams(async (c: Context) => {
-    const ws = c.get('ws');
-    return await cardService.findRelevantAttachments(ws, c.get('tree'));
-  }),
-  async (c) => {
-    const ws = c.get('ws');
-    const { key, attachment } = c.req.param();
-    const filename = decodeURI(attachment);
+router.get('/:key/a/:attachment', requireRole(UserRole.Reader), async (c) => {
+  const ws = c.get('ws');
+  const { key, attachment } = c.req.param();
+  const filename = decodeURI(attachment);
 
-    if (!filename || !key) {
-      return c.text('Missing cardKey or filename', 400);
-    }
+  if (!filename || !key) {
+    return c.text('Missing cardKey or filename', 400);
+  }
 
-    try {
-      const attachmentResponse = await cardService.getAttachment(
-        ws,
-        key,
-        filename,
-      );
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const payload = attachmentResponse as any;
+  try {
+    const attachmentResponse = await cardService.getAttachment(
+      ws,
+      key,
+      filename,
+    );
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const payload = attachmentResponse as any;
 
-      return new Response(payload.fileBuffer, {
-        headers: {
-          'Content-Type': payload.mimeType,
-          'Content-Disposition': `attachment; filename="${filename}"`,
-          'Cache-Control': 'no-store',
-        },
-      });
-    } catch (error) {
-      return c.json(
-        {
-          error:
-            error instanceof Error
-              ? error.message
-              : `No attachment found from card ${key} and filename ${filename}`,
-        },
-        404,
-      );
-    }
-  },
-);
+    return new Response(payload.fileBuffer, {
+      headers: {
+        'Content-Type': payload.mimeType,
+        'Content-Disposition': `attachment; filename="${filename}"`,
+        'Cache-Control': 'no-store',
+      },
+    });
+  } catch (error) {
+    return c.json(
+      {
+        error:
+          error instanceof Error
+            ? error.message
+            : `No attachment found from card ${key} and filename ${filename}`,
+      },
+      404,
+    );
+  }
+});
 export default router;
