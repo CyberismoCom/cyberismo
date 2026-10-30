@@ -31,8 +31,8 @@ import type BaseMacro from './base-macro.js';
 import TaskQueue from './task-queue.js';
 import { ClingoError } from '@cyberismo/node-clingo';
 import type { SchemaObject } from 'ajv';
-const CURLY_LEFT = '&#123;';
-const CURLY_RIGHT = '&#125;';
+export const CURLY_LEFT = '&#123;';
+export const CURLY_RIGHT = '&#125;';
 const RAW_BLOCK_OPEN = '{{#raw}}';
 const RAW_BLOCK_CLOSE = '{{/raw}}';
 
@@ -239,6 +239,7 @@ export async function evaluateMacros(
   context: MacroGenerationContext,
   preserveRawBlocks: boolean = false,
 ) {
+  context = { ...context, cardQueries: context.cardQueries ?? new Map() };
   const handlebars = Handlebars.create();
   const tasks = new TaskQueue();
   await registerMacros(handlebars, context, tasks);
