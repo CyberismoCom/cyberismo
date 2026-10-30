@@ -34,33 +34,34 @@ The first macro shows the owner field with its label. The second shows only the 
 
 == Visibility
 
-A field's visibility in the card type (_always visible_, _optionally visible_ or _hidden_) decides whether the field appears in the metadata panel of the card. It does not limit the `field` macro. A field that is in neither visibility list can still be placed with the macro, and its value then appears in the application, in the static site and in exports. Placing such a field in the content is the author's choice.
+A field's visibility in the card type (_always visible_, _optionally visible_ or _hidden_) decides whether the field appears in the metadata panel of the card. It does not limit the `field` macro. A hidden field can still be placed with the macro, and its value then appears in the application, in the static site and in exports. Placing a hidden field in the content is the author's choice.
 
 == Editing
 
 In the application, the macro shows the field as an editor, with its own save and cancel buttons. The macro is read-only when:
 
 * the user's role is below Editor;
-* the field is calculated, unless the card overrides the calculation;
-* the user may not edit the field, as decided by a `editingFieldDenied` rule;
+* the field is calculated, unless the card type allows overriding it (see {{#xref}}"cardKey":"docs_27"{{/xref}});
+* the user may not edit the field, as decided by an `editingFieldDenied` rule (see {{#xref}}"cardKey":"docs_eqgqllcc"{{/xref}});
 * the card is shown as a template card preview.
 
-For `workflowState`, the macro shows the transitions that are available from the current state. Transitions that are denied are shown disabled, with the message that explains why.
+For `workflowState`, the macro shows the transitions that are available from the current state. Transitions that are denied are shown disabled one by one, with the message that explains why. Only the user's role and the template card preview make the state selector read-only; the other rules above do not apply to it.
 
 == Static site and export output
 
-In the static site and in exports (such as PDF and AsciiDoc), the macro shows the value as plain text. The text is not interpreted as AsciiDoc, so a value cannot add formatting or other macros. The label, if shown, is in bold.
+In the static site and in exports (such as PDF and AsciiDoc), the macro shows the value as plain text. The text is not interpreted as AsciiDoc, so a value cannot add formatting or other macros. The label, if shown, is in bold. The label is the field's display name; for the built-in `title` and `workflowState` it is `Title` and `Workflow state`.
 
 [cols="1,3"]
 |===
 | Data type | Output
 
-| Enumeration | The display value of the selected option
+| Enumeration | The display value of the selected option, or the stored value if the option has no display value
 | List | The values joined with a comma and a space
 | Boolean | `Yes` or `No`
 | Date | The date as it is stored
 | Date and time | `YYYY-MM-DD HH:mm UTC`
 | Person | The email address as it is stored
+| Text and number types | The value as it is stored
 | Calculated field | The effective value, formatted by the data type
 | Multi-line text | The text, with line breaks kept
 | Empty value | `—`
@@ -68,7 +69,7 @@ In the static site and in exports (such as PDF and AsciiDoc), the macro shows th
 
 == Where to place the macro
 
-The macro creates a block in the application. Use it on its own line, in inline text and paragraphs, or in a table cell that starts with `a|`.
+In the application the macro is a block, so in running text the value appears on its own line there. Static site and export output renders it inline. You can use it in inline text, in paragraphs, or in a table cell that starts with `a|`.
 
 Do not use the macro:
 
