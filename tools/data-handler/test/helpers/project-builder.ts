@@ -32,6 +32,8 @@ export interface CardTypeSpec {
   }[];
   /** Field type names listed in the card's exported metadata table. */
   alwaysVisibleFields?: string[];
+  /** Field type names shown only under the metadata table's "show more". */
+  optionallyVisibleFields?: string[];
 }
 
 export interface FieldTypeSpec {
@@ -248,6 +250,9 @@ class Builder {
           name: fullName(prefix, 'fieldTypes', field.name),
         })),
         alwaysVisibleFields: cardType.alwaysVisibleFields?.map((name) =>
+          fullName(prefix, 'fieldTypes', name),
+        ),
+        optionallyVisibleFields: cardType.optionallyVisibleFields?.map((name) =>
           fullName(prefix, 'fieldTypes', name),
         ),
       });

@@ -154,8 +154,8 @@ type CardFieldValue =
   string | number | boolean | null | EnumValue | ListValueItem[];
 
 interface CardQueryField extends BaseResult {
-  visibility: 'always' | 'optional';
-  index: number;
+  visibility?: 'always' | 'optional';
+  index?: number;
   fieldDisplayName: string;
   fieldDescription: string;
   dataType: DataType;
