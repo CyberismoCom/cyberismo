@@ -393,4 +393,39 @@ describe('FieldRow', () => {
       );
     });
   });
+
+  it('hideLabel drops the visible label but keeps the accessible name', () => {
+    render(
+      <FieldRow
+        value="v"
+        label="Short text"
+        dataType="shortText"
+        isEditing
+        expanded
+        hideLabel
+        onSave={vi.fn()}
+      />,
+    );
+
+    expect(screen.queryByText('Short text')).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('textbox', { name: 'Short text' }),
+    ).toBeInTheDocument();
+  });
+
+  it('shows disabledReason on hover of a disabled row', async () => {
+    render(
+      <FieldRow
+        value="v"
+        label="Short text"
+        dataType="shortText"
+        expanded
+        disabled
+        disabledReason="Calculated, no edits"
+      />,
+    );
+
+    fireEvent.mouseOver(screen.getByText('v'));
+    expect(await screen.findByText('Calculated, no edits')).toBeInTheDocument();
+  });
 });

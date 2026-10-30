@@ -79,6 +79,7 @@ export type EditableFieldProps = {
   disabled?: boolean;
   enumValues?: EnumDefinition[];
   focus?: boolean;
+  hideLabel?: boolean;
   /** Rendered inline after the read-mode value, e.g. the overridden marker. */
   valueDecorator?: ReactNode;
 };
@@ -93,17 +94,20 @@ const EditableField = ({
   enumValues,
   disabled,
   focus,
+  hideLabel,
   valueDecorator,
 }: EditableFieldProps) => {
   const { t } = useTranslation();
   return (
     <Stack direction={{ xs: 'column', md: 'row' }} spacing={{ xs: 0.5, md: 4 }}>
-      <FieldLabel
-        label={label}
-        description={description}
-        disabled={disabled}
-        edit={edit}
-      />
+      {!hideLabel && (
+        <FieldLabel
+          label={label}
+          description={description}
+          disabled={disabled}
+          edit={edit}
+        />
+      )}
       {edit ? (
         <FieldEditor
           value={value}
@@ -112,6 +116,7 @@ const EditableField = ({
           enumValues={enumValues}
           disabled={disabled}
           focus={focus}
+          ariaLabel={hideLabel ? label : undefined}
         />
       ) : (
         <Typography

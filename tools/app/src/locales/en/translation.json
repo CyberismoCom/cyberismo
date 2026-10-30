@@ -102,6 +102,7 @@
   },
   "attachment": "Attachment",
   "attachments": "Attachments",
+  "calculatedField": "This field is calculated and cannot be edited",
   "calculatedForEachCard": "calculated for each card",
   "calculatedValue": "Calculated value",
   "cancel": "Cancel",
