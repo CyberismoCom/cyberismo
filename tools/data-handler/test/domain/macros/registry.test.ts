@@ -139,11 +139,6 @@ describe('macros', () => {
         options: { field: 'title', showLabel: 'false' },
         valid: false,
       },
-      {
-        name: 'cardKey (not supported yet)',
-        options: { field: 'title', cardKey: 'x_1' },
-        valid: false,
-      },
     ])('field macro options: $name', ({ options, valid }) => {
       const run = () => validateMacroContent(fieldMetadata, options);
       if (valid) {

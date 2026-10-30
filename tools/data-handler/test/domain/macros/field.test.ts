@@ -35,7 +35,9 @@ const spec = {
       ],
       alwaysVisibleFields: ['level'],
     },
+    { name: 'note', customFields: [{ name: 'other' }] },
   ],
+  templates: [{ name: 'tpl', cards: [{ title: 'Template card' }] }],
   calculations: {
     calc: 'fieldCalculated(Card, "test/fieldTypes/calc", "auto") :- projectCard(Card).\n',
   },
@@ -45,25 +47,36 @@ const spec = {
       fields: { [TEXT]: 'host text', 'test/fieldTypes/level': 'high' },
     },
     { title: 'Included', fields: { 'test/fieldTypes/calc': 'manual' } },
+    {
+      title: 'Target',
+      cardType: 'note',
+      fields: { 'test/fieldTypes/other': 'target other' },
+    },
   ],
 };
 
 const macro = (options: string) => `{{#field}}${options}{{/field}}`;
 
+type Built = Awaited<ReturnType<typeof open>>;
+const target = (b: Built) => b.keys[2];
+const templateCard = (b: Built) => b.templateKeys['test/templates/tpl'][0];
+
 // Renders `content` on the host card, its text field set to `text` if given.
 async function render(
-  content: string,
+  content: string | ((built: Built) => string),
   mode: RenderOptions['mode'],
   text?: (keys: string[]) => string,
 ) {
-  const { ws, keys } = await open(spec);
+  const built = await open(spec);
+  const { ws, keys } = built;
   if (text) await ws.cards.editField(keys[0], TEXT, text(keys));
-  const { content: out } = await ws.render.macros(content, {
+  const source = typeof content === 'string' ? content : content(built);
+  const { content: out } = await ws.render.macros(source, {
     cardKey: keys[0],
     context: 'localApp',
     mode,
   });
-  return { out, keys };
+  return { out, keys, built };
 }
 
 // Text of the single paragraph Asciidoctor makes of `adoc`; null if it holds markup.
@@ -102,8 +115,26 @@ describe('field macro', () => {
       '"field": "test/fieldTypes/other"',
       "field 'test/fieldTypes/other' is not a field of card type 'test/cardTypes/page'",
     ],
+    [
+      'an unknown card key',
+      '"cardKey": "test_nosuch", "field": "title"',
+      "card 'pass:[test_nosuch]' does not exist",
+    ],
+    [
+      "a field on the host's card type but not the target's",
+      (b: Built) => `"cardKey": "${target(b)}", "field": "${TEXT}"`,
+      `field '${TEXT}' is not a field of card type 'test/cardTypes/note'`,
+    ],
+    [
+      'a template card target',
+      (b: Built) => `"cardKey": "${templateCard(b)}", "field": "title"`,
+      'a field macro cannot target a template card',
+    ],
   ])('reports %s as a macro error', async (_, options, message) => {
-    const { out } = await render(macro(options), 'inject');
+    const { out } = await render(
+      (b) => macro(typeof options === 'string' ? options : options(b)),
+      'inject',
+    );
 
     expect(out).toContain('Macro Error');
     expect(out).toContain(message);
@@ -142,18 +173,31 @@ describe('field macro', () => {
     );
   });
 
-  it('emits a placeholder carrying the card, field and label choice', async () => {
-    const { out, keys } = await render(macro(`"field": "${TEXT}"`), 'inject');
+  it.each([
+    {
+      name: 'the host',
+      cardKey: () => undefined,
+      want: (b: Built) => b.keys[0],
+    },
+    { name: 'a target', cardKey: target, want: target },
+  ])(
+    'emits a placeholder carrying $name card, the field and label choice',
+    async ({ cardKey, want }) => {
+      const { out, built } = await render((b) => {
+        const key = cardKey(b);
+        return macro(`${key ? `"cardKey": "${key}", ` : ''}"field": "title"`);
+      }, 'inject');
 
-    const options = out.match(
-      /<card-field options="([^"]+)"><\/card-field>/,
-    )?.[1];
-    expect(JSON.parse(Buffer.from(options!, 'base64').toString())).toEqual({
-      cardKey: keys[0],
-      field: TEXT,
-      showLabel: true,
-    });
-  });
+      const options = out.match(
+        /<card-field options="([^"]+)"><\/card-field>/,
+      )?.[1];
+      expect(JSON.parse(Buffer.from(options!, 'base64').toString())).toEqual({
+        cardKey: want(built),
+        field: 'title',
+        showLabel: true,
+      });
+    },
+  );
 
   it.each([
     ['title', '"field": "title"', 'pass:[<strong>Title</strong>]: pass:[Host]'],
@@ -177,8 +221,17 @@ describe('field macro', () => {
       '"field": "test/fieldTypes/calc", "showLabel": false',
       'pass:[auto]',
     ],
+    [
+      "another card's field",
+      (b: Built) =>
+        `"cardKey": "${target(b)}", "field": "test/fieldTypes/other", "showLabel": false`,
+      'pass:[target other]',
+    ],
   ])('renders %s as text in static mode', async (_, options, expected) => {
-    const { out } = await render(macro(options), 'static');
+    const { out } = await render(
+      (b) => macro(typeof options === 'string' ? options : options(b)),
+      'static',
+    );
 
     expect(out).toBe(expected);
   });
@@ -242,7 +295,7 @@ describe('field macro', () => {
       mode: 'static',
     });
 
-    expect(content).toContain("Card 'test_nosuch' does not exist");
+    expect(content).toContain("card 'pass:[test_nosuch]' does not exist");
     expect(runQuery).not.toHaveBeenCalled();
   });
 
