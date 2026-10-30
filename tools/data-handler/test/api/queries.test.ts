@@ -57,6 +57,17 @@ describe('queries.runQuery', () => {
     );
   });
 
+  it('answers exactly the cards named in cardKeys', async () => {
+    const { ws, keys } = await open(spec);
+    const [top, , childB] = keys;
+
+    const cards = await ws.queries.runQuery('card', 'localApp', {
+      cardKeys: [top, childB],
+    });
+
+    expect(cards.map((card) => card.key).sort()).toEqual([top, childB].sort());
+  });
+
   it('sees a write made through the same handle', async () => {
     const { ws, keys } = await open(spec);
 

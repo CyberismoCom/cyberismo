@@ -77,6 +77,26 @@ export async function getCardData(
   });
 }
 
+/** One solve for many cards; keys the project does not hold are left out. */
+export async function getCardBatch(
+  ws: Workspace,
+  keys: string[],
+): Promise<Record<string, QueryResult<'card'>>> {
+  return ws.consistent(async () => {
+    const checked = await Promise.all(
+      [...new Set(keys)].map(async (key) =>
+        (await cardOrNotFound(ws, key)).status === 200 ? key : undefined,
+      ),
+    );
+    const cardKeys = checked.filter((key) => key !== undefined);
+    if (cardKeys.length === 0) {
+      return {};
+    }
+    const cards = await ws.queries.runQuery('card', 'localApp', { cardKeys });
+    return Object.fromEntries(cards.map((card) => [card.key, card]));
+  });
+}
+
 export async function getCardContent(
   ws: Workspace,
   key: string,

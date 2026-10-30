@@ -88,6 +88,29 @@ test.each(['', '/content', '/source'])(
   },
 );
 
+test.each([
+  ['two keys', ['decision_5', 'decision_6'], 200, ['decision_5', 'decision_6']],
+  ['an unknown key', ['decision_5', 'bogus_999'], 200, ['decision_5']],
+  ['101 keys', Array.from({ length: 101 }, () => 'decision_5'), 400, []],
+])(
+  'POST /api/projects/decision/cards/batch with %s',
+  async (_, keys, status, answered) => {
+    const response = await app.request('/api/projects/decision/cards/batch', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ keys }),
+    });
+    expect(response.status).toBe(status);
+    if (status === 200) {
+      const result = (await response.json()) as Record<string, CardApiResponse>;
+      expect(Object.keys(result).sort()).toEqual(answered);
+      for (const key of answered) {
+        expect(result[key].key).toBe(key);
+      }
+    }
+  },
+);
+
 test('/api/projects/decision/cards/decision_1/a/the-needle.heic returns an attachment file', async () => {
   const response = await app.request(
     '/api/projects/decision/cards/decision_1/a/the-needle.heic',

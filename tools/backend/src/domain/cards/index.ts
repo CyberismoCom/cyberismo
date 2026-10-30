@@ -13,6 +13,7 @@ import {
   removeLinkSchema,
   updateLinkSchema,
   exportCardPdfSchema,
+  cardBatchSchema,
   type ExportCardPdfRequestBody,
 } from './schema.js';
 
@@ -114,6 +115,40 @@ router.post(
         500,
       );
     }
+  },
+);
+
+/**
+ * @swagger
+ * /api/cards/batch:
+ *   post:
+ *     summary: Returns the card query results of many cards in one solve.
+ *     description: Keys the project does not hold are left out of the response. Not served on the static site.
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               keys:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                 minItems: 1
+ *                 maxItems: 100
+ *     responses:
+ *       200:
+ *         description: Object of card key to QueryResult<'card'>.
+ *       400:
+ *         description: Missing keys or more than 100 keys.
+ */
+router.post(
+  '/batch',
+  requireRole(UserRole.Reader),
+  zValidator('json', cardBatchSchema),
+  async (c) => {
+    const { keys } = c.req.valid('json');
+    return c.json(await cardService.getCardBatch(c.get('ws'), keys));
   },
 );
 
