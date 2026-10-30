@@ -75,9 +75,11 @@ export default class FieldMacro extends BaseMacro {
     const { checkout } = context;
     const card = existingCard(checkout, cardKey);
     // Instantiation does not rewrite the key, so it would keep pointing at the template.
+    // A host that is no card, such as the PDF report's top level, has no such risk.
+    const host = checkout.keyRegistry.ownerOf(context.cardKey);
     if (
       checkout.treeOf(cardKey).kind !== 'project' &&
-      checkout.treeOf(context.cardKey).kind === 'project'
+      host?.kind === 'project'
     ) {
       throw new Error('a field macro cannot target a template card');
     }

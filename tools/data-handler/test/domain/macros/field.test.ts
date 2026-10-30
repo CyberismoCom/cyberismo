@@ -285,19 +285,43 @@ describe('field macro', () => {
     );
   });
 
-  it('checks the card exists before running its query', async () => {
-    const { ws } = await open(spec);
-    const runQuery = vi.spyOn(CalculationEngine.prototype, 'runQuery');
+  it.each([
+    [
+      'an unknown host',
+      () => 'test_nosuch',
+      () => '',
+      "card 'pass:[test_nosuch]' does not exist",
+      0,
+    ],
+    [
+      'an unknown target',
+      (b: Built) => b.keys[0],
+      () => '"cardKey": "test_nosuch", ',
+      "card 'pass:[test_nosuch]' does not exist",
+      0,
+    ],
+    [
+      'no host and a template target',
+      () => '',
+      (b: Built) => `"cardKey": "${templateCard(b)}", `,
+      'pass:[Template card]',
+      1,
+    ],
+  ])(
+    'checks the card exists before running its query, given %s',
+    async (_, host, cardKey, expected, queries) => {
+      const built = await open(spec);
+      const runQuery = vi.spyOn(CalculationEngine.prototype, 'runQuery');
 
-    const { content } = await ws.render.macros(macro('"field": "title"'), {
-      cardKey: 'test_nosuch',
-      context: 'localApp',
-      mode: 'static',
-    });
+      const { content } = await built.ws.render.macros(
+        macro(`${cardKey(built)}"field": "title", "showLabel": false`),
+        { cardKey: host(built), context: 'localApp', mode: 'static' },
+      );
 
-    expect(content).toContain("card 'pass:[test_nosuch]' does not exist");
-    expect(runQuery).not.toHaveBeenCalled();
-  });
+      expect(content).toContain(expected);
+      expect(runQuery).toHaveBeenCalledTimes(queries);
+    },
+  );
 
   it('runs the card query once for several macros on the card', async () => {
     const { ws, keys } = await open(spec);
