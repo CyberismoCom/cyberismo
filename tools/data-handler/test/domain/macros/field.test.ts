@@ -6,6 +6,8 @@ import { convert } from '@asciidoctor/core';
 
 import type { RenderOptions } from '@cyberismo/model';
 import { CalculationEngine } from '../../../src/state/engine/calculation-engine.js';
+import { evaluateMacros } from '../../../src/domain/macros/registry.js';
+import { checkoutOf } from '../../../src/state/checkout/internal.js';
 import { projects } from '../cards/fixture.js';
 
 const open = projects();
@@ -124,6 +126,22 @@ describe('field macro', () => {
     );
   });
 
+  it('checks only the schema in validate mode', async () => {
+    const { ws, keys } = await open(spec);
+    const validate = (options: string) =>
+      evaluateMacros(macro(options), {
+        checkout: checkoutOf(ws),
+        cardKey: keys[0],
+        context: 'localApp',
+        mode: 'validate',
+      });
+
+    await expect(validate('"field": "nope"')).resolves.toBe('');
+    await expect(validate('"field": 1')).rejects.toThrow(
+      /field macro JSON validation error: must be string/,
+    );
+  });
+
   it('emits a placeholder carrying the card, field and label choice', async () => {
     const { out, keys } = await render(macro(`"field": "${TEXT}"`), 'inject');
 
@@ -138,16 +156,16 @@ describe('field macro', () => {
   });
 
   it.each([
-    ['title', '"field": "title"', '**pass:[Title]**: pass:[Host]'],
+    ['title', '"field": "title"', 'pass:[<strong>Title</strong>]: pass:[Host]'],
     [
       'workflowState',
       '"field": "workflowState"',
-      '**pass:[Workflow state]**: pass:[Open]',
+      'pass:[<strong>Workflow state</strong>]: pass:[Open]',
     ],
     [
       'a field in no visibility list',
       `"field": "${TEXT}"`,
-      '**pass:[text]**: pass:[host text]',
+      'pass:[<strong>text</strong>]: pass:[host text]',
     ],
     [
       'an enum without its label',
@@ -165,12 +183,21 @@ describe('field macro', () => {
     expect(out).toBe(expected);
   });
 
-  it('bolds the label right after a word', async () => {
-    const { out } = await render(`a${macro('"field": "title"')}`, 'static');
-
-    expect(String(await convert(out))).toContain(
-      'a<strong>Title</strong>: Host',
+  it.each([
+    ['right after a word', 'a', '', 'a<strong>Title</strong>: Host'],
+    [
+      'inside an author bold',
+      '**bold ',
+      ' text**',
+      '<strong>bold <strong>Title</strong>: Host text</strong>',
+    ],
+  ])('bolds the label %s', async (_, before, after, html) => {
+    const { out } = await render(
+      `${before}${macro('"field": "title"')}${after}`,
+      'static',
     );
+
+    expect(String(await convert(out))).toContain(html);
   });
 
   it('renders an overridden calculated field as the override', async () => {
@@ -200,7 +227,9 @@ describe('field macro', () => {
       { cardKey: keys[0], context: 'localApp', mode: 'static' },
     );
 
-    expect(content.trim()).toBe('**pass:[Title]**: pass:[Included]');
+    expect(content.trim()).toBe(
+      'pass:[<strong>Title</strong>]: pass:[Included]',
+    );
   });
 
   it('checks the card exists before running its query', async () => {

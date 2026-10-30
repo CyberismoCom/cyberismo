@@ -28,6 +28,16 @@ const ESCAPES: Record<string, string> = {
   '!': '&#33;',
 };
 
+function escape(line: string): string {
+  return (
+    line
+      .replace(/[&<>[\]\\|+$"'!]/g, (c) => ESCAPES[c])
+      // evaluateMacros re-scans its output; it restores these at the end
+      .replaceAll('{', CURLY_LEFT)
+      .replaceAll('}', CURLY_RIGHT)
+  );
+}
+
 /**
  * AsciiDoc that renders `text` literally. Every physical line opens with
  * `pass:[`, so no line can be read as a directive, block delimiter or
@@ -36,14 +46,7 @@ const ESCAPES: Record<string, string> = {
 export function literal(text: string): string {
   return text
     .split(/\r?\n/)
-    .map((line) => {
-      const escaped = line
-        .replace(/[&<>[\]\\|+$"'!]/g, (c) => ESCAPES[c])
-        // evaluateMacros re-scans its output; it restores these at the end
-        .replaceAll('{', CURLY_LEFT)
-        .replaceAll('}', CURLY_RIGHT);
-      return `pass:[${escaped}]`;
-    })
+    .map((line) => `pass:[${escape(line)}]`)
     .join(' +\n');
 }
 
@@ -84,5 +87,8 @@ export function fieldStaticText(
   showLabel: boolean,
 ): string {
   const value = literal(valueText(row));
-  return showLabel ? `**${literal(label)}**: ${value}` : value;
+  // Bold as passthrough HTML on one line, so no AsciiDoc quote around it can
+  // pair with it
+  const strong = `pass:[<strong>${escape(label.replace(/\s+/g, ' '))}</strong>]`;
+  return showLabel ? `${strong}: ${value}` : value;
 }

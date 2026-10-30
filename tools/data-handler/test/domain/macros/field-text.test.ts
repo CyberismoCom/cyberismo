@@ -67,6 +67,6 @@ describe('fieldStaticText', () => {
   it('puts the escaped label before the value', () => {
     expect(
       fieldStaticText({ dataType: 'integer', value: 3 }, 'A*b*', true),
-    ).toBe('**pass:[A*b*]**: pass:[3]');
+    ).toBe('pass:[<strong>A*b*</strong>]: pass:[3]');
   });
 });
