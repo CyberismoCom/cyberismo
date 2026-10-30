@@ -37,9 +37,9 @@ The first macro shows the owner field with its label. The second shows only the 
 
 With `"cardKey"`, the macro shows and edits a field of another card. Every check is made against that card, not against the card that contains the macro: its card type decides which fields exist, its workflow decides the transitions, and the rules and the user's role apply to it. The macro shows an error if the card does not exist or the user may not read it.
 
-When the target is not the card that contains the macro, the macro shows a label before the field, with the target's key and title as a link to the card. This way a reader can see that the value belongs to another card.
+In the application, when the target is not the card that contains the macro, the macro shows a label before the field, with the target's key and title as a link to the card. This way a reader can see that the value belongs to another card. The static site and exports show no such label.
 
-A card of the project cannot target a template card. The macro shows an error. Inside a template, a macro can target the template's own cards.
+A card of the project cannot target a template card. The macro shows an error. A macro in a template card can target any existing card.
 
 ```
 {{#raw}}
