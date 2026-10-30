@@ -357,10 +357,11 @@ function instantiatedMetadata(
     }));
   }
 
-  // Authored custom-field values. A null on a template card is its 'no
-  // value' marker rather than content, so that slot is left absent.
+  // Authored custom-field values. A null or an empty string on a template
+  // card is its 'no value' marker rather than content, so that slot is left
+  // absent.
   for (const [key, value] of Object.entries(templateMetadata)) {
-    if (!isPredefinedField(key) && value !== null) {
+    if (!isPredefinedField(key) && value !== null && value !== '') {
       metadata[key] = value;
     }
   }
