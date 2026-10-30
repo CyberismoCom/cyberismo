@@ -43,7 +43,7 @@ In the application, the macro shows the field as an editor, with its own save an
 * the user's role is below Editor;
 * the field is calculated, unless the card type allows overriding it (see {{#xref}}"cardKey":"docs_27"{{/xref}});
 * the user may not edit the field, as decided by an `editingFieldDenied` rule (see {{#xref}}"cardKey":"docs_eqgqllcc"{{/xref}});
-* the card is shown as a template card preview.
+* the card is shown as a template card preview. The macro then shows the template card's saved values, which may differ from the unsaved draft in the editor.
 
 For `workflowState`, the macro shows the transitions that are available from the current state. Transitions that are denied are shown disabled one by one, with the message that explains why. Only the user's role and the template card preview make the state selector read-only; the other rules above do not apply to it.
 
@@ -59,7 +59,7 @@ In the static site and in exports (such as PDF and AsciiDoc), the macro shows th
 | List | The values joined with a comma and a space
 | Boolean | `Yes` or `No`
 | Date | The date as it is stored
-| Date and time | `YYYY-MM-DD HH:mm UTC`
+| Date and time | `YYYY-MM-DD HH:mm UTC`. A stored value without a time-zone offset is read in the server's time zone before it is converted to UTC
 | Person | The email address as it is stored
 | Text and number types | The value as it is stored
 | Calculated field | The effective value, formatted by the data type
