@@ -1,8 +1,10 @@
 name: Publish
 
-# Unified release pipeline. Runs in two modes:
+# Unified release pipeline. Runs only when the version in
+# tools/cli/package.json changes (or on workflow_dispatch); other edits
+# to that file, such as dependency bumps, skip every job. Two modes:
 #
-#   pull_request  (touching tools/cli/package.json): dry-run. Publishes
+#   pull_request: dry-run. Publishes
 #       to a local Verdaccio, smoke-tests the cli installed from there,
 #       and per-arch loads the docker image into the runner's docker
 #       daemon to smoke-run `cyberismo --version`. Skips tag push,
@@ -44,16 +46,45 @@ jobs:
     outputs:
       version: ${{ steps.v.outputs.version }}
       tag: ${{ steps.v.outputs.tag }}
+      release: ${{ steps.v.outputs.release }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Determine CLI version
         id: v
+        env:
+          BASE: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
         run: |
           VERSION=$(node -p "require('./tools/cli/package.json').version")
           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
           echo "tag=cyberismo-${VERSION}" >> "$GITHUB_OUTPUT"
+
+          RELEASE=true
+          if [ "$GITHUB_EVENT_NAME" != "workflow_dispatch" ]; then
+            BASE_VERSION=$(git show "${BASE}:tools/cli/package.json" 2>/dev/null \
+              | node -p "JSON.parse(require('fs').readFileSync(0, 'utf8')).version" 2>/dev/null || true)
+            if [ "$BASE_VERSION" = "$VERSION" ]; then
+              echo "CLI version unchanged (${VERSION}); skipping release jobs."
+              RELEASE=false
+            fi
+          fi
+          echo "release=${RELEASE}" >> "$GITHUB_OUTPUT"
+
+      # The dry-run registry proxies @cyberismo/* to npmjs, so publishing an
+      # already-released version is silently skipped and the smoke test
+      # would run against the old package.
+      - name: Refuse an already-published version (dry-run only)
+        if: github.event_name == 'pull_request' && steps.v.outputs.release == 'true'
+        env:
+          VERSION: ${{ steps.v.outputs.version }}
+        run: |
+          if [ -n "$(npm view "@cyberismo/cli@${VERSION}" version --registry https://registry.npmjs.org/ 2>/dev/null)" ]; then
+            echo "::error::@cyberismo/cli@${VERSION} is already on npmjs. Bump the version." >&2
+            exit 1
+          fi
 
   tag:
     needs: [version, publish-npm, push-image-merge]
@@ -83,6 +114,7 @@ jobs:
 
   publish-npm:
     needs: version
+    if: needs.version.outputs.release == 'true'
     timeout-minutes: 30
     runs-on: ubuntu-latest
     env:
@@ -190,6 +222,7 @@ jobs:
   # validating against mocks.
   push-image:
     needs: version
+    if: needs.version.outputs.release == 'true'
     timeout-minutes: 30
     permissions:
       contents: read
@@ -356,6 +389,7 @@ jobs:
   # On main, github-release downloads the artifact and publishes it verbatim.
   release-body:
     needs: version
+    if: needs.version.outputs.release == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
