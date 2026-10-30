@@ -393,41 +393,53 @@ describe('presence bookkeeping', () => {
     }
   });
 
-  test('a connection subscribed to one card hears nothing about another', () => {
-    vi.useFakeTimers();
-    const events = new ProjectEvents();
-    const onDecision5: SSEMessage[] = [];
-    const onDecision6: SSEMessage[] = [];
-    const admin = { id: 'admin', name: 'Admin' };
-    try {
-      const five = events.connect(
-        admin,
-        fullCapabilities,
-        testDelivery(onDecision5),
-      );
-      const six = events.connect(
-        admin,
-        fullCapabilities,
-        testDelivery(onDecision6),
-      );
-      events.update(five, admin.id, 1, 'decision_5', 'viewing');
-      events.update(six, admin.id, 1, 'decision_6', 'viewing');
-      onDecision5.length = 0;
-      onDecision6.length = 0;
+  test.each([
+    [
+      'an editor',
+      fullCapabilities,
+      { cardKey: 'decision_6', userId: 'admin', userName: 'Admin' },
+    ],
+    ['a reader', readerCapabilities, { cardKey: 'decision_6' }],
+  ])(
+    "%s on one card hears another card's updates but not its presence",
+    (_, capabilities, expected) => {
+      vi.useFakeTimers();
+      const events = new ProjectEvents();
+      const onDecision5: SSEMessage[] = [];
+      const onDecision6: SSEMessage[] = [];
+      const admin = { id: 'admin', name: 'Admin' };
+      try {
+        const five = events.connect(
+          admin,
+          capabilities,
+          testDelivery(onDecision5),
+        );
+        const six = events.connect(
+          admin,
+          fullCapabilities,
+          testDelivery(onDecision6),
+        );
+        events.update(five, admin.id, 1, 'decision_5', 'viewing');
+        events.update(six, admin.id, 1, 'decision_6', 'viewing');
+        onDecision5.length = 0;
+        onDecision6.length = 0;
 
-      vi.advanceTimersByTime(1_000);
-      events.update(six, admin.id, 2, 'decision_6', 'editing');
-      events.cardsUpdated(['decision_6'], { kind: 'user', ...admin });
+        vi.advanceTimersByTime(1_000);
+        events.update(six, admin.id, 2, 'decision_6', 'editing');
+        events.cardsUpdated(['decision_6'], { kind: 'user', ...admin });
 
-      expect(onDecision5).toEqual([]);
-      expect(onDecision6.map((m) => m.event)).toEqual([
-        'presence.updated',
-        'card.updated',
-      ]);
-    } finally {
-      events.dispose();
-    }
-  });
+        expect(
+          onDecision5.map((m) => [m.event, JSON.parse(String(m.data))]),
+        ).toEqual([['card.updated', expected]]);
+        expect(onDecision6.map((m) => m.event)).toEqual([
+          'presence.updated',
+          'card.updated',
+        ]);
+      } finally {
+        events.dispose();
+      }
+    },
+  );
 
   test("a reader's editing declaration is stored and broadcast as viewing", () => {
     const events = new ProjectEvents();
@@ -559,7 +571,7 @@ describe('presence bookkeeping', () => {
       });
       expect(
         messages.map((message) => JSON.parse(String(message.data)).cardKey),
-      ).toEqual(['decision_5']);
+      ).toEqual(['decision_5', 'decision_6']);
     } finally {
       events.dispose();
     }

@@ -95,6 +95,9 @@ function setup() {
       );
       useSWR<string>(`/api/projects/TST/cards/${card}/source`);
       useSWR<string>(projectApiPaths('TST').tree());
+      // Another card the page shows, as a cross-card field macro does.
+      useSWR<string>(projectApiPaths('TST').card('TST_2'));
+      useSWR<string>(projectApiPaths('TST').cardContent('TST_2'));
       const [draft, setDraft] = useSavedDraft(data ?? '');
       return { presence, data, content, draft, setDraft };
     },
@@ -404,8 +407,8 @@ describe('project events and presence', () => {
     },
   );
 
-  it('does not notify for own edits or refresh unrelated cards', async () => {
-    const { hook, source, fetcher, notifications, setSaved } = setup();
+  it("refreshes only another shown card's details, without a toast", async () => {
+    const { hook, source, fetcher, notifications } = setup();
     await waitFor(() => expect(loaded(hook)).toBe('Saved/Saved'));
     fetcher.mockClear();
 
@@ -416,8 +419,17 @@ describe('project events and presence', () => {
         userName: 'Bob',
       }),
     );
-    expect(fetcher).not.toHaveBeenCalled();
+    await waitFor(() => expect(fetcher).toHaveBeenCalled());
+    await flushPromises();
+    expect(fetcher.mock.calls.map((call) => call[0])).toEqual([
+      '/api/projects/TST/cards/TST_2',
+    ]);
     expect(notifications()).toEqual([]);
+  });
+
+  it('does not notify for own edits', async () => {
+    const { hook, source, notifications, setSaved } = setup();
+    await waitFor(() => expect(loaded(hook)).toBe('Saved/Saved'));
 
     setSaved('My own edit');
     act(() =>

@@ -46,3 +46,7 @@ export const exportCardPdfSchema = z.object({
 });
 
 export type ExportCardPdfRequestBody = z.infer<typeof exportCardPdfSchema>;
+
+export const cardBatchSchema = z.object({
+  keys: z.array(z.string()).min(1).max(100),
+});

@@ -3,6 +3,10 @@
 
 export interface FieldMacroOptions {
   /**
+   * Card to read and edit; defaults to the card the macro is rendered on
+   */
+  cardKey?: string;
+  /**
    * Full field type name, or one of the predefined `title` and `workflowState`
    */
   field: string;

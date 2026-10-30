@@ -6,8 +6,9 @@ The `field` macro supports the following parameters:
 
 * `"field"`: The field to show (required). Use the full name of a custom field, such as `base/fieldTypes/owner`, or one of the built-in names `title` and `workflowState`. A bare name such as `owner` is an error.
 * `"showLabel"`: Whether to show the field's label before the value (optional, default `true`).
+* `"cardKey"`: The key of the card whose field to show (optional). See <<Showing a field of another card>>.
 
-The macro always shows the field of the card that contains it. In a card that another card includes with the {{#xref}}"cardKey":"docs_61tj2hec"{{/xref}} macro, that is the included card, not the card that includes it.
+Without `cardKey`, the macro shows the field of the card that contains it. In a card that another card includes with the {{#xref}}"cardKey":"docs_61tj2hec"{{/xref}} macro, that is the included card, not the card that includes it.
 
 The field must belong to the card's card type. If it does not, or the field does not exist, the macro shows an error.
 
@@ -31,6 +32,44 @@ Consider the following AsciiDoc snippet:
 ```
 
 The first macro shows the owner field with its label. The second shows only the workflow state of the card.
+
+== Showing a field of another card
+
+With `"cardKey"`, the macro shows and edits a field of another card. Every check is made against that card, not against the card that contains the macro: its card type decides which fields exist, its workflow decides the transitions, and the rules and the user's role apply to it. The macro shows an error if the card does not exist or the user may not read it.
+
+In the application, when the target is not the card that contains the macro, the macro shows a label before the field, with the target's key and title as a link to the card. This way a reader can see that the value belongs to another card. The static site and exports show no such label.
+
+A card of the project cannot target a template card. The macro shows an error. A macro in a template card can target any existing card.
+
+```
+{{#raw}}
+
+{{#field}}
+    "cardKey": "docs_61tj2hec",
+    "field": "workflowState"
+{{/field}}
+
+{{/raw}}
+```
+
+== Using the macro in a report
+
+A report template can place the macro in each row, with the key of the row as the target. The query of the report must return cards, so that `this.key` is a card key:
+
+```
+{{#raw}}
+
+{{#each results}}
+{{#field}}
+    "cardKey": "{{this.key}}",
+    "field": "workflowState"
+{{/field}}
+{{/each}}
+
+{{/raw}}
+```
+
+If a macro in a report row has no `cardKey`, it shows the field of the card that contains the report macro, the same for every row. The field macros of a report are not checked when the project is validated.
 
 == Visibility
 

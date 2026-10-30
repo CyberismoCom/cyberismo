@@ -2,6 +2,10 @@
   "$id": "fieldMacroSchema",
   "additionalProperties": false,
   "properties": {
+    "cardKey": {
+      "type": "string",
+      "description": "The card whose field to show. If not given, the card that includes this macro."
+    },
     "field": {
       "type": "string",
       "description": "The field to show: the full field type name (for example 'module/fieldTypes/name'), 'title' or 'workflowState'."

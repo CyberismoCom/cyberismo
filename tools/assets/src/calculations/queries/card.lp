@@ -1,5 +1,9 @@
 {{#if cardKey}}
 result({{cardKey}}).
+{{else if cardKeys}}
+{{#each cardKeys}}
+result({{this}}).
+{{/each}}
 {{else}}
 result(X) :- projectCard(X).
 {{/if}}
