@@ -54,7 +54,6 @@ const sanitizeOptions = {
   FORBID_TAGS: FORM_TAGS,
   ADD_ATTR: [
     'options',
-    'key',
     'sandbox',
     'allow',
     'allowfullscreen',
@@ -99,6 +98,7 @@ export function renderCardHtml(html: string, options: RenderCardHtmlOptions) {
 
   // NOTE: Parser is case-insensitive and lower cases all tags and attributes
   // htmlparser2 options cannot be used on the browser
+  const occurrences = new Map<string, number>();
   const replaceNode = (node: DOMNode): ReactElement | undefined => {
     if (node.type !== 'tag') {
       return;
@@ -150,8 +150,14 @@ export function renderCardHtml(html: string, options: RenderCardHtmlOptions) {
     const macro = combinedMacros.find((m) => m.tagName === node.name);
     if (macro) {
       const attributes = parseDataAttributes(node.attribs);
+      // Server markup carries no keys; tag + options + occurrence is stable
+      // across re-renders and unaffected by unrelated macros before it.
+      const identity = `${macro.tagName}:${node.attribs.options ?? ''}`;
+      const n = occurrences.get(identity) ?? 0;
+      occurrences.set(identity, n + 1);
       return React.createElement(macro.component, {
         ...attributes,
+        key: `${identity}:${n}`,
         macroKey,
         preview,
       });

@@ -5,6 +5,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import '@testing-library/jest-dom';
 import { BrowserRouter } from 'react-router';
+import type { ReactElement } from 'react';
 
 vi.mock('@/lib/hooks/theme', () => ({
   useIsDarkMode: vi.fn(() => false),
@@ -59,6 +60,59 @@ describe('renderCardHtml', () => {
     expect(container.querySelectorAll('[data-cy="svg-controls"]')).toHaveLength(
       2,
     );
+  });
+
+  describe('macro keys', () => {
+    const macro = (tag: string, options: object) =>
+      `<${tag} options="${btoa(JSON.stringify(options))}"></${tag}>`;
+    const X = macro('create-cards', { buttonLabel: 'x', template: 't' });
+    const Y = macro('create-cards', { buttonLabel: 'y', template: 't' });
+    const keysOf = (html: string) => {
+      const nodes = renderCardHtml(html, {
+        macroKey: 'test_card',
+        preview: false,
+      });
+      return ([] as ReactElement[])
+        .concat(nodes as ReactElement[])
+        .map((e) => e.key);
+    };
+
+    it.each([
+      {
+        name: 'the same html twice gives equal keys',
+        before: [X, Y],
+        after: [X, Y],
+        same: [
+          [0, 0],
+          [1, 1],
+        ],
+      },
+      {
+        name: 'inserting a different macro before X keeps the key of X',
+        before: [X],
+        after: [Y, X],
+        same: [[0, 1]],
+      },
+      {
+        name: 'two identical macros get distinct keys',
+        before: [X, X],
+        after: [X, X],
+        same: [
+          [0, 0],
+          [1, 1],
+        ],
+        distinct: true,
+      },
+    ])('$name', ({ before, after, same, distinct }) => {
+      const a = keysOf(before.join(''));
+      const b = keysOf(after.join(''));
+      for (const [i, j] of same) {
+        expect(b[j]).toBe(a[i]);
+      }
+      if (distinct) {
+        expect(new Set(a).size).toBe(a.length);
+      }
+    });
   });
 
   // Regression: navigating A -> B -> A leaked orphaned control bars because

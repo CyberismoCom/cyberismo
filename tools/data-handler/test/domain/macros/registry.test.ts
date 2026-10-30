@@ -1277,7 +1277,6 @@ Some content here`;
 
       const result = createHtmlPlaceholder(macro.metadata, options);
       expect(result).toContain('test-tag-name');
-      expect(result).toContain('key="macro-');
       expect(result).toContain('options="');
 
       const optionsBase64 = Buffer.from(
@@ -1288,10 +1287,8 @@ Some content here`;
       expect(result).toContain(optionsBase64);
     });
     it('createHtmlPlaceholder (success) without data', () => {
-      // note: depends on the order of execution
       const result = createHtmlPlaceholder(macro.metadata, {});
       expect(result).toContain('test-tag-name');
-      expect(result).toContain('key="macro-');
       expect(result).toContain('options="');
 
       const optionsBase64 = Buffer.from(JSON.stringify({}), 'utf-8').toString(

@@ -377,10 +377,6 @@ export function handleMacroError(
   }
 }
 
-// This is used to generate unique keys for macros
-// TODO: There might be a better way to do this
-let macroCounter = 0;
-
 /**
  * Converts object to base64
  * @param obj Object to convert
@@ -398,7 +394,7 @@ function objectToBase64(obj: unknown): string {
  */
 export function createHtmlPlaceholder(macro: MacroMetadata, options: unknown) {
   const optionsBase64 = objectToBase64(options);
-  return `\n\n++++\n<${macro.tagName} options="${optionsBase64}" key="macro-${macroCounter++}"></${macro.tagName}>\n++++\n\n`;
+  return `\n\n++++\n<${macro.tagName} options="${optionsBase64}"></${macro.tagName}>\n++++\n\n`;
 }
 
 /**
