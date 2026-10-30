@@ -126,6 +126,9 @@ function sendRead<T extends object>(
     : c.json({ error: result.message }, result.status);
 }
 
+/** Routes each card key emits in a static export: data, content and source. */
+export const CARD_ROUTES_PER_KEY = 3;
+
 const cardKeyParams = ssgParams(async (c: AppContext) => {
   const ws = c.get('ws');
   const opts = c.get('tree');
