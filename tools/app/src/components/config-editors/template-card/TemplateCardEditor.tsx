@@ -140,7 +140,7 @@ export function TemplateCardEditor({
       title: (draft[TITLE_KEY] as string) ?? card.title,
       labels: (draft[LABELS_KEY] as string[]) ?? card.labels,
       rawContent: content,
-      adocContent: previewAdoc ?? card.adocContent,
+      adocContent: previewAdoc ?? '',
       fields: (card.fields ?? []).map((f) => ({
         ...f,
         value: draft[f.key] as typeof f.value,

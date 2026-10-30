@@ -42,9 +42,26 @@ vi.mock('@/components/card/CardLayout', () => ({
 }));
 
 const updateCard = vi.fn().mockResolvedValue(undefined);
-const useRawCard = vi.fn();
+// The adapter is covered by templateCardView.test.ts; here it hands the editor
+// the fixture card.
+const { adapted } = vi.hoisted(() => ({
+  adapted: { card: undefined as unknown },
+}));
+vi.mock('@/components/config-editors/template-card/source-view', () => ({
+  templateCardView: () => adapted.card,
+}));
 vi.mock('@/lib/api', () => ({
-  useRawCard: (...args: unknown[]) => useRawCard(...args),
+  useCardSource: () => ({
+    cardSource: { metadata: { cardType: 'ct' } },
+    isLoading: false,
+    error: null,
+  }),
+  useProject: () => ({
+    project: { cardTypes: [{ name: 'ct' }] },
+    isLoading: false,
+    error: null,
+  }),
+  useFieldTypes: () => ({ fieldTypes: [], isLoading: false, error: null }),
   useResourceTree: () => ({ resourceTree: [] }),
   useCardMutations: () => ({ updateCard }),
 }));
@@ -104,7 +121,7 @@ const baseCard = {
       value: null,
     },
     {
-      // Raw card endpoint returns list values as plain strings (not items).
+      // templateCardView yields list values as plain strings (not items).
       key: 'flist',
       dataType: 'list',
       fieldDisplayName: 'A list',
@@ -128,11 +145,7 @@ type CardFixture = Omit<typeof baseCard, 'fields'> & {
 };
 
 const renderEditor = (overrides?: Partial<CardFixture>, node?: object) => {
-  useRawCard.mockReturnValue({
-    card: { ...baseCard, ...overrides },
-    isLoading: false,
-    error: null,
-  });
+  adapted.card = { ...baseCard, ...overrides };
   return render(
     <ConfigCardEditor node={{ id: 'c1', readOnly: false, ...node } as never} />,
   );
@@ -296,11 +309,7 @@ describe('ConfigCardEditor (template card editor)', () => {
       utils: ReturnType<typeof renderEditor>,
       next: Partial<CardFixture>,
     ) => {
-      useRawCard.mockReturnValue({
-        card: { ...baseCard, ...next },
-        isLoading: false,
-        error: null,
-      });
+      adapted.card = { ...baseCard, ...next };
       dispatchSpy.mockClear();
       utils.rerender(
         <ConfigCardEditor node={{ id: 'c1', readOnly: false } as never} />,

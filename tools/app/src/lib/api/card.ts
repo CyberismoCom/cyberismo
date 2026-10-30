@@ -16,7 +16,6 @@ import type { CardAction } from './action-types';
 import { setRecentlyCreated } from '../slices/card';
 import { addNotification, removeNotification } from '../slices/notifications';
 import { useTranslation } from 'react-i18next';
-import { useMemo } from 'react';
 
 const useCardData = (
   key: string | null,
@@ -78,23 +77,6 @@ export function toCardView(
       }
     : null;
 }
-
-// replaced in U4
-export const useRawCard = (key: string | null, options?: SWRConfiguration) => {
-  const data = useCardData(key, options);
-  const content = useCardContent(key, options);
-  const source = useCardSource(key, options);
-  const card = useMemo(
-    () => toCardView(data.card, content.cardContent, source.cardSource),
-    [data.card, content.cardContent, source.cardSource],
-  );
-  return {
-    ...data,
-    card,
-    isLoading: data.isLoading || content.isLoading || source.isLoading,
-    error: data.error ?? content.error ?? source.error,
-  };
-};
 
 export const useCardMutations = (
   key: string | null,

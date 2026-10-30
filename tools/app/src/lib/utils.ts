@@ -385,8 +385,8 @@ export function getDefaultValue(
     return null;
   }
   if (Array.isArray(value)) {
-    // List values come either as query-shaped items ({ value }) or, from the
-    // raw card endpoint, as plain primitives — normalise both to their value.
+    // List values are query-shaped items ({ value }) from the card query and
+    // plain primitives from templateCardView; normalise both to their value.
     return (value as Array<string | { value: string }>).map((item) =>
       typeof item === 'object' && item !== null ? item.value : item,
     );
