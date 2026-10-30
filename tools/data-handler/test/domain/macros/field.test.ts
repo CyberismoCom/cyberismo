@@ -315,6 +315,49 @@ describe('field macro', () => {
     expect(runQuery).toHaveBeenCalledTimes(1);
   });
 
+  describe('nested in a report', () => {
+    const reportSpec = (field: string) => ({
+      ...spec,
+      reports: {
+        rows: {
+          query: 'select("key").\nresult(C) :- projectCard(C).\n',
+          content: `{{#each results}}{{#field}}${field}{{/field}}\n{{/each}}`,
+        },
+      },
+    });
+    const run = async (field: string, mode: RenderOptions['mode']) => {
+      const { ws, keys } = await open(reportSpec(field));
+      const { content } = await ws.render.macros(
+        `{{#report}}"name": "test/reports/rows"{{/report}}`,
+        { cardKey: keys[0], context: 'localApp', mode },
+      );
+      return { content, keys };
+    };
+    const rowKey = '"cardKey": "{{this.key}}", "field": "title"';
+
+    it('gives each row its own card in inject mode', async () => {
+      const { content, keys } = await run(rowKey, 'inject');
+
+      const targets = [
+        ...content.matchAll(/<card-field options="([^"]+)"><\/card-field>/g),
+      ].map((m) => JSON.parse(Buffer.from(m[1], 'base64').toString()).cardKey);
+      expect(targets.sort()).toEqual([...keys].sort());
+    });
+
+    it('shows each row card value in static mode', async () => {
+      const { content } = await run(rowKey, 'static');
+
+      for (const title of ['Host', 'Included', 'Target'])
+        expect(content).toContain(`pass:[${title}]`);
+    });
+
+    it('targets the card the report is on when cardKey is omitted', async () => {
+      const { content } = await run('"field": "title"', 'static');
+
+      expect(content.match(/pass:\[Host\]/g)).toHaveLength(3);
+    });
+  });
+
   describe('static value escaping', () => {
     it.each([
       {
