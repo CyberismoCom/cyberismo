@@ -3,13 +3,103 @@
 
 import type {
   AttachmentContent,
+  Card,
   ExportPdfOptions,
   MetadataContent,
+  QueryResult,
 } from '@cyberismo/model';
 import { AsciidoctorPdfError, type Workspace } from '@cyberismo/data-handler';
 import { preprocessMermaidBlocksForHtml } from './mermaid.js';
 import { allCards } from './lib.js';
+import { getCardQueryResult } from '../../export.js';
 import type { TreeOptions } from '../../types.js';
+
+type RenderMode = 'inject' | 'staticSite';
+
+export type CardRead<T> =
+  { status: 200; data: T } | { status: 400; message: string };
+
+// The key reaches the logic program unchecked; details() rejects unknown keys first.
+async function cardOrNotFound(
+  ws: Workspace,
+  key: string,
+): Promise<CardRead<Card>> {
+  try {
+    return { status: 200, data: await ws.cards.details(key) };
+  } catch {
+    return { status: 400, message: `Card ${key} not found from project` };
+  }
+}
+
+async function renderAdoc(
+  ws: Workspace,
+  key: string,
+  content: string,
+  mode: RenderMode,
+  fallback?: string,
+): Promise<string> {
+  let { content: asciidocContent } = await ws.render.macros(content, {
+    context: mode === 'staticSite' ? 'exportedSite' : 'localApp',
+    mode,
+    cardKey: key,
+    fallback,
+  });
+
+  // Convert [mermaid] AsciiDoc blocks to passthrough HTML before asciidoctor processes them
+  asciidocContent = preprocessMermaidBlocksForHtml(asciidocContent);
+
+  // Rewrite native AsciiDoc xrefs that target other cards into
+  // /projects/<prefix>/cards/<key> links.
+  return ws.render.xrefs(asciidocContent, mode);
+}
+
+export async function getCardData(
+  ws: Workspace,
+  key: string,
+  staticMode: boolean,
+): Promise<CardRead<QueryResult<'card'>>> {
+  return ws.consistent(async () => {
+    const found = await cardOrNotFound(ws, key);
+    if (found.status !== 200) {
+      return found;
+    }
+    const card = staticMode
+      ? await getCardQueryResult(ws, key)
+      : await ws.queries.runQuery('card', 'localApp', { cardKey: key });
+    if (card.length !== 1) {
+      throw new Error('Query failed. Check card-query syntax');
+    }
+    return { status: 200, data: card[0] };
+  });
+}
+
+export async function getCardContent(
+  ws: Workspace,
+  key: string,
+  staticMode: boolean,
+): Promise<CardRead<{ adocContent: string }>> {
+  return ws.consistent(async () => {
+    const found = await cardOrNotFound(ws, key);
+    if (found.status !== 200) {
+      return found;
+    }
+    const adocContent = await renderAdoc(
+      ws,
+      key,
+      found.data.content || '',
+      staticMode ? 'staticSite' : 'inject',
+      '',
+    );
+    return { status: 200, data: { adocContent } };
+  });
+}
+
+export async function getCardSource(
+  ws: Workspace,
+  key: string,
+): Promise<CardRead<Card>> {
+  return cardOrNotFound(ws, key);
+}
 
 export async function getProjectInfo(ws: Workspace) {
   return ws.consistent(async () => {
@@ -131,22 +221,9 @@ export async function parseContent(
   key: string,
   content: string,
 ) {
-  return ws.consistent(async () => {
-    let { content: asciidocContent } = await ws.render.macros(content, {
-      context: 'localApp',
-      mode: 'inject',
-      cardKey: key,
-    });
-
-    // Convert [mermaid] AsciiDoc blocks to passthrough HTML before asciidoctor processes them
-    asciidocContent = preprocessMermaidBlocksForHtml(asciidocContent);
-
-    // Rewrite native AsciiDoc xrefs that target other cards into
-    // /projects/<prefix>/cards/<key> links.
-    asciidocContent = await ws.render.xrefs(asciidocContent, 'inject');
-
-    return { adocContent: asciidocContent };
-  });
+  return ws.consistent(async () => ({
+    adocContent: await renderAdoc(ws, key, content, 'inject'),
+  }));
 }
 
 export async function createLink(
