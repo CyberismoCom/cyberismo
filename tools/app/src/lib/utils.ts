@@ -14,7 +14,7 @@ import { useForm } from 'react-hook-form';
 import type { LinkType, QueryResult, CalculationLink } from '@cyberismo/model';
 import { WorkflowCategory } from '@cyberismo/model';
 import type { AnyNode } from './api/types';
-import type { CardResponse } from './api/types';
+import type { CardView } from './api/types';
 import type { AppConfig } from './definitions';
 import { globalApiPaths } from './swr';
 
@@ -376,7 +376,7 @@ export function flattenTree(
  * @returns a metadata value, which can be used in forms
  */
 export function getDefaultValue(
-  value: ItemType<CardResponse['fields']>['value'],
+  value: ItemType<CardView['fields']>['value'],
 ): MetadataValue {
   if (typeof value !== 'object') {
     return value;

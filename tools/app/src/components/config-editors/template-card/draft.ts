@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: Cyberismo Ltd and contributors
 // SPDX-License-Identifier: AGPL-3.0-only
 
-import type { CardResponse } from '@/lib/api/types';
+import type { CardView } from '@/lib/api/types';
 import type { MetadataValue } from '@/lib/definitions';
 import { getDefaultValue } from '@/lib/utils';
 
@@ -13,7 +13,7 @@ export const TITLE_KEY = '__title__';
 export const LABELS_KEY = '__labels__';
 
 /** Build the working draft (title, labels and every custom field) from a card. */
-export function buildDraft(card: CardResponse): Record<string, MetadataValue> {
+export function buildDraft(card: CardView): Record<string, MetadataValue> {
   return {
     [TITLE_KEY]: card.title ?? '',
     [LABELS_KEY]: card.labels ?? [],

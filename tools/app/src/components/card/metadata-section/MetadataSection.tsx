@@ -6,7 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { Box, Button, Stack } from '@mui/joy';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import type { MetadataValue } from '@/lib/definitions';
-import type { CardResponse } from '@/lib/api/types';
+import type { CardView } from '@/lib/api/types';
 import { getDefaultValue, metadataFieldRowId as fieldRowId } from '@/lib/utils';
 import { UserRole, useHasMinRole } from '@/lib/auth';
 import { format } from 'date-fns';
@@ -17,7 +17,7 @@ import { addNotification } from '@/lib/slices/notifications';
 
 export interface MetadataViewProps {
   initialExpanded?: boolean;
-  card: CardResponse;
+  card: CardView;
   onUpdate?: (update: {
     metadata: Record<string, MetadataValue>;
   }) => Promise<void>;

@@ -22,7 +22,7 @@ import type {
 import type { SWRResponse } from 'swr';
 import { RESOURCES } from '@/lib/constants';
 
-export type CardResponse = {
+export type CardView = {
   adocContent: string;
   rawContent: string;
   attachments: CardAttachment[];
@@ -61,7 +61,7 @@ export type WorkflowGraphResponse = {
 
 export type Resources = {
   project: Project;
-  card: CardResponse;
+  card: CardView;
   connectors: Connector[];
   fieldTypes: FieldTypes;
   cardType: CardType;

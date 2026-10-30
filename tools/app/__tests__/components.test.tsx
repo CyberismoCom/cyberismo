@@ -8,7 +8,7 @@ import { TreeMenu } from '../src/components/TreeMenu';
 import { SearchableTreeMenu } from '../src/components/SearchableTreeMenu';
 import { LabelEditorField } from '@/components/LabelEditor';
 import MetadataSection from '@/components/card/metadata-section/MetadataSection';
-import type { CardResponse } from '@/lib/api/types';
+import type { CardView } from '@/lib/api/types';
 import type { Project } from '@/lib/definitions';
 import StateSelector from '@/components/StateSelector';
 import { LABEL_SPLITTER } from '@/lib/constants';
@@ -766,7 +766,7 @@ describe('MetadataSection', () => {
         field('optional', 'optional'),
         field('hidden'),
       ],
-    } as unknown as CardResponse;
+    } as unknown as CardView;
 
     render(<MetadataSection card={card} initialExpanded />);
 

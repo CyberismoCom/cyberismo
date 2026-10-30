@@ -11,7 +11,7 @@ import { useCardMutations, useResourceTree } from '@/lib/api';
 import CardToolbar from '@/components/toolbar/CardToolbar';
 import { AttachmentPanel } from '@/components/card/AttachmentPanel';
 import { CardLayout } from '@/components/card/CardLayout';
-import type { AnyNode, CardResponse } from '@/lib/api/types';
+import type { AnyNode, CardView } from '@/lib/api/types';
 import type { MetadataValue } from '@/lib/definitions';
 import { findCardParentInResourceTree, metadataValuesEqual } from '@/lib/utils';
 import { UserRole, useHasMinRole } from '@/lib/auth';
@@ -38,7 +38,7 @@ export function TemplateCardEditor({
   card,
 }: {
   node: AnyNode;
-  card: CardResponse;
+  card: CardView;
 }) {
   const { updateCard } = useCardMutations(node.id);
   const { resourceTree } = useResourceTree();
@@ -134,7 +134,7 @@ export function TemplateCardEditor({
     }
   };
 
-  const previewCard = useMemo<CardResponse>(
+  const previewCard = useMemo<CardView>(
     () => ({
       ...card,
       title: (draft[TITLE_KEY] as string) ?? card.title,
