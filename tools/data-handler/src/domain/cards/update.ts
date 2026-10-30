@@ -152,7 +152,7 @@ export async function editCardContent(
   cardKey: string,
   changedContent: string,
 ) {
-  // A template card has no workflow state, so there is nothing to guard.
+  // Template cards are configuration; workflow guards apply to project cards only.
   if (checkout.treeOf(cardKey).kind !== 'project') {
     return updateCardContent(checkout, cardKey, changedContent);
   }
@@ -181,7 +181,7 @@ export async function editCardMetadata(
   const card = findCard(checkout, cardKey);
   assertFieldIsEditable(checkout, card, changedKey, newValue);
 
-  // A template card has no workflow state, so there is nothing to guard.
+  // Template cards are configuration; workflow guards apply to project cards only.
   if (checkout.treeOf(cardKey).kind !== 'project') {
     return updateCardMetadataKey(checkout, cardKey, changedKey, newValue);
   }
