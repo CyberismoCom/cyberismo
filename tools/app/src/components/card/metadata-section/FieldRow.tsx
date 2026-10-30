@@ -217,14 +217,13 @@ export function FieldRow({
               multiline: dataType === 'longText' || dataType === 'label',
             })}
           >
-            {!hideLabel && (
-              <FieldLabel
-                label={label}
-                description={description}
-                disabled={disabled}
-                edit={true}
-              />
-            )}
+            <FieldLabel
+              label={label}
+              description={hideLabel ? undefined : description}
+              disabled={disabled}
+              edit={true}
+              visuallyHidden={hideLabel}
+            />
             {overrideMode ? (
               <OverrideEditorFrame
                 calculatedValue={formatValue(calculatedValue ?? null)}
@@ -254,6 +253,7 @@ export function FieldRow({
         ) : (
           <Tooltip
             title={disabled ? disabledReason : undefined}
+            describeChild
             placement="top-start"
             disableInteractive
           >

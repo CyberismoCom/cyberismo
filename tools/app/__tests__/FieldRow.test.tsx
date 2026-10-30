@@ -407,10 +407,23 @@ describe('FieldRow', () => {
       />,
     );
 
-    expect(screen.queryByText('Short text')).not.toBeInTheDocument();
     expect(
       screen.getByRole('textbox', { name: 'Short text' }),
     ).toBeInTheDocument();
+  });
+
+  it('hideLabel keeps the label text in read mode for assistive tech', () => {
+    render(
+      <FieldRow
+        value="v"
+        label="Short text"
+        dataType="shortText"
+        expanded
+        hideLabel
+      />,
+    );
+
+    expect(screen.getByText('Short text')).toBeInTheDocument();
   });
 
   it('shows disabledReason on hover of a disabled row', async () => {
@@ -426,6 +439,11 @@ describe('FieldRow', () => {
     );
 
     fireEvent.mouseOver(screen.getByText('v'));
-    expect(await screen.findByText('Calculated, no edits')).toBeInTheDocument();
+    const tip = await screen.findByText('Calculated, no edits');
+    expect(tip).toBeInTheDocument();
+    expect(screen.getByText('v').closest('[aria-describedby]')).toHaveAttribute(
+      'aria-describedby',
+      tip.closest('[role="tooltip"]')!.id,
+    );
   });
 });

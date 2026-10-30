@@ -16,24 +16,40 @@ export type FieldLabelProps = {
   description?: string;
   disabled?: boolean;
   edit: boolean;
+  /** Keep the label for assistive tech but hide it visually. */
+  visuallyHidden?: boolean;
 };
+
+const srOnly = {
+  position: 'absolute',
+  width: '1px',
+  height: '1px',
+  overflow: 'hidden',
+  clip: 'rect(0 0 0 0)',
+  whiteSpace: 'nowrap',
+} as const;
 
 export function FieldLabel({
   label,
   description,
   disabled,
   edit,
+  visuallyHidden,
 }: FieldLabelProps) {
   return (
     <Typography
       level="body-xs"
-      sx={{
-        whiteSpace: 'normal',
-        position: 'relative',
-        width: { xs: '100%', md: '40%' },
-        maxWidth: { md: 150 },
-        flexShrink: 0,
-      }}
+      sx={
+        visuallyHidden
+          ? srOnly
+          : {
+              whiteSpace: 'normal',
+              position: 'relative',
+              width: { xs: '100%', md: '40%' },
+              maxWidth: { md: 150 },
+              flexShrink: 0,
+            }
+      }
     >
       {disabled && !edit && (
         <LockOutlined
@@ -100,14 +116,13 @@ const EditableField = ({
   const { t } = useTranslation();
   return (
     <Stack direction={{ xs: 'column', md: 'row' }} spacing={{ xs: 0.5, md: 4 }}>
-      {!hideLabel && (
-        <FieldLabel
-          label={label}
-          description={description}
-          disabled={disabled}
-          edit={edit}
-        />
-      )}
+      <FieldLabel
+        label={label}
+        description={hideLabel ? undefined : description}
+        disabled={disabled}
+        edit={edit}
+        visuallyHidden={hideLabel}
+      />
       {edit ? (
         <FieldEditor
           value={value}

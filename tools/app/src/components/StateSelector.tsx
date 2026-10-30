@@ -105,37 +105,42 @@ const StateSelector: React.FC<StateSelectorProps> = ({
           const denied = deniedTransitions?.find(
             (d) => d.transitionName === transition.name,
           );
-          return (
+          const item = (
+            <MenuItem
+              key={transition.name}
+              onClick={() => onTransition(transition)}
+              disabled={disabled || !!denied}
+            >
+              <ListItemContent>
+                <Stack direction="row" spacing={1} alignItems="center">
+                  <span>{transition.name}</span>
+                  <ArrowForward fontSize="small" sx={{ opacity: 0.6 }} />
+                  <span
+                    style={{
+                      width: 10,
+                      height: 10,
+                      borderRadius: '50%',
+                      backgroundColor: getStateColor(toState?.category),
+                      flexShrink: 0,
+                    }}
+                  />
+                  <span>{transition.toState}</span>
+                </Stack>
+              </ListItemContent>
+            </MenuItem>
+          );
+          return denied ? (
             <Tooltip
               key={transition.name}
-              title={denied?.errorMessage}
+              title={denied.errorMessage}
               placement="left"
+              describeChild
               disableInteractive
             >
-              <span>
-                <MenuItem
-                  onClick={() => onTransition(transition)}
-                  disabled={disabled || !!denied}
-                >
-                  <ListItemContent>
-                    <Stack direction="row" spacing={1} alignItems="center">
-                      <span>{transition.name}</span>
-                      <ArrowForward fontSize="small" sx={{ opacity: 0.6 }} />
-                      <span
-                        style={{
-                          width: 10,
-                          height: 10,
-                          borderRadius: '50%',
-                          backgroundColor: getStateColor(toState?.category),
-                          flexShrink: 0,
-                        }}
-                      />
-                      <span>{transition.toState}</span>
-                    </Stack>
-                  </ListItemContent>
-                </MenuItem>
-              </span>
+              <span>{item}</span>
             </Tooltip>
+          ) : (
+            item
           );
         })}
         {onViewWorkflow && (
