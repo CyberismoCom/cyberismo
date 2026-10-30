@@ -51,9 +51,14 @@ describe('fieldStaticText', () => {
     ['empty string', { dataType: 'shortText', value: '' }, 'pass:[—]'],
     ['empty list', { dataType: 'list', value: [] }, 'pass:[—]'],
     [
+      'an enum with no value',
+      { dataType: 'enum', value: {} as { value: string } },
+      'pass:[—]',
+    ],
+    [
       'escaped characters',
-      { dataType: 'shortText', value: '&<>[]\\|+${}' },
-      'pass:[&amp;&lt;&gt;&#91;&#93;&#92;&#124;&#43;&#36;&#123;&#125;]',
+      { dataType: 'shortText', value: '&<>[]\\|+$"\'!{}' },
+      'pass:[&amp;&lt;&gt;&#91;&#93;&#92;&#124;&#43;&#36;&quot;&#39;&#33;&#123;&#125;]',
     ],
   ])('renders %s', (_, row, expected) => {
     expect(text(row)).toBe(expected);
@@ -62,6 +67,6 @@ describe('fieldStaticText', () => {
   it('puts the escaped label before the value', () => {
     expect(
       fieldStaticText({ dataType: 'integer', value: 3 }, 'A*b*', true),
-    ).toBe('*pass:[A*b*]*: pass:[3]');
+    ).toBe('**pass:[A*b*]**: pass:[3]');
   });
 });

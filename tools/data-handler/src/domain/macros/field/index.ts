@@ -9,7 +9,7 @@ import type { FieldMacroOptions } from '@cyberismo/model';
 import BaseMacro from '../base-macro.js';
 import type TaskQueue from '../task-queue.js';
 import { cardNode } from '../../cards/read.js';
-import { fieldStaticText } from './text.js';
+import { fieldStaticText, literal } from './text.js';
 
 const BUILT_IN_LABELS = new Map([
   ['title', 'Title'],
@@ -76,13 +76,13 @@ export default class FieldMacro extends BaseMacro {
     if (!BUILT_IN_LABELS.has(field)) {
       if (!field.includes('/fieldTypes/')) {
         throw new Error(
-          `use the full field name \`<module>/fieldTypes/${field}\``,
+          `use the full field name \`<module>/fieldTypes/${literal(field)}\``,
         );
       }
       try {
         checkout.resources.byType(field, 'fieldTypes').show();
       } catch {
-        throw new Error(`unknown field '${field}'`);
+        throw new Error(`unknown field '${literal(field)}'`);
       }
       const cardType = card.metadata?.cardType;
       if (!cardType) {

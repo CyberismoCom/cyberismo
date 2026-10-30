@@ -11,7 +11,8 @@ export type FieldValueRow = Pick<CardQueryField, 'dataType' | 'value'>;
 
 const EMPTY = '—';
 
-// Characters that could end the passthrough or start another construct.
+// Characters that could end the passthrough, start another construct, close
+// an attribute value it lands in, or split a table cell.
 const ESCAPES: Record<string, string> = {
   '&': '&amp;',
   '<': '&lt;',
@@ -22,16 +23,22 @@ const ESCAPES: Record<string, string> = {
   '|': '&#124;',
   '+': '&#43;',
   $: '&#36;',
+  '"': '&quot;',
+  "'": '&#39;',
+  '!': '&#33;',
 };
 
-// Every physical line opens with `pass:[`, so no line of the value can be
-// read as a directive, block delimiter or paragraph break.
-function literal(text: string): string {
+/**
+ * AsciiDoc that renders `text` literally. Every physical line opens with
+ * `pass:[`, so no line can be read as a directive, block delimiter or
+ * paragraph break.
+ */
+export function literal(text: string): string {
   return text
     .split(/\r?\n/)
     .map((line) => {
       const escaped = line
-        .replace(/[&<>[\]\\|+$]/g, (c) => ESCAPES[c])
+        .replace(/[&<>[\]\\|+$"'!]/g, (c) => ESCAPES[c])
         // evaluateMacros re-scans its output; it restores these at the end
         .replaceAll('{', CURLY_LEFT)
         .replaceAll('}', CURLY_RIGHT);
@@ -50,7 +57,7 @@ function valueText({ dataType, value }: FieldValueRow): string {
       : value.map((item) => item.displayValue ?? item.value).join(', ');
   }
   if (typeof value === 'object') {
-    return value.displayValue ?? value.value;
+    return value.displayValue ?? value.value ?? EMPTY;
   }
   if (typeof value === 'boolean') {
     return value ? 'Yes' : 'No';
@@ -77,5 +84,5 @@ export function fieldStaticText(
   showLabel: boolean,
 ): string {
   const value = literal(valueText(row));
-  return showLabel ? `*${literal(label)}*: ${value}` : value;
+  return showLabel ? `**${literal(label)}**: ${value}` : value;
 }

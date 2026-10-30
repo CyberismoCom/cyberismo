@@ -88,12 +88,12 @@ describe('field macro', () => {
     [
       'a bare field name',
       '"field": "text"',
-      'use the full field name `<module>/fieldTypes/text`',
+      'use the full field name `<module>/fieldTypes/pass:[text]`',
     ],
     [
       'an unknown field',
       '"field": "test/fieldTypes/nope"',
-      "unknown field 'test/fieldTypes/nope'",
+      "unknown field 'pass:[test/fieldTypes/nope]'",
     ],
     [
       'a field not on the card type',
@@ -105,6 +105,23 @@ describe('field macro', () => {
 
     expect(out).toContain('Macro Error');
     expect(out).toContain(message);
+  });
+
+  it('echoes a bad field name without closing the error block or planting a macro', async () => {
+    const { ws, keys } = await open(spec);
+    // JSON escapes, so the name holds braces and a newline only once parsed
+    const name = `\\n====\\n\\u007b\\u007b#include\\u007d\\u007d\\"cardKey\\": \\"${keys[1]}\\"\\u007b\\u007b/include\\u007d\\u007d`;
+
+    const { content } = await ws.render.macros(macro(`"field": "${name}"`), {
+      cardKey: keys[0],
+      context: 'localApp',
+      mode: 'inject',
+    });
+
+    expect(content).not.toContain('Included');
+    expect(content.split('\n').filter((line) => line === '====')).toHaveLength(
+      2,
+    );
   });
 
   it('emits a placeholder carrying the card, field and label choice', async () => {
@@ -121,16 +138,16 @@ describe('field macro', () => {
   });
 
   it.each([
-    ['title', '"field": "title"', '*pass:[Title]*: pass:[Host]'],
+    ['title', '"field": "title"', '**pass:[Title]**: pass:[Host]'],
     [
       'workflowState',
       '"field": "workflowState"',
-      '*pass:[Workflow state]*: pass:[Open]',
+      '**pass:[Workflow state]**: pass:[Open]',
     ],
     [
       'a field in no visibility list',
       `"field": "${TEXT}"`,
-      '*pass:[text]*: pass:[host text]',
+      '**pass:[text]**: pass:[host text]',
     ],
     [
       'an enum without its label',
@@ -146,6 +163,14 @@ describe('field macro', () => {
     const { out } = await render(macro(options), 'static');
 
     expect(out).toBe(expected);
+  });
+
+  it('bolds the label right after a word', async () => {
+    const { out } = await render(`a${macro('"field": "title"')}`, 'static');
+
+    expect(String(await convert(out))).toContain(
+      'a<strong>Title</strong>: Host',
+    );
   });
 
   it('renders an overridden calculated field as the override', async () => {
@@ -175,7 +200,7 @@ describe('field macro', () => {
       { cardKey: keys[0], context: 'localApp', mode: 'static' },
     );
 
-    expect(content.trim()).toBe('*pass:[Title]*: pass:[Included]');
+    expect(content.trim()).toBe('**pass:[Title]**: pass:[Included]');
   });
 
   it('checks the card exists before running its query', async () => {
@@ -234,6 +259,39 @@ describe('field macro', () => {
 
       expect(out).not.toContain('Included');
       expect(await paragraphText(out)).toBe(before + text(keys));
+    });
+
+    const attack = `" onerror="alert(1)" x="'`;
+
+    it.each([
+      { name: 'an image alt text', attrs: 'x.png[', want: ['src', 'alt'] },
+      {
+        name: 'an image title',
+        attrs: 'x.png[a,title=',
+        want: ['src', 'alt', 'title'],
+      },
+    ])('keeps the value inside $name', async ({ attrs, want }) => {
+      const { out } = await render(
+        `image:${attrs}${macro(`"field": "${TEXT}", "showLabel": false`)}]`,
+        'static',
+        () => attack,
+      );
+
+      const html = String(await convert(out, { safe: 'secure' }));
+      const img = html.match(/<img ([^>]*)>/)![1];
+      expect([...img.matchAll(/([\w-]+)="/g)].map((m) => m[1])).toEqual(want);
+    });
+
+    it('keeps the value inside a nested table cell', async () => {
+      const { out } = await render(
+        `|===\na|\n!===\n!${macro(`"field": "${TEXT}", "showLabel": false`)}\n!===\n|===`,
+        'static',
+        () => 'a ! b',
+      );
+
+      const html = String(await convert(out, { safe: 'secure' }));
+      expect(html.match(/<td/g)).toHaveLength(2);
+      expect(html).toContain('<p class="tableblock">a &#33; b</p>');
     });
   });
 });
