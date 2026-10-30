@@ -31,10 +31,13 @@ describe('projectApiPaths', () => {
       expect(paths.card('TST_1')).toBe('/api/projects/TST/cards/TST_1');
     });
 
-    it('builds raw card path', () => {
+    it('builds card content and source paths', () => {
       const paths = projectApiPaths('TST');
-      expect(paths.rawCard('TST_1')).toBe(
-        '/api/projects/TST/cards/TST_1?raw=true',
+      expect(paths.cardContent('TST_1')).toBe(
+        '/api/projects/TST/cards/TST_1/content',
+      );
+      expect(paths.cardSource('TST_1')).toBe(
+        '/api/projects/TST/cards/TST_1/source',
       );
     });
 

@@ -9,7 +9,15 @@ import {
 import CardToolbar from '@/components/toolbar/CardToolbar';
 import LoadingGate from '@/components/LoadingGate';
 import { cardViewed } from '@/lib/actions';
-import { useCard, useConnectors, useLinkTypes, useTree } from '@/lib/api';
+import {
+  useCard,
+  useCardContent,
+  useCardSource,
+  useConnectors,
+  useLinkTypes,
+  useTree,
+  toCardView,
+} from '@/lib/api';
 import {
   useAppDispatch,
   useListCard,
@@ -21,7 +29,7 @@ import { isEdited } from '@/lib/slices/pageState';
 import { setLastPathForPrefix } from '@/lib/slices/project';
 import { expandLinkTypes } from '@/lib/utils';
 import { Box, Stack, Typography } from '@mui/joy';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useParams } from 'react-router';
 import { useRequiredKeyParam } from '@/lib/hooks';
@@ -33,8 +41,22 @@ export default function Page() {
   const key = useRequiredKeyParam();
   const { projectPrefix } = useParams();
 
-  const { card, error, createLink, deleteLink, editLink, updateCard } =
-    useCard(key);
+  const {
+    card: cardData,
+    error: dataError,
+    createLink,
+    deleteLink,
+    editLink,
+    updateCard,
+  } = useCard(key);
+  const { cardContent, error: contentError } = useCardContent(key);
+  const { cardSource, error: sourceError } = useCardSource(key);
+  const error = dataError ?? contentError ?? sourceError;
+
+  const card = useMemo(
+    () => toCardView(cardData, cardContent, cardSource),
+    [cardData, cardContent, cardSource],
+  );
 
   const { tree } = useTree();
 

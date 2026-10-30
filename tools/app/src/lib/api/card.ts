@@ -7,20 +7,19 @@ import { callApi, projectApiPaths } from '../swr';
 
 import type { SWRConfiguration } from 'swr';
 import { mutate } from 'swr';
-import type { CardUpdate } from './types';
-import type { CardDetails } from '../definitions';
+import type { CardUpdate, CardView } from './types';
 import { useAppDispatch, useUpdating } from '../hooks';
 import { cardDeleted } from '../actions';
 import { createLink, removeLink, updateLink } from './actions';
-import type { LinkDirection, Card } from '@cyberismo/model';
+import type { LinkDirection, Card, QueryResult } from '@cyberismo/model';
 import type { CardAction } from './action-types';
 import { setRecentlyCreated } from '../slices/card';
 import { addNotification, removeNotification } from '../slices/notifications';
 import { useTranslation } from 'react-i18next';
+import { useMemo } from 'react';
 
 const useCardData = (
   key: string | null,
-  raw: boolean = false,
   options?: SWRConfiguration,
   projectPrefix?: string,
 ) => {
@@ -32,20 +31,70 @@ const useCardData = (
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     isUpdating: _isUpdating,
     ...rest
-  } = useSWRHook(
-    key ? (raw ? apiPaths.rawCard(key) : apiPaths.card(key)) : null,
-    'card',
-    null,
-    options,
-  );
+  } = useSWRHook(key ? apiPaths.card(key) : null, 'card', null, options);
 
   return rest;
 };
 
 export type CardData = ReturnType<typeof useCardData>;
 
-export const useRawCard = (key: string | null, options?: SWRConfiguration) =>
-  useCardData(key, true, options);
+export const useCardContent = (
+  key: string | null,
+  options?: SWRConfiguration,
+  projectPrefix?: string,
+) =>
+  useSWRHook(
+    key ? projectApiPaths(projectPrefix).cardContent(key) : null,
+    'cardContent',
+    null,
+    options,
+  );
+
+export const useCardSource = (
+  key: string | null,
+  options?: SWRConfiguration,
+  projectPrefix?: string,
+) =>
+  useSWRHook(
+    key ? projectApiPaths(projectPrefix).cardSource(key) : null,
+    'cardSource',
+    null,
+    options,
+  );
+
+/** Joins the three card reads into what the card view renders. */
+export function toCardView(
+  data: QueryResult<'card'> | null,
+  content: { adocContent: string } | null,
+  source: Card | null,
+): CardView | null {
+  return data && content && source
+    ? {
+        ...data,
+        adocContent: content.adocContent,
+        rawContent: source.content ?? '',
+        attachments: source.attachments,
+        path: source.path,
+      }
+    : null;
+}
+
+// replaced in U4
+export const useRawCard = (key: string | null, options?: SWRConfiguration) => {
+  const data = useCardData(key, options);
+  const content = useCardContent(key, options);
+  const source = useCardSource(key, options);
+  const card = useMemo(
+    () => toCardView(data.card, content.cardContent, source.cardSource),
+    [data.card, content.cardContent, source.cardSource],
+  );
+  return {
+    ...data,
+    card,
+    isLoading: data.isLoading || content.isLoading || source.isLoading,
+    error: data.error ?? content.error ?? source.error,
+  };
+};
 
 export const useCardMutations = (
   key: string | null,
@@ -122,8 +171,8 @@ export const useCardMutations = (
       (key &&
         (await call(
           () =>
-            createLink(key, target, type, linkDescription, direction).then(
-              () => mutate(apiPaths.card(key)), // raw cards do not have links, no need to mutate them
+            createLink(key, target, type, linkDescription, direction).then(() =>
+              revalidateCardView(key, projectPrefix),
             ),
           'createLink',
         ))) ||
@@ -138,7 +187,7 @@ export const useCardMutations = (
         (await call(
           () =>
             removeLink(key, target, linkType, linkDescription, direction).then(
-              () => mutate(apiPaths.card(key)),
+              () => revalidateCardView(key, projectPrefix),
             ),
           'deleteLink',
         ))) ||
@@ -166,7 +215,7 @@ export const useCardMutations = (
               previousDirection,
               linkDescription,
               previousLinkDescription,
-            ).then(() => mutate(apiPaths.card(key)));
+            ).then(() => revalidateCardView(key, projectPrefix));
           }, 'editLink'))) ||
         null
       );
@@ -183,13 +232,23 @@ export const useCardExport = (projectPrefix?: string) => {
 };
 
 export const useCard = (key: string | null, options?: SWRConfiguration) => {
-  const cardData = useCardData(key, false, options);
+  const cardData = useCardData(key, options);
   const mutations = useCardMutations(key);
   // TODO: Separate read from write methods
   // This function is just for compatibility
 
   return { ...cardData, ...mutations };
 };
+
+// Links show in the card data and, through macros, in the rendered content.
+function revalidateCardView(key: string, projectPrefix?: string) {
+  const apiPaths = projectApiPaths(projectPrefix);
+  return Promise.all([
+    mutate(apiPaths.card(key)),
+    mutate(apiPaths.cardContent(key)),
+  ]);
+}
+
 export async function updateCard(
   key: string,
   cardUpdate: CardUpdate,
@@ -197,16 +256,26 @@ export async function updateCard(
 ) {
   const apiPaths = projectApiPaths(projectPrefix);
   const swrKey = apiPaths.card(key);
-  const result = await callApi<CardDetails>(swrKey, 'PATCH', cardUpdate);
+  const result = await callApi<QueryResult<'card'>>(
+    swrKey,
+    'PATCH',
+    cardUpdate,
+  );
 
-  // update swr cache for the card and project
-  // revalidation not needed since api returns the updated card
   mutate(swrKey, result, false);
-  mutate(apiPaths.rawCard(key));
+  const bodyRefetch = Promise.all([
+    mutate(apiPaths.cardContent(key)),
+    mutate(apiPaths.cardSource(key)),
+  ]);
 
   mutate(apiPaths.tree());
   // Template-card moves/ranks also affect the configuration tree.
   mutate(apiPaths.resourceTree());
+
+  // The editor leaves edit mode on resolve; the new body must be in by then.
+  if (cardUpdate.content != null) {
+    await bodyRefetch;
+  }
 }
 
 export async function deleteCard(key: string, projectPrefix?: string) {
@@ -215,7 +284,8 @@ export async function deleteCard(key: string, projectPrefix?: string) {
   await callApi(swrKey, 'DELETE');
 
   mutate(swrKey, undefined, false);
-  mutate(apiPaths.rawCard(key), undefined, false);
+  mutate(apiPaths.cardContent(key), undefined, false);
+  mutate(apiPaths.cardSource(key), undefined, false);
 
   mutate(apiPaths.tree());
   // Template-card deletes also affect the configuration tree.

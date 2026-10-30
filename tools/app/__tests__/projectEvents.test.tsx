@@ -91,8 +91,9 @@ function setup() {
       useCardUpdates(card, mode, 'TST');
       const { data } = useSWR<string>(`/api/projects/TST/cards/${card}`);
       const { data: raw } = useSWR<string>(
-        `/api/projects/TST/cards/${card}?raw=true`,
+        `/api/projects/TST/cards/${card}/content`,
       );
+      useSWR<string>(`/api/projects/TST/cards/${card}/source`);
       useSWR<string>(projectApiPaths('TST').tree());
       const [draft, setDraft] = useSavedDraft(data ?? '');
       return { presence, data, raw, draft, setDraft };
@@ -388,7 +389,8 @@ describe('project events and presence', () => {
       expect(hook.result.current.draft).toBe('Unsaved draft');
       expect(fetcher.mock.calls.map((call) => call[0]).sort()).toEqual([
         '/api/projects/TST/cards/TST_1',
-        '/api/projects/TST/cards/TST_1?raw=true',
+        '/api/projects/TST/cards/TST_1/content',
+        '/api/projects/TST/cards/TST_1/source',
         '/api/projects/TST/tree',
       ]);
       expect(notifications()).toHaveLength(1);

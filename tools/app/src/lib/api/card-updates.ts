@@ -30,7 +30,8 @@ export function useCardUpdates(
     return subscribeToCardUpdates((event) => {
       if (!cardKey || event.cardKey !== cardKey) return;
       void mutate(apiPaths.card(cardKey));
-      void mutate(apiPaths.rawCard(cardKey));
+      void mutate(apiPaths.cardContent(cardKey));
+      void mutate(apiPaths.cardSource(cardKey));
       void mutate(apiPaths.tree());
       if (event.userId === user?.id || !canEdit || !event.userName) return;
       dispatch(
