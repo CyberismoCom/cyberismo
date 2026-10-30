@@ -7,10 +7,11 @@ import { Box, Button, Stack } from '@mui/joy';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import type { MetadataValue } from '@/lib/definitions';
 import type { CardView } from '@/lib/api/types';
-import { getDefaultValue, metadataFieldRowId as fieldRowId } from '@/lib/utils';
+import { metadataFieldRowId as fieldRowId } from '@/lib/utils';
 import { UserRole, useHasMinRole } from '@/lib/auth';
 import { format } from 'date-fns';
 import { FieldRow } from './FieldRow';
+import { customFieldRow } from './customFieldRow';
 import { fieldEditability } from '@/lib/fieldEditability';
 import { LABEL_SPLITTER } from '@/lib/constants';
 import { useAppDispatch } from '@/lib/hooks';
@@ -156,56 +157,29 @@ export default function MetadataSection({
           onAutoSave={handleAutoSaveLabels}
           onCancel={() => setEditingFieldKey(null)}
         />
-        {panelFields.map(
-          ({
-            key,
-            dataType,
-            enumValues,
-            fieldDisplayName,
-            fieldDescription,
-            visibility,
-            isOverridable,
-            value,
-            calculatedValue,
-            overrideValue,
-          }) => {
-            const editability = fieldEditability({
-              card,
-              fieldKey: key,
-              canEditRole,
-              readOnly: !onUpdate,
-            });
-            return (
-              <FieldRow
-                key={key}
-                id={fieldRowId(key)}
-                expanded={visibility === 'always' || expanded}
-                value={getDefaultValue(value)}
-                overrideMode={isOverridable}
-                overrideValue={
-                  isOverridable
-                    ? getDefaultValue(overrideValue ?? null)
-                    : undefined
-                }
-                calculatedValue={
-                  isOverridable
-                    ? getDefaultValue(calculatedValue ?? null)
-                    : undefined
-                }
-                label={fieldDisplayName || key}
-                dataType={dataType}
-                description={fieldDescription}
-                enumValues={enumValues}
-                isEditing={editingFieldKey === key}
-                disabled={editability.disabled}
-                disabledReason={editability.reason}
-                onStartEdit={() => setEditingFieldKey(key)}
-                onSave={(val) => handleSaveField(key, val)}
-                onCancel={() => setEditingFieldKey(null)}
-              />
-            );
-          },
-        )}
+        {panelFields.map((field) => {
+          const { key, visibility } = field;
+          const editability = fieldEditability({
+            card,
+            fieldKey: key,
+            canEditRole,
+            readOnly: !onUpdate,
+          });
+          return (
+            <FieldRow
+              key={key}
+              id={fieldRowId(key)}
+              expanded={visibility === 'always' || expanded}
+              {...customFieldRow(field)}
+              isEditing={editingFieldKey === key}
+              disabled={editability.disabled}
+              disabledReason={editability.reason}
+              onStartEdit={() => setEditingFieldKey(key)}
+              onSave={(val) => handleSaveField(key, val)}
+              onCancel={() => setEditingFieldKey(null)}
+            />
+          );
+        })}
         <FieldRow
           expanded={expanded}
           value={card.cardTypeDisplayName || card.cardType}
