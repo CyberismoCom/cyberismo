@@ -49,7 +49,7 @@ describe('renderCard', () => {
       expect(field.dataType).toBeDefined();
       expect(typeof field.isCalculated).toBe('boolean');
       expect(typeof field.isEditable).toBe('boolean');
-      expect(['always', 'optional']).toContain(field.visibility);
+      expect(['always', 'optional', undefined]).toContain(field.visibility);
     }
   });
 

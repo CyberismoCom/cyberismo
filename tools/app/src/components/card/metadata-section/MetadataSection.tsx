@@ -38,10 +38,13 @@ export default function MetadataSection({
   const dispatch = useAppDispatch();
   const canEditRole = useHasMinRole(UserRole.Editor);
 
+  // A field with no visibility is hidden from the panel
+  const panelFields = (card.fields ?? []).filter((f) => f.visibility != null);
+
   const focusFieldExists =
     !!focusFieldKey &&
     (focusFieldKey === 'labels' ||
-      (card.fields ?? []).some((f) => f.key === focusFieldKey));
+      panelFields.some((f) => f.key === focusFieldKey));
 
   const [prevFocus, setPrevFocus] = useState({
     cardKey: card.key,
@@ -113,7 +116,7 @@ export default function MetadataSection({
   const editingFieldNeedsExpanded =
     editingFieldKey != null &&
     editingFieldKey !== 'labels' &&
-    !(card.fields ?? []).some(
+    !panelFields.some(
       (f) => f.key === editingFieldKey && f.visibility === 'always',
     );
 
@@ -152,7 +155,7 @@ export default function MetadataSection({
           onAutoSave={handleAutoSaveLabels}
           onCancel={() => setEditingFieldKey(null)}
         />
-        {(card.fields ?? []).map(
+        {panelFields.map(
           ({
             key,
             dataType,
