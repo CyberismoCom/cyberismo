@@ -131,7 +131,7 @@ test('getDefaultValue maps query-shaped list items to their values', () => {
 });
 
 test('getDefaultValue keeps raw (string) list items as-is', () => {
-  // The raw card endpoint returns list values as plain strings, not items.
+  // The template card view holds list values as plain strings, not items.
   const result = getDefaultValue(['option1', 'option2'] as never);
   expect(result).toEqual(['option1', 'option2']);
 });
