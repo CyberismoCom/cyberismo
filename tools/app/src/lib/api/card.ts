@@ -231,6 +231,11 @@ function revalidateCardView(key: string, projectPrefix?: string) {
   ]);
 }
 
+/** Refetches a card's rendered content, e.g. a page showing another card's values. */
+export function revalidateCardContent(key: string, projectPrefix?: string) {
+  return mutate(projectApiPaths(projectPrefix).cardContent(key));
+}
+
 export async function updateCard(
   key: string,
   cardUpdate: CardUpdate,

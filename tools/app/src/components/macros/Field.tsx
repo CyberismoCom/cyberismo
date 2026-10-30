@@ -3,9 +3,15 @@
 
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Alert, Box, Stack, Tooltip, Typography } from '@mui/joy';
+import { Alert, Box, Link, Stack, Tooltip, Typography } from '@mui/joy';
+import { Link as RouterLink } from 'react-router';
 import type { MacroContext } from '.';
-import { useCard, useCardMutations, useProject } from '@/lib/api';
+import {
+  revalidateCardContent,
+  useCard,
+  useCardMutations,
+  useProject,
+} from '@/lib/api';
 import type { CardView } from '@/lib/api/types';
 import { UserRole, useHasMinRole } from '@/lib/auth';
 import type { MetadataValue, WorkflowTransition } from '@/lib/definitions';
@@ -32,12 +38,14 @@ interface FieldViewProps {
   card: FieldCard;
   showLabel: boolean;
   preview: boolean;
+  onSaved?: () => void;
 }
 
 export default function Field({
   cardKey,
   field,
   showLabel = true,
+  macroKey,
   preview,
 }: FieldProps) {
   const { t } = useTranslation();
@@ -54,15 +62,41 @@ export default function Field({
   }
   if (!card) return null;
 
-  return field === 'workflowState' ? (
-    <WorkflowStateField card={card} showLabel={showLabel} preview={preview} />
-  ) : (
-    <ValueField
-      card={card}
-      field={field}
-      showLabel={showLabel}
-      preview={preview}
-    />
+  const isTarget = cardKey !== macroKey;
+  // The page's own content can show the target too, through xrefs and reports.
+  const onSaved = isTarget ? () => revalidateCardContent(macroKey) : undefined;
+  const view =
+    field === 'workflowState' ? (
+      <WorkflowStateField
+        card={card}
+        showLabel={showLabel}
+        preview={preview}
+        onSaved={onSaved}
+      />
+    ) : (
+      <ValueField
+        card={card}
+        field={field}
+        showLabel={showLabel}
+        preview={preview}
+        onSaved={onSaved}
+      />
+    );
+  if (!isTarget) return view;
+
+  // Names the card an edit lands on, which is not the page's own.
+  return (
+    <Box>
+      <Link
+        data-cy="fieldMacroTarget"
+        component={RouterLink}
+        to={`/cards/${card.key}`}
+        level="body-xs"
+      >
+        {card.key} · {card.title}
+      </Link>
+      {view}
+    </Box>
   );
 }
 
@@ -71,6 +105,7 @@ function ValueField({
   field,
   showLabel,
   preview,
+  onSaved,
 }: FieldViewProps & { field: string }) {
   const { t } = useTranslation();
   const dispatch = useAppDispatch();
@@ -107,6 +142,7 @@ function ValueField({
     try {
       await updateCard({ metadata: { [field]: value } });
       setIsEditing(false);
+      onSaved?.();
     } catch (error) {
       dispatch(
         addNotification({
@@ -134,7 +170,12 @@ function ValueField({
   );
 }
 
-function WorkflowStateField({ card, showLabel, preview }: FieldViewProps) {
+function WorkflowStateField({
+  card,
+  showLabel,
+  preview,
+  onSaved,
+}: FieldViewProps) {
   const { t } = useTranslation();
   const dispatch = useAppDispatch();
   const canEditRole = useHasMinRole(UserRole.Editor);
@@ -152,6 +193,7 @@ function WorkflowStateField({ card, showLabel, preview }: FieldViewProps) {
   const onTransition = async (transition: WorkflowTransition) => {
     try {
       await updateWorkFlowState(transition.name);
+      onSaved?.();
     } catch (error) {
       dispatch(
         addNotification({

@@ -5,13 +5,22 @@ import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import '@testing-library/jest-dom';
 import { BrowserRouter } from 'react-router';
+import type * as SwrLib from 'swr';
+import type * as ApiModule from '@/lib/api';
 
 const updateCard = vi.fn();
 const updateWorkFlowState = vi.fn();
 let card: Record<string, unknown>;
 let isEditor = true;
 
-vi.mock('@/lib/api', () => ({
+const mutate = vi.fn();
+vi.mock('swr', async (importOriginal) => ({
+  ...(await importOriginal<typeof SwrLib>()),
+  mutate: (...args: unknown[]) => mutate(...args),
+}));
+
+vi.mock('@/lib/api', async (importOriginal) => ({
+  ...(await importOriginal<typeof ApiModule>()),
   useCard: () => ({ card, error: undefined }),
   useCardMutations: () => ({
     updateCard,
@@ -65,8 +74,8 @@ const textField = (key: string, value: string) => ({
   enumValues: [],
 });
 
-const placeholder = (field: string, showLabel = true) =>
-  `<card-field options="${btoa(JSON.stringify({ cardKey: 'k_1', field, showLabel }))}"></card-field>`;
+const placeholder = (field: string, showLabel = true, cardKey = 'k_1') =>
+  `<card-field options="${btoa(JSON.stringify({ cardKey, field, showLabel }))}"></card-field>`;
 
 function Body({ html, preview = false }: { html: string; preview?: boolean }) {
   return (
@@ -87,6 +96,7 @@ describe('Field macro', () => {
   beforeEach(() => {
     updateCard.mockReset();
     updateWorkFlowState.mockReset();
+    mutate.mockReset();
     isEditor = true;
     card = {
       key: 'k_1',
@@ -187,6 +197,63 @@ describe('Field macro', () => {
       expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
     }
   });
+
+  const editValue = () => {
+    fireEvent.click(screen.getByText('A'));
+    fireEvent.change(screen.getByRole('textbox'), {
+      target: { value: 'new' },
+    });
+    fireEvent.click(document.querySelector('[data-cy="fieldSaveButton"]')!);
+  };
+  const transition = () => {
+    fireEvent.click(screen.getByRole('button', { name: /Draft/ }));
+    fireEvent.click(screen.getByRole('menuitem', { name: /Finish/ }));
+  };
+
+  // k_1 is the page's card. A macro in an included card targets that card.
+  it.each([
+    {
+      name: 'its own card',
+      field: 'm/fieldTypes/a',
+      target: 'k_1',
+      edit: editValue,
+      cross: false,
+    },
+    {
+      name: 'another card',
+      field: 'm/fieldTypes/a',
+      target: 'k_2',
+      edit: editValue,
+      cross: true,
+    },
+    {
+      name: "another card's state",
+      field: 'workflowState',
+      target: 'k_2',
+      edit: transition,
+      cross: true,
+    },
+  ])(
+    'labels and refreshes the page only when it edits $name',
+    async ({ field, target, edit, cross }) => {
+      window.history.pushState({}, '', '/projects/TST/cards/k_1');
+      card = { ...card, key: target, title: 'Target' };
+      render(<Body html={placeholder(field, true, target)} />);
+
+      edit();
+      await act(async () => {});
+
+      const link = screen.queryByRole('link', { name: `${target} · Target` });
+      const hostContent = '/api/projects/TST/cards/k_1/content';
+      if (cross) {
+        expect(link).toHaveAttribute('href', `/cards/${target}`);
+        expect(mutate).toHaveBeenCalledWith(hostContent);
+      } else {
+        expect(link).not.toBeInTheDocument();
+        expect(mutate).not.toHaveBeenCalledWith(hostContent);
+      }
+    },
+  );
 
   it('reports a field the card no longer has', () => {
     render(<Body html={placeholder('m/fieldTypes/gone')} />);
