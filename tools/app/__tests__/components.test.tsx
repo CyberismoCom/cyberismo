@@ -156,6 +156,36 @@ describe('StateSelector', () => {
     expect(node2).toBeVisible();
   });
 
+  it.each([
+    { name: 'Archive', denied: true },
+    { name: 'Reopen', denied: false },
+  ])(
+    'transition $name: disabled with the message when denied=$denied',
+    async ({ name, denied }) => {
+      render(
+        <StateSelector
+          currentState={testProject.workflows[0].states[1]}
+          workflow={testProject.workflows[0]}
+          onTransition={() => null}
+          deniedTransitions={[
+            { transitionName: 'Archive', errorMessage: 'Not allowed now' },
+          ]}
+        />,
+      );
+      fireEvent.click(screen.getByRole('button', { name: /Approved/ }));
+      const item = (await screen.findByText(name)).closest(
+        '[role="menuitem"]',
+      )!;
+      if (denied) {
+        expect(item).toHaveAttribute('aria-disabled', 'true');
+        fireEvent.mouseOver(item.parentElement!);
+        expect(await screen.findByText('Not allowed now')).toBeInTheDocument();
+      } else {
+        expect(item).not.toHaveAttribute('aria-disabled', 'true');
+      }
+    },
+  );
+
   it('fails gracefully if currentState and workflow do not match', () => {
     const { container } = render(
       <StateSelector

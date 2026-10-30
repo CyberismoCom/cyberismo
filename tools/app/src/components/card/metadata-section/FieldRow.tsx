@@ -4,7 +4,14 @@
 import { useEffect, useRef } from 'react';
 import type { FocusEvent } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Accordion, AccordionDetails, Box, IconButton, Stack } from '@mui/joy';
+import {
+  Accordion,
+  AccordionDetails,
+  Box,
+  IconButton,
+  Stack,
+  Tooltip,
+} from '@mui/joy';
 import CheckIcon from '@mui/icons-material/Check';
 import CloseIcon from '@mui/icons-material/Close';
 import { Controller, useForm } from 'react-hook-form';
@@ -26,6 +33,10 @@ export interface FieldRowProps {
   enumValues?: EnumDefinition[];
   isEditing?: boolean;
   disabled?: boolean;
+  /** Tooltip on the disabled row. */
+  disabledReason?: string;
+  /** Omit the visible label; the display name becomes the control's aria-label. */
+  hideLabel?: boolean;
   /** True for a calculated field that can be overridden by the user. */
   overrideMode?: boolean;
   /** The stored override, edited when `overrideMode`. `value` stays the effective value. */
@@ -48,6 +59,8 @@ export function FieldRow({
   enumValues,
   isEditing,
   disabled,
+  disabledReason,
+  hideLabel,
   overrideMode,
   overrideValue,
   calculatedValue,
@@ -138,6 +151,7 @@ export function FieldRow({
           enumValues={enumValues}
           disabled={disabled}
           focus={true}
+          ariaLabel={hideLabel ? label : undefined}
         />
       )}
     />
@@ -205,9 +219,10 @@ export function FieldRow({
           >
             <FieldLabel
               label={label}
-              description={description}
+              description={hideLabel ? undefined : description}
               disabled={disabled}
               edit={true}
+              visuallyHidden={hideLabel}
             />
             {overrideMode ? (
               <OverrideEditorFrame
@@ -236,27 +251,35 @@ export function FieldRow({
             )}
           </Stack>
         ) : (
-          <Box
-            onClick={isClickable ? onStartEdit : undefined}
-            data-cy="editableFieldRow"
+          <Tooltip
+            title={disabled ? disabledReason : undefined}
+            describeChild
+            placement="top-start"
+            disableInteractive
           >
-            <EditableField
-              value={value ?? null}
-              label={label}
-              dataType={dataType}
-              description={description}
-              enumValues={enumValues}
-              edit={false}
-              disabled={disabled}
-              valueDecorator={
-                isOverridden ? (
-                  <OverriddenMarker
-                    calculatedValue={formatValue(calculatedValue ?? null)}
-                  />
-                ) : undefined
-              }
-            />
-          </Box>
+            <Box
+              onClick={isClickable ? onStartEdit : undefined}
+              data-cy="editableFieldRow"
+            >
+              <EditableField
+                value={value ?? null}
+                label={label}
+                dataType={dataType}
+                description={description}
+                enumValues={enumValues}
+                edit={false}
+                disabled={disabled}
+                hideLabel={hideLabel}
+                valueDecorator={
+                  isOverridden ? (
+                    <OverriddenMarker
+                      calculatedValue={formatValue(calculatedValue ?? null)}
+                    />
+                  ) : undefined
+                }
+              />
+            </Box>
+          </Tooltip>
         )}
       </AccordionDetails>
     </Accordion>

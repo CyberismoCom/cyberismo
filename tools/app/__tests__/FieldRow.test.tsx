@@ -393,4 +393,57 @@ describe('FieldRow', () => {
       );
     });
   });
+
+  it('hideLabel drops the visible label but keeps the accessible name', () => {
+    render(
+      <FieldRow
+        value="v"
+        label="Short text"
+        dataType="shortText"
+        isEditing
+        expanded
+        hideLabel
+        onSave={vi.fn()}
+      />,
+    );
+
+    expect(
+      screen.getByRole('textbox', { name: 'Short text' }),
+    ).toBeInTheDocument();
+  });
+
+  it('hideLabel keeps the label text in read mode for assistive tech', () => {
+    render(
+      <FieldRow
+        value="v"
+        label="Short text"
+        dataType="shortText"
+        expanded
+        hideLabel
+      />,
+    );
+
+    expect(screen.getByText('Short text')).toBeInTheDocument();
+  });
+
+  it('shows disabledReason on hover of a disabled row', async () => {
+    render(
+      <FieldRow
+        value="v"
+        label="Short text"
+        dataType="shortText"
+        expanded
+        disabled
+        disabledReason="Calculated, no edits"
+      />,
+    );
+
+    fireEvent.mouseOver(screen.getByText('v'));
+    const tip = await screen.findByText('Calculated, no edits');
+    expect(tip).toBeInTheDocument();
+    expect(screen.getByText('v').closest('[aria-describedby]')).toHaveAttribute(
+      'aria-describedby',
+      tip.closest('[role="tooltip"]')!.id,
+    );
+  });
 });

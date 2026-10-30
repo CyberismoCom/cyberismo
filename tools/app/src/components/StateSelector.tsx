@@ -16,6 +16,7 @@ import {
   MenuButton,
   CircularProgress,
   Stack,
+  Tooltip,
 } from '@mui/joy';
 import ArrowForward from '@mui/icons-material/ArrowForward';
 import { useTranslation } from 'react-i18next';
@@ -29,6 +30,8 @@ interface StateSelectorProps {
   onViewWorkflow?: () => void;
   isLoading?: boolean;
   disabled?: boolean;
+  /** Transitions the server would refuse, disabled with the message as tooltip. */
+  deniedTransitions?: { transitionName: string; errorMessage: string }[];
 }
 
 const StateSelector: React.FC<StateSelectorProps> = ({
@@ -38,6 +41,7 @@ const StateSelector: React.FC<StateSelectorProps> = ({
   onViewWorkflow,
   disabled,
   isLoading,
+  deniedTransitions,
 }) => {
   const { t } = useTranslation();
 
@@ -98,11 +102,14 @@ const StateSelector: React.FC<StateSelectorProps> = ({
           const toState = workflow?.states.find(
             (state) => state.name === transition.toState,
           );
-          return (
+          const denied = deniedTransitions?.find(
+            (d) => d.transitionName === transition.name,
+          );
+          const item = (
             <MenuItem
               key={transition.name}
               onClick={() => onTransition(transition)}
-              disabled={disabled}
+              disabled={disabled || !!denied}
             >
               <ListItemContent>
                 <Stack direction="row" spacing={1} alignItems="center">
@@ -121,6 +128,19 @@ const StateSelector: React.FC<StateSelectorProps> = ({
                 </Stack>
               </ListItemContent>
             </MenuItem>
+          );
+          return denied ? (
+            <Tooltip
+              key={transition.name}
+              title={denied.errorMessage}
+              placement="left"
+              describeChild
+              disableInteractive
+            >
+              <span>{item}</span>
+            </Tooltip>
+          ) : (
+            item
           );
         })}
         {onViewWorkflow && (

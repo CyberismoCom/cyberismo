@@ -4,6 +4,7 @@
 import Handlebars from 'handlebars';
 
 import createCards from './createCards/index.js';
+import field from './field/index.js';
 import graph from './graph/index.js';
 import image from './image/index.js';
 import include from './include/index.js';
@@ -30,8 +31,8 @@ import type BaseMacro from './base-macro.js';
 import TaskQueue from './task-queue.js';
 import { ClingoError } from '@cyberismo/node-clingo';
 import type { SchemaObject } from 'ajv';
-const CURLY_LEFT = '&#123;';
-const CURLY_RIGHT = '&#125;';
+export const CURLY_LEFT = '&#123;';
+export const CURLY_RIGHT = '&#125;';
 const RAW_BLOCK_OPEN = '{{#raw}}';
 const RAW_BLOCK_CLOSE = '{{/raw}}';
 
@@ -132,6 +133,7 @@ export const macros: {
   [K in MacroName]: MacroConstructor;
 } = {
   createCards,
+  field,
   graph,
   image,
   include,
@@ -237,6 +239,7 @@ export async function evaluateMacros(
   context: MacroGenerationContext,
   preserveRawBlocks: boolean = false,
 ) {
+  context = { ...context, cardQueries: context.cardQueries ?? new Map() };
   const handlebars = Handlebars.create();
   const tasks = new TaskQueue();
   await registerMacros(handlebars, context, tasks);
@@ -377,10 +380,6 @@ export function handleMacroError(
   }
 }
 
-// This is used to generate unique keys for macros
-// TODO: There might be a better way to do this
-let macroCounter = 0;
-
 /**
  * Converts object to base64
  * @param obj Object to convert
@@ -398,7 +397,7 @@ function objectToBase64(obj: unknown): string {
  */
 export function createHtmlPlaceholder(macro: MacroMetadata, options: unknown) {
   const optionsBase64 = objectToBase64(options);
-  return `\n\n++++\n<${macro.tagName} options="${optionsBase64}" key="macro-${macroCounter++}"></${macro.tagName}>\n++++\n\n`;
+  return `\n\n++++\n<${macro.tagName} options="${optionsBase64}"></${macro.tagName}>\n++++\n\n`;
 }
 
 /**

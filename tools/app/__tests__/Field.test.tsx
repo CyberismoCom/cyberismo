@@ -1,0 +1,197 @@
+// SPDX-FileCopyrightText: Cyberismo Ltd and contributors
+// SPDX-License-Identifier: AGPL-3.0-only
+
+import { act, fireEvent, render, screen, within } from '@testing-library/react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import '@testing-library/jest-dom';
+import { BrowserRouter } from 'react-router';
+
+const updateCard = vi.fn();
+const updateWorkFlowState = vi.fn();
+let card: Record<string, unknown>;
+let isEditor = true;
+
+vi.mock('@/lib/api', () => ({
+  useCard: () => ({ card, error: undefined }),
+  useCardMutations: () => ({
+    updateCard,
+    updateWorkFlowState,
+    isUpdating: () => false,
+  }),
+  useProject: () => ({
+    project: {
+      cardTypes: [{ name: 'm/cardTypes/t', workflow: 'm/workflows/w' }],
+      workflows: [
+        {
+          name: 'm/workflows/w',
+          states: [
+            { name: 'Draft', category: 'initial' },
+            { name: 'Done', category: 'closed' },
+          ],
+          transitions: [
+            { name: 'Finish', fromState: ['Draft'], toState: 'Done' },
+          ],
+        },
+      ],
+    },
+  }),
+}));
+vi.mock('@/lib/auth', () => ({
+  UserRole: { Reader: 0, Editor: 1, Admin: 2 },
+  useHasMinRole: () => isEditor,
+}));
+vi.mock('@/lib/hooks', async (importOriginal) => ({
+  ...(await importOriginal<typeof HooksModule>()),
+  useAppDispatch: () => vi.fn(),
+}));
+import type * as HooksModule from '@/lib/hooks';
+vi.mock('@/lib/hooks/theme', () => ({
+  useIsDarkMode: vi.fn(() => false),
+}));
+vi.mock('react-i18next', () => ({
+  useTranslation: () => ({ t: (s: string) => s }),
+}));
+
+import { renderCardHtml } from '@/components/card/renderCardContent';
+
+const textField = (key: string, value: string) => ({
+  key,
+  value,
+  dataType: 'shortText',
+  fieldDisplayName: key,
+  fieldDescription: '',
+  isCalculated: false,
+  isOverridable: false,
+  enumValues: [],
+});
+
+const placeholder = (field: string, showLabel = true) =>
+  `<card-field options="${btoa(JSON.stringify({ cardKey: 'k_1', field, showLabel }))}"></card-field>`;
+
+function Body({ html, preview = false }: { html: string; preview?: boolean }) {
+  return (
+    <BrowserRouter>
+      <div className="doc">
+        {renderCardHtml(html, { macroKey: 'k_1', preview })}
+      </div>
+    </BrowserRouter>
+  );
+}
+
+const macro = (label: string) =>
+  [...document.querySelectorAll<HTMLElement>('[data-cy="fieldMacro"]')].find(
+    (el) => within(el).queryByText(label),
+  )!;
+
+describe('Field macro', () => {
+  beforeEach(() => {
+    updateCard.mockReset();
+    updateWorkFlowState.mockReset();
+    isEditor = true;
+    card = {
+      key: 'k_1',
+      title: 'Card',
+      cardType: 'm/cardTypes/t',
+      workflowState: 'Draft',
+      fields: [
+        textField('m/fieldTypes/a', 'A'),
+        textField('m/fieldTypes/b', 'B'),
+      ],
+      deniedOperations: { editField: [], transition: [] },
+    };
+  });
+
+  // A save refetches the body; its macros must not remount and drop drafts.
+  it('keeps each open editor and its draft when the body re-renders', () => {
+    const html = placeholder('m/fieldTypes/a') + placeholder('m/fieldTypes/b');
+    const { rerender } = render(<Body html={html} />);
+
+    fireEvent.click(within(macro('m/fieldTypes/a')).getByText('A'));
+    fireEvent.click(within(macro('m/fieldTypes/b')).getByText('B'));
+    fireEvent.change(within(macro('m/fieldTypes/a')).getByRole('textbox'), {
+      target: { value: 'draft' },
+    });
+
+    rerender(<Body html={`${html}`} />);
+
+    expect(within(macro('m/fieldTypes/a')).getByRole('textbox')).toHaveValue(
+      'draft',
+    );
+    expect(within(macro('m/fieldTypes/b')).getByRole('textbox')).toHaveValue(
+      'B',
+    );
+  });
+
+  it.each([
+    { showLabel: true, hidden: false },
+    { showLabel: false, hidden: true },
+  ])(
+    'hides the label visually but keeps its name when showLabel is $showLabel',
+    ({ showLabel, hidden }) => {
+      render(<Body html={placeholder('m/fieldTypes/a', showLabel)} />);
+      const label = screen.getByText('m/fieldTypes/a');
+      if (hidden) {
+        expect(label).toHaveStyle({ width: '1px', height: '1px' });
+      } else {
+        expect(label).not.toHaveStyle({ width: '1px' });
+      }
+
+      fireEvent.click(screen.getByText('A'));
+
+      if (hidden) {
+        expect(
+          screen.getByRole('textbox', { name: 'm/fieldTypes/a' }),
+        ).toBeInTheDocument();
+      }
+      expect(screen.getByRole('textbox')).toBeInTheDocument();
+    },
+  );
+
+  it('shows the value read-only in a preview', () => {
+    render(<Body html={placeholder('m/fieldTypes/a')} preview />);
+
+    fireEvent.click(screen.getByText('A'));
+
+    expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
+  });
+
+  it('transitions through the state, never as a metadata write', () => {
+    render(<Body html={placeholder('workflowState')} />);
+
+    fireEvent.click(screen.getByRole('button', { name: /Draft/ }));
+    fireEvent.click(screen.getByRole('menuitem', { name: /Finish/ }));
+
+    expect(updateWorkFlowState).toHaveBeenCalledWith('Finish');
+    expect(updateCard).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    { role: 'a reader', editor: false, tooltip: 'permissions.editorRequired' },
+    { role: 'an editor', editor: true, tooltip: null },
+  ])('explains a disabled state selector only to $role', async (row) => {
+    isEditor = row.editor;
+    render(<Body html={placeholder('workflowState')} />);
+    const button = screen.getByRole('button', { name: /Draft/ });
+
+    // Keyboard focus and hover are both ways an editor reaches the selector.
+    fireEvent.keyDown(document.body, { key: 'Tab' });
+    act(() => button.focus());
+    fireEvent.mouseOver(button);
+
+    if (row.tooltip) {
+      expect(button).toBeDisabled();
+      expect(await screen.findByRole('tooltip')).toHaveTextContent(row.tooltip);
+    } else {
+      expect(button).toBeEnabled();
+      await new Promise((r) => setTimeout(r, 300));
+      expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
+    }
+  });
+
+  it('reports a field the card no longer has', () => {
+    render(<Body html={placeholder('m/fieldTypes/gone')} />);
+
+    expect(screen.getByText('fieldMacro.errorTitle')).toBeInTheDocument();
+    expect(screen.getByText('fieldMacro.notOnCardType')).toBeInTheDocument();
+  });
+});

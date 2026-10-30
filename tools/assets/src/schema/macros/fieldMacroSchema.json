@@ -1,0 +1,16 @@
+{
+  "$id": "fieldMacroSchema",
+  "additionalProperties": false,
+  "properties": {
+    "field": {
+      "type": "string",
+      "description": "The field to show: the full field type name (for example 'module/fieldTypes/name'), 'title' or 'workflowState'."
+    },
+    "showLabel": {
+      "type": "boolean",
+      "description": "Whether to show the field's label next to its value."
+    }
+  },
+  "required": ["field"],
+  "type": "object"
+}
