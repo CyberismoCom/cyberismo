@@ -1,13 +1,12 @@
 // SPDX-FileCopyrightText: Cyberismo Ltd and contributors
 // SPDX-License-Identifier: AGPL-3.0-only
 
-import { serve } from '@hono/node-server';
 import type { Env, Schema } from 'hono';
 import { Hono } from 'hono';
 import { serveStatic } from '@hono/node-server/serve-static';
 import path from 'node:path';
 import { readFile } from 'node:fs/promises';
-import { findFreePort } from './utils.js';
+import { listen } from './utils.js';
 import { startPolicyPolling } from './overlay.js';
 import { createApp } from './app.js';
 import type { AuthProvider } from './auth/types.js';
@@ -18,7 +17,7 @@ export type { AuthProvider } from './auth/types.js';
 export { exportSite, type ExportSiteOptions } from './export.js';
 
 const DEFAULT_PORT = 3000;
-const DEFAULT_MAX_PORT = DEFAULT_PORT + 100;
+const MAX_PORT_ATTEMPTS = 100;
 
 /**
  * Preview the exported site
@@ -36,12 +35,8 @@ export async function previewSite(dir: string, findPort: boolean = true) {
     return c.html(file.toString());
   });
 
-  let port = parseInt(process.env.PORT || DEFAULT_PORT.toString(), 10);
-
-  if (findPort) {
-    port = await findFreePort(port, DEFAULT_MAX_PORT);
-  }
-  startApp(app, port);
+  const port = parseInt(process.env.PORT || DEFAULT_PORT.toString(), 10);
+  await startApp(app, port, findPort);
 }
 
 /**
@@ -57,12 +52,9 @@ export async function startServer(
   multiProjectRoot?: string,
 ) {
   const useOsAssigned = process.env.CYBERISMO_E2E_OSPORT === 'true';
-  let port = useOsAssigned
+  const port = useOsAssigned
     ? 0
     : parseInt(process.env.PORT || DEFAULT_PORT.toString(), 10);
-  if (findPort && !useOsAssigned) {
-    port = await findFreePort(port, DEFAULT_MAX_PORT);
-  }
   startPolicyPolling(async () =>
     (await directory.list()).map((p) => ({ prefix: p.prefix })),
   );
@@ -73,25 +65,23 @@ export async function startServer(
     undefined,
     multiProjectRoot,
   );
-  startApp(app, port);
+  await startApp(app, port, findPort && !useOsAssigned);
 }
 
-function startApp<E extends Env, S extends Schema, P extends string>(
+async function startApp<E extends Env, S extends Schema, P extends string>(
   app: Hono<E, S, P>,
   port: number,
+  findPort: boolean,
 ) {
-  serve(
-    {
-      fetch: app.fetch,
-      port: port,
-      hostname: process.env.HOST || '127.0.0.1',
-    },
-    (info) => {
-      console.log(`Running Cyberismo app on http://localhost:${info.port}`);
-      console.log('Press Control+C to stop.');
-      // When spawned with stdio: [..., 'ipc'], publish the bound port to the parent.
-      // No-op in normal startup (process.send is undefined without an IPC channel).
-      process.send?.({ type: 'listening', port: info.port });
-    },
+  const bound = await listen(
+    app.fetch,
+    port,
+    process.env.HOST || '127.0.0.1',
+    findPort ? port + MAX_PORT_ATTEMPTS : port,
   );
+  console.log(`Running Cyberismo app on http://localhost:${bound.port}`);
+  console.log('Press Control+C to stop.');
+  // When spawned with stdio: [..., 'ipc'], publish the bound port to the parent.
+  // No-op in normal startup (process.send is undefined without an IPC channel).
+  process.send?.({ type: 'listening', port: bound.port });
 }
