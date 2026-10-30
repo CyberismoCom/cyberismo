@@ -244,6 +244,11 @@
   "failedPolicyChecks": "Failed policy checks",
   "failedToLoad": "Failed to load",
   "false": "False",
+  "fieldMacro": {
+    "error": "Error: {{message}}",
+    "errorTitle": "Macro Error",
+    "noValue": "Error: no value for field '{{field}}'"
+  },
   "fieldSaved": "Field saved",
   "fieldType": "Field type",
   "general": {
