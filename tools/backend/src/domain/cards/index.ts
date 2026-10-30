@@ -223,7 +223,10 @@ router.get(
     if (!key) {
       return c.text('No search key', 400);
     }
-    return sendRead(c, await cardService.getCardSource(c.get('ws'), key));
+    return sendRead(
+      c,
+      await cardService.getCardSource(c.get('ws'), key, isSSGContext(c)),
+    );
   },
 );
 

@@ -69,7 +69,11 @@ export async function getCardData(
     if (card.length !== 1) {
       throw new Error('Query failed. Check card-query syntax');
     }
-    return { status: 200, data: card[0] };
+    // Hidden fields stay off the static site; the card view never shows them.
+    const data = staticMode
+      ? { ...card[0], fields: card[0].fields.filter((f) => f.visibility) }
+      : card[0];
+    return { status: 200, data };
   });
 }
 
@@ -94,11 +98,28 @@ export async function getCardContent(
   });
 }
 
+// The static site publishes no more of the stored card than its card view reads.
+type StaticCardSource = Pick<Card, 'key' | 'path' | 'content' | 'attachments'>;
+
 export async function getCardSource(
   ws: Workspace,
   key: string,
-): Promise<CardRead<Card>> {
-  return cardOrNotFound(ws, key);
+  staticMode: boolean,
+): Promise<CardRead<Card | StaticCardSource>> {
+  const found = await cardOrNotFound(ws, key);
+  if (found.status !== 200 || !staticMode) {
+    return found;
+  }
+  const card = found.data;
+  return {
+    status: 200,
+    data: {
+      key: card.key,
+      path: card.path,
+      content: card.content,
+      attachments: card.attachments,
+    },
+  };
 }
 
 export async function getProjectInfo(ws: Workspace) {
