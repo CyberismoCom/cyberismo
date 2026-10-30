@@ -2,15 +2,18 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { act, fireEvent, render, screen, within } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
 import '@testing-library/jest-dom';
 import { BrowserRouter } from 'react-router';
 import type * as SwrLib from 'swr';
 import type * as ApiModule from '@/lib/api';
 
-const updateCard = vi.fn();
-const updateWorkFlowState = vi.fn();
-let card: Record<string, unknown>;
+type Card = Record<string, unknown> & {
+  deniedOperations: { editField: unknown[]; transition: unknown[] };
+};
+type Mutations = { updateCard: Mock; updateWorkFlowState: Mock };
+let cards: Record<string, Card>;
+let mutations: Record<string, Mutations>;
 let isEditor = true;
 
 const mutate = vi.fn();
@@ -21,10 +24,9 @@ vi.mock('swr', async (importOriginal) => ({
 
 vi.mock('@/lib/api', async (importOriginal) => ({
   ...(await importOriginal<typeof ApiModule>()),
-  useCard: () => ({ card, error: undefined }),
-  useCardMutations: () => ({
-    updateCard,
-    updateWorkFlowState,
+  useCard: (key: string) => ({ card: cards[key], error: undefined }),
+  useCardMutations: (key: string) => ({
+    ...mutations[key],
     isUpdating: () => false,
   }),
   useProject: () => ({
@@ -93,22 +95,27 @@ const macro = (label: string) =>
   )!;
 
 describe('Field macro', () => {
+  const cardOf = (key: string, title: string): Card => ({
+    key,
+    title,
+    cardType: 'm/cardTypes/t',
+    workflowState: 'Draft',
+    fields: [
+      textField('m/fieldTypes/a', 'A'),
+      textField('m/fieldTypes/b', 'B'),
+    ],
+    deniedOperations: { editField: [], transition: [] },
+  });
+  const spies = () => ({
+    updateCard: vi.fn(),
+    updateWorkFlowState: vi.fn(),
+  });
+
   beforeEach(() => {
-    updateCard.mockReset();
-    updateWorkFlowState.mockReset();
     mutate.mockReset();
     isEditor = true;
-    card = {
-      key: 'k_1',
-      title: 'Card',
-      cardType: 'm/cardTypes/t',
-      workflowState: 'Draft',
-      fields: [
-        textField('m/fieldTypes/a', 'A'),
-        textField('m/fieldTypes/b', 'B'),
-      ],
-      deniedOperations: { editField: [], transition: [] },
-    };
+    cards = { k_1: cardOf('k_1', 'Card'), k_2: cardOf('k_2', 'Target') };
+    mutations = { k_1: spies(), k_2: spies() };
   });
 
   // A save refetches the body; its macros must not remount and drop drafts.
@@ -171,8 +178,8 @@ describe('Field macro', () => {
     fireEvent.click(screen.getByRole('button', { name: /Draft/ }));
     fireEvent.click(screen.getByRole('menuitem', { name: /Finish/ }));
 
-    expect(updateWorkFlowState).toHaveBeenCalledWith('Finish');
-    expect(updateCard).not.toHaveBeenCalled();
+    expect(mutations.k_1.updateWorkFlowState).toHaveBeenCalledWith('Finish');
+    expect(mutations.k_1.updateCard).not.toHaveBeenCalled();
   });
 
   it.each([
@@ -217,6 +224,7 @@ describe('Field macro', () => {
       field: 'm/fieldTypes/a',
       target: 'k_1',
       edit: editValue,
+      save: 'updateCard' as const,
       cross: false,
     },
     {
@@ -224,6 +232,7 @@ describe('Field macro', () => {
       field: 'm/fieldTypes/a',
       target: 'k_2',
       edit: editValue,
+      save: 'updateCard' as const,
       cross: true,
     },
     {
@@ -231,26 +240,51 @@ describe('Field macro', () => {
       field: 'workflowState',
       target: 'k_2',
       edit: transition,
+      save: 'updateWorkFlowState' as const,
       cross: true,
     },
   ])(
-    'labels and refreshes the page only when it edits $name',
-    async ({ field, target, edit, cross }) => {
+    'saves to, labels and refreshes the page only when it edits $name',
+    async ({ field, target, edit, save, cross }) => {
       window.history.pushState({}, '', '/projects/TST/cards/k_1');
-      card = { ...card, key: target, title: 'Target' };
       render(<Body html={placeholder(field, true, target)} />);
 
       edit();
       await act(async () => {});
 
-      const link = screen.queryByRole('link', { name: `${target} · Target` });
+      expect(mutations[target][save]).toHaveBeenCalled();
+      const link = screen.queryByRole('link', {
+        name: `${target} · ${cards[target].title}`,
+      });
       const hostContent = '/api/projects/TST/cards/k_1/content';
       if (cross) {
+        expect(mutations.k_1[save]).not.toHaveBeenCalled();
         expect(link).toHaveAttribute('href', `/cards/${target}`);
         expect(mutate).toHaveBeenCalledWith(hostContent);
       } else {
         expect(link).not.toBeInTheDocument();
         expect(mutate).not.toHaveBeenCalledWith(hostContent);
+      }
+    },
+  );
+
+  it.each([
+    { on: 'the target', denied: 'k_2', disabled: true },
+    { on: 'the page card only', denied: 'k_1', disabled: false },
+  ])(
+    "takes a target's editability from the target when denied on $on",
+    ({ denied, disabled }) => {
+      cards[denied].deniedOperations.editField = [
+        { fieldName: 'm/fieldTypes/a', errorMessage: 'denied' },
+      ];
+      render(<Body html={placeholder('m/fieldTypes/a', true, 'k_2')} />);
+
+      fireEvent.click(screen.getByText('A'));
+
+      if (disabled) {
+        expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
+      } else {
+        expect(screen.getByRole('textbox')).toBeInTheDocument();
       }
     },
   );
