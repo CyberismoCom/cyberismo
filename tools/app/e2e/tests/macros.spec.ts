@@ -917,6 +917,22 @@ test.describe('Field macro', () => {
     await expect(longText.getByRole('textbox')).toBeVisible();
   });
 
+  test('opening another macro saves the draft instead of discarding it', async ({
+    page,
+  }) => {
+    const shortText = bodyField(page, 'Short text');
+    const longText = bodyField(page, 'Long text');
+    await shortText.getByTestId('editableFieldRow').click();
+    await shortText.getByRole('textbox').fill('Saved on leaving');
+    await longText.getByTestId('editableFieldRow').click();
+
+    await expect(panelField(page, 'test/fieldTypes/shortText')).toContainText(
+      'Saved on leaving',
+    );
+    await expect(shortText).toContainText('Saved on leaving');
+    await expect(longText.getByRole('textbox')).toBeVisible();
+  });
+
   test('a title edit in the body updates the tree and breadcrumbs', async ({
     page,
   }) => {

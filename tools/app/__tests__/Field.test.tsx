@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: Cyberismo Ltd and contributors
 // SPDX-License-Identifier: AGPL-3.0-only
 
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import '@testing-library/jest-dom';
 import { BrowserRouter } from 'react-router';
@@ -9,6 +9,7 @@ import { BrowserRouter } from 'react-router';
 const updateCard = vi.fn();
 const updateWorkFlowState = vi.fn();
 let card: Record<string, unknown>;
+let isEditor = true;
 
 vi.mock('@/lib/api', () => ({
   useCard: () => ({ card, error: undefined }),
@@ -37,7 +38,7 @@ vi.mock('@/lib/api', () => ({
 }));
 vi.mock('@/lib/auth', () => ({
   UserRole: { Reader: 0, Editor: 1, Admin: 2 },
-  useHasMinRole: () => true,
+  useHasMinRole: () => isEditor,
 }));
 vi.mock('@/lib/hooks', async (importOriginal) => ({
   ...(await importOriginal<typeof HooksModule>()),
@@ -86,6 +87,7 @@ describe('Field macro', () => {
   beforeEach(() => {
     updateCard.mockReset();
     updateWorkFlowState.mockReset();
+    isEditor = true;
     card = {
       key: 'k_1',
       title: 'Card',
@@ -138,10 +140,33 @@ describe('Field macro', () => {
     expect(updateCard).not.toHaveBeenCalled();
   });
 
+  it.each([
+    { role: 'a reader', editor: false, tooltip: 'permissions.editorRequired' },
+    { role: 'an editor', editor: true, tooltip: null },
+  ])('explains a disabled state selector only to $role', async (row) => {
+    isEditor = row.editor;
+    render(<Body html={placeholder('workflowState')} />);
+    const button = screen.getByRole('button', { name: /Draft/ });
+
+    // Keyboard focus and hover are both ways an editor reaches the selector.
+    fireEvent.keyDown(document.body, { key: 'Tab' });
+    act(() => button.focus());
+    fireEvent.mouseOver(button);
+
+    if (row.tooltip) {
+      expect(button).toBeDisabled();
+      expect(await screen.findByRole('tooltip')).toHaveTextContent(row.tooltip);
+    } else {
+      expect(button).toBeEnabled();
+      await new Promise((r) => setTimeout(r, 300));
+      expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
+    }
+  });
+
   it('reports a field the card no longer has', () => {
     render(<Body html={placeholder('m/fieldTypes/gone')} />);
 
     expect(screen.getByText('fieldMacro.errorTitle')).toBeInTheDocument();
-    expect(screen.getByText('fieldMacro.noValue')).toBeInTheDocument();
+    expect(screen.getByText('fieldMacro.notOnCardType')).toBeInTheDocument();
   });
 });

@@ -247,7 +247,7 @@
   "fieldMacro": {
     "error": "Error: {{message}}",
     "errorTitle": "Macro Error",
-    "noValue": "Error: no value for field '{{field}}'"
+    "notOnCardType": "Error: field '{{field}}' is not a field of card type '{{cardType}}'"
   },
   "fieldSaved": "Field saved",
   "fieldType": "Field type",

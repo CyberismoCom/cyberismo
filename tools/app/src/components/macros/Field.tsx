@@ -86,7 +86,14 @@ function ValueField({
       : customField && customFieldRow(customField);
   // The card type can change after the server rendered the placeholder.
   if (!row) {
-    return <MacroErrorAlert message={t('fieldMacro.noValue', { field })} />;
+    return (
+      <MacroErrorAlert
+        message={t('fieldMacro.notOnCardType', {
+          field,
+          cardType: card.cardType,
+        })}
+      />
+    );
   }
 
   const editability = fieldEditability({
@@ -171,8 +178,9 @@ function WorkflowStateField({ card, showLabel, preview }: FieldViewProps) {
         </Typography>
       )}
       <Tooltip
-        title={t('permissions.editorRequired')}
-        disableHoverListener={canEditRole || preview}
+        title={
+          !canEditRole && !preview ? t('permissions.editorRequired') : undefined
+        }
         describeChild
       >
         <span>
