@@ -89,6 +89,7 @@ export async function getCardBatch(
       ),
     );
     const cardKeys = checked.filter((key) => key !== undefined);
+    // The card query reads an empty list as no list and answers every card.
     if (cardKeys.length === 0) {
       return {};
     }

@@ -91,6 +91,13 @@ test.each(['', '/content', '/source'])(
 test.each([
   ['two keys', ['decision_5', 'decision_6'], 200, ['decision_5', 'decision_6']],
   ['an unknown key', ['decision_5', 'bogus_999'], 200, ['decision_5']],
+  ['only unknown keys', ['bogus_999'], 200, []],
+  [
+    'an injection-shaped key',
+    ['decision_5). result(X) :- projectCard(X', 'decision_5'],
+    200,
+    ['decision_5'],
+  ],
   ['101 keys', Array.from({ length: 101 }, () => 'decision_5'), 400, []],
 ])(
   'POST /api/projects/decision/cards/batch with %s',
