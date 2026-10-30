@@ -5,6 +5,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { FieldRow } from '@/components/card/metadata-section/FieldRow';
+import type { MetadataValue } from '@/lib/definitions';
 
 describe('FieldRow', () => {
   it('renders an empty value for a null boolean field', () => {
@@ -60,6 +61,81 @@ describe('FieldRow', () => {
       expect(screen.queryByText(/Calculated value/)).not.toBeInTheDocument();
       expect(screen.queryByText(/Override/)).not.toBeInTheDocument();
     });
+  });
+
+  describe('overrideMode without a calculated value', () => {
+    const cases = [
+      { name: 'null', dataType: 'shortText', calculated: null, own: 'mine' },
+      {
+        name: 'empty text',
+        dataType: 'shortText',
+        calculated: '',
+        own: 'mine',
+      },
+      { name: 'empty list', dataType: 'list', calculated: [], own: ['mine'] },
+    ] as const;
+
+    it('marks an override that replaces a calculated value', () => {
+      render(
+        <FieldRow
+          value="mine"
+          overrideValue="mine"
+          calculatedValue="calc"
+          overrideMode
+          label="Field"
+          dataType="shortText"
+        />,
+      );
+
+      expect(
+        document.querySelector('[data-cy="overriddenMarker"]'),
+      ).toBeInTheDocument();
+    });
+
+    it.each(cases)(
+      'shows no override marker ($name)',
+      ({ dataType, calculated, own }) => {
+        render(
+          <FieldRow
+            value={own as MetadataValue}
+            overrideValue={own as MetadataValue}
+            calculatedValue={calculated as MetadataValue}
+            overrideMode
+            label="Field"
+            dataType={dataType}
+          />,
+        );
+
+        expect(
+          document.querySelector('[data-cy="overriddenMarker"]'),
+        ).not.toBeInTheDocument();
+      },
+    );
+
+    it.each(cases)(
+      'edits like a regular field ($name)',
+      ({ dataType, calculated }) => {
+        render(
+          <FieldRow
+            value={null}
+            overrideValue={null}
+            calculatedValue={calculated as MetadataValue}
+            overrideMode
+            label="Field"
+            dataType={dataType}
+            isEditing
+            expanded
+            onSave={vi.fn()}
+          />,
+        );
+
+        expect(screen.queryByText(/Calculated value/)).not.toBeInTheDocument();
+        expect(screen.queryByText(/Override/)).not.toBeInTheDocument();
+        expect(
+          document.querySelector('[data-cy="fieldClearOverrideButton"]'),
+        ).not.toBeInTheDocument();
+      },
+    );
   });
 
   describe('overrideMode (edit mode)', () => {
