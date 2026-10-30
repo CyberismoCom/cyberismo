@@ -40,6 +40,7 @@ Cards live in a directory tree addressed by user-controlled identifiers such as 
 
 - Never build a filesystem path from a user-supplied string without confirming the result resolves inside the intended root. Resolve the path and check the prefix; do not compare strings before resolution.
 - Reject identifiers containing `..`, absolute path segments or symlink components before they reach the filesystem.
+- Project content is admitted only as regular files and folders when it is loaded; symlinks are never followed, copied or read, and git checkouts of module and project content disable them (`core.symlinks=false`).
 - Treat imported and attached content as untrusted for path purposes, including content arriving from a module that looks trustworthy.
 
 Reviewer note: for any new `fs` or `path` call with a variable segment, trace that segment back to where it enters the process.

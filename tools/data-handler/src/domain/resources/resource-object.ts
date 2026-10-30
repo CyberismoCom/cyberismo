@@ -11,8 +11,8 @@ import { ArrayHandler } from './array-handler.js';
 import { deleteFile, pathExists } from '../../shared/utils/file-utils.js';
 import { getChildLogger } from '../../shared/utils/log-utils.js';
 import {
-  readJsonFile,
-  readJsonFileSync,
+  readJsonFileNoFollow,
+  readJsonFileNoFollowSync,
   writeJsonFile,
   writeJsonFileIfAbsent,
 } from '../../shared/utils/json.js';
@@ -330,7 +330,7 @@ export abstract class ResourceObject<
       this.checkout.resources.exists(resourceNameToString(this.resourceName))
     ) {
       try {
-        this.content = readJsonFileSync(this.fileName);
+        this.content = readJsonFileNoFollowSync(this.fileName);
       } catch {
         this.logger.debug(
           `Initializing resource '${resourceNameToString(this.resourceName)}' failed: failed to read file '${this.fileName}'`,
@@ -387,7 +387,7 @@ export abstract class ResourceObject<
    * Reads content from file to memory.
    */
   protected async read() {
-    this.content = await readJsonFile(this.fileName);
+    this.content = await readJsonFileNoFollow(this.fileName);
   }
 
   /**

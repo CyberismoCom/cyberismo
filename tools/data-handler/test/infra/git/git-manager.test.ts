@@ -2,7 +2,9 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { expect, it, describe, beforeEach, afterEach, vi } from 'vitest';
+import { execFileSync } from 'node:child_process';
 import {
+  lstat,
   mkdtemp,
   mkdir,
   writeFile,
@@ -166,6 +168,35 @@ describe('GitManager', () => {
       const contentAfter = await readFile(filePath, 'utf-8');
       expect(contentAfter).toBe('original');
     });
+
+    it.skipIf(process.platform === 'win32')(
+      'should restore a committed symlink as a plain file',
+      async () => {
+        const secret = join(dir, 'secret.txt');
+        await writeFile(secret, 'top secret');
+        const blob = execFileSync('git', ['hash-object', '-w', '--stdin'], {
+          cwd: dir,
+          input: secret,
+        })
+          .toString()
+          .trim();
+        await gm.commit('Baseline');
+        const git = testGit(dir);
+        await git.raw([
+          'update-index',
+          '--add',
+          '--cacheinfo',
+          `120000,${blob},cardRoot/link`,
+        ]);
+        await git.commit('Add link');
+        const link = join(dir, 'cardRoot', 'link');
+
+        await gm.rollback();
+
+        expect((await lstat(link)).isSymbolicLink()).toBe(false);
+        expect(await readFile(link, 'utf-8')).toBe(secret);
+      },
+    );
 
     it('should remove new untracked files', async () => {
       // Create a new untracked file

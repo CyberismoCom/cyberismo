@@ -84,6 +84,8 @@ export interface CardTreeChange {
 export interface CardTreeOptions {
   name: string;
   rootPath: string;
+  /** Project folder; a tree root reached through a symlink, or outside it, is not loaded. */
+  projectRoot: string;
   kind: CardTreeKind;
   writable: boolean;
   keys: CardKeyRegistry;
@@ -1136,7 +1138,11 @@ export class CardTree {
     // Evict before loading: reloaded cards keep their keys, and the store
     // rejects a key it already holds.
     this.clear();
-    const cards = await scanCardTree(this.treeRoot, this.treeName);
+    const cards = await scanCardTree(
+      this.treeRoot,
+      this.treeName,
+      this.options.projectRoot,
+    );
     this.options.keys.claim(
       cards.map((card) => card.key),
       this,

@@ -31,6 +31,13 @@ export const baseConfig = [
   },
 ];
 
+// simple-git is reached through createGit (data-handler's infra/git/git-config),
+// which turns symlinks off for every working tree git writes.
+export const NO_SIMPLE_GIT = {
+  group: ['simple-git'],
+  message: 'Use createGit from @cyberismo/data-handler instead of simple-git.',
+};
+
 /**
  * Configuration for Node.js projects (backend, CLI tools, libraries)
  */
@@ -52,7 +59,13 @@ export const nodeConfig = [
       'promise/catch-or-return': 'error',
       'promise/no-promise-in-callback': 'error',
       'promise/always-return': 'off',
+      'no-restricted-imports': ['error', { patterns: [NO_SIMPLE_GIT] }],
     },
+  },
+  // Tests drive real repositories directly.
+  {
+    files: ['**/test/**/*.ts', '**/__tests__/**/*.ts'],
+    rules: { 'no-restricted-imports': 'off' },
   },
 ];
 

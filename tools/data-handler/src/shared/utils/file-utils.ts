@@ -4,13 +4,32 @@
 import {
   copyFile,
   mkdir,
+  open,
   readdir,
   rm,
   unlink,
   writeFile,
 } from 'node:fs/promises';
-import { existsSync, readdirSync } from 'node:fs';
-import { basename, dirname, join, sep } from 'node:path';
+import {
+  type Dirent,
+  closeSync,
+  constants,
+  existsSync,
+  lstatSync,
+  openSync,
+  realpathSync,
+  readdirSync,
+  readFileSync,
+} from 'node:fs';
+import {
+  basename,
+  dirname,
+  isAbsolute,
+  join,
+  relative,
+  resolve,
+  sep,
+} from 'node:path';
 import { homedir } from 'node:os';
 
 /**
@@ -24,6 +43,9 @@ export async function copyDir(source: string, destination: string) {
   for (const entry of entries) {
     const sourcePath = join(source, entry.name);
     const destinationPath = join(destination, entry.name);
+    if (entry.isSymbolicLink()) {
+      throw new Error(`Cannot copy symbolic link '${sourcePath}'`);
+    }
     if (entry.isDirectory()) {
       await mkdir(destinationPath, { recursive: true });
       await copyDir(sourcePath, destinationPath);
@@ -31,6 +53,103 @@ export async function copyDir(source: string, destination: string) {
       await mkdir(destination, { recursive: true });
       await copyFile(sourcePath, destinationPath);
     }
+  }
+}
+
+/**
+ * Every entry under `root`, recursively, without following symlinks: a
+ * symlink is returned as an entry but never descended into, on any Node
+ * version (`readdir`'s own `recursive` option follows them on some).
+ * @param root folder to walk
+ * @param onSymlink called with the path of each symlink found
+ */
+export async function walkEntries(
+  root: string,
+  onSymlink?: (path: string) => void,
+): Promise<Dirent[]> {
+  const entries = await readdir(root, { withFileTypes: true });
+  const nested = await Promise.all(
+    entries.map(async (entry) => {
+      const path = join(root, entry.name);
+      if (entry.isSymbolicLink()) {
+        onSymlink?.(path);
+        return [entry];
+      }
+      return entry.isDirectory()
+        ? [entry, ...(await walkEntries(path, onSymlink))]
+        : [entry];
+    }),
+  );
+  return nested.flat();
+}
+
+/**
+ * The first path on the way from `base` down to `path` that must not be
+ * read: a symlink, or `path` itself when it is not below `base`. `base`
+ * itself may be reached through a symlink; only what is below it counts.
+ * A `base` or `path` that is not on disk is clean.
+ * @param base project folder
+ * @param path folder or file below `base`
+ */
+export function symlinkBelow(base: string, path: string): string | undefined {
+  let realBase: string;
+  try {
+    realBase = realpathSync(base);
+  } catch {
+    // Nothing exists below a base that does not.
+    return undefined;
+  }
+  const target = resolve(path);
+  // The path may be spelled through the base's own symlink or its real name.
+  const below = [resolve(base), realBase]
+    .map((root) => relative(root, target))
+    .find(
+      (rel) => rel !== '..' && !rel.startsWith('..' + sep) && !isAbsolute(rel),
+    );
+  if (below === undefined) {
+    return target;
+  }
+  let current = realBase;
+  for (const part of below.split(sep).filter(Boolean)) {
+    current = join(current, part);
+    try {
+      if (lstatSync(current).isSymbolicLink()) {
+        return current;
+      }
+    } catch {
+      return undefined;
+    }
+  }
+  return undefined;
+}
+
+// Opening with O_NOFOLLOW makes the read fail on a symlink, closing the gap
+// between the load-time check and the read.
+const NO_FOLLOW = constants.O_RDONLY | constants.O_NOFOLLOW;
+
+/**
+ * Reads a file's bytes, refusing to follow a symlink at `path`.
+ * @param path file to read
+ */
+export async function readFileNoFollow(path: string): Promise<Buffer> {
+  const handle = await open(path, NO_FOLLOW);
+  try {
+    return await handle.readFile();
+  } finally {
+    await handle.close();
+  }
+}
+
+/**
+ * Synchronous variant of {@link readFileNoFollow}.
+ * @param path file to read
+ */
+export function readFileNoFollowSync(path: string): Buffer {
+  const fd = openSync(path, NO_FOLLOW);
+  try {
+    return readFileSync(fd);
+  } finally {
+    closeSync(fd);
   }
 }
 

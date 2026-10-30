@@ -4,7 +4,6 @@
 import { resolve } from 'node:path';
 
 import { type Command } from 'commander';
-import { simpleGit } from 'simple-git';
 
 import {
   MockAuthProvider,
@@ -13,6 +12,7 @@ import {
 } from '@cyberismo/backend';
 import { formatProjectErrors, type ProjectErrors } from '@cyberismo/model';
 import {
+  createGit,
   localFolder,
   SYSTEM_ACTOR,
   Validate,
@@ -26,7 +26,7 @@ import { validation } from './validate.js';
 import type { StartCommandOptions } from '../options.js';
 
 async function getGitUserConfig(): Promise<MockUserConfig> {
-  const git = simpleGit();
+  const git = createGit();
   const name = (await git.getConfig('user.name')).value || undefined;
   const email = (await git.getConfig('user.email')).value || undefined;
   return { name, email };

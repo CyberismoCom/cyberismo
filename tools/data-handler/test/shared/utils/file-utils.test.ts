@@ -3,8 +3,8 @@
 
 import { expect, afterAll, describe, it, beforeAll } from 'vitest';
 
-import { rmSync } from 'node:fs';
-import { access, mkdir, writeFile } from 'node:fs/promises';
+import { existsSync, rmSync } from 'node:fs';
+import { access, mkdir, symlink, writeFile } from 'node:fs/promises';
 import { join, sep } from 'node:path';
 
 import {
@@ -13,6 +13,9 @@ import {
   deleteFile,
   getFilesSync,
   pathExists,
+  readFileNoFollow,
+  readFileNoFollowSync,
+  symlinkBelow,
   resolveTilde,
   stripExtension,
 } from '../../../src/shared/utils/file-utils.js';
@@ -46,6 +49,66 @@ describe('file utils', () => {
     await copyDir('test/test-data/valid/minimal/', destination);
     await expect(access(destination)).resolves.toBeUndefined();
   });
+  it.skipIf(process.platform === 'win32')(
+    'copyDir rejects a symlinked file or folder',
+    async () => {
+      const outside = join(testDir, 'outside');
+      await mkdir(outside, { recursive: true });
+      await writeFile(join(outside, 'secret.txt'), 'secret');
+      for (const [name, target] of [
+        ['file-link', join(outside, 'secret.txt')],
+        ['dir-link', outside],
+      ]) {
+        const source = join(testDir, `source-${name}`);
+        const destination = join(testDir, `dest-${name}`);
+        await mkdir(source, { recursive: true });
+        await symlink(target, join(source, name));
+
+        await expect(copyDir(source, destination)).rejects.toThrow(
+          `Cannot copy symbolic link '${join(source, name)}'`,
+        );
+        expect(existsSync(join(destination, name))).toBe(false);
+      }
+    },
+  );
+  it.skipIf(process.platform === 'win32')(
+    'symlinkBelow refuses a symlink or a path outside the base',
+    async () => {
+      const real = join(testDir, 'real-project');
+      const alias = join(testDir, 'alias-project');
+      await mkdir(join(real, 'cardRoot'), { recursive: true });
+      await mkdir(join(real, 'moved'), { recursive: true });
+      await symlink(real, alias);
+      await symlink(join(real, 'moved'), join(real, 'linked'));
+      const outside = join(testDir, 'elsewhere');
+
+      // Clean, whether spelled through the base's alias or its real name.
+      expect(symlinkBelow(alias, join(alias, 'cardRoot'))).toBeUndefined();
+      expect(symlinkBelow(alias, join(real, 'cardRoot'))).toBeUndefined();
+      expect(symlinkBelow(real, join(real, 'missing'))).toBeUndefined();
+      // Refused: a symlink below the base, however spelled, or outside it.
+      expect(symlinkBelow(alias, join(real, 'linked'))).toBe(
+        join(real, 'linked'),
+      );
+      expect(symlinkBelow(alias, join(alias, 'linked', 'c'))).toBe(
+        join(real, 'linked'),
+      );
+      expect(symlinkBelow(real, outside)).toBe(outside);
+    },
+  );
+  it.skipIf(process.platform === 'win32')(
+    'readFileNoFollow refuses a symlink',
+    async () => {
+      const real = join(testDir, 'real.txt');
+      const link = join(testDir, 'link.txt');
+      await writeFile(real, 'secret');
+      await symlink(real, link);
+
+      expect((await readFileNoFollow(real)).toString()).toBe('secret');
+      await expect(readFileNoFollow(link)).rejects.toThrow('ELOOP');
+      expect(() => readFileNoFollowSync(link)).toThrow('ELOOP');
+    },
+  );
   it('deleteDir (success)', async () => {
     const targetDir = join(testDir, 'this-temp');
     await mkdir(targetDir, { recursive: true });

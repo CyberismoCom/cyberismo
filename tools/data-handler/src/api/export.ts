@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 // node
-import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { spawn } from 'node:child_process';
 
@@ -14,6 +13,7 @@ import type {
   ExportPdfOptions,
   QueryResult,
 } from '@cyberismo/model';
+import { readFileNoFollow } from '../shared/utils/file-utils.js';
 import { evaluateMacros } from '../domain/macros/index.js';
 import { generateReportContent } from '../domain/queries/index.js';
 import { preprocessMermaidBlocksForPdf } from '../shared/utils/mermaid-renderer.js';
@@ -249,7 +249,7 @@ export class Export {
       if (card.attachments) {
         const attachments = await Promise.all(
           card.attachments.map((attachment) =>
-            readFile(join(attachment.path, attachment.fileName)),
+            readFileNoFollow(join(attachment.path, attachment.fileName)),
           ),
         );
         card.attachments.forEach((attachment, index) => {

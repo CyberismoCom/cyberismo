@@ -13,7 +13,14 @@ import {
 } from 'vitest';
 
 // node
-import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import {
+  existsSync,
+  mkdirSync,
+  renameSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { join, sep } from 'node:path';
 
@@ -124,6 +131,7 @@ function projectTree(
   return new CardTree({
     name: 'project',
     rootPath,
+    projectRoot: testProjectPath,
     kind: 'project',
     writable: true,
     keys,
@@ -139,6 +147,7 @@ function newTemplateTree(
   return new CardTree({
     name,
     rootPath,
+    projectRoot: testProjectPath,
     kind: 'template',
     writable,
     keys,
@@ -170,6 +179,78 @@ async function loadedTree(): Promise<CardTree> {
 }
 
 describe('Card tree', () => {
+  describe.skipIf(process.platform === 'win32')('symlinks', () => {
+    const secret = join(testDir, 'secret');
+    const SECRET = 'top secret';
+
+    beforeEach(() => {
+      createTestData();
+      mkdirSync(secret, { recursive: true });
+      writeFileSync(join(secret, 'index.adoc'), SECRET);
+      writeFileSync(join(secret, 'index.json'), '{"title":"secret"}');
+    });
+    afterEach(() => {
+      rmSync(testDir, { recursive: true, force: true });
+    });
+
+    it.each([
+      ['index.adoc', 'adoc'],
+      ['index.json', 'json'],
+    ])('does not load a card whose %s is a symlink', async (file) => {
+      const dir = join(testCardsPath, 'test_1', 'c', 'test_2');
+      rmSync(join(dir, file));
+      symlinkSync(join(secret, file), join(dir, file));
+
+      const tree = await loadedTree();
+
+      expect(tree.keys()).toEqual(['test_1', 'test_3']);
+    });
+
+    it('does not follow a symlinked children folder', async () => {
+      createTestCard('test_8', join(secret, 'c'), pageCard('Outside'), 'out');
+      rmSync(join(testCardsPath, 'test_1', 'c'), { recursive: true });
+      symlinkSync(join(secret, 'c'), join(testCardsPath, 'test_1', 'c'));
+
+      const tree = await loadedTree();
+
+      expect(tree.keys()).toEqual(['test_1']);
+    });
+
+    // A tree root reached through a symlink below the project is not scanned.
+    it.each([
+      ['cardRoot', () => testCardsPath],
+      ['a template internal folder', () => templateCardsPath('page')],
+    ])('does not load when %s is a symlink', async (_name, rootOf) => {
+      const root = rootOf();
+      const target = join(testDir, 'moved');
+      renameSync(root, target);
+      symlinkSync(target, root);
+      const tree = new CardTree({
+        name: 'project',
+        rootPath: root,
+        projectRoot: testProjectPath,
+        kind: 'project',
+        writable: true,
+        keys: new CardKeyRegistry(() => 'test'),
+      });
+
+      await tree.load();
+
+      expect(tree.keys()).toEqual([]);
+    });
+
+    it('does not list a symlinked attachment', async () => {
+      const dir = join(testCardsPath, 'test_1', 'a');
+      symlinkSync(join(secret, 'index.adoc'), join(dir, 'link.txt'));
+
+      const tree = await loadedTree();
+
+      expect(tree.attachmentsOf('test_1').map((a) => a.fileName)).toEqual([
+        'test-attachment.txt',
+      ]);
+    });
+  });
+
   describe('lifecycle', () => {
     beforeAll(() => {
       createTestData();
