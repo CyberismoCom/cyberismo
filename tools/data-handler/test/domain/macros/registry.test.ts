@@ -15,6 +15,7 @@ import { join } from 'node:path';
 import { mkdirSync, rmSync } from 'node:fs';
 
 import Handlebars from 'handlebars';
+import fieldMetadata from '@cyberismo/model/macros/field/metadata';
 import BaseMacro from '../../../src/domain/macros/base-macro.js';
 import { copyDir } from '../../../src/shared/utils/file-utils.js';
 import { getTestProject } from '../../helpers/test-utils.js';
@@ -124,6 +125,32 @@ describe('macros', () => {
       expect(() =>
         validateMacroContent(macro.metadata, data, testSchema),
       ).toThrow();
+    });
+    it.each([
+      { name: 'field only', options: { field: 'a/fieldTypes/b' }, valid: true },
+      {
+        name: 'field and showLabel',
+        options: { field: 'title', showLabel: false },
+        valid: true,
+      },
+      { name: 'missing field', options: { showLabel: true }, valid: false },
+      {
+        name: 'showLabel as a string',
+        options: { field: 'title', showLabel: 'false' },
+        valid: false,
+      },
+      {
+        name: 'cardKey (not supported yet)',
+        options: { field: 'title', cardKey: 'x_1' },
+        valid: false,
+      },
+    ])('field macro options: $name', ({ options, valid }) => {
+      const run = () => validateMacroContent(fieldMetadata, options);
+      if (valid) {
+        expect(run()).toEqual(options);
+      } else {
+        expect(run).toThrow();
+      }
     });
   });
 

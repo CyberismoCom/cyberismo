@@ -4,6 +4,7 @@
 import Handlebars from 'handlebars';
 
 import createCards from './createCards/index.js';
+import field from './field/index.js';
 import graph from './graph/index.js';
 import image from './image/index.js';
 import include from './include/index.js';
@@ -132,6 +133,7 @@ export const macros: {
   [K in MacroName]: MacroConstructor;
 } = {
   createCards,
+  field,
   graph,
   image,
   include,
