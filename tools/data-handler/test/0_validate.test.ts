@@ -299,6 +299,37 @@ describe('validate cmd tests', () => {
       '(docs_r0brt7n1,base/fieldTypes/informationClassification)',
     );
   });
+  // An empty string is no value, so it is valid for every data type.
+  it.each([
+    'decision/fieldTypes/lastChangedDate',
+    'decision/fieldTypes/numberOfCommits',
+    'decision/fieldTypes/finished',
+  ])('validate card custom fields - empty string on %s', async (field) => {
+    const fakeCard = {
+      key: 'test_fake_card',
+      path: '/fake/path',
+      children: [],
+      attachments: [],
+      metadata: {
+        title: 'Test Card',
+        cardType: 'decision/cardTypes/decision',
+        workflowState: 'Ready',
+        rank: '0|ct',
+        lastUpdated: '2025-08-27T10:17:48.711Z',
+        links: [],
+        [field]: '',
+      },
+    } as unknown as Card;
+
+    const allPrefixes = await validProject.projectPrefixes();
+    const valid = await validateCmd.validateCustomFields(
+      validProject,
+      fakeCard,
+      allPrefixes,
+    );
+
+    expect(valid).toBe('');
+  });
   it('validate card custom fields - undeclared key whose fieldType is gone is dormant', async () => {
     // The card type does not declare the key, so the leftover value is
     // dormant: preserved on disk, ignored by logic, not a validation error.

@@ -256,6 +256,9 @@ describe('createCardFacts only emits fields the card type declares', () => {
   const DELETED_TYPE_FIELD = 'decision/fieldTypes/responsible';
   // Declared by the card type, with its field type resource intact.
   const DECLARED_FIELD = 'decision/fieldTypes/commitDescription';
+  // Declared by the card type, stored without a value.
+  const NULL_FIELD = 'decision/fieldTypes/finished';
+  const EMPTY_FIELD = 'decision/fieldTypes/lastChangedDate';
   // Card whose card type resource does not exist, so nothing can be classified
   // as declared or dormant.
   const BROKEN_CARD_TYPE_CARD_KEY = 'decision_5';
@@ -288,6 +291,8 @@ describe('createCardFacts only emits fields the card type declares', () => {
     metadata[GHOST_FIELD] = 'stale';
     metadata[DELETED_TYPE_FIELD] = 'Jane Doe';
     metadata[DECLARED_FIELD] = 'Rewrote the decision';
+    metadata[NULL_FIELD] = null;
+    metadata[EMPTY_FIELD] = '';
     writeFileSync(cardJsonPath, JSON.stringify(metadata, null, 4));
 
     const brokenCardJsonPath = join(
@@ -331,6 +336,14 @@ describe('createCardFacts only emits fields the card type declares', () => {
     expect(facts).toContain(
       `field(${CARD_KEY}, "${DECLARED_FIELD}", "Rewrote the decision").`,
     );
+  });
+
+  it.each([
+    ['null', NULL_FIELD],
+    ['an empty string', EMPTY_FIELD],
+  ])('declared field stored as %s emits no fact', async (_name, field) => {
+    const facts = await createCardFacts(card, checkout);
+    expect(facts).not.toContain(field);
   });
 
   it('unresolvable card type falls back to plain field facts for stored values', async () => {
