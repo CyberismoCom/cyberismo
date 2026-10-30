@@ -7,6 +7,7 @@ import type { CardView } from '@/lib/api/types';
 type ViewField = CardView['fields'][number];
 
 /**
+ * Returns null when the source has no metadata or a field type is not loaded.
  * Builds the card view of a template card from its stored source. A template
  * card has no workflow state, links or policy checks, so only the custom
  * fields, labels and body are populated.
@@ -15,33 +16,32 @@ export function templateCardView(
   source: Card,
   cardType: CardType,
   fieldTypes: FieldType[],
-): CardView {
+): CardView | null {
   const metadata = source.metadata;
-  if (!metadata) {
-    throw new Error(`Card ${source.key} has no metadata`);
-  }
-  const fields = cardType.customFields.map((customField, index) => {
+  if (!metadata) return null;
+  const fields: CardView['fields'] = [];
+  for (const [index, customField] of cardType.customFields.entries()) {
     const fieldType = fieldTypes.find((f) => f.name === customField.name);
-    if (!fieldType) {
-      throw new Error(`Field type ${customField.name} not found`);
-    }
+    if (!fieldType) return null;
+    const stored = metadata[customField.name] as ViewField['value'];
     const isOverridable = !!(
       customField.isCalculated && customField.enableOverride
     );
-    return {
+    fields.push({
       key: customField.name,
       visibility: 'always' as const,
       index,
       fieldDisplayName: fieldType.displayName,
-      fieldDescription: fieldType.description,
+      fieldDescription: fieldType.description ?? '',
       dataType: fieldType.dataType,
       isCalculated: customField.isCalculated,
       isOverridable,
-      overrideValue: isOverridable ? metadata[customField.name] : undefined,
-      value: metadata[customField.name],
-      enumValues: fieldType.enumValues ?? [],
-    } as ViewField; // Stored enum definitions lack the query's index and key.
-  });
+      overrideValue: isOverridable ? stored : undefined,
+      value: stored,
+      // Stored enum definitions lack the query's index and key.
+      enumValues: (fieldType.enumValues ?? []) as ViewField['enumValues'],
+    });
+  }
   return {
     key: source.key,
     rank: metadata.rank,

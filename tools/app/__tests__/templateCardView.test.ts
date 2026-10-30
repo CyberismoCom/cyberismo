@@ -53,7 +53,7 @@ const source = {
 } as unknown as Card;
 
 const field = (card: Card, key: string) =>
-  templateCardView(card, cardType, fieldTypes).fields.find(
+  templateCardView(card, cardType, fieldTypes)?.fields.find(
     (f) => f.key === key,
   );
 
@@ -129,6 +129,17 @@ describe('templateCardView', () => {
       fieldDescription: `About ${key}`,
       ...expected,
     });
+  });
+
+  it.each([
+    ['a field type is not loaded', source, fieldTypes.slice(1)],
+    [
+      'the source has no metadata',
+      { ...source, metadata: undefined },
+      fieldTypes,
+    ],
+  ])('returns null when %s', (_, card, types) => {
+    expect(templateCardView(card as Card, cardType, types)).toBeNull();
   });
 
   it('fills the non-field keys from the source', () => {
