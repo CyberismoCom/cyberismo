@@ -84,10 +84,7 @@ export function CardContextMenu({
                 <Typography>{t('move')}</Typography>
               </MenuItem>
             )}
-            <MenuItem
-              data-cy="addAttachmentButton"
-              onClick={openModal('addAttachment')}
-            >
+            <MenuItem onClick={openModal('addAttachment')}>
               <Typography>{t('addAttachment')}</Typography>
             </MenuItem>
             <Divider />

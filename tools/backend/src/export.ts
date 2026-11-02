@@ -2,12 +2,14 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import fs from 'node:fs/promises';
+import { dirname, join } from 'node:path';
 
 import {
   SYSTEM_ACTOR,
   type ProjectDirectory,
   type Workspace,
 } from '@cyberismo/data-handler';
+import { readFileNoFollow } from '@cyberismo/data-handler/utils/file-utils';
 import { createApp } from './app.js';
 import { MockAuthProvider } from './auth/mock.js';
 import { cp } from 'node:fs/promises';
@@ -112,10 +114,15 @@ export async function exportSite(
 
   // estimate total based on the number of cards to export across all projects
   let total = OVERHEAD_CALLS;
+  const attachmentsByPrefix = new Map<
+    string,
+    Awaited<ReturnType<typeof findRelevantAttachments>>
+  >();
   for (const prefix of prefixes) {
     const ws = await directory.open(prefix, SYSTEM_ACTOR);
     const cards = await findAllCards(ws, opts);
     const attachments = await findRelevantAttachments(ws, opts);
+    attachmentsByPrefix.set(prefix, attachments);
     total += cards.length + attachments.length;
   }
 
@@ -173,6 +180,35 @@ export async function exportSite(
         },
       ],
     });
+    // Written directly: toSSG would append an extension derived from the
+    // Content-Type, so the files would not land under their own names.
+    if (scope !== undefined) {
+      for (const { key, attachment, file } of attachmentsByPrefix.get(scope) ??
+        []) {
+        try {
+          const fileBuffer = await readFileNoFollow(file);
+          const target = join(
+            exportDir,
+            'api',
+            'projects',
+            scope,
+            'cards',
+            key,
+            'a',
+            attachment,
+          );
+          await fs.mkdir(dirname(target), { recursive: true });
+          await fs.writeFile(target, fileBuffer);
+          done++;
+          if (done > total) total = done;
+          onProgress?.(done, total);
+        } catch (error) {
+          scopeErrors.push(
+            `${key}/${attachment}: ${error instanceof Error ? error.message : String(error)}`,
+          );
+        }
+      }
+    }
     if (scopeErrors.length > 0) {
       errors.push({ prefix: scope ?? SHARED_ROUTES, errors: scopeErrors });
     }

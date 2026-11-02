@@ -318,7 +318,7 @@ test.describe('Navigation', () => {
     const cardKey = page.url().split('/cards/')[1];
 
     await page.getByTestId('contextMenuButton').click();
-    await page.getByTestId('addAttachmentButton').click();
+    await page.getByRole('menuitem', { name: t.addAttachment }).click();
 
     await expect(
       page.getByRole('dialog').locator('h2', { hasText: t.addAttachment }),

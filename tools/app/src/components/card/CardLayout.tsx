@@ -10,18 +10,9 @@ import {
 } from 'react';
 import type { ExpandedLinkType, MetadataValue } from '@/lib/definitions';
 
-import {
-  Accordion,
-  AccordionDetails,
-  AccordionSummary,
-  Box,
-  Button,
-  Stack,
-  Typography,
-} from '@mui/joy';
+import { Box, Stack } from '@mui/joy';
 import { useTheme } from '@mui/material/styles';
 import { useMediaQuery } from '@mui/material';
-import ExpandMore from '@mui/icons-material/ExpandMore';
 import Toc from '@mui/icons-material/Toc';
 import { useTranslation } from 'react-i18next';
 import MetadataView from '@/components/card/metadata-section/MetadataSection';
@@ -42,91 +33,7 @@ import { TableOfContents } from './TableOfContents';
 import { CardBody, type CardBodyHandle } from './CardBody';
 import { CardTitle } from './CardTitle';
 import { AttachmentPanel } from './AttachmentPanel';
-
-function SidebarPanelAccordion({
-  expanded,
-  onToggle,
-  leading,
-  title,
-  children,
-  dataCy,
-}: {
-  expanded: boolean;
-  onToggle: () => void;
-  leading: ReactNode;
-  title: string;
-  children: ReactNode;
-  dataCy?: string;
-}) {
-  const { t } = useTranslation();
-  return (
-    <Box
-      border="1px solid"
-      borderColor="neutral.outlinedBorder"
-      borderRadius={6}
-    >
-      <Accordion expanded={expanded} data-cy={dataCy}>
-        <AccordionSummary
-          onClick={onToggle}
-          sx={{ borderRadius: 6 }}
-          slotProps={{
-            button: {
-              sx: {
-                padding: { xs: 1, sm: 1.5 },
-                gap: 2,
-                borderRadius: 'inherit',
-              },
-            },
-            indicator: { sx: { display: 'none' } },
-          }}
-        >
-          {leading}
-          <Typography level="title-sm" fontWeight="bold" sx={{ flexGrow: 1 }}>
-            {title}
-          </Typography>
-          <Button
-            component="span"
-            variant="plain"
-            color="primary"
-            size="sm"
-            endDecorator={
-              <ExpandMore
-                sx={{
-                  transition: 'transform 0.2s',
-                  transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)',
-                }}
-              />
-            }
-            sx={(theme) => ({
-              [theme.breakpoints.down('sm')]: {
-                paddingBlock: 0,
-                minHeight: 'auto',
-              },
-            })}
-          >
-            <Box
-              component="span"
-              sx={{ display: { xs: 'none', sm: 'inline' } }}
-            >
-              {expanded ? t('showLess') : t('showMore')}
-            </Box>
-          </Button>
-        </AccordionSummary>
-        <AccordionDetails>
-          <Box
-            sx={{
-              paddingX: { xs: 1, sm: 1.5 },
-              paddingBottom: { xs: 1, sm: 1.5 },
-              paddingTop: 1,
-            }}
-          >
-            {children}
-          </Box>
-        </AccordionDetails>
-      </Accordion>
-    </Box>
-  );
-}
+import { SidebarPanelAccordion } from './SidebarPanelAccordion';
 
 type CardLayoutProps = {
   cards: QueryResult<'tree'>[];
@@ -262,11 +169,19 @@ export const CardLayout = forwardRef<CardLayoutHandle, CardLayoutProps>(
     const notificationsBadgeCount =
       card.notifications.length + card.policyChecks.failures.length;
 
-    const attachmentPanel = (
+    const attachmentPanel = (variant: 'sidebar' | 'inline') => (
       <AttachmentPanel
+        // Fresh expanded state per card and per view/edit mode.
+        key={`${card.key}-${editingBody}`}
+        variant={variant}
         cardKey={card.key}
         attachments={card.attachments ?? []}
-        onInsert={(attachment) => bodyRef.current?.insertAttachment(attachment)}
+        initialExpanded={editingBody && !isNarrow}
+        onInsert={
+          editingBody
+            ? (attachment) => bodyRef.current?.insertAttachment(attachment)
+            : undefined
+        }
       />
     );
 
@@ -283,6 +198,7 @@ export const CardLayout = forwardRef<CardLayoutHandle, CardLayoutProps>(
           policyChecks={card.policyChecks}
           onGoToField={onMetadataUpdate ? setFocusFieldKey : undefined}
         />
+        {attachmentPanel('sidebar')}
       </>
     );
 
@@ -344,7 +260,7 @@ export const CardLayout = forwardRef<CardLayoutHandle, CardLayoutProps>(
                 onDeleteLink={onDeleteLink}
               />
             )}
-            {isNarrow && editingBody && attachmentPanel}
+            {isNarrow && editingBody && attachmentPanel('inline')}
             {isNarrow &&
               !editingBody &&
               (hasNotifications || hasPolicyChecks) && (
@@ -391,6 +307,7 @@ export const CardLayout = forwardRef<CardLayoutHandle, CardLayoutProps>(
                 />
               </SidebarPanelAccordion>
             )}
+            {isNarrow && !editingBody && attachmentPanel('inline')}
             <CardBody
               key={`body-${card.key}`}
               ref={bodyRef}
@@ -414,11 +331,13 @@ export const CardLayout = forwardRef<CardLayoutHandle, CardLayoutProps>(
               minWidth: 250,
               flexShrink: 0,
               my: 2,
+              // Gutter between the main column's scrollbar and the sidebar.
+              ml: 3,
               mr: 3,
             }}
             data-cy="cardSidebar"
           >
-            {editingBody ? attachmentPanel : viewSidebarContent}
+            {editingBody ? attachmentPanel('sidebar') : viewSidebarContent}
           </Stack>
         )}
       </Stack>
