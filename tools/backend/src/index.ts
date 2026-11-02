@@ -46,6 +46,9 @@ export function createPreviewApp(dir: string) {
   app.use(
     serveStatic({
       root: dir,
+      // decodeStaticPath decodes once and refuses traversal itself, and no
+      // route middleware runs before this, so encoded names are safe here.
+      allowPercentInPath: true,
       rewriteRequestPath: (_, c) => decodeStaticPath(c),
     }),
   );
