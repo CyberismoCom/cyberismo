@@ -51,7 +51,7 @@
     "ajv-formats": "^3.0.1",
     "csv-parse": "^7.0.3",
     "directory-schema-validator": "^1.0.17",
-    "dompurify": "^3.4.16",
+    "dompurify": "^3.4.17",
     "email-validator": "^2.0.4",
     "entities": "^9.0.0",
     "handlebars": "^4.7.10",
