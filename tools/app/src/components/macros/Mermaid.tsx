@@ -56,6 +56,9 @@ function Mermaid({ code }: MermaidProps) {
       startOnLoad: false,
       theme: isDarkMode ? 'dark' : 'default',
       securityLevel: 'strict',
+      // Mermaid 12 defaults to ELK and the neo look; keep diagrams as they were.
+      layout: 'dagre',
+      look: 'classic',
     });
     const id = `mermaid-diagram-${renderCounter++}`;
 
