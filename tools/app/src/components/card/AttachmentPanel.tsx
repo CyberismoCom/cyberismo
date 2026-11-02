@@ -176,7 +176,6 @@ export const AttachmentPanel: React.FC<AttachmentPanelProps> = ({
     <Stack spacing={1}>
       {canEdit && (
         <Button
-          data-cy="addAttachmentButton"
           size="sm"
           variant="soft"
           sx={{ alignSelf: 'flex-start' }}

@@ -1,16 +1,5 @@
-/**
-  Cyberismo
-  Copyright © Cyberismo Ltd and contributors 2026
-
-  This program is free software: you can redistribute it and/or modify it under
-  the terms of the GNU Affero General Public License version 3 as published by
-  the Free Software Foundation. This program is distributed in the hope that it
-  will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty
-  of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-  See the GNU Affero General Public License for more details.
-  You should have received a copy of the GNU Affero General Public
-  License along with this program. If not, see <https://www.gnu.org/licenses/>.
-*/
+// SPDX-FileCopyrightText: Cyberismo Ltd and contributors
+// SPDX-License-Identifier: AGPL-3.0-only
 
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent, configure } from '@testing-library/react';
@@ -68,7 +57,9 @@ describe('AttachmentPanel', () => {
 
     expect(screen.getByTestId('attachmentCountBadge')).toHaveTextContent('1');
     // Controls are rendered even when collapsed, so presence is checked in the DOM.
-    expect(!!screen.queryByTestId('addAttachmentButton')).toBe(can);
+    expect(
+      !!screen.queryByRole('button', { name: 'addAttachment', hidden: true }),
+    ).toBe(can);
     expect(!!screen.queryByLabelText('delete')).toBe(can);
     expect(!!screen.queryByTestId('insertToContentButton')).toBe(insert);
   });

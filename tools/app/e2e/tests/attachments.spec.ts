@@ -139,11 +139,11 @@ test.describe('Attachments', () => {
     await expect(page.locator('.cm-editor')).toBeVisible();
 
     // First attachment
-    await page.getByTestId('addAttachmentButton').click();
+    await page.getByRole('button', { name: t.addAttachment }).click();
     await addPngAttachment(page);
 
     // Test second attachment
-    await page.getByTestId('addAttachmentButton').click();
+    await page.getByRole('button', { name: t.addAttachment }).click();
     await page
       .getByTestId('fileUploadButton')
       .locator('input[type="file"]')
