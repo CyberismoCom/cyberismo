@@ -267,10 +267,7 @@ export const createCardFacts = async (
         }
       } else {
         // Do not write values that mean 'no value'
-        if (
-          value == null ||
-          (isEmptyFieldValue(value) && !isPredefinedField(field))
-        ) {
+        if (isEmptyFieldValue(value)) {
           continue;
         }
 
