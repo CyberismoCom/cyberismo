@@ -1,7 +1,8 @@
 // SPDX-FileCopyrightText: Cyberismo Ltd and contributors
 // SPDX-License-Identifier: AGPL-3.0-only
 
-import fs from 'node:fs/promises';
+import { constants } from 'node:fs';
+import fs, { type FileHandle } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 
 import {
@@ -185,15 +186,13 @@ export async function exportSite(
       for (const { key, attachment, file } of attachmentsByPrefix.get(scope) ??
         []) {
         try {
-          // lstat does not follow links, so a symlink cannot pull in files
-          // from outside the card.
-          if (!(await fs.lstat(file)).isFile()) {
+          const fileBuffer = await readRegularFile(file);
+          if (fileBuffer === undefined) {
             done++;
             if (done > total) total = done;
             onProgress?.(done, total);
             continue;
           }
-          const fileBuffer = await fs.readFile(file);
           const target = join(
             exportDir,
             'api',
@@ -223,4 +222,34 @@ export async function exportSite(
   return {
     errors,
   };
+}
+
+// Reads `file` only if it is a regular file, never through a symlink, so a
+// link cannot pull in files from outside the card. The checks run against
+// the opened handle, so the path cannot be swapped between check and read.
+// O_NONBLOCK keeps a FIFO from blocking the open. Windows has neither flag;
+// there the lstat identity check catches links.
+async function readRegularFile(file: string): Promise<Buffer | undefined> {
+  let handle: FileHandle;
+  try {
+    handle = await fs.open(
+      file,
+      constants.O_RDONLY |
+        (constants.O_NOFOLLOW ?? 0) |
+        (constants.O_NONBLOCK ?? 0),
+    );
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'ELOOP') return undefined;
+    throw error;
+  }
+  try {
+    const [opened, atPath] = await Promise.all([
+      handle.stat({ bigint: true }),
+      fs.lstat(file, { bigint: true }),
+    ]);
+    const same = opened.dev === atPath.dev && opened.ino === atPath.ino;
+    return same && atPath.isFile() ? await handle.readFile() : undefined;
+  } finally {
+    await handle.close();
+  }
 }
