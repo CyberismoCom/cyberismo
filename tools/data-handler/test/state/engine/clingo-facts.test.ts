@@ -265,6 +265,9 @@ describe('createCardFacts only emits fields the card type declares', () => {
   let checkout: Checkout;
   let card: Card;
   let brokenCardTypeCard: Card;
+  // Template card with the empty workflowState that template cards store.
+  const TEMPLATE_CARD_KEY = 'decision_1';
+  let templateCard: Card;
 
   beforeAll(async () => {
     mkdirSync(testDir, { recursive: true });
@@ -306,9 +309,23 @@ describe('createCardFacts only emits fields the card type declares', () => {
     brokenMetadata[DECLARED_FIELD] = 'Kept as a plain field';
     writeFileSync(brokenCardJsonPath, JSON.stringify(brokenMetadata, null, 4));
 
+    const templateCardJsonPath = join(
+      projectPath,
+      `.cards/local/templates/decision/c/${TEMPLATE_CARD_KEY}/index.json`,
+    );
+    const templateMetadata = JSON.parse(
+      readFileSync(templateCardJsonPath, 'utf-8'),
+    );
+    templateMetadata.workflowState = '';
+    writeFileSync(
+      templateCardJsonPath,
+      JSON.stringify(templateMetadata, null, 4),
+    );
+
     checkout = getTestProject(projectPath);
     await checkout.populateCaches();
     card = findCard(checkout, CARD_KEY);
+    templateCard = findCard(checkout, TEMPLATE_CARD_KEY);
     brokenCardTypeCard = findCard(checkout, BROKEN_CARD_TYPE_CARD_KEY);
   });
 
@@ -344,6 +361,12 @@ describe('createCardFacts only emits fields the card type declares', () => {
   ])('declared field stored as %s emits no fact', async (_name, field) => {
     const facts = await createCardFacts(card, checkout);
     expect(facts).not.toContain(field);
+  });
+
+  it('predefined field stored as an empty string emits no fact', async () => {
+    const facts = await createCardFacts(templateCard, checkout);
+    expect(facts).toContain(`field(${TEMPLATE_CARD_KEY}, "title"`);
+    expect(facts).not.toContain('"workflowState"');
   });
 
   it('unresolvable card type falls back to plain field facts for stored values', async () => {
