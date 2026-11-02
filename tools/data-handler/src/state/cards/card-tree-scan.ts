@@ -96,7 +96,8 @@ function attachmentsByCard(
   const seen = new Set<string>();
 
   for (const entry of allEntries) {
-    if (entry.isSymbolicLink()) {
+    // Only regular files are attachments: not folders, and not symlinks.
+    if (!entry.isFile()) {
       continue;
     }
     const owner = attachmentOwner(entry, cardFolders, root);
