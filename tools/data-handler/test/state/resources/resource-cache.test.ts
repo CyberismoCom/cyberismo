@@ -134,6 +134,29 @@ describe('Resource cache', () => {
       expect(JSON.stringify(workflow.data ?? {})).not.toContain('LEAKED');
     });
 
+    it('does not register a changed resource file or folder that is a symlink', async () => {
+      const checkout = getTestProject(testProjectPath);
+      await checkout.populateCaches();
+      const folder = join(testProjectPath, '.cards', 'local', 'workflows');
+      const outside = join(testDir, 'outside.json');
+      writeFileSync(outside, readFileSync(join(folder, 'decision.json')));
+
+      const fileLink = join(folder, 'file-link.json');
+      symlinkSync(outside, fileLink);
+      checkout.resources.handleFileSystemChange(fileLink);
+      expect(checkout.resources.exists('decision/workflows/file-link')).toBe(
+        false,
+      );
+
+      const moved = join(testDir, 'moved-workflows');
+      renameSync(folder, moved);
+      symlinkSync(moved, folder);
+      checkout.resources.handleFileSystemChange(join(folder, 'decision.json'));
+      writeFileSync(join(moved, 'extra.json'), '{}');
+      checkout.resources.handleFileSystemChange(join(folder, 'extra.json'));
+      expect(checkout.resources.exists('decision/workflows/extra')).toBe(false);
+    });
+
     it('does not collect from a resource folder that is a symlink', async () => {
       const folder = join(testProjectPath, '.cards', 'local', 'workflows');
       const moved = join(testDir, 'moved-workflows');
