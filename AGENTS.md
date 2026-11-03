@@ -1,19 +1,16 @@
-## Read first
+## Before changing code
 
-Team rules live in the repo. Read the ones that apply before changing code.
+Team rules live in the repo. Read what applies to the change:
 
-| What                                                               | Where                                                                 |
-| ------------------------------------------------------------------ | --------------------------------------------------------------------- |
-| Package architecture                                               | `tools/<pkg>/ARCHITECTURE.md` (app, backend, cli, data-handler, mcp)  |
-| Review rubric: change classes M/R/B, dimensions, finding format    | [docs/dev/review-rubric.md](docs/dev/review-rubric.md)                |
-| Test levels, fixtures, protected expectations                      | [docs/dev/testing.md](docs/dev/testing.md)                            |
-| Definition of done                                                 | [docs/dev/definition-of-done.md](docs/dev/definition-of-done.md)      |
-| Behaviour contracts and decisions (OpenSpec; tests cite scenarios) | [openspec/README.md](openspec/README.md)                              |
-| Security rules                                                     | [SECURE_DEVELOPMENT.md](SECURE_DEVELOPMENT.md), PR template checklist |
-| Review a branch or PR                                              | `/review-pr` (`.claude/skills/review-pr`)                             |
-| Propose a behaviour change                                         | `/opsx:propose` (OpenSpec)                                            |
+- **Changing a package:** its `tools/<pkg>/ARCHITECTURE.md`.
+- **Changing behaviour:** the capability's spec in `openspec/specs/`. Agree an OpenSpec change before
+  implementing ([openspec/README.md](openspec/README.md)).
+- **Writing tests:** [docs/dev/testing.md](docs/dev/testing.md).
+- **Security-relevant code:** [SECURE_DEVELOPMENT.md](SECURE_DEVELOPMENT.md).
+- **Before opening a PR:** [docs/dev/definition-of-done.md](docs/dev/definition-of-done.md). Reviews follow
+  [docs/dev/review-rubric.md](docs/dev/review-rubric.md).
 
-User-facing documentation goes in the docs project (`docs/cardRoot`), not markdown files.
+User-facing documentation goes in the docs project (`docs/cardRoot`), not in markdown files.
 
 ## Package manager
 
