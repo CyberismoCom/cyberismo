@@ -58,7 +58,14 @@ export function FieldRow({
 }: FieldRowProps) {
   const { t } = useTranslation();
   const initialValue = (overrideMode ? overrideValue : value) ?? null;
-  const isOverridden = !!overrideMode && overrideValue != null;
+  // With nothing calculated there is nothing to override, so the field is
+  // presented as a regular one; its edits still store the override.
+  const hasCalculatedValue =
+    calculatedValue != null &&
+    calculatedValue !== '' &&
+    !(Array.isArray(calculatedValue) && calculatedValue.length === 0);
+  const presentAsOverride = !!overrideMode && hasCalculatedValue;
+  const isOverridden = presentAsOverride && overrideValue != null;
 
   // Overridable fields are always of a "normal" dataType, never 'label'.
   const formatValue = (v: MetadataValue) =>
@@ -209,7 +216,7 @@ export function FieldRow({
               disabled={disabled}
               edit={true}
             />
-            {overrideMode ? (
+            {presentAsOverride ? (
               <OverrideEditorFrame
                 calculatedValue={formatValue(calculatedValue ?? null)}
                 editor={editorField}
