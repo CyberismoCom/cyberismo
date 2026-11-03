@@ -206,6 +206,7 @@ describe('Card tree', () => {
       expect(tree.keys()).toEqual(['test_1', 'test_3']);
     });
 
+    // Guards Node >= 26, where recursive readdir follows symlinked folders.
     it('does not follow a symlinked children folder', async () => {
       createTestCard('test_8', join(secret, 'c'), pageCard('Outside'), 'out');
       rmSync(join(testCardsPath, 'test_1', 'c'), { recursive: true });
