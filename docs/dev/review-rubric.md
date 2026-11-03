@@ -34,7 +34,7 @@ pretending to read it.
 
 | # | Check | Why |
 |---|---|---|
-| C1 | The class is true, and every behaviour change vs `main` is listed. Every changed or deleted assertion is named with its reason. | An unlisted behaviour change is the costliest miss; reviewers can only judge what they're told about. |
+| C1 | The class is true, and every behaviour change vs `main` is listed. A change counts as listed only if the PR names it, including its observable consequences; an understated change is unlisted. Every changed or deleted assertion is named with its reason. | An unlisted behaviour change is the costliest miss; reviewers can only judge what they're told about. |
 | C2 | Every public read or write on a workspace runs under the lock. No network I/O while holding it; nothing published to subscribers inside it. | Concurrent users and agents share one workspace; a missed lock corrupts it or stalls everyone. |
 | C3 | One user operation is one transaction. Adapters don't compose writes. | A user operation must succeed or fail as a whole. |
 | C4 | A failure halfway through leaves a known state: rolled back, retry-safe, or reported. | A half-applied change leaves a project nobody can reason about. |

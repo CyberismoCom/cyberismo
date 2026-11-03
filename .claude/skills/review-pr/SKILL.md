@@ -69,7 +69,8 @@ depends on the other; the order matters only for what you report.
 
 ## 5. Merge and report
 
-Do not soften or re-rank subagent findings. You may drop exact duplicates and
+Do not soften or re-rank subagent findings. When both stages report the same defect at different
+severities, keep the higher one and say why in the finding. You may drop exact duplicates and
 you must drop any finding without file:line and evidence. Verify the two or
 three highest-severity findings yourself by reading the cited lines; if one
 does not hold, drop it and say so.
@@ -78,9 +79,16 @@ Output, in the rubric's three sections plus a header:
 
 1. Header: change class, OpenSpec change, packages touched, PR/branch, what was not
    reviewable (missing rule files, skipped CI evidence).
-2. **Findings**, most severe first, in the rubric's finding format
-   (`[Blocker|Major|Minor] C<n> <file>:<line> — <defect>`, then Failure, Fix, Evidence),
-   including any anti-gaming items found.
+2. **Findings**, most severe first, including any anti-gaming items found. Use exactly this shape for
+   each, with no extra bold, bullets or parentheses on the first line:
+
+   ```
+   [Major] C11 tools/x/src/y.ts:42 — One-sentence defect.
+     Failure: ...
+     Fix: ...
+     Evidence: ...
+   ```
+
 3. **For the human**: each H item the change touches, with its context and the question to answer.
    Never answer one yourself.
 4. **Follow-ups**: Minors not fixed and pre-existing problems found along the way. Never file tickets.
