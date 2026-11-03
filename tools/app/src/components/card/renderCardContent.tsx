@@ -8,7 +8,7 @@ import CheckBox from '@mui/icons-material/CheckBox';
 import CheckBoxOutlineBlank from '@mui/icons-material/CheckBoxOutlineBlank';
 
 import createDOMPurify from 'dompurify';
-import parseReact, { domToReact } from 'html-react-parser';
+import parseReact, { attributesToProps, domToReact } from 'html-react-parser';
 import type { DOMNode } from 'html-react-parser';
 import { Link } from 'react-router';
 
@@ -128,6 +128,20 @@ export function renderCardHtml(html: string, options: RenderCardHtmlOptions) {
           />
         );
       }
+    }
+    // A table that scrolls itself has to be display: block, which detaches
+    // its width and frame from its columns, so a wrapper does the scrolling.
+    if (
+      node.name === 'table' &&
+      node.attribs?.class?.split(' ').includes('tableblock')
+    ) {
+      return (
+        <div className="tablecontainer">
+          <table {...attributesToProps(node.attribs, node.name)}>
+            {domToReact(node.children as DOMNode[], { replace: replaceNode })}
+          </table>
+        </div>
+      );
     }
     if (node.name === 'div') {
       // SVG diagrams emitted by the backend (e.g. the graph macro)
