@@ -10,6 +10,7 @@ import {
   deleteDir,
   isValidFolderName,
   pathExists,
+  symlinkBelow,
 } from '../../shared/utils/file-utils.js';
 import { listSealFiles, type SealFile } from '../replay-log/seal-files.js';
 import { readModuleConfig } from '../paths/cards-config.js';
@@ -72,6 +73,10 @@ export class FileSourceLayer implements SourceLayer {
 
     const sourceResources = new ProjectPaths(sourcePath).resourcesFolder;
     const stagedResources = new ProjectPaths(stagedPath).resourcesFolder;
+    const link = symlinkBelow(sourcePath, sourceResources);
+    if (link) {
+      throw new Error(`Cannot copy symbolic link '${link}'`);
+    }
     await mkdir(stagedResources, { recursive: true });
     await copyDir(sourceResources, stagedResources);
     return stagedPath;

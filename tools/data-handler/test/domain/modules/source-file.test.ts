@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, mkdir, readFile, rm, symlink, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
@@ -38,6 +38,32 @@ describe('modules/source-file', () => {
   afterEach(async () => {
     await rm(tmpRoot, { recursive: true, force: true });
   });
+
+  it.skipIf(process.platform === 'win32')(
+    'fetch refuses a source whose .cards or .cards/local is a symlink',
+    async () => {
+      const layer = new FileSourceLayer();
+      const destRoot = join(tmpRoot, 'file-dest');
+      await mkdir(destRoot, { recursive: true });
+      const real = join(tmpRoot, 'real-project');
+      await makeProjectAt(real, { 'marker.txt': 'hello' });
+      const resources = new ProjectPaths(real).resourcesFolder;
+
+      for (const [name, linked, target] of [
+        ['local-link', resources, resources],
+        ['cards-link', join(resources, '..'), join(resources, '..')],
+      ]) {
+        const source = join(tmpRoot, name);
+        await mkdir(source, { recursive: true });
+        const relative = linked.slice(real.length + 1);
+        await mkdir(join(source, relative, '..'), { recursive: true });
+        await symlink(target, join(source, relative));
+        await expect(
+          layer.fetch({ location: source, remoteUrl: source }, destRoot, name),
+        ).rejects.toThrow('Cannot copy symbolic link');
+      }
+    },
+  );
 
   it('listRemoteVersions returns [] for a file: source', async () => {
     const layer: SourceLayer = new FileSourceLayer();

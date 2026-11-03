@@ -72,6 +72,22 @@ describe('file utils', () => {
     },
   );
   it.skipIf(process.platform === 'win32')(
+    'copyDir rejects a symlinked source root',
+    async () => {
+      const real = join(testDir, 'root-real');
+      const link = join(testDir, 'root-link');
+      await mkdir(real, { recursive: true });
+      await writeFile(join(real, 'a.txt'), 'a');
+      await symlink(real, link);
+      const destination = join(testDir, 'root-dest');
+
+      await expect(copyDir(link, destination)).rejects.toThrow(
+        `Cannot copy symbolic link '${link}'`,
+      );
+      expect(existsSync(join(destination, 'a.txt'))).toBe(false);
+    },
+  );
+  it.skipIf(process.platform === 'win32')(
     'symlinkBelow refuses a symlink or a path outside the base',
     async () => {
       const real = join(testDir, 'real-project');

@@ -3,6 +3,7 @@
 
 import {
   copyFile,
+  lstat,
   mkdir,
   open,
   readdir,
@@ -39,6 +40,9 @@ import { homedir } from 'node:os';
  * @param destination path where to copy to
  */
 export async function copyDir(source: string, destination: string) {
+  if ((await lstat(source)).isSymbolicLink()) {
+    throw new Error(`Cannot copy symbolic link '${source}'`);
+  }
   const entries = await readdir(source, { withFileTypes: true });
   for (const entry of entries) {
     const sourcePath = join(source, entry.name);
