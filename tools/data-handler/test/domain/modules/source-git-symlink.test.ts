@@ -15,6 +15,7 @@ import { join } from 'node:path';
 import { afterAll, describe, expect, it } from 'vitest';
 
 import { cloneProject } from '../../../src/api/directory/clone-project.js';
+import { Checkout } from '../../../src/state/checkout/checkout.js';
 import { GitSourceLayer } from '../../../src/infra/modules/source-git.js';
 
 const root = mkdtempSync(join(tmpdir(), 'cyberismo-git-symlink-'));
@@ -45,6 +46,24 @@ const blob = execFileSync('git', ['hash-object', '-w', '--stdin'], {
   .trim();
 git(remote, 'add', '.');
 git(remote, 'update-index', '--add', '--cacheinfo', `120000,${blob},link`);
+// A card folder that is a symlink to a card outside the repo.
+const outsideCard = join(root, 'outside-card');
+mkdirSync(outsideCard);
+writeFileSync(join(outsideCard, 'index.json'), '{"title":"outside"}');
+writeFileSync(join(outsideCard, 'index.adoc'), 'outside');
+const cardBlob = execFileSync('git', ['hash-object', '-w', '--stdin'], {
+  cwd: remote,
+  input: outsideCard,
+})
+  .toString()
+  .trim();
+git(
+  remote,
+  'update-index',
+  '--add',
+  '--cacheinfo',
+  `120000,${cardBlob},cardRoot/rem_1`,
+);
 git(remote, 'commit', '-qm', 'init');
 
 describe.skipIf(process.platform === 'win32')(
@@ -65,13 +84,18 @@ describe.skipIf(process.platform === 'win32')(
       expectInertFile(join(staged, 'link'));
     });
 
-    it('checks a project out with the symlink as a plain text file', async () => {
+    it('checks a project out with the symlinks, which a load does not admit', async () => {
       const [project] = await cloneProject(
         `file://${remote}`,
         join(root, 'projects'),
       );
 
-      expectInertFile(join(project.path, 'link'));
+      expect(lstatSync(join(project.path, 'link')).isSymbolicLink()).toBe(true);
+      const card = join(project.path, 'cardRoot', 'rem_1');
+      expect(lstatSync(card).isSymbolicLink()).toBe(true);
+      const checkout = new Checkout(project.path);
+      await checkout.populateCaches();
+      expect(checkout.cardTree.keys()).toEqual([]);
     });
   },
 );

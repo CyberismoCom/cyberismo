@@ -12,10 +12,11 @@ import {
   rename,
   rm,
 } from 'node:fs/promises';
-import { join } from 'node:path';
+import { basename, join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { simpleGit } from 'simple-git';
 
+import { Checkout } from '../../../src/state/checkout/checkout.js';
 import { GitManager } from '../../../src/infra/git/git-manager.js';
 
 /** Create a simpleGit instance with a test identity so tests work without global git config. */
@@ -170,13 +171,17 @@ describe('GitManager', () => {
     });
 
     it.skipIf(process.platform === 'win32')(
-      'should restore a committed symlink as a plain file',
+      'should restore a committed symlink, which a reload does not admit',
       async () => {
-        const secret = join(dir, 'secret.txt');
-        await writeFile(secret, 'top secret');
+        const outside = join(dir, '..', `${basename(dir)}-outside`);
+        await mkdir(outside, { recursive: true });
+        await writeFile(join(outside, 'index.json'), '{"title":"outside"}');
+        await writeFile(join(outside, 'index.adoc'), 'outside');
+        const configPath = join(dir, '.cards', 'local', 'cardsConfig.json');
+        await writeFile(configPath, '{"cardKeyPrefix":"test","name":"test"}');
         const blob = execFileSync('git', ['hash-object', '-w', '--stdin'], {
           cwd: dir,
-          input: secret,
+          input: outside,
         })
           .toString()
           .trim();
@@ -186,15 +191,18 @@ describe('GitManager', () => {
           'update-index',
           '--add',
           '--cacheinfo',
-          `120000,${blob},cardRoot/link`,
+          `120000,${blob},cardRoot/test_1`,
         ]);
         await git.commit('Add link');
-        const link = join(dir, 'cardRoot', 'link');
+        const link = join(dir, 'cardRoot', 'test_1');
 
         await gm.rollback();
 
-        expect((await lstat(link)).isSymbolicLink()).toBe(false);
-        expect(await readFile(link, 'utf-8')).toBe(secret);
+        expect((await lstat(link)).isSymbolicLink()).toBe(true);
+        const checkout = new Checkout(dir);
+        await checkout.populateCaches();
+        expect(checkout.cardTree.keys()).toEqual([]);
+        await rm(outside, { recursive: true, force: true });
       },
     );
 

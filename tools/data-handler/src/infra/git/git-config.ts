@@ -7,8 +7,8 @@ import { simpleGit, type SimpleGit } from 'simple-git';
 let nonInteractiveApplied = false;
 
 /**
- * Build a git client that cannot prompt. Symlinks in any working tree git
- * writes for us arrive as plain files, never as links out of the project.
+ * Build a git client that cannot prompt. With `noSymlinks`, symlinks in
+ * any working tree git writes arrive as plain files, never as links.
  *
  * The flags go on `process.env`, not simple-git's `.env()`: that *replaces* the
  * child environment rather than extending it, stripping GIT_SSH_COMMAND,
@@ -26,6 +26,7 @@ export function createGit(options?: {
   baseDir?: string;
   timeout?: number;
   config?: string[];
+  noSymlinks?: boolean;
 }): SimpleGit {
   if (!nonInteractiveApplied) {
     process.env.GIT_TERMINAL_PROMPT ??= '0';
@@ -36,7 +37,10 @@ export function createGit(options?: {
     allowEnvironment: Object.keys(process.env),
     ...(options?.timeout ? { timeout: { block: options.timeout } } : {}),
     // `-c` scope, so nothing persists to .git/config.
-    config: ['core.symlinks=false', ...(options?.config ?? [])],
+    config: [
+      ...(options?.noSymlinks ? ['core.symlinks=false'] : []),
+      ...(options?.config ?? []),
+    ],
   };
   return options?.baseDir
     ? simpleGit(options.baseDir, settings)
