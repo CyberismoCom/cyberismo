@@ -467,7 +467,7 @@ export class ResourceCache {
   public handleFileSystemChange(fileName: string) {
     try {
       const resource = pathToResourceName(this.checkout, fileName);
-      if (!resource || this.insideSymlink(fileName)) {
+      if (!resource) {
         return;
       }
 

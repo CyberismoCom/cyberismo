@@ -40,7 +40,7 @@ Cards live in a directory tree addressed by user-controlled identifiers such as 
 
 - Never build a filesystem path from a user-supplied string without confirming the result resolves inside the intended root. Resolve the path and check the prefix; do not compare strings before resolution.
 - Reject identifiers containing `..`, absolute path segments or symlink components before they reach the filesystem.
-- Admission: the loader (card-tree scan, resource cache and its watcher path) alone defines project content, and it admits only regular files and folders. Bytes may arrive from anywhere (git pull, hand edits, our own checkouts); a symlink on disk is harmless because it is never admitted.
+- Admission: the loader (card-tree scan and resource cache) alone defines project content, and it admits only regular files and folders. Bytes may arrive from anywhere (git pull, hand edits, our own checkouts); a symlink on disk is harmless because it is never admitted.
 - Access: after load, code touches only admitted paths and never walks the project folder itself. Reads of admitted files do not follow a symlink swapped in since load.
 - Copy: copy primitives never dereference a symlink, the source root included.
 - Treat imported and attached content as untrusted for path purposes, including content arriving from a module that looks trustworthy.
