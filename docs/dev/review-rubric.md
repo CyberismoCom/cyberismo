@@ -45,7 +45,7 @@ pretending to read it.
 | C9 | A bug fix comes with a test that fails without the fix. | Without it nothing shows the fix works or stops the bug returning. |
 | C10 | One behaviour is tested at one level. Tests go through the public API and don't reach internals. Each review also answers "what should be deleted or merged?" | Duplicate tests cost review and maintenance and catch nothing extra; tests through internals break on every refactor. |
 | C11 | Each new test catches a plausible bug no other test catches, and asserts outcomes, not mocks. | A test that can't fail for a real bug gives false confidence. |
-| C12 | For a B change, every spec scenario has a test that cites it, and no test cites a scenario that doesn't exist. | Ties code to the agreed behaviour. |
+| C12 | For a B change, every scenario the diff implements has a test that cites it, and no test cites a scenario that doesn't exist. If the diff archives the OpenSpec change, every scenario of the change has one; otherwise unimplemented scenarios are listed as remaining. | Ties code to the agreed behaviour. |
 | C13 | No test-only exports or seams on a shipped package. Tests need no live network. | Shipped packages stay clean; network-dependent tests are flaky. |
 | C14 | Comments state a constraint the code can't show. They don't narrate the change or reference tickets. | History belongs in git and the PR; comments outlive both. |
 | C15 | A user-facing change updates the docs project (`docs/cardRoot`). | The docs project is what users read; it drifts unless changes update it. |

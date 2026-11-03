@@ -12,6 +12,9 @@ A change is done when every item below that applies is true. How each item is ch
 
 ## Behaviour changes (class B)
 
+These apply to the diff that archives the OpenSpec change. Earlier diffs, such as lower PRs in a stack, list what
+is still pending.
+
 - The OpenSpec change (`openspec/changes/<name>/`) is agreed, and every scenario is met and tested
   ([testing.md](testing.md)).
 - **New features work in the app, the static site export and the PDF export.** A feature that intentionally
