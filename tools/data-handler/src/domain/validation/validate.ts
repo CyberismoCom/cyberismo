@@ -35,6 +35,7 @@ import {
   invalidNames,
   isValidFolderName,
   pathExists,
+  walkEntries,
 } from '../../shared/utils/file-utils.js';
 import type { Checkout } from '../../state/checkout/checkout.js';
 import type { Workspace } from '../../api/workspace.js';
@@ -261,10 +262,8 @@ export class Validate {
   // Validate one subfolder.
   private async validateFolder(prefixes: string[], path: Dirent) {
     const messages: string[] = [];
-    const files = await readdir(this.fullPath(path), {
-      withFileTypes: true,
-      recursive: true,
-    });
+    // Does not follow symlinks, so nothing outside the project is read.
+    const files = await walkEntries(this.fullPath(path));
     const schemaFiles = files.filter(
       (dirent) =>
         dirent.isFile() && dirent.name === Validate.schemaConfigurationFile,

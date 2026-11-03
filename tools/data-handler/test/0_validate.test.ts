@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: Cyberismo Ltd and contributors
 // SPDX-License-Identifier: AGPL-3.0-only
 
-import { mkdirSync, rmSync } from 'node:fs';
+import { mkdirSync, rmSync, symlinkSync } from 'node:fs';
 import { readdir, writeFile } from 'node:fs/promises';
 import { join, resolve, sep } from 'node:path';
 
@@ -116,6 +116,30 @@ describe('validate cmd tests', () => {
     rmSync(tmp, { recursive: true, force: true });
     expect(valid.length).toBeGreaterThan(0);
   });
+  // Discriminates only on Node >= 26, where recursive readdir follows symlinks.
+  it.skipIf(process.platform === 'win32')(
+    'validate() - does not read JSON through a symlinked folder',
+    async () => {
+      const tmp = join(baseDir, 'tmp-validate-symlink');
+      const outside = join(baseDir, 'tmp-validate-symlink-outside');
+      rmSync(tmp, { recursive: true, force: true });
+      rmSync(outside, { recursive: true, force: true });
+      mkdirSync(tmp, { recursive: true });
+      mkdirSync(outside, { recursive: true });
+      try {
+        await copyDir('test/test-data/valid/decision-records', tmp);
+        await writeFile(join(outside, 'stray.json'), '{ not json', 'utf-8');
+        symlinkSync(outside, join(tmp, 'cardRoot/decision_5/c/linked'), 'dir');
+        const valid = await validateCmd.validate(tmp, () =>
+          getTestProject(tmp),
+        );
+        expect(valid).toBe('');
+      } finally {
+        rmSync(tmp, { recursive: true, force: true });
+        rmSync(outside, { recursive: true, force: true });
+      }
+    },
+  );
   it('try to validate() - invalid-empty', async () => {
     const path = 'test/test-data/invalid/invalid-empty';
     const valid = await validateCmd.validate(path, () => getTestProject(path));
