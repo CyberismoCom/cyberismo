@@ -10,6 +10,10 @@
  *              include --> includes the title
  *              exclude --> excludes the title
  *              only --> includes title but does not import content
+ * @param headingLevels Whether the headings of the included content keep their levels
+ *                      keep --> headings keep their levels (default)
+ *                      nest --> the shallowest heading is moved a level below the card title,
+ *                               and the others along with it, before levelOffset is applied
  * @param whitespace Whether to trim leading and trailing whitespace
  * @param escape Type of escaping to apply to the included content
  *               json --> escapes for JSON strings
@@ -20,6 +24,7 @@ export interface IncludeMacroOptions {
   levelOffset?: string;
   title?: 'include' | 'exclude' | 'only';
   pageTitles?: 'normal' | 'discrete';
+  headingLevels?: 'keep' | 'nest';
   /**
    * Whether to trim initial and final whitespace and newlines from the output.
    * Useful for generating non-AsciiDoc content such as JSON.

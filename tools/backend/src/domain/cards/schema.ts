@@ -42,6 +42,8 @@ export const exportCardPdfSchema = z.object({
   name: headerValue,
   cardKey: z.string(),
   exportChildCards: z.boolean(),
+  showMetadata: z.boolean().optional(),
+  tocLevels: z.number().int().min(1).max(5).optional(),
   version: headerValue.optional(),
 });
 

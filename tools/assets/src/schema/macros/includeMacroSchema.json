@@ -20,6 +20,11 @@
       "description": "If discrete, page titles will be included as discrete headings(read asciidoctor docs for more info). If normal, page titles will be included as normal headings.",
       "enum": ["normal", "discrete"]
     },
+    "headingLevels": {
+      "type": "string",
+      "description": "If 'nest', the headings of the included content are shifted so that the shallowest one is a level below the card title, before levelOffset is applied. Default is 'keep'.",
+      "enum": ["keep", "nest"]
+    },
     "whitespace": {
       "type": "string",
       "description": "Whether to trim initial and final whitespace and newlines from the output. Useful for generating non-AsciiDoc content such as JSON. Default is 'keep'.",

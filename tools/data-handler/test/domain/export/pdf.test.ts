@@ -7,7 +7,7 @@ import { tmpdir } from 'node:os';
 import { delimiter, join } from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { AsciidoctorPdfError } from '../../../src/api/export.js';
+import { AsciidoctorPdfError, Export } from '../../../src/api/export.js';
 import { projects } from '../cards/fixture.js';
 
 const open = projects();
@@ -28,8 +28,8 @@ const spec = {
   ],
 };
 
-// The section headings of the document, from its outline, without their numbers.
-const headings = (pdf: Uint8Array) =>
+// The section headings of the document as its outline numbers them.
+const outline = (pdf: Uint8Array) =>
   [
     ...Buffer.from(pdf)
       .toString('latin1')
@@ -37,8 +37,17 @@ const headings = (pdf: Uint8Array) =>
   ]
     .map((match) => Buffer.from(match[1], 'hex').swap16().toString('utf16le'))
     .slice(1) // the document title
-    .filter((heading) => heading !== 'Table of Contents')
-    .map((heading) => heading.replace(/^[\d.]+ /, ''));
+    .filter((heading) => heading !== 'Table of Contents');
+
+// The section headings of the document, without their numbers.
+const headings = (pdf: Uint8Array) =>
+  outline(pdf).map((heading) => heading.replace(/^[\d.]+ /, ''));
+
+// The number of pages in the document.
+const pages = (pdf: Uint8Array) =>
+  /\/Kids \[([^\]]*)\]\n\/Type \/Pages/
+    .exec(Buffer.from(pdf).toString('latin1'))![1]
+    .match(/\d+ 0 R/g)!.length;
 
 const info = (pdf: Uint8Array, field: 'Title' | 'Author') =>
   new RegExp(`/${field} \\(([^)]*)\\)`).exec(
@@ -83,11 +92,150 @@ describe.skipIf(!installed && !process.env.CI)('export.pdf', () => {
         );
 
       expect(await render({})).toEqual(['Top', 'Sub', 'Other']);
-      expect(await render({ cardKey: keys[0] })).toEqual(['Top']);
+      // An exported card is the document, so not a heading in it
+      expect(await render({ cardKey: keys[0] })).toEqual([]);
       expect(await render({ cardKey: keys[0], recursive: true })).toEqual([
-        'Top',
         'Sub',
       ]);
+    },
+    SPAWN_TIMEOUT,
+  );
+
+  it(
+    'makes an exported card the document, titled by it, with its sections and children as the chapters',
+    async () => {
+      const { ws, keys } = await open({
+        cards: [
+          {
+            title: 'Top',
+            children: [
+              {
+                title: 'Mid',
+                content: '== Detail\n\nText.',
+                children: [{ title: 'Leaf A' }, { title: 'Leaf B' }],
+              },
+            ],
+          },
+        ],
+      });
+
+      const { pdf, warnings } = await ws.export.pdf({
+        cardKey: keys[1],
+        recursive: true,
+        showMetadata: false,
+      });
+
+      expect(info(pdf, 'Title')).toBe('Mid');
+      expect(outline(pdf)).toEqual(['1. Detail', '2. Leaf A', '3. Leaf B']);
+      // Title page, table of contents, and a page per chapter
+      expect(pages(pdf)).toBe(5);
+      expect(warnings).toEqual([]);
+    },
+    SPAWN_TIMEOUT,
+  );
+
+  it(
+    "lists a card's own sections in the outline, under the card and before its children",
+    async () => {
+      const { ws, keys } = await open(spec);
+      await ws.cards.edit(
+        keys[0],
+        '== Background\n\nText.\n\n=== Detail\n\nMore.\n\n== Scope\n\nText.',
+      );
+
+      const { pdf, warnings } = await ws.export.pdf({
+        cardKey: keys[0],
+        recursive: true,
+      });
+
+      expect(outline(pdf)).toEqual([
+        '1. Background',
+        '1.1. Detail',
+        '2. Scope',
+        '3. Sub',
+      ]);
+      expect(warnings).toEqual([]);
+    },
+    SPAWN_TIMEOUT,
+  );
+
+  it(
+    'makes the sections of a card that starts them from = its chapters, like those from ==',
+    async () => {
+      const { ws, keys } = await open(spec);
+      await ws.cards.edit(
+        keys[0],
+        '= Background\n\nText.\n\n== Detail\n\nMore.\n\n= Scope\n\nText.',
+      );
+
+      const { pdf, warnings } = await ws.export.pdf({
+        cardKey: keys[0],
+        recursive: true,
+        showMetadata: false,
+      });
+
+      expect(outline(pdf)).toEqual([
+        '1. Background',
+        '1.1. Detail',
+        '2. Scope',
+        '3. Sub',
+      ]);
+      // Title page, table of contents, and a page per chapter
+      expect(pages(pdf)).toBe(5);
+      expect(warnings).toEqual([]);
+    },
+    SPAWN_TIMEOUT,
+  );
+
+  it(
+    'lists five levels in the table of contents, or as many as asked',
+    async () => {
+      const { ws } = await open(spec);
+      const run = vi.spyOn(
+        Export.prototype as unknown as {
+          runAsciidoctorPdf: (content: string) => Promise<unknown>;
+        },
+        'runAsciidoctorPdf',
+      );
+
+      await ws.export.pdf({});
+      await ws.export.pdf({ tocLevels: 2 });
+
+      const [byDefault, asked] = run.mock.calls.map(([content]) => content);
+      expect(byDefault).toContain(':toclevels: 5\n');
+      expect(asked).toContain(':toclevels: 2\n');
+    },
+    SPAWN_TIMEOUT,
+  );
+
+  it('refuses table of contents levels outside 1 to 5', async () => {
+    const { ws } = await open(spec);
+
+    for (const tocLevels of [0, 6, 2.5, NaN]) {
+      await expect(ws.export.pdf({ tocLevels })).rejects.toThrow(
+        'Table of contents levels must be a whole number from 1 to 5',
+      );
+    }
+  });
+
+  it(
+    'shows the metadata table of each card unless asked not to',
+    async () => {
+      const { ws } = await open(spec);
+      const run = vi.spyOn(
+        Export.prototype as unknown as {
+          runAsciidoctorPdf: (content: string) => Promise<unknown>;
+        },
+        'runAsciidoctorPdf',
+      );
+
+      await ws.export.pdf({});
+      await ws.export.pdf({ showMetadata: false });
+
+      const [shown, hidden] = run.mock.calls.map(([content]) => content);
+      expect(shown).toContain('| Workflow state |');
+      expect(hidden).not.toContain('| Workflow state |');
+      expect(hidden).toContain('Top body.');
     },
     SPAWN_TIMEOUT,
   );
@@ -147,7 +295,8 @@ describe.skipIf(!installed && !process.env.CI)('export.pdf', () => {
 
         const { pdf } = await ws.export.pdf({ cardKey: keys[2] });
 
-        expect(headings(pdf)).toEqual(['Other']);
+        // The exported card is the document, so any heading is the included one
+        expect(headings(pdf)).toEqual([]);
       },
       SPAWN_TIMEOUT,
     );

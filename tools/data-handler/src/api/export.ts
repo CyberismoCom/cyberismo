@@ -31,6 +31,8 @@ type PdfDocument = Omit<ExportPdfOptions, 'date'> & { date?: Date };
 const attachmentFolder: string = 'a';
 const ASCIIDOCTOR_DIAGNOSTIC = /^asciidoctor: (WARNING|ERROR):/;
 const FAILURE_DIAGNOSTIC_LINES = 20;
+// Asciidoctor has five section levels below the document title.
+const MAX_TOC_LEVELS = 5;
 
 // To what format the content can be exported to.
 export enum ExportFormats {
@@ -402,19 +404,39 @@ export class Export {
   }
 
   /**
-   * Renders the card(s) as a PDF, with its rendering warnings. Unset document
-   * fields default to Title, Name, 1.0.0, Initial version and today.
+   * Renders the card(s) as a PDF, with its rendering warnings. An exported card
+   * is the document, its sections and children the chapters. Unset document
+   * fields default to the card's title (or Title), Name, 1.0.0, Initial version
+   * and today; card
+   * metadata is shown unless showMetadata is false, and the table of contents
+   * lists five levels unless tocLevels says otherwise.
    * @throws AsciidoctorPdfError when asciidoctor-pdf fails; its diagnostics
    *   stay off the message.
    */
   @read
   public async pdf(options: ExportPdfOptions): Promise<ExportedPdf> {
+    const tocLevels = options.tocLevels ?? MAX_TOC_LEVELS;
+    if (
+      !Number.isInteger(tocLevels) ||
+      tocLevels < 1 ||
+      tocLevels > MAX_TOC_LEVELS
+    ) {
+      throw new Error(
+        `Table of contents levels must be a whole number from 1 to ${MAX_TOC_LEVELS}`,
+      );
+    }
     return this.renderPdf({
       ...options,
-      title: options.title || 'Title',
+      title:
+        options.title ||
+        (options.cardKey &&
+          findCard(this.checkout, options.cardKey).metadata?.title) ||
+        'Title',
       name: options.name || 'Name',
       version: options.version || '1.0.0',
       revremark: options.revremark || 'Initial version',
+      showMetadata: options.showMetadata ?? true,
+      tocLevels,
       date: options.date ? new Date(options.date) : new Date(),
     });
   }

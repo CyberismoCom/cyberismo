@@ -41,6 +41,8 @@ export interface ExportCommandOptions extends BaseCommandOptions {
   version?: string;
   date?: string;
   revremark?: string;
+  metadata?: boolean;
+  tocLevels?: string;
   defaultProject?: string;
 }
 

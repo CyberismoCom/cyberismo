@@ -52,14 +52,16 @@ export default class IncludeMacro extends BaseMacro {
     const card = this.getCard(options.cardKey, context);
     const anchor = this.generateAnchor(options);
     const title = this.generateTitle(options, card.metadata?.title);
-    const included = await this.generateCardContent(
+    const content = await this.generateCardContent(
       options,
       cardContent(context.checkout, options.cardKey),
       newContext,
     );
+    const included =
+      options.headingLevels === 'nest' ? this.nestTitles(content) : content;
 
     // Skip the leading newlines if trim is enabled
-    const content = `\n\n${anchor}${title}${included}`;
+    const output = `\n\n${anchor}${title}${included}`;
 
     let levelOffset = 0;
     if (options.levelOffset) {
@@ -74,7 +76,7 @@ export default class IncludeMacro extends BaseMacro {
     }
 
     const adjustedContent = this.adjustTitles(
-      content,
+      output,
       levelOffset,
       options.pageTitles === 'discrete',
     );
@@ -131,6 +133,37 @@ export default class IncludeMacro extends BaseMacro {
     levelOffset: number,
     discrete: boolean,
   ) {
+    return this.mapTitles(content, (level, text) => {
+      const newLevel = Math.min(
+        Math.max(1, level + levelOffset),
+        MAX_LEVEL_OFFSET + 1,
+      );
+      return `${discrete ? '[discrete]\n' : ''}${'='.repeat(newLevel)} ${text}`;
+    });
+  }
+
+  // Shift the titles so that the shallowest one is a level below the card title
+  private nestTitles(content: string) {
+    let shallowest = Infinity;
+    this.mapTitles(content, (level, text) => {
+      shallowest = Math.min(shallowest, level);
+      return text;
+    });
+    if (shallowest === Infinity || shallowest === 2) {
+      return content;
+    }
+    return this.mapTitles(
+      content,
+      (level, text) =>
+        `${'='.repeat(Math.min(level + 2 - shallowest, MAX_LEVEL_OFFSET + 1))} ${text}`,
+    );
+  }
+
+  // Replace each section title, as level and text, with what 'replace' returns
+  private mapTitles(
+    content: string,
+    replace: (level: number, text: string) => string,
+  ) {
     const lines = content.split('\n');
     let verbatimTerminator: string | undefined;
     const adjustedLines = lines.map((line) => {
@@ -147,13 +180,7 @@ export default class IncludeMacro extends BaseMacro {
         ? null
         : line.match(/^([=#]{1,6})[ \t]+(\S.*?)\s*$/);
       if (match) {
-        const currentLevel = match[1].length;
-        const newLevel = Math.min(
-          Math.max(1, currentLevel + levelOffset),
-          MAX_LEVEL_OFFSET + 1,
-        );
-        const equals = '='.repeat(newLevel);
-        return `${discrete ? '[discrete]\n' : ''}${equals} ${match[2]}`;
+        return replace(match[1].length, match[2]);
       }
       return line;
     });
