@@ -2,7 +2,14 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { mkdtemp, mkdir, readFile, rm, symlink, writeFile } from 'node:fs/promises';
+import {
+  mkdtemp,
+  mkdir,
+  readFile,
+  rm,
+  symlink,
+  writeFile,
+} from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
