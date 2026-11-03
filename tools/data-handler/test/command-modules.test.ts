@@ -309,16 +309,12 @@ describe('module schema version enforcement on import', () => {
     'cardsConfig.json',
   );
 
-  function setModuleSchemaVersion(version: number | undefined) {
+  function setModuleSchemaVersion(version: number) {
     const config = readJsonFileSync(moduleConfigPath) as Record<
       string,
       unknown
     >;
-    if (version === undefined) {
-      delete config.schemaVersion;
-    } else {
-      config.schemaVersion = version;
-    }
+    config.schemaVersion = version;
     writeFileSync(moduleConfigPath, JSON.stringify(config, null, 4));
   }
 
