@@ -1,6 +1,8 @@
 // SPDX-FileCopyrightText: Cyberismo Ltd and contributors
 // SPDX-License-Identifier: AGPL-3.0-only
 
+import { rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 import { expectRefused, projects, snapshot } from '../cards/fixture.js';
@@ -117,6 +119,29 @@ describe('export.adoc', () => {
     expect(Object.keys(files).sort()).toEqual(['a/one.png', 'index.adoc']);
     expect(Buffer.from(files['a/one.png']).toString()).toBe('1');
   });
+
+  it.skipIf(process.platform === 'win32')(
+    'refuses an attachment replaced by a symlink after load',
+    async () => {
+      const { ws, path, keys } = await open(spec);
+      await ws.cards.addAttachment(keys[1], 'one.png', Buffer.from('1'));
+      const file = join(
+        path,
+        'cardRoot',
+        keys[0],
+        'c',
+        keys[1],
+        'a',
+        'one.png',
+      );
+      const outside = join(path, 'outside.png');
+      writeFileSync(outside, 'secret');
+      rmSync(file);
+      symlinkSync(outside, file);
+
+      await expect(ws.export.adoc(keys[0])).rejects.toThrow(/ELOOP/);
+    },
+  );
 
   it('reflects an edit made through the same handle', async () => {
     const { ws, keys } = await open(spec);

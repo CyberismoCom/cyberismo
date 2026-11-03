@@ -12,10 +12,11 @@ import {
 } from 'vitest';
 import { stub } from 'sinon';
 import { join } from 'node:path';
-import { mkdirSync, rmSync } from 'node:fs';
+import { mkdirSync, renameSync, rmSync, symlinkSync } from 'node:fs';
 
 import Handlebars from 'handlebars';
 import BaseMacro from '../../../src/domain/macros/base-macro.js';
+import { cardAttachments } from '../../../src/domain/cards/read.js';
 import { copyDir } from '../../../src/shared/utils/file-utils.js';
 import { getTestProject } from '../../helpers/test-utils.js';
 import {
@@ -1075,6 +1076,36 @@ Some content here`;
 
         expect(result).to.match(/^image::data:image\/heic;base64,/);
       });
+
+      it.skipIf(process.platform === 'win32')(
+        'imageMacro static mode refuses an attachment replaced by a symlink',
+        async () => {
+          const attachment = cardAttachments(checkout, 'decision_1').find(
+            (a) => a.fileName === 'the-needle.heic',
+          )!;
+          const file = join(attachment.path, attachment.fileName);
+          const moved = `${file}.moved`;
+          renameSync(file, moved);
+          symlinkSync(moved, file);
+          try {
+            const result = await evaluateMacros(
+              `{{#image}}"fileName": "the-needle.heic"{{/image}}`,
+              {
+                mode: 'static',
+                checkout,
+                cardKey: 'decision_1',
+                context: 'localApp',
+              },
+            );
+
+            expect(result).toContain('.Macro Error');
+            expect(result).toContain('ELOOP');
+          } finally {
+            rmSync(file);
+            renameSync(moved, file);
+          }
+        },
+      );
 
       it('imageMacro inject mode (success)', async () => {
         const macro = `{{#image}}"fileName": "the-needle.heic"{{/image}}`;
