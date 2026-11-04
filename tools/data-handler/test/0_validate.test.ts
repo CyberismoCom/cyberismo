@@ -416,10 +416,15 @@ describe('validate cmd tests', () => {
       "Wrong prefix in resource 'wrong/cardTypesWrong/decisionWrong'. Project prefixes are '[decision]'";
     const expectWrongName = `Resource 'name' wrong/cardTypesWrong/decisionWrong mismatch with file path 'test${sep}test-data${sep}invalid${sep}invalid-wrong-resource-names${sep}.cards${sep}local${sep}cardTypes${sep}decision.json'`;
     const expectWrongType = `Wrong type name in resource 'wrong/cardTypesWrong/decisionWrong'. Should match filename path: 'test${sep}test-data${sep}invalid${sep}invalid-wrong-resource-names${sep}.cards${sep}local${sep}cardTypes${sep}decision.json'`;
-    expect(separatedErrors[0]).toBe(expectWrongPrefix1);
-    expect(separatedErrors[1]).toBe(expectWrongPrefix2);
-    expect(separatedErrors[2]).toBe(expectWrongName);
-    expect(separatedErrors[3]).toBe(expectWrongType);
+    // Folder walk order is not part of the contract.
+    expect(separatedErrors).toEqual(
+      expect.arrayContaining([
+        expectWrongPrefix1,
+        expectWrongPrefix2,
+        expectWrongName,
+        expectWrongType,
+      ]),
+    );
   });
 
   it('validate that identifier follows naming rules', () => {
