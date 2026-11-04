@@ -27,7 +27,10 @@ import type {
 } from '@cyberismo/model';
 import { errorFunction } from '../../shared/utils/error-utils.js';
 import { sortCards } from '../../shared/utils/card-utils.js';
-import { isPredefinedField } from '../../shared/utils/constants.js';
+import {
+  isEmptyFieldValue,
+  isPredefinedField,
+} from '../../shared/utils/constants.js';
 import {
   invalidNames,
   isValidFolderName,
@@ -796,7 +799,7 @@ export class Validate {
         continue;
       }
       const value = card.metadata[field.name];
-      if (value === undefined || value === null) {
+      if (isEmptyFieldValue(value)) {
         continue;
       }
       if (field.isCalculated && !field.enableOverride) {

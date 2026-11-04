@@ -12,18 +12,23 @@ import type { Workspace } from '../../../src/api/workspace.js';
 const open = projects();
 
 const f = (name: string) => `test/fieldTypes/${name}`;
-// Card C1 holds a null placeholder, a value no card type declares, a value on
-// a locked calculated field and one on a calculated field that allows override.
+// Card C1 holds a null placeholder, an empty string, a value no card type
+// declares, a value on a locked calculated field and one on a calculated field
+// that allows override.
 const spec = {
-  fieldTypes: ['size', 'spare', 'derived', 'over'].map((name) => ({
-    name,
-    dataType: 'integer',
-  })),
+  fieldTypes: [
+    ...['size', 'spare', 'derived', 'over'].map((name) => ({
+      name,
+      dataType: 'integer',
+    })),
+    { name: 'note', dataType: 'shortText' },
+  ],
   cardTypes: [
     {
       name: 'page',
       customFields: [
         { name: 'size' },
+        { name: 'note' },
         { name: 'derived', isCalculated: true },
         { name: 'over', isCalculated: true, enableOverride: true },
       ],
@@ -49,6 +54,7 @@ const spec = {
     {
       fields: {
         [f('size')]: null,
+        [f('note')]: '',
         [f('spare')]: 2,
         [f('derived')]: 5,
         [f('over')]: 6,
@@ -76,10 +82,11 @@ describe('clean.run', () => {
     const [templateCard] = readdirSync(
       local(path, 'templates', 'tpl', 'c'),
     ).filter((name) => name !== '.schema');
-    expect(result.findings).toHaveLength(5);
+    expect(result.findings).toHaveLength(6);
     expect(result.findings).toEqual(
       expect.arrayContaining([
         { cardKey: keys[1], field: f('size'), reason: 'null-value' },
+        { cardKey: keys[1], field: f('note'), reason: 'null-value' },
         { cardKey: keys[1], field: f('spare'), reason: 'undeclared' },
         { cardKey: keys[1], field: f('derived'), reason: 'calculated-locked' },
         { cardKey: keys[2], field: f('spare'), reason: 'undeclared' },
@@ -97,6 +104,7 @@ describe('clean.run', () => {
 
     expect(result.dryRun).toBe(false);
     expect(await metadata(ws, keys[1])).not.toHaveProperty([f('size')]);
+    expect(await metadata(ws, keys[1])).not.toHaveProperty([f('note')]);
     expect(await metadata(ws, keys[1])).not.toHaveProperty([f('spare')]);
     expect(await metadata(ws, keys[1])).not.toHaveProperty([f('derived')]);
     expect(await metadata(ws, keys[1])).toMatchObject({ [f('over')]: 6 });
@@ -161,7 +169,7 @@ describe('clean.dormantSummary', () => {
     const { ws } = await open(spec);
 
     expect(await ws.clean.dormantSummary()).toEqual({
-      valueCount: 5,
+      valueCount: 6,
       cardCount: 3,
     });
     expect(await ws.clean.dormantSummary('test/cardTypes/other')).toEqual({

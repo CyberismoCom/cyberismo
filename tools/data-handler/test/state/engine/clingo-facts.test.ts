@@ -256,12 +256,18 @@ describe('createCardFacts only emits fields the card type declares', () => {
   const DELETED_TYPE_FIELD = 'decision/fieldTypes/responsible';
   // Declared by the card type, with its field type resource intact.
   const DECLARED_FIELD = 'decision/fieldTypes/commitDescription';
+  // Declared by the card type, stored without a value.
+  const NULL_FIELD = 'decision/fieldTypes/finished';
+  const EMPTY_FIELD = 'decision/fieldTypes/lastChangedDate';
   // Card whose card type resource does not exist, so nothing can be classified
   // as declared or dormant.
   const BROKEN_CARD_TYPE_CARD_KEY = 'decision_5';
   let checkout: Checkout;
   let card: Card;
   let brokenCardTypeCard: Card;
+  // Template card with the empty workflowState that template cards store.
+  const TEMPLATE_CARD_KEY = 'decision_1';
+  let templateCard: Card;
 
   beforeAll(async () => {
     mkdirSync(testDir, { recursive: true });
@@ -288,6 +294,8 @@ describe('createCardFacts only emits fields the card type declares', () => {
     metadata[GHOST_FIELD] = 'stale';
     metadata[DELETED_TYPE_FIELD] = 'Jane Doe';
     metadata[DECLARED_FIELD] = 'Rewrote the decision';
+    metadata[NULL_FIELD] = null;
+    metadata[EMPTY_FIELD] = '';
     writeFileSync(cardJsonPath, JSON.stringify(metadata, null, 4));
 
     const brokenCardJsonPath = join(
@@ -301,9 +309,23 @@ describe('createCardFacts only emits fields the card type declares', () => {
     brokenMetadata[DECLARED_FIELD] = 'Kept as a plain field';
     writeFileSync(brokenCardJsonPath, JSON.stringify(brokenMetadata, null, 4));
 
+    const templateCardJsonPath = join(
+      projectPath,
+      `.cards/local/templates/decision/c/${TEMPLATE_CARD_KEY}/index.json`,
+    );
+    const templateMetadata = JSON.parse(
+      readFileSync(templateCardJsonPath, 'utf-8'),
+    );
+    templateMetadata.workflowState = '';
+    writeFileSync(
+      templateCardJsonPath,
+      JSON.stringify(templateMetadata, null, 4),
+    );
+
     checkout = getTestProject(projectPath);
     await checkout.populateCaches();
     card = findCard(checkout, CARD_KEY);
+    templateCard = findCard(checkout, TEMPLATE_CARD_KEY);
     brokenCardTypeCard = findCard(checkout, BROKEN_CARD_TYPE_CARD_KEY);
   });
 
@@ -331,6 +353,20 @@ describe('createCardFacts only emits fields the card type declares', () => {
     expect(facts).toContain(
       `field(${CARD_KEY}, "${DECLARED_FIELD}", "Rewrote the decision").`,
     );
+  });
+
+  it.each([
+    ['null', NULL_FIELD],
+    ['an empty string', EMPTY_FIELD],
+  ])('declared field stored as %s emits no fact', async (_name, field) => {
+    const facts = await createCardFacts(card, checkout);
+    expect(facts).not.toContain(field);
+  });
+
+  it('predefined field stored as an empty string emits no fact', async () => {
+    const facts = await createCardFacts(templateCard, checkout);
+    expect(facts).toContain(`field(${TEMPLATE_CARD_KEY}, "title"`);
+    expect(facts).not.toContain('"workflowState"');
   });
 
   it('unresolvable card type falls back to plain field facts for stored values', async () => {

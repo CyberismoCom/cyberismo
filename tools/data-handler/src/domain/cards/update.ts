@@ -12,7 +12,10 @@ import { Validate } from '../validation/validate.js';
 import type { Checkout } from '../../state/checkout/checkout.js';
 import { assertAllowed } from './guard.js';
 import { isExternalItemKey } from '../../shared/utils/card-utils.js';
-import { isPredefinedField } from '../../shared/utils/constants.js';
+import {
+  isEmptyFieldValue,
+  isPredefinedField,
+} from '../../shared/utils/constants.js';
 import { getChildLogger } from '../../shared/utils/log-utils.js';
 import { findCard } from './read.js';
 
@@ -94,9 +97,11 @@ export async function updateCardMetadataKey(
     return;
   }
 
-  // Clearing a custom field removes the key entirely: absent and null both
-  // mean "no value". Predefined fields keep their stored representation.
-  const removeKey = newValue == null && !isPredefinedField(changedKey);
+  // Clearing a custom field removes the key entirely: absent, null and an empty
+  // string all mean "no value". Predefined fields keep their stored
+  // representation.
+  const removeKey =
+    isEmptyFieldValue(newValue) && !isPredefinedField(changedKey);
   if (removeKey) {
     if (!(changedKey in card.metadata)) {
       return;
@@ -208,7 +213,7 @@ function assertFieldIsEditable(
   // Clearing is always allowed: removing a stored value can only move the
   // card towards validity, and it is the only way out when a card type
   // change has turned an existing value into a validation error.
-  if (newValue == null) {
+  if (isEmptyFieldValue(newValue)) {
     return;
   }
   if (!card.metadata?.cardType) {

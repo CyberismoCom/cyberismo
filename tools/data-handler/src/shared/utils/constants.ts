@@ -57,3 +57,16 @@ export function isPredefinedField(
 ): value is keyof PredefinedCardMetadata {
   return (PREDEFINED_FIELDS as string[]).includes(value);
 }
+
+/**
+ * Checks if a custom field value means 'no value'. An empty string means the
+ * same as null or an absent key, and a custom field without a value is stored
+ * as an absent key.
+ * @param value The stored or written value.
+ * @returns True if the value is null, undefined or an empty string.
+ */
+export function isEmptyFieldValue(
+  value: unknown,
+): value is null | undefined | '' {
+  return value == null || value === '';
+}

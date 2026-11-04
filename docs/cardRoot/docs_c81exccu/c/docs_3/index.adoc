@@ -90,7 +90,7 @@ The cards of a project may contain custom field values that nothing reads, for e
 $ cyberismo clean
 ----
 
-The command lists every value that it removes and the reason for removing it: `undeclared` for a field that the card type does not define, `calculated-locked` for a value of a calculated field that does not allow overrides, and `null-value` for a custom field whose stored value is empty.
+The command lists every value that it removes and the reason for removing it: `undeclared` for a field that the card type does not define, `calculated-locked` for a value of a calculated field that does not allow overrides, and `null-value` for a custom field whose stored value is empty (null or an empty string).
 
 The command updates the cards of the project and the cards of the templates that the project itself defines. Cards that come from imported modules are read-only and are never changed.
 

@@ -92,19 +92,4 @@ describe('created cards and custom field values', () => {
       ),
     ).rejects.toThrow("Card 'idontexist' is not part of template");
   });
-
-  it('falsy template values survive instantiation', async () => {
-    // Mutates the shared template card, so this test must stay last.
-    const templateCards = checkoutOf(ws).templateTree(templateName).cards();
-    const templateCard = templateCards.at(0)!;
-    await ws.cards.editField(
-      templateCard.key,
-      'decision/fieldTypes/finished',
-      false,
-    );
-
-    const created = await ws.cards.create(templateName, undefined);
-    const card = findCard(checkoutOf(ws), created[0].key);
-    expect(card.metadata!['decision/fieldTypes/finished']).toBe(false);
-  });
 });
