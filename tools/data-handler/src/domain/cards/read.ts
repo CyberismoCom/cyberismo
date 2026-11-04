@@ -1,8 +1,6 @@
 // SPDX-FileCopyrightText: Cyberismo Ltd and contributors
 // SPDX-License-Identifier: AGPL-3.0-only
 
-import { readFileSync } from 'node:fs';
-
 import {
   type AttachmentContent,
   type Card,
@@ -12,6 +10,7 @@ import {
   type CardNode,
   type TemplateCardTree,
 } from '@cyberismo/model';
+import { readFileNoFollowSync } from '../../shared/utils/file-utils.js';
 import type { Checkout } from '../../state/checkout/checkout.js';
 import {
   buildCardHierarchy,
@@ -207,7 +206,7 @@ export async function attachment(
   }
 
   const attachmentPath = `${found.path}/${found.fileName}`;
-  const fileBuffer = readFileSync(attachmentPath);
+  const fileBuffer = readFileNoFollowSync(attachmentPath);
   const mimeType = found.mimeType || 'application/octet-stream';
   const payload: AttachmentContent = { fileBuffer, mimeType };
   return payload;

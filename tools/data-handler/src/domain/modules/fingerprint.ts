@@ -2,9 +2,10 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { createHash } from 'node:crypto';
-import { readdir, readFile } from 'node:fs/promises';
+import { readFile } from 'node:fs/promises';
 import { join, relative } from 'node:path';
 
+import { walkEntries } from '../../shared/utils/file-utils.js';
 import { installedModulesWithSources } from './inventory.js';
 
 import type { Checkout } from '../../state/checkout/checkout.js';
@@ -29,7 +30,7 @@ export async function moduleFingerprint(checkout: Checkout): Promise<string> {
 
 async function treeHash(dir: string): Promise<string> {
   const hash = createHash('sha256');
-  const files = (await readdir(dir, { recursive: true, withFileTypes: true }))
+  const files = (await walkEntries(dir))
     .filter((entry) => entry.isFile())
     .map((entry) => join(entry.parentPath, entry.name))
     .sort();

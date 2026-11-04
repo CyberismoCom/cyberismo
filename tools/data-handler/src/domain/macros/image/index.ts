@@ -1,7 +1,6 @@
 // SPDX-FileCopyrightText: Cyberismo Ltd and contributors
 // SPDX-License-Identifier: AGPL-3.0-only
 
-import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import BaseMacro from '../base-macro.js';
@@ -11,6 +10,7 @@ import { validateMacroContent } from '../registry.js';
 import type { ImageMacroOptions } from '@cyberismo/model';
 import type { MacroGenerationContext } from '../../../shared/interfaces/macros.js';
 import type TaskQueue from '../task-queue.js';
+import { readFileNoFollowSync } from '../../../shared/utils/file-utils.js';
 import { cardAttachments } from '../../cards/read.js';
 
 /**
@@ -76,7 +76,7 @@ export default class ImageMacro extends BaseMacro {
 
     // Convert to base64
     const attachmentPath = join(cardAttachment?.path, cardAttachment?.fileName);
-    const fileBuffer = readFileSync(attachmentPath);
+    const fileBuffer = readFileNoFollowSync(attachmentPath);
     const base64Data = fileBuffer.toString('base64');
 
     // Build image attributes

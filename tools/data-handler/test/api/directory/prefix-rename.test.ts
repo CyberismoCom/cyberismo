@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { mkdir, rm, readFile } from 'node:fs/promises';
+import { mkdir, rm, readFile, symlink, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
 import { Checkout } from '../../../src/state/checkout/checkout.js';
@@ -109,6 +109,23 @@ describe('renameProjectPrefix', () => {
       expect(card.key.startsWith(`${oldPrefix}_`)).toBe(false);
     }
   });
+
+  // Guards Node >= 26, where recursive readdir follows symlinked folders.
+  it.skipIf(process.platform === 'win32')(
+    'leaves files behind a symlinked folder untouched',
+    async () => {
+      const outside = join(tmpDir, `outside-${Date.now()}`);
+      await mkdir(outside, { recursive: true });
+      const file = join(outside, 'note.adoc');
+      const content = `${checkout.projectPrefix}/cardTypes/decision`;
+      await writeFile(file, content);
+      await symlink(outside, join(checkout.paths.cardRootFolder, 'linked'));
+
+      await renameProjectPrefix(checkout, 'renamed');
+
+      expect(await readFile(file, 'utf-8')).toBe(content);
+    },
+  );
 
   it('throws when renaming to the current prefix', async () => {
     const current = checkout.projectPrefix;

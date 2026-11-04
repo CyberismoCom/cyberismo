@@ -2,13 +2,9 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { join } from 'node:path';
-import {
-  rename as renameFile,
-  readdir,
-  readFile,
-  writeFile,
-} from 'node:fs/promises';
+import { rename as renameFile, readFile, writeFile } from 'node:fs/promises';
 
+import { walkEntries } from '../../shared/utils/file-utils.js';
 import type { Checkout } from '../../state/checkout/checkout.js';
 import type { Card } from '@cyberismo/model';
 import { resourceName } from '../../shared/utils/resource-utils.js';
@@ -211,9 +207,7 @@ async function updateFiles(
     [`${from}_`, `${to}_`],
   ]);
 
-  const files = (
-    await readdir(location, { recursive: true, withFileTypes: true })
-  ).filter(
+  const files = (await walkEntries(location)).filter(
     (item) =>
       item.isFile() && item.name !== '.schema' && scanExtensions(item.name),
   );

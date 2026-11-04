@@ -1,7 +1,13 @@
 // SPDX-FileCopyrightText: Cyberismo Ltd and contributors
 // SPDX-License-Identifier: AGPL-3.0-only
 
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import {
+  existsSync,
+  readFileSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
@@ -30,6 +36,23 @@ const names = async (ws: Workspace) =>
   (await ws.cards.attachments()).map((a) => `${a.card}/${a.fileName}`);
 
 describe('card attachments', () => {
+  it.skipIf(process.platform === 'win32')(
+    'refuses to read an attachment replaced by a symlink after load',
+    async () => {
+      const { ws, path, keys } = await open(spec);
+      await ws.cards.addAttachment(keys[0], 'pic.png', text('png-bytes'));
+      const file = join(path, 'cardRoot', keys[0], 'a', 'pic.png');
+      const outside = join(path, 'outside.png');
+      writeFileSync(outside, 'secret');
+      rmSync(file);
+      symlinkSync(outside, file);
+
+      await expect(ws.cards.attachment(keys[0], 'pic.png')).rejects.toThrow(
+        /ELOOP/,
+      );
+    },
+  );
+
   it('adds data under a name, listing it and reading it back with its type', async () => {
     const { ws, path, keys } = await open(spec);
 
