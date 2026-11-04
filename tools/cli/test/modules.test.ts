@@ -355,6 +355,7 @@ describe('module results', () => {
     seals: 2,
     retired: ['a', 'a'],
     unknown: ['b'],
+    foreign: ['x/cardTypes/c'],
   };
   const skipped = {
     modulePrefix: 's',
@@ -366,7 +367,8 @@ describe('module results', () => {
   const REPLAYED =
     "Replayed migrations for module 'm': 1.0.0 -> 2.0.0 (2 seal(s)); " +
     'ignored 2 entries for retired operations (a); skipped 1 entry ' +
-    'this version does not recognise (b) — upgrade cyberismo to apply it\n';
+    'this version does not recognise (b) — upgrade cyberismo to apply it; ' +
+    'skipped 1 entry targeting resources outside the module (x/cardTypes/c)\n';
   const INVALID =
     'There are new validations errors after importing the module. Check the project\n';
 

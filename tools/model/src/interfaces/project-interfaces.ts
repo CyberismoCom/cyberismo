@@ -257,6 +257,8 @@ export interface ReplayedModule {
   retired: string[];
   // Log entries this version does not recognise, by operation name; skipped.
   unknown: string[];
+  // Log entries targeting a resource outside the module, by target; skipped.
+  foreign: string[];
 }
 
 // A module whose migration replays did not run: it failed to apply.
