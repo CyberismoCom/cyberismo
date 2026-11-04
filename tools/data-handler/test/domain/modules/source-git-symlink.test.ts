@@ -6,7 +6,6 @@ import {
   lstatSync,
   mkdirSync,
   mkdtempSync,
-  readFileSync,
   rmSync,
   writeFileSync,
 } from 'node:fs';
@@ -17,6 +16,7 @@ import { afterAll, describe, expect, it } from 'vitest';
 import { cloneProject } from '../../../src/api/directory/clone-project.js';
 import { Checkout } from '../../../src/state/checkout/checkout.js';
 import { GitSourceLayer } from '../../../src/infra/modules/source-git.js';
+import { readFileNoFollowSync } from '../../../src/shared/utils/file-utils.js';
 
 const root = mkdtempSync(join(tmpdir(), 'cyberismo-git-symlink-'));
 afterAll(() => rmSync(root, { recursive: true, force: true }));
@@ -70,8 +70,8 @@ describe.skipIf(process.platform === 'win32')(
   'cloning a repository that contains a symlink',
   () => {
     const expectInertFile = (path: string) => {
-      expect(lstatSync(path).isSymbolicLink()).toBe(false);
-      expect(readFileSync(path, 'utf8')).toBe(secret);
+      // Throws on a symlink.
+      expect(readFileNoFollowSync(path).toString()).toBe(secret);
     };
 
     it('checks a module out with the symlink as a plain text file', async () => {
