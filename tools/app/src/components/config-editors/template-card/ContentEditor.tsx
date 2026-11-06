@@ -95,7 +95,7 @@ export const ContentEditor = forwardRef<
       sx={{ '& .cm-gutters': { bgcolor: 'background.level1' } }}
     >
       <Stack spacing={1}>
-        {editable && <AsciiDocToolbar view={view} />}
+        {editable && <AsciiDocToolbar view={view} cardKey={cardKey} />}
         <CodeMirror
           {...CODE_MIRROR_BASE_PROPS}
           ref={setCmRef}

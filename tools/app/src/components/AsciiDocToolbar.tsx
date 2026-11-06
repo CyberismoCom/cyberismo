@@ -33,17 +33,21 @@ import {
   ReportMacroModal,
   GraphMacroModal,
   CreateCardsMacroModal,
+  FieldMacroModal,
 } from './macro-editors';
 import { useModals } from '@/lib/utils';
 
 export interface AsciiDocToolbarProps {
   view: EditorView | null;
+  /** Key of the card being edited */
+  cardKey: string;
   readOnly?: boolean;
   showMacroHelpers?: boolean;
 }
 
 export function AsciiDocToolbar({
   view,
+  cardKey,
   readOnly = false,
   showMacroHelpers = true,
 }: AsciiDocToolbarProps) {
@@ -53,6 +57,7 @@ export function AsciiDocToolbar({
     include: false,
     xref: false,
     createCards: false,
+    field: false,
     report: false,
     graph: false,
   });
@@ -176,6 +181,9 @@ export function AsciiDocToolbar({
               <MenuItem onClick={openModal('createCards')}>
                 {t('asciiDocEditor.toolbar.macros.createCards')}
               </MenuItem>
+              <MenuItem onClick={openModal('field')}>
+                {t('asciiDocEditor.toolbar.macros.field')}
+              </MenuItem>
               <MenuItem onClick={openModal('report')}>
                 {t('asciiDocEditor.toolbar.macros.report')}
               </MenuItem>
@@ -220,6 +228,22 @@ export function AsciiDocToolbar({
                 readOnly,
                 'createCards',
                 options,
+              )
+            }
+          />
+          <FieldMacroModal
+            open={modalOpen.field}
+            onClose={closeModal('field')}
+            hostCardKey={cardKey}
+            onInsert={(options) =>
+              asciiDocToolbarActions.insertMacro(
+                view,
+                readOnly,
+                'field',
+                options,
+                {
+                  newLine: false,
+                },
               )
             }
           />
