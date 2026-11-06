@@ -6,6 +6,7 @@ import { Box, IconButton, Stack } from '@mui/joy';
 import CheckIcon from '@mui/icons-material/Check';
 import CloseIcon from '@mui/icons-material/Close';
 import EditableField, { FieldLabel } from '@/components/EditableField';
+import { containerRowSx } from '@/components/fieldRowFrame';
 import FieldEditor from '@/components/FieldEditor';
 import {
   ClearOverrideButton,
@@ -96,6 +97,8 @@ export function MetadataFieldRow({
         paddingX: 0.5,
         paddingY: 0.5,
         marginY: 0.5,
+        // The rows inside lay out by this box's width.
+        containerType: 'inline-size',
       }}
       onKeyDown={formKeyHandler({
         canSubmit: editable && dirty,
@@ -105,10 +108,7 @@ export function MetadataFieldRow({
       })}
     >
       {overrideMode && editable ? (
-        <Stack
-          direction={{ xs: 'column', md: 'row' }}
-          spacing={{ xs: 0.5, md: 4 }}
-        >
+        <Stack sx={containerRowSx}>
           <FieldLabel label={label} description={description} edit={true} />
           <OverrideEditorFrame
             calculatedValue={t('calculatedForEachCard')}

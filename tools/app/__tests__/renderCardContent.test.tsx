@@ -10,6 +10,41 @@ vi.mock('@/lib/hooks/theme', () => ({
   useIsDarkMode: vi.fn(() => false),
 }));
 
+vi.mock('@/lib/api', () => ({
+  useCard: () => ({
+    card: {
+      key: 'k_1',
+      title: 'Card',
+      cardType: 'm/cardTypes/t',
+      workflowState: 'Draft',
+      fields: ['a', 'b'].map((key) => ({
+        key: `m/fieldTypes/${key}`,
+        value: key.toUpperCase(),
+        dataType: 'shortText',
+        fieldDisplayName: key,
+        fieldDescription: '',
+        isCalculated: false,
+        isOverridable: false,
+        enumValues: [],
+      })),
+      deniedOperations: { editField: [], transition: [] },
+    },
+    error: undefined,
+  }),
+  useCardMutations: () => ({ updateCard: vi.fn(), isUpdating: () => false }),
+  useProject: () => ({ project: undefined }),
+}));
+vi.mock('@/lib/auth', () => ({
+  UserRole: { Reader: 0, Editor: 1, Admin: 2 },
+  useHasMinRole: () => true,
+}));
+vi.mock('@/lib/hooks', async (importOriginal) => ({
+  ...(await importOriginal<typeof HooksModule>()),
+  useAppDispatch: () => vi.fn(),
+  useErrorNotification: () => async (fn: () => Promise<unknown>) => fn(),
+}));
+import type * as HooksModule from '@/lib/hooks';
+
 vi.mock('mermaid', () => ({
   default: {
     initialize: vi.fn(),
@@ -59,6 +94,40 @@ describe('renderCardHtml', () => {
     expect(container.querySelectorAll('[data-cy="svg-controls"]')).toHaveLength(
       2,
     );
+  });
+
+  describe('macro identity', () => {
+    const field = (name: string) =>
+      `<card-field options="${btoa(JSON.stringify({ cardKey: 'k_1', field: `m/fieldTypes/${name}`, showLabel: false, display: 'row' }))}"></card-field>`;
+    const A = field('a');
+    const B = field('b');
+
+    // A draft is state in the macro, so a remount on re-render loses it.
+    it.each([
+      {
+        name: 'a macro inserted before the open one',
+        before: [A],
+        after: [B, A],
+        open: 'A',
+      },
+      {
+        name: 'identical macros re-rendered unchanged',
+        before: [A, A],
+        after: [A, A],
+        open: 'A',
+        index: 1,
+      },
+    ])('keeps a draft across $name', ({ before, after, open, index = 0 }) => {
+      const { rerender } = render(<Content html={before.join('')} />);
+      fireEvent.click(screen.getAllByText(open)[index]);
+      fireEvent.change(screen.getByRole('textbox'), {
+        target: { value: 'draft' },
+      });
+
+      rerender(<Content html={after.join('')} />);
+
+      expect(screen.getByRole('textbox', { name: 'a' })).toHaveValue('draft');
+    });
   });
 
   // Regression: navigating A -> B -> A leaked orphaned control bars because

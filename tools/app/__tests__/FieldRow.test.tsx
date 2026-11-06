@@ -469,4 +469,20 @@ describe('FieldRow', () => {
       );
     });
   });
+
+  it('shows disabledReason on hover of a disabled row', async () => {
+    render(
+      <FieldRow
+        value="v"
+        label="Short text"
+        dataType="shortText"
+        expanded
+        disabled
+        disabledReason="Calculated, no edits"
+      />,
+    );
+
+    fireEvent.mouseOver(screen.getByText('v'));
+    expect(await screen.findByText('Calculated, no edits')).toBeInTheDocument();
+  });
 });
