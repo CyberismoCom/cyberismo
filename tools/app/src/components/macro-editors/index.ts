@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 export * from './create-cards';
+export * from './field';
 export * from './include';
 export * from './graph';
 export * from './report';

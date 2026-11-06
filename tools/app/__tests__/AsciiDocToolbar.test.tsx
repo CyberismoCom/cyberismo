@@ -35,6 +35,7 @@ const renderToolbar = ({
   const renderResult = render(
     <AsciiDocToolbar
       view={view}
+      cardKey="test_1"
       readOnly={readOnly}
       showMacroHelpers={false}
     />,
