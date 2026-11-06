@@ -14,7 +14,8 @@ import { projectApiPaths } from '../swr';
 import { useAppDispatch } from '../hooks';
 import { addNotification } from '../slices/notifications';
 
-/** Refetches the open card after a remote write; only editors are told who made it. */
+/** Refetches a card after a remote write, plus the open card's content and
+ * the tree; only editors of the open card are told who made it. */
 export function useCardUpdates(
   cardKey: string | null,
   mode: PresenceEntry['mode'],
@@ -28,8 +29,9 @@ export function useCardUpdates(
   useEffect(() => {
     const apiPaths = projectApiPaths(projectPrefix);
     return subscribeToCardUpdates((event) => {
+      // Unmounted keys fetch nothing, so other cards cost only what the page shows.
+      void mutate(apiPaths.card(event.cardKey));
       if (!cardKey || event.cardKey !== cardKey) return;
-      void mutate(apiPaths.card(cardKey));
       void mutate(apiPaths.cardContent(cardKey));
       void mutate(apiPaths.cardSource(cardKey));
       void mutate(apiPaths.tree());

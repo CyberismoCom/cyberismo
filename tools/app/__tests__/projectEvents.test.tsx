@@ -7,7 +7,7 @@ import type { ReactNode } from 'react';
 import { Provider } from 'react-redux';
 import { configureStore } from '@reduxjs/toolkit';
 import useSWR, { SWRConfig, mutate } from 'swr';
-import type * as UtilsModule from '@/lib/utils';
+import { initConfig } from '@/lib/utils';
 import { ProjectEventsProvider } from '@/lib/contexts/ProjectEventsProvider';
 import { useCardUpdates } from '@/lib/api/card-updates';
 import { usePresence } from '@/lib/api/presence';
@@ -15,12 +15,6 @@ import { useConnectionStatus } from '@/lib/api/connectionStatus';
 import { useSavedDraft } from '@/lib/hooks/savedDraft';
 import { projectApiPaths } from '@/lib/swr';
 import rootReducer from '@/lib/slices';
-
-const config = vi.hoisted(() => ({ staticMode: false }));
-vi.mock('@/lib/utils', async (importOriginal) => ({
-  ...(await importOriginal<typeof UtilsModule>()),
-  getConfig: () => config,
-}));
 
 const currentUser = vi.hoisted(() => ({
   id: 'me',
@@ -56,13 +50,22 @@ const alice = { userId: 'alice', userName: 'Alice', mode: 'editing' } as const;
 const bob = { userId: 'bob', userName: 'Bob', mode: 'viewing' } as const;
 const fetchMock = vi.fn();
 
-beforeEach(() => {
+// Loads the app config through the real initConfig, then restores fetchMock.
+async function loadConfig(staticMode: boolean) {
+  vi.stubGlobal(
+    'fetch',
+    async () => new Response(JSON.stringify({ staticMode })),
+  );
+  await initConfig();
+  vi.stubGlobal('fetch', fetchMock);
+}
+
+beforeEach(async () => {
   FakeEventSource.instances = [];
-  config.staticMode = false;
   currentUser.role = 'editor';
   fetchMock.mockReset().mockResolvedValue(new Response(null, { status: 204 }));
   vi.stubGlobal('EventSource', FakeEventSource);
-  vi.stubGlobal('fetch', fetchMock);
+  await loadConfig(false);
 });
 afterEach(async () => {
   cleanup();
@@ -95,6 +98,9 @@ function setup() {
       );
       useSWR<string>(`/api/projects/TST/cards/${card}/source`);
       useSWR<string>(projectApiPaths('TST').tree());
+      // Another card the page shows, as a cross-card field macro does.
+      useSWR<string>(projectApiPaths('TST').card('TST_2'));
+      useSWR<string>(projectApiPaths('TST').cardContent('TST_2'));
       const [draft, setDraft] = useSavedDraft(data ?? '');
       return { presence, data, content, draft, setDraft };
     },
@@ -404,8 +410,8 @@ describe('project events and presence', () => {
     },
   );
 
-  it('does not notify for own edits or refresh unrelated cards', async () => {
-    const { hook, source, fetcher, notifications, setSaved } = setup();
+  it("refreshes only another shown card's details, without a toast", async () => {
+    const { hook, source, fetcher, notifications } = setup();
     await waitFor(() => expect(loaded(hook)).toBe('Saved/Saved'));
     fetcher.mockClear();
 
@@ -416,8 +422,17 @@ describe('project events and presence', () => {
         userName: 'Bob',
       }),
     );
-    expect(fetcher).not.toHaveBeenCalled();
+    await waitFor(() => expect(fetcher).toHaveBeenCalled());
+    await flushPromises();
+    expect(fetcher.mock.calls.map((call) => call[0])).toEqual([
+      '/api/projects/TST/cards/TST_2',
+    ]);
     expect(notifications()).toEqual([]);
+  });
+
+  it('does not notify for own edits', async () => {
+    const { hook, source, notifications, setSaved } = setup();
+    await waitFor(() => expect(loaded(hook)).toBe('Saved/Saved'));
 
     setSaved('My own edit');
     act(() =>
@@ -458,8 +473,8 @@ describe('project events and presence', () => {
     await waitFor(() => expect(hook.result.current.data).toBe('Remote edit'));
   });
 
-  it('does not open a stream for static exports', () => {
-    config.staticMode = true;
+  it('does not open a stream for static exports', async () => {
+    await loadConfig(true);
     setup();
     expect(FakeEventSource.instances).toHaveLength(0);
   });

@@ -10,6 +10,7 @@ import {
 } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import '@testing-library/jest-dom';
+import { MemoryRouter } from 'react-router';
 import InlineField from '@/components/macros/InlineField';
 import type { InlineFieldProps } from '@/components/macros/InlineField';
 
@@ -28,6 +29,8 @@ const row = (overrides: Partial<InlineFieldProps['row']> = {}) => ({
   value: 'Ann',
   ...overrides,
 });
+
+const target = { key: 'k_2', title: 'Target' };
 
 const field = (props: Partial<InlineFieldProps> = {}) => ({
   row: row(),
@@ -128,6 +131,48 @@ describe('InlineField states', () => {
       expect(await screen.findByRole('tooltip')).toHaveTextContent(reason);
     },
   );
+});
+
+describe('InlineField on another card', () => {
+  it('names the card in a tooltip, with the reason after it', async () => {
+    render(
+      <MemoryRouter>
+        <InlineField
+          {...field({
+            target,
+            editability: {
+              disabled: true,
+              cause: 'role',
+              reason: 'Editors only',
+            },
+          })}
+        />
+      </MemoryRouter>,
+    );
+
+    fireEvent.mouseOver(screen.getByText('Ann'));
+    expect(await screen.findByRole('tooltip')).toHaveTextContent(
+      'k_2 · TargetEditors only',
+    );
+    expect(screen.queryByRole('link')).not.toBeInTheDocument();
+  });
+
+  it('links the card above the editor in the popover', () => {
+    render(
+      <MemoryRouter>
+        <InlineField {...field({ target })} />
+      </MemoryRouter>,
+    );
+    fireEvent.click(screen.getByRole('button', { name: /Owner/ }));
+
+    const dialog = screen.getByRole('dialog', { name: 'Owner' });
+    const link = within(dialog).getByRole('link', { name: 'k_2 · Target' });
+    expect(link).toHaveAttribute('href', '/cards/k_2');
+    expect(
+      link.compareDocumentPosition(within(dialog).getByLabelText('Owner')) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
 });
 
 describe('InlineField popover', () => {

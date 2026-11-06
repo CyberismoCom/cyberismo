@@ -14,6 +14,8 @@ import type { FieldEditability } from '@/lib/fieldEditability';
 import { emptyFieldText } from '@/lib/emptyFieldText';
 import { metadataValueToString } from '@/lib/utils';
 import { FieldPopover } from './FieldPopover';
+import { targetLabel, tooltipLines } from './fieldTarget';
+import type { FieldTarget } from './fieldTarget';
 
 export interface InlineFieldProps {
   row: FieldRowData;
@@ -21,6 +23,8 @@ export interface InlineFieldProps {
   editability: FieldEditability;
   /** Resolves true when the value was saved. */
   onSave: (value: MetadataValue) => Promise<boolean>;
+  /** Set when the field belongs to a card other than the page's own. */
+  target?: FieldTarget;
 }
 
 const mutedSx = { color: 'text.tertiary' } as const;
@@ -31,6 +35,7 @@ export default function InlineField({
   showLabel,
   editability,
   onSave,
+  target,
 }: InlineFieldProps) {
   const { t } = useTranslation();
   const [button, setButton] = useState<HTMLButtonElement | null>(null);
@@ -66,49 +71,58 @@ export default function InlineField({
     const name = empty ? emptyText : `${label}: ${text}`;
     value = (
       <>
-        <Box
-          component="button"
-          type="button"
-          ref={setButton}
-          data-cy="fieldMacroValue"
-          aria-label={name}
-          aria-haspopup="dialog"
-          aria-expanded={open}
-          onClick={() => (open ? close(true) : setOpen(true))}
-          sx={{
-            font: 'inherit',
-            color: empty ? 'text.tertiary' : 'inherit',
-            fontStyle: empty ? 'italic' : 'inherit',
-            textAlign: 'inherit',
-            background: 'none',
-            border: 'none',
-            textDecorationLine: 'underline',
-            textDecorationStyle: 'dashed',
-            textDecorationColor: 'var(--joy-palette-neutral-400)',
-            textUnderlineOffset: '3px',
-            borderRadius: '3px',
-            // The padding marks the value without moving the text around it.
-            paddingX: '2px',
-            marginX: '-2px',
-            paddingY: 0,
-            cursor: 'pointer',
-            whiteSpace: dataType === 'longText' ? 'pre-line' : 'normal',
-            '&:hover': {
-              backgroundColor: 'background.level1',
-              textDecorationColor: 'var(--joy-palette-primary-500)',
-            },
-            '&:focus-visible': {
-              outline: 'none',
-              boxShadow: '0 0 0 2px var(--joy-palette-focusVisible)',
-            },
-          }}
+        {/* On top, so it never covers the popover below the value. */}
+        <Tooltip
+          title={target && targetLabel(target)}
+          placement="top"
+          describeChild
+          disableInteractive
         >
-          {empty ? emptyText : text}
-        </Box>
+          <Box
+            component="button"
+            type="button"
+            ref={setButton}
+            data-cy="fieldMacroValue"
+            aria-label={name}
+            aria-haspopup="dialog"
+            aria-expanded={open}
+            onClick={() => (open ? close(true) : setOpen(true))}
+            sx={{
+              font: 'inherit',
+              color: empty ? 'text.tertiary' : 'inherit',
+              fontStyle: empty ? 'italic' : 'inherit',
+              textAlign: 'inherit',
+              background: 'none',
+              border: 'none',
+              textDecorationLine: 'underline',
+              textDecorationStyle: 'dashed',
+              textDecorationColor: 'var(--joy-palette-neutral-400)',
+              textUnderlineOffset: '3px',
+              borderRadius: '3px',
+              // The padding marks the value without moving the text around it.
+              paddingX: '2px',
+              marginX: '-2px',
+              paddingY: 0,
+              cursor: 'pointer',
+              whiteSpace: dataType === 'longText' ? 'pre-line' : 'normal',
+              '&:hover': {
+                backgroundColor: 'background.level1',
+                textDecorationColor: 'var(--joy-palette-primary-500)',
+              },
+              '&:focus-visible': {
+                outline: 'none',
+                boxShadow: '0 0 0 2px var(--joy-palette-focusVisible)',
+              },
+            }}
+          >
+            {empty ? emptyText : text}
+          </Box>
+        </Tooltip>
         {open && button && (
           <FieldPopover
             anchor={button}
             row={row}
+            target={target}
             onSave={async (next) => {
               if (await onSave(next)) close(true);
             }}
@@ -132,13 +146,16 @@ export default function InlineField({
     );
     value = (
       <>
-        {reasonShown ? (
-          <Tooltip title={reason} describeChild disableInteractive>
-            {plain}
-          </Tooltip>
-        ) : (
-          plain
-        )}
+        <Tooltip
+          title={tooltipLines(
+            target && targetLabel(target),
+            reasonShown ? reason : undefined,
+          )}
+          describeChild
+          disableInteractive
+        >
+          {plain}
+        </Tooltip>
         {denied && (
           <LockOutlined
             sx={{

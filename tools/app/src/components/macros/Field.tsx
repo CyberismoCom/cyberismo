@@ -14,7 +14,12 @@ import {
 } from '@mui/joy';
 import type { ReactNode } from 'react';
 import type { MacroContext } from '.';
-import { useCard, useCardMutations, useProject } from '@/lib/api';
+import {
+  revalidateCardContent,
+  useCard,
+  useCardMutations,
+  useProject,
+} from '@/lib/api';
 import type { CardView } from '@/lib/api/types';
 import { UserRole, useHasMinRole } from '@/lib/auth';
 import type { MetadataValue, WorkflowTransition } from '@/lib/definitions';
@@ -34,6 +39,9 @@ import { customFieldRow } from '@/components/card/metadata-section/customFieldRo
 import type { FieldRowData } from '@/components/card/metadata-section/customFieldRow';
 import StateSelector from '@/components/StateSelector';
 import InlineField from './InlineField';
+import TargetLink from './TargetLink';
+import { targetLabel, tooltipLines } from './fieldTarget';
+import type { FieldTarget } from './fieldTarget';
 
 export type FieldProps = {
   cardKey: string;
@@ -52,6 +60,9 @@ interface FieldViewProps {
   showLabel: boolean;
   display: FieldProps['display'];
   preview: boolean;
+  onSaved?: () => void;
+  /** Set when the card is not the page's own. */
+  target?: FieldTarget;
 }
 
 export default function Field({
@@ -59,6 +70,7 @@ export default function Field({
   field,
   display,
   showLabel,
+  macroKey,
   preview,
 }: FieldProps) {
   const { t } = useTranslation();
@@ -75,21 +87,39 @@ export default function Field({
   }
   if (!card) return null;
 
-  return field === 'workflowState' ? (
-    <WorkflowStateField
-      card={card}
-      showLabel={showLabel}
-      display={display}
-      preview={preview}
-    />
-  ) : (
-    <ValueField
-      card={card}
-      field={field}
-      showLabel={showLabel}
-      display={display}
-      preview={preview}
-    />
+  const isTarget = cardKey !== macroKey;
+  const target = isTarget ? { key: card.key, title: card.title } : undefined;
+  // The page's own content can show the target too, through xrefs and reports.
+  const onSaved = isTarget ? () => revalidateCardContent(macroKey) : undefined;
+  const view =
+    field === 'workflowState' ? (
+      <WorkflowStateField
+        card={card}
+        showLabel={showLabel}
+        display={display}
+        preview={preview}
+        onSaved={onSaved}
+        target={target}
+      />
+    ) : (
+      <ValueField
+        card={card}
+        field={field}
+        showLabel={showLabel}
+        display={display}
+        preview={preview}
+        onSaved={onSaved}
+        target={target}
+      />
+    );
+  if (!target || display === 'inline') return view;
+
+  // The link comes before the box, so the target's row never joins a group.
+  return (
+    <Box>
+      <TargetLink target={target} />
+      {view}
+    </Box>
   );
 }
 
@@ -99,6 +129,8 @@ function ValueField({
   showLabel,
   display,
   preview,
+  onSaved,
+  target,
 }: FieldViewProps & { field: string }) {
   const { t } = useTranslation();
   const notify = useErrorNotification();
@@ -135,6 +167,7 @@ function ValueField({
   const save = async (value: MetadataValue) =>
     (await notify(async () => {
       await updateCard({ metadata: { [field]: value } });
+      onSaved?.();
       return true;
     })) ?? false;
 
@@ -145,6 +178,7 @@ function ValueField({
         showLabel={showLabel}
         editability={editability}
         onSave={save}
+        target={target}
       />
     );
   }
@@ -178,6 +212,8 @@ function WorkflowStateField({
   showLabel,
   display,
   preview,
+  onSaved,
+  target,
 }: FieldViewProps) {
   const { t } = useTranslation();
   const notify = useErrorNotification();
@@ -194,14 +230,21 @@ function WorkflowStateField({
 
   // Sent as `state`, so the server's transition guards apply.
   const onTransition = async (transition: WorkflowTransition) => {
-    await notify(() => updateWorkFlowState(transition.name));
+    await notify(async () => {
+      await updateWorkFlowState(transition.name);
+      onSaved?.();
+    });
   };
 
   const selector = (
     <Tooltip
-      title={
-        !canEditRole && !preview ? t('permissions.editorRequired') : undefined
-      }
+      title={tooltipLines(
+        display === 'inline' && target ? targetLabel(target) : undefined,
+        !canEditRole && !preview ? t('permissions.editorRequired') : undefined,
+      )}
+      // On top, so an inline tooltip never covers the state menu.
+      placement={display === 'inline' ? 'top' : undefined}
+      disableInteractive={display === 'inline'}
       describeChild
     >
       <span>
