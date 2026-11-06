@@ -30,7 +30,7 @@ import { isEdited } from '@/lib/slices/pageState';
 import { addNotification } from '@/lib/slices/notifications';
 
 import { renderCardHtml } from '@/components/card/renderCardContent';
-import type { CardResponse } from '@/lib/api/types';
+import type { CardView } from '@/lib/api/types';
 import type { CardAttachment } from '@cyberismo/model';
 import {
   addAttachment,
@@ -55,7 +55,7 @@ const editorExtensions = [
 ];
 
 type CardBodyProps = {
-  card: CardResponse;
+  card: CardView;
   /** The card's content, already converted from AsciiDoc by the owning layout. */
   htmlContent: string;
   preview?: boolean;

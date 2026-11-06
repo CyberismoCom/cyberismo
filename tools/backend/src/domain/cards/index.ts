@@ -2,8 +2,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { type Context, Hono } from 'hono';
-import type { ContentfulStatusCode } from 'hono/utils/http-status';
-import { getCardDetails } from './lib.js';
 import * as cardService from './service.js';
 import { isSSGContext, ssgParams } from 'hono/ssg';
 import type { AppContext } from '../../types.js';
@@ -11,6 +9,7 @@ import { UserRole } from '../../types.js';
 import { requireRole } from '../../middleware/auth.js';
 import { zValidator } from '../../middleware/zvalidator.js';
 import {
+  cardKeyParamSchema,
   createLinkSchema,
   removeLinkSchema,
   updateLinkSchema,
@@ -119,64 +118,106 @@ router.post(
   },
 );
 
+const cardKeyParams = ssgParams(async (c: AppContext) => {
+  const ws = c.get('ws');
+  const opts = c.get('tree');
+  const cards = await cardService.findAllCards(ws, opts);
+  return cards.map((card) => ({ key: card.key }));
+});
+
 /**
  * @swagger
  * /api/cards/{key}:
  *   get:
- *     summary: Returns the full content of a specific card including calculations.
- *     description: The key parameter is the unique identifier ("cardKey") of the card. The response includes the content as asciidoc(editable) and parsed html, which also has macros already injected
+ *     summary: Returns the card query result of a specific card.
+ *     description: The key parameter is the unique identifier ("cardKey") of the card. The response holds the calculated card data only; use /content for the rendered content and /source for the stored card.
  *     parameters:
  *       - name: key
  *         in: path
  *         required: true
  *         description: Card key (string)
- *       - name: raw
- *         in: query
- *         required: false
- *         schema:
- *           type: boolean
- *         description: When true, returns the raw card data without triggering calculations
  *     responses:
  *       200:
- *         description: Object containing card details. See lib/api/types.ts/CardResponse for the structure.
+ *         description: The card query result. See QueryResult<'card'> in @cyberismo/model.
  *       400:
- *        description: No search key or card not found with given key
+ *        description: No search key
+ *       404:
+ *        description: Card not found with given key
  *       500:
  *         description: project_path not set.
  */
 router.get(
   '/:key',
   requireRole(UserRole.Reader),
-  ssgParams(async (c: AppContext) => {
-    const ws = c.get('ws');
-    const opts = c.get('tree');
-    const cards = await cardService.findAllCards(ws, opts);
-    return cards.map((card) => ({ key: card.key }));
-  }),
+  cardKeyParams,
+  zValidator('param', cardKeyParamSchema),
   async (c) => {
-    const key = c.req.param('key');
-    if (!key) {
-      return c.text('No search key', 400);
-    }
-
-    const raw = c.req.query('raw');
-
-    const result = await getCardDetails(
-      c.get('ws'),
-      key,
-      isSSGContext(c),
-      raw?.toLowerCase() === 'true' ? true : false,
+    const { key } = c.req.valid('param');
+    return c.json(
+      await cardService.getCardData(c.get('ws'), key, isSSGContext(c)),
     );
-    if (result.status === 200) {
-      return c.json(result.data);
-    } else {
-      return c.json(
-        {
-          error: result.message || 'Unknown error',
-        },
-        result.status as ContentfulStatusCode,
-      );
-    }
+  },
+);
+
+/**
+ * @swagger
+ * /api/cards/{key}/content:
+ *   get:
+ *     summary: Returns the content of a specific card as AsciiDoc with its macros evaluated.
+ *     parameters:
+ *       - name: key
+ *         in: path
+ *         required: true
+ *         description: Card key (string)
+ *     responses:
+ *       200:
+ *         description: Object with adocContent.
+ *       400:
+ *        description: No search key
+ *       404:
+ *        description: Card not found with given key
+ */
+router.get(
+  '/:key/content',
+  requireRole(UserRole.Reader),
+  cardKeyParams,
+  zValidator('param', cardKeyParamSchema),
+  async (c) => {
+    const { key } = c.req.valid('param');
+    return c.json(
+      await cardService.getCardContent(c.get('ws'), key, isSSGContext(c)),
+    );
+  },
+);
+
+/**
+ * @swagger
+ * /api/cards/{key}/source:
+ *   get:
+ *     summary: Returns a specific card as stored, with its unevaluated content, metadata and attachments.
+ *     parameters:
+ *       - name: key
+ *         in: path
+ *         required: true
+ *         description: Card key (string)
+ *     responses:
+ *       200:
+ *         description: The stored card. See Card in @cyberismo/model.
+ *       400:
+ *        description: No search key
+ *       404:
+ *        description: Card not found with given key
+ */
+router.get(
+  '/:key/source',
+  requireRole(UserRole.Reader),
+  cardKeyParams,
+  zValidator('param', cardKeyParamSchema),
+  async (c) => {
+    const { key } = c.req.valid('param');
+    return c.json(
+      await cardService.getCardSource(c.get('ws'), key, isSSGContext(c)),
+    );
   },
 );
 
@@ -200,15 +241,9 @@ router.get(
  *         type: object
  *         required: false
  *         description: New metadata for the card. Must be an object with key-value pairs. Setting a custom field to null or an empty string clears it.
- *       - name: raw
- *         in: query
- *         required: false
- *         schema:
- *           type: boolean
- *         description: When true, returns the raw card data without triggering calculations
  *     responses:
  *       200:
- *         description: Object containing card details, same as GET. See definitions.ts/CardDetails for the structure.
+ *         description: The updated card query result, same as GET.
  *       207:
  *         description: Partial success. some updates failed, some succeeded. Returns card object with successful updates.
  *       400:
@@ -216,42 +251,27 @@ router.get(
  *       500:
  *         description: project_path not set.
  */
-router.patch('/:key', requireRole(UserRole.Editor), async (c) => {
-  const ws = c.get('ws');
-  const key = c.req.param('key');
-  if (!key) {
-    return c.text('No search key', 400);
-  }
+router.patch(
+  '/:key',
+  requireRole(UserRole.Editor),
+  zValidator('param', cardKeyParamSchema),
+  async (c) => {
+    const ws = c.get('ws');
+    const { key } = c.req.valid('param');
 
-  const raw = c.req.query('raw');
+    const body = await c.req.json();
 
-  const body = await c.req.json();
-
-  try {
-    await cardService.updateCard(ws, key, body);
-    const result = await getCardDetails(
-      c.get('ws'),
-      key,
-      isSSGContext(c),
-      raw?.toLowerCase() === 'true' ? true : false,
-    );
-    if (result.status === 200) {
-      return c.json(result.data);
-    } else {
-      return c.json(
-        {
-          error: result.message || 'Unknown error',
-        },
-        result.status as ContentfulStatusCode,
+    try {
+      await cardService.updateCard(ws, key, body);
+      return c.json(await cardService.getCardData(ws, key, isSSGContext(c)));
+    } catch (error) {
+      return c.text(
+        error instanceof Error ? error.message : 'Unknown error',
+        400,
       );
     }
-  } catch (error) {
-    return c.text(
-      error instanceof Error ? error.message : 'Unknown error',
-      400,
-    );
-  }
-});
+  },
+);
 
 /**
  * @swagger

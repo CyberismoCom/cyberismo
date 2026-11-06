@@ -7,6 +7,8 @@ import type * as reactRouterModule from 'react-router';
 import { TreeMenu } from '../src/components/TreeMenu';
 import { SearchableTreeMenu } from '../src/components/SearchableTreeMenu';
 import { LabelEditorField } from '@/components/LabelEditor';
+import MetadataSection from '@/components/card/metadata-section/MetadataSection';
+import type { CardView } from '@/lib/api/types';
 import type { Project } from '@/lib/definitions';
 import StateSelector from '@/components/StateSelector';
 import { LABEL_SPLITTER } from '@/lib/constants';
@@ -742,5 +744,34 @@ describe('SearchableTreeMenu', () => {
     fireEvent.change(searchInput, { target: { value: 'design' } });
     expect(screen.queryByText('Demand phase')).not.toBeInTheDocument();
     expect(screen.getByText('Design phase')).toBeInTheDocument();
+  });
+});
+
+describe('MetadataSection', () => {
+  it('does not render fields without visibility, even when expanded', () => {
+    const field = (key: string, visibility?: 'always' | 'optional') => ({
+      key,
+      fieldDisplayName: `Name of ${key}`,
+      dataType: 'shortText',
+      value: 'v',
+      visibility,
+      enumValues: [],
+    });
+    const card = {
+      key: 'decision_1',
+      labels: [],
+      deniedOperations: { editFields: [] },
+      fields: [
+        field('always', 'always'),
+        field('optional', 'optional'),
+        field('hidden'),
+      ],
+    } as unknown as CardView;
+
+    render(<MetadataSection card={card} initialExpanded />);
+
+    expect(screen.getByText('Name of always')).toBeInTheDocument();
+    expect(screen.getByText('Name of optional')).toBeInTheDocument();
+    expect(screen.queryByText('Name of hidden')).not.toBeInTheDocument();
   });
 });

@@ -23,7 +23,7 @@ import Edit from '@mui/icons-material/Edit';
 import Search from '@mui/icons-material/Search';
 import { Controller, useForm, useWatch } from 'react-hook-form';
 import type { ExpandedLinkType } from '@/lib/definitions';
-import type { CardResponse, Connector } from '@/lib/api/types';
+import type { CardView, Connector } from '@/lib/api/types';
 import type {
   CalculationLink,
   LinkDirection,
@@ -454,7 +454,7 @@ function LinkRowEdit({
 }
 
 export type EditModeProps = {
-  card: CardResponse;
+  card: CardView;
   cards: QueryResult<'tree'>[];
   linkTypes: ExpandedLinkType[];
   connectors?: Connector[];

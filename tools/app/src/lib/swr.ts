@@ -34,8 +34,11 @@ export function projectApiPaths(projectPrefix?: string) {
   const base = `/api/projects/${encodeURIComponent(resolveProjectPrefix(projectPrefix))}`;
   return {
     cards: () => `${base}/cards`,
-    card: (key: string) => `${base}/cards/${key}`,
-    rawCard: (key: string) => `${base}/cards/${key}?raw=true`,
+    card: (key: string) => `${base}/cards/${encodeURIComponent(key)}`,
+    cardContent: (key: string) =>
+      `${base}/cards/${encodeURIComponent(key)}/content`,
+    cardSource: (key: string) =>
+      `${base}/cards/${encodeURIComponent(key)}/source`,
     calculations: () => `${base}/calculations`,
     calculation: (name: string) => `${base}/calculations/${name}`,
     cardTypes: () => `${base}/cardTypes`,
