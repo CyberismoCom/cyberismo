@@ -8,21 +8,41 @@ import {
   waitFor,
   within,
 } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+  type Mock,
+} from 'vitest';
 import '@testing-library/jest-dom';
 import { BrowserRouter } from 'react-router';
+import type * as SwrLib from 'swr';
+import type * as ApiModule from '@/lib/api';
 
-const updateCard = vi.fn();
-const updateWorkFlowState = vi.fn();
+type Card = Record<string, unknown> & {
+  deniedOperations: { editField: unknown[]; transition: unknown[] };
+};
+type Mutations = { updateCard: Mock; updateWorkFlowState: Mock };
 const notifyError = vi.fn();
-let card: Record<string, unknown>;
+let cards: Record<string, Card>;
+let errors: Record<string, Error>;
+let mutations: Record<string, Mutations>;
 let isEditor = true;
 
-vi.mock('@/lib/api', () => ({
-  useCard: () => ({ card, error: undefined }),
-  useCardMutations: () => ({
-    updateCard,
-    updateWorkFlowState,
+const mutate = vi.fn();
+vi.mock('swr', async (importOriginal) => ({
+  ...(await importOriginal<typeof SwrLib>()),
+  mutate: (...args: unknown[]) => mutate(...args),
+}));
+
+vi.mock('@/lib/api', async (importOriginal) => ({
+  ...(await importOriginal<typeof ApiModule>()),
+  useCard: (key: string) => ({ card: cards[key], error: errors[key] }),
+  useCardMutations: (key: string) => ({
+    ...mutations[key],
     isUpdating: () => false,
   }),
   useProject: () => ({
@@ -85,8 +105,9 @@ const placeholder = (
   field: string,
   showLabel = true,
   display: 'row' | 'inline' = 'row',
+  cardKey = 'k_1',
 ) =>
-  `<card-field options="${btoa(JSON.stringify({ cardKey: 'k_1', field, showLabel, display }))}"></card-field>`;
+  `<card-field options="${btoa(JSON.stringify({ cardKey, field, showLabel, display }))}"></card-field>`;
 
 function Body({ html, preview = false }: { html: string; preview?: boolean }) {
   return (
@@ -99,22 +120,31 @@ function Body({ html, preview = false }: { html: string; preview?: boolean }) {
 }
 
 describe('Field macro', () => {
+  const cardOf = (key: string, title: string): Card => ({
+    key,
+    title,
+    cardType: 'm/cardTypes/t',
+    workflowState: 'Draft',
+    fields: [
+      textField('m/fieldTypes/a', 'A'),
+      textField('m/fieldTypes/b', 'B'),
+    ],
+    deniedOperations: { editField: [], transition: [] },
+  });
+  const spies = () => ({
+    updateCard: vi.fn(),
+    updateWorkFlowState: vi.fn(),
+  });
+
+  afterEach(() => window.history.pushState({}, '', '/'));
+
   beforeEach(() => {
-    updateCard.mockReset();
-    updateWorkFlowState.mockReset();
     notifyError.mockReset();
+    mutate.mockReset();
     isEditor = true;
-    card = {
-      key: 'k_1',
-      title: 'Card',
-      cardType: 'm/cardTypes/t',
-      workflowState: 'Draft',
-      fields: [
-        textField('m/fieldTypes/a', 'A'),
-        textField('m/fieldTypes/b', 'B'),
-      ],
-      deniedOperations: { editField: [], transition: [] },
-    };
+    cards = { k_1: cardOf('k_1', 'Card'), k_2: cardOf('k_2', 'Target') };
+    mutations = { k_1: spies(), k_2: spies() };
+    errors = {};
   });
 
   it('keeps the field reachable by its name when the label is hidden', () => {
@@ -148,7 +178,7 @@ describe('Field macro', () => {
     'shows an empty unlabelled row to $role as "$text"',
     ({ editor, text, editable }) => {
       isEditor = editor;
-      card.fields = [textField('m/fieldTypes/a', '')];
+      cards.k_1.fields = [textField('m/fieldTypes/a', '')];
       render(<Body html={placeholder('m/fieldTypes/a', false)} />);
 
       fireEvent.click(screen.getByText(text));
@@ -171,12 +201,12 @@ describe('Field macro', () => {
     fireEvent.click(screen.getByRole('button', { name: /Draft/ }));
     fireEvent.click(screen.getByRole('menuitem', { name: /Finish/ }));
 
-    expect(updateWorkFlowState).toHaveBeenCalledWith('Finish');
-    expect(updateCard).not.toHaveBeenCalled();
+    expect(mutations.k_1.updateWorkFlowState).toHaveBeenCalledWith('Finish');
+    expect(mutations.k_1.updateCard).not.toHaveBeenCalled();
   });
 
   it('disables a transition the server would refuse', () => {
-    card.deniedOperations = {
+    cards.k_1.deniedOperations = {
       editField: [],
       transition: [{ transitionName: 'Finish', errorMessage: 'Not now' }],
     };
@@ -227,7 +257,7 @@ describe('Field macro', () => {
         edit(shown, 'new');
 
         await waitFor(() =>
-          expect(updateCard).toHaveBeenCalledWith({
+          expect(mutations.k_1.updateCard).toHaveBeenCalledWith({
             metadata: { [field]: 'new' },
           }),
         );
@@ -235,7 +265,7 @@ describe('Field macro', () => {
     );
 
     it('keeps the editor and its draft open when the save fails', async () => {
-      updateCard.mockRejectedValue(new Error('Save refused'));
+      mutations.k_1.updateCard.mockRejectedValue(new Error('Save refused'));
       render(<Body html={placeholder('m/fieldTypes/a', false)} />);
 
       const input = edit('A', 'draft');
@@ -245,6 +275,150 @@ describe('Field macro', () => {
       );
       expect(input).toBeInTheDocument();
       expect(input).toHaveValue('draft');
+    });
+  });
+
+  const editValue = () => {
+    fireEvent.click(screen.getByText('A'));
+    fireEvent.change(screen.getByRole('textbox'), {
+      target: { value: 'new' },
+    });
+    fireEvent.click(document.querySelector('[data-cy="fieldSaveButton"]')!);
+  };
+  const transition = () => {
+    fireEvent.click(screen.getByRole('button', { name: /Draft/ }));
+    fireEvent.click(screen.getByRole('menuitem', { name: /Finish/ }));
+  };
+
+  // k_1 is the page's card. A macro in an included card targets that card.
+  it.each([
+    {
+      name: 'its own card',
+      field: 'm/fieldTypes/a',
+      target: 'k_1',
+      edit: editValue,
+      save: 'updateCard' as const,
+      args: [{ metadata: { 'm/fieldTypes/a': 'new' } }],
+      cross: false,
+    },
+    {
+      name: 'another card',
+      field: 'm/fieldTypes/a',
+      target: 'k_2',
+      edit: editValue,
+      save: 'updateCard' as const,
+      args: [{ metadata: { 'm/fieldTypes/a': 'new' } }],
+      cross: true,
+    },
+    {
+      name: "another card's state",
+      field: 'workflowState',
+      target: 'k_2',
+      edit: transition,
+      save: 'updateWorkFlowState' as const,
+      args: ['Finish'],
+      cross: true,
+    },
+  ])(
+    'saves to, labels and refreshes the page only when it edits $name',
+    async ({ field, target, edit, save, args, cross }) => {
+      window.history.pushState({}, '', '/projects/TST/cards/k_1');
+      render(<Body html={placeholder(field, true, 'row', target)} />);
+
+      edit();
+      // The page refresh follows the save; the own-card editor closes after it.
+      await waitFor(() =>
+        cross
+          ? expect(mutate).toHaveBeenCalled()
+          : expect(screen.queryByRole('textbox')).not.toBeInTheDocument(),
+      );
+
+      expect(mutations[target][save]).toHaveBeenCalledWith(...args);
+      const link = screen.queryByRole('link', {
+        name: `${target} · ${cards[target].title}`,
+      });
+      const hostContent = '/api/projects/TST/cards/k_1/content';
+      if (cross) {
+        expect(mutations.k_1[save]).not.toHaveBeenCalled();
+        expect(link).toHaveAttribute('href', `/cards/${target}`);
+        expect(mutate).toHaveBeenCalledWith(hostContent);
+      } else {
+        expect(link).not.toBeInTheDocument();
+        expect(mutate).not.toHaveBeenCalledWith(hostContent);
+      }
+    },
+  );
+
+  it('names an inline target in a tooltip and keeps its link out of the sentence', async () => {
+    render(
+      <Body
+        html={`<p>Owner is ${placeholder('m/fieldTypes/a', false, 'inline', 'k_2')}.</p>`}
+      />,
+    );
+
+    expect(screen.queryByRole('link')).not.toBeInTheDocument();
+    expect(document.querySelector('p > [data-cy="fieldMacro"]')).toBeTruthy();
+    fireEvent.mouseOver(screen.getByRole('button', { name: /A/ }));
+    expect(await screen.findByRole('tooltip')).toHaveTextContent(
+      'k_2 · Target',
+    );
+  });
+
+  it('names an inline target state in a tooltip', async () => {
+    render(
+      <Body
+        html={`<p>Now ${placeholder('workflowState', false, 'inline', 'k_2')}.</p>`}
+      />,
+    );
+
+    fireEvent.mouseOver(screen.getByRole('button', { name: /Draft/ }));
+    expect(await screen.findByRole('tooltip')).toHaveTextContent(
+      'k_2 · Target',
+    );
+  });
+
+  it.each([
+    { on: 'the target', denied: 'k_2', disabled: true },
+    { on: 'the page card only', denied: 'k_1', disabled: false },
+  ])(
+    "takes a target's editability from the target when denied on $on",
+    ({ denied, disabled }) => {
+      cards[denied].deniedOperations.editField = [
+        { fieldName: 'm/fieldTypes/a', errorMessage: 'denied' },
+      ];
+      render(<Body html={placeholder('m/fieldTypes/a', true, 'row', 'k_2')} />);
+
+      fireEvent.click(screen.getByText('A'));
+
+      if (disabled) {
+        expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
+      } else {
+        expect(screen.getByRole('textbox')).toBeInTheDocument();
+      }
+    },
+  );
+
+  describe("when another card's load fails", () => {
+    const html = `${placeholder('m/fieldTypes/a', true, 'row', 'k_2')}\n${placeholder('m/fieldTypes/b')}`;
+
+    it('shows the error in its place and leaves other macros working', () => {
+      delete cards.k_2;
+      errors.k_2 = new Error('boom');
+      render(<Body html={html} />);
+
+      expect(screen.getByText('fieldMacro.errorTitle')).toBeInTheDocument();
+      expect(screen.getByText('B')).toBeInTheDocument();
+    });
+
+    it('renders nothing for it while the card is not loaded', () => {
+      delete cards.k_2;
+      render(<Body html={html} />);
+
+      expect(
+        screen.queryByText('fieldMacro.errorTitle'),
+      ).not.toBeInTheDocument();
+      expect(screen.queryByText('A')).not.toBeInTheDocument();
+      expect(screen.getByText('B')).toBeInTheDocument();
     });
   });
 
@@ -269,6 +443,17 @@ describe('Field macro', () => {
       expect(first.nextElementSibling).toBe(second);
       expect(first).toHaveClass('field-macro-box');
       expect(second).toHaveClass('field-macro-box');
+    });
+
+    it("breaks the group around another card's row, which has its link above it", () => {
+      const other = placeholder('m/fieldTypes/a', true, 'row', 'k_2');
+      render(<Body html={`${a}\n${other}\n${b}`} />);
+
+      const [first, second] = boxes();
+      expect(first.nextElementSibling).not.toBe(second);
+      expect(second.previousElementSibling).toBe(
+        screen.getByRole('link', { name: 'k_2 · Target' }),
+      );
     });
 
     it('renders workflowState as a labelled row with a state selector', () => {
@@ -306,7 +491,7 @@ describe('Field macro', () => {
     });
 
     it('locks an inline field the card denies, with no editor', () => {
-      card.deniedOperations = {
+      cards.k_1.deniedOperations = {
         editField: [{ fieldName: 'm/fieldTypes/a', errorMessage: 'Nope' }],
         transition: [],
       };
