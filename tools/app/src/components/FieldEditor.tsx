@@ -23,6 +23,8 @@ export interface FieldEditorProps {
   enumValues?: Array<EnumDefinition>;
   disabled?: boolean;
   focus?: boolean;
+  /** Accessible name for the control when no visible label is rendered. */
+  ariaLabel?: string;
 }
 
 export default function FieldEditor({
@@ -33,6 +35,7 @@ export default function FieldEditor({
   enumValues,
   disabled,
   focus,
+  ariaLabel,
 }: FieldEditorProps) {
   const { t } = useTranslation();
   const handleListboxOpenChange = (open: boolean) => {
@@ -51,6 +54,7 @@ export default function FieldEditor({
           size="sm"
           fullWidth
           autoFocus={focus}
+          slotProps={{ input: { 'aria-label': ariaLabel } }}
           placeholder={
             dataType === 'integer'
               ? t('placeholder.integer')
@@ -72,6 +76,7 @@ export default function FieldEditor({
           }}
           size="sm"
           autoFocus={focus}
+          slotProps={{ button: { 'aria-label': ariaLabel } }}
           placeholder={t('placeholder.boolean')}
         >
           <Option value="">{t('none')}</Option>
@@ -92,6 +97,7 @@ export default function FieldEditor({
           }}
           size="sm"
           autoFocus={focus}
+          slotProps={{ button: { 'aria-label': ariaLabel } }}
           placeholder={t('placeholder.enum')}
         >
           <Option value="" key="none">
@@ -117,6 +123,7 @@ export default function FieldEditor({
           }}
           size="sm"
           autoFocus={focus}
+          slotProps={{ button: { 'aria-label': ariaLabel } }}
           placeholder={t('placeholder.enum')}
           disabled={disabled}
         >
@@ -138,6 +145,7 @@ export default function FieldEditor({
           size="sm"
           fullWidth
           autoFocus={focus}
+          slotProps={{ input: { 'aria-label': ariaLabel } }}
         />
       );
     case 'dateTime':
@@ -151,6 +159,7 @@ export default function FieldEditor({
           size="sm"
           fullWidth
           autoFocus={focus}
+          slotProps={{ input: { 'aria-label': ariaLabel } }}
         />
       );
     case 'person':
@@ -163,6 +172,7 @@ export default function FieldEditor({
           size="sm"
           fullWidth
           autoFocus={focus}
+          slotProps={{ input: { 'aria-label': ariaLabel } }}
           endDecorator={<Person color="primary" fontSize="small" />}
           placeholder={t('placeholder.person')}
         />
@@ -180,6 +190,7 @@ export default function FieldEditor({
             width: '100%',
           }}
           autoFocus={focus}
+          slotProps={{ textarea: { 'aria-label': ariaLabel } }}
           placeholder={t('placeholder.longText')}
         />
       );
@@ -203,6 +214,7 @@ export default function FieldEditor({
           size="sm"
           fullWidth
           autoFocus={focus}
+          slotProps={{ input: { 'aria-label': ariaLabel } }}
           placeholder={t('placeholder.shortText')}
         />
       );

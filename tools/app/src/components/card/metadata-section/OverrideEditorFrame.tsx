@@ -4,6 +4,7 @@
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Box, Button, Stack, Tooltip, Typography } from '@mui/joy';
+import { rowValueWidthSx } from '@/components/fieldRowFrame';
 
 /** Removes a stored value, restoring the calculated value of the field. */
 export function ClearOverrideButton({
@@ -59,7 +60,12 @@ export function OverriddenMarker({
         data-cy="overriddenMarker"
         role="img"
         aria-label={label}
-        sx={{ ml: 0.25, color: 'neutral.500', userSelect: 'none' }}
+        sx={{
+          display: 'inline',
+          ml: 0.25,
+          color: 'neutral.500',
+          userSelect: 'none',
+        }}
       >
         *
       </Typography>
@@ -90,21 +96,20 @@ export function OverrideEditorFrame({
 }) {
   const { t } = useTranslation();
   return (
-    <Stack
-      spacing={0.5}
-      sx={{
-        flexGrow: 1,
-        width: { xs: '100%', md: 'auto' },
-        minWidth: 0,
-      }}
-    >
+    <Stack spacing={0.5} sx={[{ flexGrow: 1, minWidth: 0 }, rowValueWidthSx]}>
       <Typography level="body-xs" data-cy="calculatedValue">
         {t('calculatedValue')}:{' '}
         <Typography component="span" fontWeight="bold" color="neutral">
           {calculatedValue}
         </Typography>
       </Typography>
-      <Stack direction="row" alignItems="flex-start" spacing={0.5}>
+      <Stack
+        direction="row"
+        alignItems="flex-start"
+        spacing={0.5}
+        // In a narrow container the Clear and action buttons drop below.
+        sx={{ flexWrap: 'wrap', rowGap: 0.5 }}
+      >
         <Typography level="body-xs" sx={{ flexShrink: 0, alignSelf: 'center' }}>
           {t('override')}:
         </Typography>

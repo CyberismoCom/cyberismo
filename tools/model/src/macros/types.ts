@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { CreateCardsOptions } from './createCards/types.js';
+import { FieldMacroOptions } from './field/types.js';
 import { GraphOptions } from './graph/types.js';
 import { ImageMacroOptions } from './image/types.js';
 import { IncludeMacroOptions } from './include/types.js';
@@ -15,6 +16,7 @@ import { XrefMacroOptions } from './xref/types.js';
 
 export type AnyMacroOption =
   | CreateCardsOptions
+  | FieldMacroOptions
   | GraphOptions
   | ImageMacroOptions
   | IncludeMacroOptions
@@ -28,6 +30,7 @@ export type AnyMacroOption =
 
 export {
   CreateCardsOptions,
+  FieldMacroOptions,
   GraphOptions,
   ImageMacroOptions,
   IncludeMacroOptions,

@@ -16,6 +16,7 @@ import {
   MenuButton,
   CircularProgress,
   Stack,
+  Tooltip,
 } from '@mui/joy';
 import ArrowForward from '@mui/icons-material/ArrowForward';
 import { useTranslation } from 'react-i18next';
@@ -29,6 +30,10 @@ interface StateSelectorProps {
   onViewWorkflow?: () => void;
   isLoading?: boolean;
   disabled?: boolean;
+  /** Sizes the button to the surrounding text, for a line of text or a row. */
+  compact?: boolean;
+  /** Transitions the server would refuse, disabled with the message as tooltip. */
+  deniedTransitions?: { transitionName: string; errorMessage: string }[];
 }
 
 const StateSelector: React.FC<StateSelectorProps> = ({
@@ -38,6 +43,8 @@ const StateSelector: React.FC<StateSelectorProps> = ({
   onViewWorkflow,
   disabled,
   isLoading,
+  compact,
+  deniedTransitions,
 }) => {
   const { t } = useTranslation();
 
@@ -62,8 +69,8 @@ const StateSelector: React.FC<StateSelectorProps> = ({
   const statusDot = (
     <span
       style={{
-        width: '16px',
-        height: '16px',
+        width: compact ? '0.9em' : '16px',
+        height: compact ? '0.9em' : '16px',
         backgroundColor: getStateColor(currentState.category),
         borderRadius: '50%',
         marginRight: '2px',
@@ -86,6 +93,17 @@ const StateSelector: React.FC<StateSelectorProps> = ({
         color="neutral"
         endDecorator={!isLoading && statusDot}
         data-cy="stateSelectorButton"
+        sx={
+          compact
+            ? {
+                minHeight: 0,
+                paddingY: 0,
+                paddingX: 0.75,
+                fontSize: 'inherit',
+                lineHeight: 'inherit',
+              }
+            : undefined
+        }
       >
         {isLoading ? (
           <CircularProgress size="sm" />
@@ -98,11 +116,14 @@ const StateSelector: React.FC<StateSelectorProps> = ({
           const toState = workflow?.states.find(
             (state) => state.name === transition.toState,
           );
-          return (
+          const denied = deniedTransitions?.find(
+            (d) => d.transitionName === transition.name,
+          );
+          const item = (
             <MenuItem
               key={transition.name}
               onClick={() => onTransition(transition)}
-              disabled={disabled}
+              disabled={disabled || !!denied}
             >
               <ListItemContent>
                 <Stack direction="row" spacing={1} alignItems="center">
@@ -121,6 +142,19 @@ const StateSelector: React.FC<StateSelectorProps> = ({
                 </Stack>
               </ListItemContent>
             </MenuItem>
+          );
+          return denied ? (
+            <Tooltip
+              key={transition.name}
+              title={denied.errorMessage}
+              placement="left"
+              describeChild
+              disableInteractive
+            >
+              <span>{item}</span>
+            </Tooltip>
+          ) : (
+            item
           );
         })}
         {onViewWorkflow && (

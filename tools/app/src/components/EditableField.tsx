@@ -5,6 +5,7 @@ import type { ReactNode } from 'react';
 import { Stack, Tooltip, Typography } from '@mui/joy';
 import type { DataType, MetadataValue } from '../lib/definitions';
 import FieldEditor from './FieldEditor';
+import { containerRowSx, rowQuery } from './fieldRowFrame';
 import { metadataValueToString } from '../lib/utils';
 import { useTranslation } from 'react-i18next';
 import type { EnumDefinition } from '@cyberismo/model/types/queries';
@@ -16,24 +17,40 @@ export type FieldLabelProps = {
   description?: string;
   disabled?: boolean;
   edit: boolean;
+  /** Keep the label for assistive tech but hide it visually. */
+  visuallyHidden?: boolean;
 };
+
+const srOnly = {
+  position: 'absolute',
+  width: '1px',
+  height: '1px',
+  overflow: 'hidden',
+  clip: 'rect(0 0 0 0)',
+  whiteSpace: 'nowrap',
+} as const;
 
 export function FieldLabel({
   label,
   description,
   disabled,
   edit,
+  visuallyHidden,
 }: FieldLabelProps) {
   return (
     <Typography
       level="body-xs"
-      sx={{
-        whiteSpace: 'normal',
-        position: 'relative',
-        width: { xs: '100%', md: '40%' },
-        maxWidth: { md: 150 },
-        flexShrink: 0,
-      }}
+      sx={
+        visuallyHidden
+          ? srOnly
+          : {
+              whiteSpace: 'normal',
+              position: 'relative',
+              flexShrink: 0,
+              width: '100%',
+              [rowQuery]: { width: '40%', maxWidth: 150 },
+            }
+      }
     >
       {disabled && !edit && (
         <LockOutlined
@@ -79,8 +96,11 @@ export type EditableFieldProps = {
   disabled?: boolean;
   enumValues?: EnumDefinition[];
   focus?: boolean;
+  hideLabel?: boolean;
   /** Rendered inline after the read-mode value, e.g. the overridden marker. */
   valueDecorator?: ReactNode;
+  /** Shown in read mode when the value is empty, so the row stays visible and clickable. */
+  emptyText?: string;
 };
 
 const EditableField = ({
@@ -93,16 +113,21 @@ const EditableField = ({
   enumValues,
   disabled,
   focus,
+  hideLabel,
   valueDecorator,
+  emptyText,
 }: EditableFieldProps) => {
   const { t } = useTranslation();
+  const text = metadataValueToString(value, dataType, t, enumValues);
+  const showEmpty = !edit && !text && !!emptyText;
   return (
-    <Stack direction={{ xs: 'column', md: 'row' }} spacing={{ xs: 0.5, md: 4 }}>
+    <Stack sx={containerRowSx}>
       <FieldLabel
         label={label}
-        description={description}
+        description={hideLabel ? undefined : description}
         disabled={disabled}
         edit={edit}
+        visuallyHidden={hideLabel}
       />
       {edit ? (
         <FieldEditor
@@ -112,17 +137,18 @@ const EditableField = ({
           enumValues={enumValues}
           disabled={disabled}
           focus={focus}
+          ariaLabel={hideLabel ? label : undefined}
         />
       ) : (
         <Typography
           level="body-xs"
-          fontWeight="bold"
+          fontWeight={showEmpty ? 'normal' : 'bold'}
+          fontStyle={showEmpty ? 'italic' : undefined}
+          textColor={showEmpty ? 'text.tertiary' : undefined}
           color={disabled ? 'neutral' : 'primary'}
           whiteSpace={dataType === 'longText' ? 'pre-line' : 'normal'}
         >
-          {dataType === 'label'
-            ? (value as string[] | null)?.join(', ')
-            : metadataValueToString(value, dataType, t, enumValues)}
+          {showEmpty ? emptyText : text}
           {valueDecorator}
         </Typography>
       )}

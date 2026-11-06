@@ -43,7 +43,7 @@ function isCustomField(field: string) {
  * @param value - The value to format
  * @returns The formatted value
  */
-function formatValue(value: unknown): string {
+export function formatValue(value: unknown): string {
   if (typeof value === 'object') {
     if (Array.isArray(value)) {
       return value.map((v) => formatValue(v)).join(', ');
