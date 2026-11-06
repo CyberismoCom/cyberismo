@@ -22,12 +22,13 @@ import type {
 import type { SWRResponse } from 'swr';
 import { RESOURCES } from '@/lib/constants';
 
-export type CardResponse = {
+/** The card query result joined with its rendered content and stored source. */
+export type CardView = QueryResult<'card'> & {
   adocContent: string;
   rawContent: string;
   attachments: CardAttachment[];
   path: string;
-} & QueryResult<'card'>;
+};
 
 export type LogicProgramResponse = {
   logicProgram: string;
@@ -61,7 +62,9 @@ export type WorkflowGraphResponse = {
 
 export type Resources = {
   project: Project;
-  card: CardResponse;
+  card: QueryResult<'card'>;
+  cardContent: { adocContent: string };
+  cardSource: Card;
   connectors: Connector[];
   fieldTypes: FieldTypes;
   cardType: CardType;

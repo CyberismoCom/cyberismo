@@ -30,7 +30,7 @@ export interface FieldInfo {
   isOverridable: boolean;
   isEditable: boolean;
   calculatedValue?: unknown;
-  visibility: 'always' | 'optional';
+  visibility?: 'always' | 'optional';
   enumValues?: EnumOption[];
 }
 

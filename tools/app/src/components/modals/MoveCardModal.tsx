@@ -21,7 +21,7 @@ import {
   Stack,
 } from '@mui/joy';
 import { useTranslation } from 'react-i18next';
-import { useCard, useResourceTree } from '../../lib/api';
+import { useCard, useCardSource, useResourceTree } from '../../lib/api';
 import { useAppSelector } from '../../lib/hooks';
 import {
   deepCopy,
@@ -62,12 +62,8 @@ export function MoveCardModal({ open, onClose, cardKey }: MoveCardModalProps) {
   const { tree, isLoading: isLoadingTree } = useTree();
   const { resourceTree, isLoading: isLoadingResourceTree } = useResourceTree();
 
-  const {
-    card,
-    moveCard,
-    isUpdating,
-    isLoading: isLoadingCard,
-  } = useCard(cardKey);
+  const { moveCard, isUpdating } = useCard(cardKey);
+  const { cardSource, isLoading: isLoadingCard } = useCardSource(cardKey);
   const recents = useAppSelector((state) => state.recentlyViewed.pages);
 
   const dispatch = useDispatch();
@@ -75,8 +71,8 @@ export function MoveCardModal({ open, onClose, cardKey }: MoveCardModalProps) {
   const [currentTab, setCurrentTab] = useState(TabEnum.RECENTS);
 
   const sourceIsTemplate =
-    card?.path != null
-      ? /[\\/](?:templates|modules)[\\/]/.test(card.path)
+    cardSource?.path != null
+      ? /[\\/](?:templates|modules)[\\/]/.test(cardSource.path)
       : null;
 
   const destinationsTree = useMemo(() => {
