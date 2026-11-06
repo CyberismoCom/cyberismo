@@ -125,18 +125,28 @@ export default class FieldMacro extends BaseMacro {
   // Without this the static site would fall back to the inject placeholder
   handleStaticSite = this.handleStatic;
 
-  // Checks the card exists before its key reaches any logic program.
+  // Checks the target card exists before its key reaches any logic program.
   private resolve(
     context: MacroGenerationContext,
     input: unknown,
   ): ResolvedField {
     const {
+      cardKey = context.cardKey,
       field,
       display = FIELD_MACRO_DEFAULT_DISPLAY,
       showLabel = fieldMacroDefaultShowLabel(display),
     } = validateMacroContent<FieldMacroOptions>(this.metadata, input);
-    const { checkout, cardKey } = context;
-    const card = cardNode(checkout, cardKey);
+    const { checkout } = context;
+    const card = existingCard(checkout, cardKey);
+    // Instantiation does not rewrite the key, so it would keep pointing at the template.
+    // A host that is no card, such as the PDF report's top level, has no such risk.
+    const host = checkout.keyRegistry.ownerOf(context.cardKey);
+    if (
+      checkout.treeOf(cardKey).kind !== 'project' &&
+      host?.kind === 'project'
+    ) {
+      throw new Error('a field macro cannot target a template card');
+    }
     if (!BUILT_IN_LABELS.has(field)) {
       if (!field.includes('/fieldTypes/')) {
         throw new Error(
@@ -159,6 +169,18 @@ export default class FieldMacro extends BaseMacro {
       }
     }
     return { cardKey, field, showLabel, display };
+  }
+}
+
+// One message for any failed lookup; the key is echoed literally.
+function existingCard(
+  checkout: MacroGenerationContext['checkout'],
+  cardKey: string,
+) {
+  try {
+    return cardNode(checkout, cardKey);
+  } catch {
+    throw new Error(`card '${cardKey}' does not exist`);
   }
 }
 

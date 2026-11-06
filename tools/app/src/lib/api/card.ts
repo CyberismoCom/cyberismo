@@ -4,6 +4,7 @@
 import { useSWRHook } from './common';
 import { downloadBlob } from '@/lib/utils';
 import { callApi, projectApiPaths } from '../swr';
+import { cardFetcher } from './card-batch';
 
 import type { SWRConfiguration } from 'swr';
 import { mutate } from 'swr';
@@ -30,7 +31,10 @@ const useCardData = (
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     isUpdating: _isUpdating,
     ...rest
-  } = useSWRHook(key ? apiPaths.card(key) : null, 'card', null, options);
+  } = useSWRHook(key ? apiPaths.card(key) : null, 'card', null, {
+    fetcher: cardFetcher,
+    ...options,
+  });
 
   return rest;
 };
@@ -229,6 +233,11 @@ function revalidateCardView(key: string, projectPrefix?: string) {
     mutate(apiPaths.card(key)),
     mutate(apiPaths.cardContent(key)),
   ]);
+}
+
+/** Refetches a card's rendered content, e.g. a page showing another card's values. */
+export function revalidateCardContent(key: string, projectPrefix?: string) {
+  return mutate(projectApiPaths(projectPrefix).cardContent(key));
 }
 
 export async function updateCard(

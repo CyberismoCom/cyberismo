@@ -60,6 +60,23 @@ export async function getCardData(
   });
 }
 
+/** One solve for many cards; keys the project does not hold are left out. */
+export async function getCardBatch(
+  ws: Workspace,
+  keys: string[],
+): Promise<Record<string, QueryResult<'card'>>> {
+  return ws.consistent(async () => {
+    // The keys reach the logic program unchecked; only known ones go through.
+    const cardKeys = [...new Set(keys)].filter((key) => ws.cards.has(key));
+    // The card query reads an empty list as no list and answers every card.
+    if (cardKeys.length === 0) {
+      return {};
+    }
+    const cards = await ws.queries.runQuery('card', 'localApp', { cardKeys });
+    return Object.fromEntries(cards.map((card) => [card.key, card]));
+  });
+}
+
 export async function getCardContent(
   ws: Workspace,
   key: string,

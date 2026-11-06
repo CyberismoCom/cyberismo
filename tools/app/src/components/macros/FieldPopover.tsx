@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { useTranslation } from 'react-i18next';
-import { Button, Sheet, Stack } from '@mui/joy';
+import { Box, Button, Sheet, Stack } from '@mui/joy';
 import { ClickAwayListener, Popper } from '@mui/material';
 import type { MetadataValue } from '@/lib/definitions';
 import { OverrideEditorFrame } from '@/components/card/metadata-section/OverrideEditorFrame';
@@ -13,16 +13,21 @@ import {
 import { useFieldEditForm } from '@/components/card/metadata-section/useFieldEditForm';
 import { metadataValueToString } from '@/lib/utils';
 import { focusLeftEditor } from '@/lib/hooks';
+import TargetLink from './TargetLink';
+import type { FieldTarget } from './fieldTarget';
 
 /** The field editor in a popup anchored to an inline value. */
 export function FieldPopover({
   anchor,
   row,
+  target,
   onSave,
   onClose,
 }: {
   anchor: HTMLElement;
   row: FieldRowData;
+  /** Linked above the editor when the field is on another card. */
+  target?: FieldTarget;
   onSave: (value: MetadataValue) => void;
   /** `restoreFocus` is false when the user moved on by clicking or tabbing away. */
   onClose: (restoreFocus: boolean) => void;
@@ -87,6 +92,11 @@ export function FieldPopover({
             }
           }}
         >
+          {target && (
+            <Box sx={{ marginBottom: 1 }}>
+              <TargetLink target={target} />
+            </Box>
+          )}
           {presentsAsOverride(row) ? (
             <OverrideEditorFrame
               calculatedValue={metadataValueToString(
