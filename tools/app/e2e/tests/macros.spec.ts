@@ -805,3 +805,181 @@ test.describe('Navigation', () => {
     ).toBeVisible();
   });
 });
+
+// The "All data types" card type carries a custom field of every data type.
+test.describe('Field macro', () => {
+  const fieldMacros = [
+    'test/fieldTypes/shortText',
+    'test/fieldTypes/longText',
+    'test/fieldTypes/integer',
+    'title',
+    'workflowState',
+  ]
+    .map((field) => `{{#field}}"field": "${field}"{{/field}}`)
+    .concat('{{#field}}"field": "shortText"{{/field}}')
+    .join('\n\n');
+
+  let cardPath = '';
+  let cardApiPath = '';
+  let seedContent = '';
+
+  const bodyField = (page: Page, label: string) =>
+    page.locator('.doc [data-cy="fieldMacro"]', { hasText: label });
+  const panelField = (page: Page, field: string) =>
+    page.locator(`[id="metadata-field-${field}"]`);
+
+  // Every test finds this card with the macros in place, whatever ran before.
+  test.beforeAll(async ({ resetProject, browser, backend }) => {
+    await resetProject();
+    const context = await browser.newContext({ baseURL: backend.baseURL });
+    try {
+      const listed = await context.request.get('/api/projects');
+      const { prefix } = (
+        (await listed.json()) as {
+          projects: { prefix: string }[];
+        }
+      ).projects[0];
+      const created = await context.request.post(
+        `/api/projects/${prefix}/cards/root`,
+        { data: { template: 'test/templates/allDataTypes' } },
+      );
+      expect(created.ok()).toBeTruthy();
+      const [card] = (await created.json()) as { key: string }[];
+      cardPath = `/projects/${prefix}/cards/${card.key}`;
+      cardApiPath = `/api/projects/${prefix}/cards/${card.key}`;
+      const selfXref = `{{#xref}}"cardKey": "${card.key}"{{/xref}}`;
+      seedContent = `${fieldMacros}\n\n${selfXref}`;
+      const patched = await context.request.patch(cardApiPath, {
+        data: { content: seedContent },
+      });
+      expect(patched.ok()).toBeTruthy();
+    } finally {
+      await context.close();
+    }
+  });
+
+  test.beforeEach(async ({ page }) => {
+    await page.goto(cardPath);
+    await expect(page.getByTestId('metadataView')).toBeVisible();
+  });
+
+  test('authoring field macros renders editors and a bare name error', async ({
+    page,
+  }) => {
+    await editPage(page);
+    // The editor opens on the seeded macros; typing at the end works in every
+    // browser, where fill() on CodeMirror does not.
+    await page.locator('.cm-content').click();
+    await page.keyboard.press('ControlOrMeta+End');
+    await page.keyboard.type('\n\nWritten in the editor');
+    await page.getByTestId('contentSaveButton').click();
+    await dismissSaveToast(page);
+
+    await expect(page.locator('.doc')).toContainText('Written in the editor');
+    await expect(page.locator('.doc [data-cy="fieldMacro"]')).toHaveCount(5);
+    await expect(
+      page.locator('.doc', { hasText: 'Macro Error' }),
+    ).toContainText('use the full field name');
+  });
+
+  test('a body edit reaches the panel and a panel edit reaches the body', async ({
+    page,
+  }) => {
+    const body = bodyField(page, 'Short text');
+    await body.getByTestId('editableFieldRow').click();
+    await body.getByRole('textbox').fill('From the body');
+    await body.getByTestId('fieldSaveButton').click();
+    await expect(panelField(page, 'test/fieldTypes/shortText')).toContainText(
+      'From the body',
+    );
+
+    const panel = panelField(page, 'test/fieldTypes/integer');
+    await panel.getByTestId('editableFieldRow').click();
+    await panel.getByRole('spinbutton').fill('7');
+    await panel.getByTestId('fieldSaveButton').click();
+    await expect(bodyField(page, 'Integer')).toContainText('7');
+  });
+
+  test('open macros keep their drafts while another field saves', async ({
+    page,
+    browser,
+    backend,
+  }) => {
+    const longText = bodyField(page, 'Long text');
+    const shortText = bodyField(page, 'Short text');
+    await longText.getByTestId('editableFieldRow').click();
+    await shortText.getByTestId('editableFieldRow').click();
+    await shortText.getByRole('textbox').fill('Unsaved draft');
+
+    // A write by someone else refetches this card and its body.
+    const bob = await browser.newContext({ baseURL: backend.baseURL });
+    try {
+      await bob.addCookies([
+        { name: 'mock-user', value: 'bob', url: backend.baseURL },
+      ]);
+      const refetched = page.waitForResponse(
+        (response) =>
+          response.request().method() === 'GET' &&
+          response.url().endsWith(`${cardApiPath}/content`),
+      );
+      const patched = await bob.request.patch(cardApiPath, {
+        data: { metadata: { 'test/fieldTypes/integer': 8 } },
+      });
+      expect(patched.ok()).toBeTruthy();
+      await refetched;
+    } finally {
+      await bob.close();
+    }
+
+    await expect(bodyField(page, 'Integer')).toContainText('8');
+    await expect(shortText.getByRole('textbox')).toHaveValue('Unsaved draft');
+    await expect(longText.getByRole('textbox')).toBeVisible();
+  });
+
+  test('opening another macro saves the draft instead of discarding it', async ({
+    page,
+  }) => {
+    const shortText = bodyField(page, 'Short text');
+    const longText = bodyField(page, 'Long text');
+    await shortText.getByTestId('editableFieldRow').click();
+    await shortText.getByRole('textbox').fill('Saved on leaving');
+    await longText.getByTestId('editableFieldRow').click();
+
+    await expect(panelField(page, 'test/fieldTypes/shortText')).toContainText(
+      'Saved on leaving',
+    );
+    await expect(shortText).toContainText('Saved on leaving');
+    await expect(longText.getByRole('textbox')).toBeVisible();
+  });
+
+  test('a title edit in the body updates the tree and breadcrumbs', async ({
+    page,
+  }) => {
+    const title = 'Renamed from the body';
+    const body = bodyField(page, 'Title');
+    await body.getByTestId('editableFieldRow').click();
+    await body.getByRole('textbox').fill(title);
+    await body.getByTestId('fieldSaveButton').click();
+
+    await expect(
+      page.getByRole('heading', { level: 1, name: title }),
+    ).toBeVisible();
+    await expect(page.getByRole('tree').getByText(title)).toBeVisible();
+    await expect(
+      page.locator('.breadcrumbs').getByRole('link', { name: title }),
+    ).toBeVisible();
+    await expect(
+      page.locator(`.doc [href$="/cards/${cardPath.split('/').pop()}"]`),
+    ).toContainText(title);
+  });
+
+  test('a transition in the body updates the header', async ({ page }) => {
+    await page.locator('.doc [data-cy="stateSelectorButton"]').click();
+    await page.getByRole('menuitem', { name: /Approve/ }).click();
+
+    await expect(page.getByTestId('stateSelectorButton')).toHaveText([
+      'Approved',
+      'Approved',
+    ]);
+  });
+});

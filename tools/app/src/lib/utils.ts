@@ -563,7 +563,7 @@ export function isString(value: unknown): value is string {
  */
 export function metadataValueToString(
   metadata: MetadataValue,
-  dataType: DataType,
+  dataType: DataType | 'label',
   t: (value: string) => string,
   enumValues?: Array<EnumDefinition>,
 ): string {

@@ -4,6 +4,7 @@
 import type { MacroName } from '@cyberismo/model';
 import CreateCards from './CreateCards';
 import Mermaid from './Mermaid';
+import Field from './Field';
 import ScoreCard from './ScoreCard';
 import type { ReactElement } from 'react';
 import Vega from './Vega';
@@ -30,6 +31,7 @@ export type UIMacroName = Exclude<
 export const macros: Record<UIMacroName, (props: any) => ReactElement | null> =
   {
     createCards: CreateCards,
+    field: Field,
     mermaid: Mermaid,
     scoreCard: ScoreCard,
     vega: Vega,
