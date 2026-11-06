@@ -19,7 +19,8 @@ displayName(Card, (Card, Field), DisplayName) :-
     fieldType(Field),
     field((CardType, Field), "displayName", DisplayName).
 
-% the second level includes metadata for the always visible and optionally visible fields
+% the second level includes every custom field of the card type;
+% only the always and optionally visible ones carry visibility and index
 % we include the card key in the key of the fields, because the same query is used
 % when generating static sites for all project cards at the same time
 
@@ -46,6 +47,24 @@ resultField((Card, Field), "index", Index, "integer") :-
 resultField((Card, Field), "index", Index, "integer") :-
     optionallyVisibleField(CardType, Field),
     field((CardType, Field), "index", Index),
+    field(Card, "cardType", CardType),
+    result(Card).
+
+% hidden fields sort after the visible ones; the null visibility would sort them first
+resultField((Card, Field), "isHidden", true, "boolean") :-
+    customField(CardType, Field),
+    field(Card, "cardType", CardType),
+    not alwaysVisibleField(CardType, Field),
+    not optionallyVisibleField(CardType, Field),
+    result(Card).
+
+resultField((Card, Field), "isHidden", false, "boolean") :-
+    alwaysVisibleField(CardType, Field),
+    field(Card, "cardType", CardType),
+    result(Card).
+
+resultField((Card, Field), "isHidden", false, "boolean") :-
+    optionallyVisibleField(CardType, Field),
     field(Card, "cardType", CardType),
     result(Card).
 
@@ -129,12 +148,7 @@ childResultCollection(Card, "fields") :-
     result(Card).
 
 childResult(Card, (Card, Field), "fields") :-
-    alwaysVisibleField(CardType, Field),
-    field(Card, "cardType", CardType),
-    result(Card).
-
-childResult(Card, (Card, Field), "fields") :-
-    optionallyVisibleField(CardType, Field),
+    customField(CardType, Field),
     field(Card, "cardType", CardType),
     result(Card).
 
@@ -152,7 +166,8 @@ childResult((Card, Field), (Field, EnumValue), "enumValues") :-
 resultField((Field, EnumValue), "enumValue", EnumValue, "shortText") :-
     enumValue(Field, EnumValue).
 
-order(2, "fields", 1, "visibility", "ASC").
-order(2, "fields", 2, "index", "ASC").
+order(2, "fields", 1, "isHidden", "ASC").
+order(2, "fields", 2, "visibility", "ASC").
+order(2, "fields", 3, "index", "ASC").
 order(2, "links", 1, "linkSource", "DESC").
 order(3, "enumValues", 1, "index", "ASC").

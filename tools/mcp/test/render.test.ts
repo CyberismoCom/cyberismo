@@ -42,14 +42,24 @@ describe('renderCard', () => {
     }
   });
 
-  test('includes fields with metadata', () => {
-    expect(Array.isArray(renderedCard.fields)).toBe(true);
-    for (const field of renderedCard.fields) {
+  test('includes fields with metadata, hidden ones without visibility', async () => {
+    const card = await renderCard(ws, 'decision_6');
+    const cardType = await ws.resources.show(card.cardType, 'cardTypes');
+    const shown = [
+      ...cardType.alwaysVisibleFields,
+      ...(cardType.optionallyVisibleFields ?? []),
+    ];
+    expect(card.fields.some((f) => !shown.includes(f.key))).toBe(true);
+    for (const field of card.fields) {
       expect(field.key).toBeDefined();
       expect(field.dataType).toBeDefined();
       expect(typeof field.isCalculated).toBe('boolean');
       expect(typeof field.isEditable).toBe('boolean');
-      expect(['always', 'optional']).toContain(field.visibility);
+      if (shown.includes(field.key)) {
+        expect(['always', 'optional']).toContain(field.visibility);
+      } else {
+        expect(field.visibility).toBeUndefined();
+      }
     }
   });
 

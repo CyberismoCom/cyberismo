@@ -3,6 +3,8 @@
 
 import { z } from 'zod';
 
+export const cardKeyParamSchema = z.object({ key: z.string().min(1) });
+
 const linkDirection = z.enum(['outbound', 'inbound']);
 
 export const createLinkSchema = z.object({
