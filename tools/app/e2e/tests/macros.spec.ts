@@ -982,4 +982,38 @@ test.describe('Field macro', () => {
       'Approved',
     ]);
   });
+
+  test('an inline value in a sentence is edited in a popover', async ({
+    page,
+  }) => {
+    // Authoring is covered above; the sentence is seeded so typing braces
+    // into CodeMirror (which auto-closes them) stays out of this test.
+    await page.request.patch(cardApiPath, {
+      data: {
+        content:
+          'The short text reads {{#field}}"field": "test/fieldTypes/shortText", "display": "inline"{{/field}} today.',
+      },
+    });
+    await page.reload();
+
+    try {
+      const sentence = page.locator('.doc p', {
+        hasText: 'The short text reads',
+      });
+      await sentence.getByTestId('fieldMacroValue').click();
+      const popover = page.getByTestId('fieldMacroPopover');
+      await popover.getByRole('textbox').fill('Edited inline');
+      await popover.getByTestId('fieldSaveButton').click();
+
+      await expect(sentence).toContainText(
+        'The short text reads Edited inline today.',
+      );
+      await expect(panelField(page, 'test/fieldTypes/shortText')).toContainText(
+        'Edited inline',
+      );
+    } finally {
+      // The other tests expect the seeded body.
+      await page.request.patch(cardApiPath, { data: { content: seedContent } });
+    }
+  });
 });

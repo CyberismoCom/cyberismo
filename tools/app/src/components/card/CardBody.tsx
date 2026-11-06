@@ -257,7 +257,7 @@ export const CardBody = forwardRef<CardBodyHandle, CardBodyProps>(
                   </Tooltip>
                 </Box>
                 <Box sx={{ gridArea: 'toolbar', minWidth: 0 }}>
-                  <AsciiDocToolbar view={cmView} />
+                  <AsciiDocToolbar view={cmView} cardKey={card.key} />
                 </Box>
                 <Stack
                   direction="row"
