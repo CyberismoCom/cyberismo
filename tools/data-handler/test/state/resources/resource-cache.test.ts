@@ -149,6 +149,36 @@ describe('Resource cache', () => {
       ).toBe('shortText');
     });
 
+    it('collects the skills of a module', () => {
+      const moduleDir = join(testProjectPath, '.cards', 'modules', 'mod');
+      mkdirSync(join(moduleDir, 'skills', 'review'), { recursive: true });
+      writeFileSync(
+        join(moduleDir, 'cardsConfig.json'),
+        JSON.stringify({ cardKeyPrefix: 'mod', name: 'mod', modules: [] }),
+      );
+      writeFileSync(
+        join(moduleDir, 'skills', 'review.json'),
+        JSON.stringify({
+          name: 'mod/skills/review',
+          displayName: 'Review',
+          relatedTools: [],
+        }),
+      );
+      writeFileSync(
+        join(moduleDir, 'skills', 'review', 'skill.md'),
+        '# Review\n',
+      );
+      writeFileSync(join(moduleDir, 'skills', 'review', 'query.lp'), '');
+
+      checkout.resources.changedModules();
+
+      expect(checkout.resources.exists('mod/skills/review')).toBe(true);
+      expect(
+        checkout.resources.byType('mod/skills/review', 'skills').data
+          ?.displayName,
+      ).toBe('Review');
+    });
+
     it('should get resource by type and name', () => {
       const workflow = checkout.resources.byType(
         'decision/workflows/decision',
