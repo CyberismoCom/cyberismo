@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { basename, dirname, join, normalize } from 'node:path';
-import { mkdir, readdir, readFile, rename, rm } from 'node:fs/promises';
+import { mkdir, readdir, rename, rm } from 'node:fs/promises';
 
 import {
   isContentKey,
@@ -13,7 +13,10 @@ import {
 } from '@cyberismo/model';
 import { formatJson } from '../../shared/utils/json.js';
 import { VALID_FOLDER_RESOURCE_FILES } from '../../shared/utils/constants.js';
-import { writeFileSafe } from '../../shared/utils/file-utils.js';
+import {
+  readFileNoFollow,
+  writeFileSafe,
+} from '../../shared/utils/file-utils.js';
 import { ResourceObject } from './resource-object.js';
 import { resourceName } from '../../shared/utils/resource-utils.js';
 
@@ -103,7 +106,7 @@ export abstract class FolderResource<
     for (const file of files) {
       if (file.isFile() && VALID_FOLDER_RESOURCE_FILES.includes(file.name)) {
         const filePath = join(this.internalFolder, file.name);
-        const content = await readFile(filePath, 'utf-8');
+        const content = (await readFileNoFollow(filePath)).toString('utf-8');
         contentFiles.set(file.name, content);
       }
     }

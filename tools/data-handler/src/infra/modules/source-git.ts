@@ -41,7 +41,7 @@ export class GitSourceLayer implements SourceLayer {
     await mkdir(destRoot, { recursive: true });
     await rm(destinationPath, { recursive: true, force: true });
 
-    const git = createGit({ timeout: gitTimeout() });
+    const git = createGit({ timeout: gitTimeout(), noSymlinks: true });
 
     try {
       await git.clone(
@@ -82,7 +82,7 @@ export class GitSourceLayer implements SourceLayer {
       p = (async () => {
         const dir = await mkdtemp(join(tmpdir(), 'cyb-meta-'));
         try {
-          const git = createGit({ timeout: gitTimeout() });
+          const git = createGit({ timeout: gitTimeout(), noSymlinks: true });
           // All refs, no checkout, blobs lazy. Fall back to a full clone if the
           // server rejects partial clone.
           try {

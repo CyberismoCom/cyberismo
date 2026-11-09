@@ -2,7 +2,9 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { expect, it, describe, beforeEach, afterEach, vi } from 'vitest';
+import { execFileSync } from 'node:child_process';
 import {
+  lstat,
   mkdtemp,
   mkdir,
   writeFile,
@@ -10,7 +12,7 @@ import {
   rename,
   rm,
 } from 'node:fs/promises';
-import { join } from 'node:path';
+import { basename, join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { simpleGit } from 'simple-git';
 
@@ -166,6 +168,38 @@ describe('GitManager', () => {
       const contentAfter = await readFile(filePath, 'utf-8');
       expect(contentAfter).toBe('original');
     });
+
+    it.skipIf(process.platform === 'win32')(
+      'should restore a committed symlink as a symlink',
+      async () => {
+        const outside = join(dir, '..', `${basename(dir)}-outside`);
+        await mkdir(outside, { recursive: true });
+        try {
+          const blob = execFileSync('git', ['hash-object', '-w', '--stdin'], {
+            cwd: dir,
+            input: outside,
+          })
+            .toString()
+            .trim();
+          await gm.commit('Baseline');
+          const git = testGit(dir);
+          await git.raw([
+            'update-index',
+            '--add',
+            '--cacheinfo',
+            `120000,${blob},cardRoot/test_1`,
+          ]);
+          await git.commit('Add link');
+          const link = join(dir, 'cardRoot', 'test_1');
+
+          await gm.rollback();
+
+          expect((await lstat(link)).isSymbolicLink()).toBe(true);
+        } finally {
+          await rm(outside, { recursive: true, force: true });
+        }
+      },
+    );
 
     it('should remove new untracked files', async () => {
       // Create a new untracked file
