@@ -4,6 +4,7 @@
 // node
 import { join, resolve } from 'node:path';
 import { readdirSync } from 'node:fs';
+import { randomUUID } from 'node:crypto';
 
 import { CalculationEngine } from '../engine/calculation-engine.js';
 import { CardKeyRegistry } from '../cards/card-keys.js';
@@ -11,6 +12,7 @@ import { CardTree, type CardTreeChange } from '../cards/card-tree.js';
 import {
   CardNotFoundError,
   DuplicateCardKeyError,
+  WorkspaceDisposedError,
 } from '../../shared/exceptions/index.js';
 import { type CardNode, type ModuleContent } from '@cyberismo/model';
 import { pathExists } from '../../shared/utils/file-utils.js';
@@ -28,6 +30,8 @@ import { GitManager } from '../../infra/git/git-manager.js';
 import { commitTrailers } from '../../infra/tx/tx-record.js';
 import { ChangeFeed, changedAnything } from '../../infra/tx/change-feed.js';
 import { Validate } from '../../domain/validation/validate.js';
+import type { LogicBackendFactory } from '../../infra/logic/logic-backend.js';
+import { clingoLogicBackend } from '../../infra/logic/clingo-backend.js';
 
 import type { TemplateResource } from '../../domain/resources/template-resource.js';
 import type { Level } from 'pino';
@@ -41,11 +45,13 @@ import type { Level } from 'pino';
  *   roll back to the last commit after a failed one.
  * autopush - Also push each autocommit to the remote, in the background.
  *   Requires autocommit; see the note in the constructor.
+ * logic - Makes the logic backend of each opened checkout; clingo when unset.
  */
 export interface CheckoutOptions {
   watchResourceChanges?: boolean;
   autocommit?: boolean;
   autopush?: boolean;
+  logic?: LogicBackendFactory;
 }
 
 /** How a checkout is opened: its options and the level it logs at. */
@@ -63,7 +69,11 @@ export class Checkout {
   public static schemaContentFile = '.schema';
 
   public basePath: string;
-  public readonly lock = new RWLock();
+  // Nothing runs on a disposed checkout, also an operation queued before the
+  // dispose: its logic backend is closed, and a write's files would stay.
+  public readonly lock = new RWLock('Checkout', () => {
+    if (this.disposed) throw new WorkspaceDisposedError();
+  });
   public readonly changeFeed = new ChangeFeed();
   /** Set once the holder has let go of this checkout; nothing may apply into it. */
   public disposed = false;
@@ -110,7 +120,11 @@ export class Checkout {
 
     this.logger.info({ path }, 'Initializing project');
 
-    this.calculationEngine = new CalculationEngine(this);
+    const logic = (this.options.logic ?? clingoLogicBackend)({
+      id: randomUUID(),
+      label: settings.cardKeyPrefix,
+    });
+    this.calculationEngine = new CalculationEngine(this, logic);
     this.projectPaths = new ProjectPaths(path);
     this.resourceHandler = new ResourceHandler(this);
 
@@ -142,10 +156,14 @@ export class Checkout {
 
     this.gitManager = new GitManager(path);
 
-    // Regenerate Clingo facts after every write transaction so that
-    // metadata-only edits (e.g. title changes) are immediately visible.
+    // Registered first, so the logic transaction has ended before the hooks
+    // below rebuild the programs from the files.
+    this.lock.onWriteError(() => this.calculationEngine.abortWrite());
+
+    // Every write ends by committing all programs, rebuilt from the caches,
+    // to the logic backend, which may refuse them.
     this.lock.onAfterWrite(async () => {
-      await this.calculationEngine.generate();
+      await this.calculationEngine.commitWrite();
     });
 
     this.gitSync = new GitSync(this.gitManager);
@@ -213,6 +231,7 @@ export class Checkout {
       watchResourceChanges: options?.watchResourceChanges,
       autocommit: options?.autocommit,
       autopush: options?.autopush,
+      logic: options?.logic,
     });
     const compat = checkout.configuration.checkSchemaVersion();
     if (!compat.isCompatible) {
@@ -517,14 +536,21 @@ export class Checkout {
   }
 
   /**
-   * Cleanups project when it is being closed.
+   * Lets go of the checkout: nothing runs on it from now on, and its logic
+   * backend is closed once the running operation has ended.
    */
   public dispose() {
+    if (this.disposed) return;
     this.disposed = true;
     if (this.resourceWatcher) {
       this.resourceWatcher.close();
       this.resourceWatcher = undefined;
     }
+    void this.lock
+      .exclusive(() => this.calculationEngine.close())
+      .catch((error: unknown) => {
+        this.logger.error({ error }, 'Closing the logic backend failed');
+      });
   }
 
   /**

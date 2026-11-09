@@ -29,7 +29,7 @@ import type {
 import type { MacroMetadata, MacroName } from '@cyberismo/model';
 import type BaseMacro from './base-macro.js';
 import TaskQueue from './task-queue.js';
-import { ClingoError } from '@cyberismo/node-clingo';
+import { LogicError } from '../../infra/logic/logic-backend.js';
 import type { SchemaObject } from 'ajv';
 const CURLY_LEFT = '&#123;';
 const CURLY_RIGHT = '&#125;';
@@ -361,8 +361,8 @@ export function handleMacroError(
     if (dependency) {
       message += `\n\nParameters:\n\n${context.mode === 'validate' ? dependency.parameters : createCodeBlock(dependency.parameters)}.\n\n${dependency.output ? `Output:\n\n${context.mode === 'validate' ? dependency.output : createCodeBlock(dependency.output)}` : ''}`;
     }
-  } else if (error instanceof ClingoError) {
-    message = `Error running logic program in macro '${macro}':${error.details.errors.join('\n')}`;
+  } else if (error instanceof LogicError) {
+    message = `Error running logic program in macro '${macro}':${error.errors.join('\n')}`;
   }
 
   if (

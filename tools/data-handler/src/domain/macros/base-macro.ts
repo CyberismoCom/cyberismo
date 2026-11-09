@@ -10,7 +10,7 @@ import type { MacroMetadata } from '@cyberismo/model';
 import { generateRandomString } from '../../shared/utils/random.js';
 import { MacroError } from '../../shared/exceptions/index.js';
 import type TaskQueue from './task-queue.js';
-import { ClingoError } from '@cyberismo/node-clingo';
+import { LogicError } from '../../infra/logic/logic-backend.js';
 import { getChildLogger } from '../../shared/utils/log-utils.js';
 
 abstract class BaseMacro {
@@ -211,9 +211,7 @@ abstract class BaseMacro {
           err = new Error('Unknown error');
         }
         const message =
-          err instanceof ClingoError
-            ? err.details.errors.join('\n')
-            : err.message;
+          err instanceof LogicError ? err.errors.join('\n') : err.message;
         const error =
           err instanceof MacroError
             ? err

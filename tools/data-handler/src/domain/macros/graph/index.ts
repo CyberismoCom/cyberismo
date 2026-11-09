@@ -6,7 +6,7 @@ import { createImage, validateMacroContent } from '../registry.js';
 import { registerComparisonHelpers } from '../../queries/handlebars-helpers.js';
 import Handlebars from 'handlebars';
 import macroMetadata from '@cyberismo/model/macros/graph/metadata';
-import { ClingoError } from '@cyberismo/node-clingo';
+import { LogicError } from '../../../infra/logic/logic-backend.js';
 
 import type { GraphOptions } from '@cyberismo/model';
 import type { MacroGenerationContext } from '../../../shared/interfaces/macros.js';
@@ -58,9 +58,9 @@ class GraphMacro extends BaseMacro {
         context.context,
       );
     } catch (error) {
-      if (error instanceof ClingoError) {
+      if (error instanceof LogicError) {
         throw new Error(
-          `Error running graph in view '${options.view}' in model '${options.model}': ${error.details.errors.join('\n')}`,
+          `Error running graph in view '${options.view}' in model '${options.model}': ${error.errors.join('\n')}`,
           { cause: error },
         );
       }

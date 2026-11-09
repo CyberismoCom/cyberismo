@@ -1,0 +1,34 @@
+{
+  "name": "@cyberismo/logic-contract",
+  "version": "1.2.0",
+  "private": true,
+  "description": "Contract tests every Cyberismo logic backend must pass",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "clean": "rm -rf dist",
+    "lint": "eslint .",
+    "test": "vitest run"
+  },
+  "license": "AGPL-3.0-only",
+  "homepage": "https://github.com/CyberismoCom/cyberismo",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/CyberismoCom/cyberismo.git"
+  },
+  "bugs": "https://github.com/CyberismoCom/cyberismo/issues",
+  "engines": {
+    "node": ">=22"
+  },
+  "type": "module",
+  "dependencies": {
+    "@cyberismo/data-handler": "workspace:*"
+  },
+  "peerDependencies": {
+    "vitest": "~5.0.5"
+  },
+  "devDependencies": {
+    "vitest": "~5.0.5"
+  }
+}

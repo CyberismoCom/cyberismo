@@ -38,6 +38,26 @@ No relative `import()` in `src/`: it hides a cycle from these rules.
 - A helper several layers need and that touches no project: `shared/`.
 - Tests mirror the source path under `test/`.
 
+## Logic backend
+
+The project's logic programs live in a `LogicBackend` (`infra/logic/`),
+one per opened checkout. The `logic` open option makes it; clingo is the
+default, and its native binding loads on first use. The checkout closes
+it when it is disposed, and a disposed checkout refuses every operation.
+
+- Only the calculation engine calls it. A write's program changes and
+  the queries inside the write go through one transaction; every write
+  ends by replacing all programs and committing them.
+- `check` covers one program at a time (calculation edits, validation,
+  the skip of invalid calculations). Problems of the project as a whole
+  are the commit's to refuse; the write then fails like any failed write.
+- An abort or a refused commit leaves the committed programs as they
+  were. A failed write that changed files rebuilds them from the files:
+  the rollback with autocommit, the reload without it.
+- Logic failures are `LogicError`s (invalid, nonTotal, unavailable,
+  internal). The contract every backend must pass is the private package
+  `tools/logic-contract`.
+
 ## Known debt
 
 - `Modules` (782 lines), `Export` and `Clean` are fat API classes: they

@@ -590,6 +590,16 @@ importers:
         specifier: ^22.1.0
         version: 22.1.0
 
+  tools/logic-contract:
+    dependencies:
+      '@cyberismo/data-handler':
+        specifier: workspace:*
+        version: link:../data-handler
+    devDependencies:
+      vitest:
+        specifier: ~5.0.5
+        version: 5.0.5(@types/node@22.20.5)(@vitest/coverage-v8@5.0.5)(jsdom@30.1.3)(vite@8.3.5(@types/node@22.20.5)(esbuild@0.28.2)(tsx@4.23.15))
+
   tools/mcp:
     dependencies:
       '@asciidoctor/core':
