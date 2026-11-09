@@ -53,11 +53,11 @@ const spec = {
   ],
 };
 
-// The SVG the macro renders in the given context.
-const render = async (context: Context) => {
+// The SVG the macro renders of the spec in the given context.
+const render = async (context: Context, chart: object = spec) => {
   const output = await new VegaMacro(new TaskQueue()).handleStatic(
     { mode: 'static', context, cardKey: '' } as MacroGenerationContext,
-    { spec },
+    { spec: chart },
   );
   const base64 = /base64,([^[]+)\[/.exec(output)![1];
   return Buffer.from(base64, 'base64').toString('utf-8');
@@ -73,6 +73,16 @@ describe('vega macro', () => {
     expect(svg).not.toContain('light-dark');
     expect(svg).not.toContain('currentColor');
   });
+
+  // A card's spec is untrusted, so its colours must not make the export backtrack
+  it('resolves a colour from a card in time however it is written', async () => {
+    const hostile = structuredClone(spec);
+    hostile.scales[1].range = [`light-dark(${' '.repeat(50000)}`, '#fff'];
+
+    await expect(render('exportedDocument', hostile)).resolves.toContain(
+      'fill="#fff"',
+    );
+  }, 5000);
 
   it('leaves CSS colour functions to the browser elsewhere', async () => {
     const svg = await render('exportedSite');

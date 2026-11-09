@@ -15,15 +15,16 @@ import type { VegaMacroInput } from '@cyberismo/model';
 
 // The body text colour of the PDF theme, which 'currentColor' stands for there
 const DOCUMENT_TEXT_COLOR = '#333333';
-// light-dark(<light>, <dark>), where either colour may itself be a function such as rgb()
+// light-dark(<light>, <dark>), where either colour may itself be a function such as rgb().
+// No two parts can match the same character, so matching stays linear on card input.
 const LIGHT_DARK =
-  /light-dark\(\s*((?:[^(),]|\([^()]*\))+?)\s*,(?:[^()]|\([^()]*\))*\)/g;
+  /light-dark\(([^(),]*(?:\([^()]*\)[^(),]*)*),(?:[^()]|\([^()]*\))*\)/g;
 
 // The PDF renderer does not know CSS colour functions and draws them black, so
 // a light page gets the light colour and the theme's text colour.
 function resolveDocumentColors(svg: string) {
   return svg
-    .replace(LIGHT_DARK, '$1')
+    .replace(LIGHT_DARK, (_, light: string) => light.trim())
     .replaceAll('currentColor', DOCUMENT_TEXT_COLOR);
 }
 
