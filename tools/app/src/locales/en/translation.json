@@ -28,6 +28,7 @@
         "include": "Include a card",
         "xref": "Cross reference",
         "createCards": "Create cards",
+        "field": "Field",
         "report": "Report",
         "graph": "Graph"
       }
@@ -85,6 +86,20 @@
         "templatePlaceholder": "Select a template",
         "buttonLabel": "Button text",
         "buttonPlaceholder": "Enter button text"
+      },
+      "field": {
+        "dialogTitle": "Field",
+        "cardLabel": "Card",
+        "cardPlaceholder": "This card",
+        "fieldLabel": "Field",
+        "fieldPlaceholder": "Select a field",
+        "title": "Title",
+        "workflowState": "Workflow state",
+        "displayLabel": "Display",
+        "displayRow": "Row",
+        "displayInline": "Inline",
+        "displayHelp": "Row shows a labelled row like the metadata panel. Inline puts the value in the sentence or table cell.",
+        "showLabel": "Show label"
       },
       "report": {
         "title": "Report",
