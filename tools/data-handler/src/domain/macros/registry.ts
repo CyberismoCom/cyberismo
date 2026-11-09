@@ -31,7 +31,10 @@ import type { MacroMetadata, MacroName } from '@cyberismo/model';
 import type BaseMacro from './base-macro.js';
 import TaskQueue from './task-queue.js';
 import { registerQuotedHelper } from '../queries/handlebars-helpers.js';
-import { isUnavailable, LogicError } from '../../infra/logic/logic-backend.js';
+import {
+  LogicError,
+  LogicUnavailableError,
+} from '../../infra/logic/logic-backend.js';
 import type { SchemaObject } from 'ajv';
 const CURLY_LEFT = '&#123;';
 const CURLY_RIGHT = '&#125;';
@@ -356,7 +359,7 @@ export function handleMacroError(
   context: MacroGenerationContext,
 ): string {
   // Not the macro's failure: the render fails as a whole.
-  if (isUnavailable(error)) {
+  if (error instanceof LogicUnavailableError) {
     throw error;
   }
   let message = `Error: ${error instanceof Error ? error.message : 'Unknown error'}`;

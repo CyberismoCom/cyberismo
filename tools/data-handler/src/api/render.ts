@@ -6,7 +6,7 @@ import type { Checkout } from '../state/checkout/checkout.js';
 import { rewriteAsciidocCardXrefs } from '../domain/macros/index.js';
 import { read } from '../infra/tx/rw-lock.js';
 import { evaluateMacros } from '../domain/macros/index.js';
-import { isUnavailable } from '../infra/logic/logic-backend.js';
+import { LogicUnavailableError } from '../infra/logic/logic-backend.js';
 
 /** The text that stands for content whose macros failed. */
 export function macroErrorText(error: unknown, fallback: string): string {
@@ -39,7 +39,7 @@ export class Render {
         }),
       };
     } catch (error) {
-      if (isUnavailable(error)) throw error;
+      if (error instanceof LogicUnavailableError) throw error;
       return {
         content: macroErrorText(error, fallback),
         error: error instanceof Error ? error.message : 'Unknown error',

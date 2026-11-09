@@ -35,7 +35,7 @@ import { MAX_LEVEL_OFFSET, ROOT } from '../../../src/shared/utils/constants.js';
 import type { Card } from '@cyberismo/model';
 import type { MacroGenerationContext } from '../../../src/shared/interfaces/macros.js';
 import { CardNotFoundError } from '../../../src/shared/exceptions/index.js';
-import { LogicError } from '../../../src/infra/logic/logic-backend.js';
+import { LogicUnavailableError } from '../../../src/infra/logic/logic-backend.js';
 import type { Mode } from '../../../src/shared/interfaces/macros.js';
 
 const baseDir = import.meta.dirname;
@@ -531,7 +531,7 @@ Some content here`;
       });
       it('fails the render when the logic backend cannot answer', async () => {
         const run = stub(checkout.calculationEngine, 'runLogicProgram').rejects(
-          new LogicError('unavailable', 'The logic backend is closed'),
+          new LogicUnavailableError('The logic backend is closed'),
         );
         try {
           for (const mode of ['static', 'inject'] as const) {
@@ -540,7 +540,7 @@ Some content here`;
                 `{{#report}}"name": "decision/reports/testReport", "key3": "key"{{/report}}`,
                 { mode, checkout, cardKey: 'decision_5', context: 'localApp' },
               ),
-            ).rejects.toMatchObject({ kind: 'unavailable' });
+            ).rejects.toThrow(LogicUnavailableError);
           }
         } finally {
           run.restore();
@@ -548,7 +548,7 @@ Some content here`;
       });
       it("keeps a nested macro's unavailable backend as the error of the macro around it", async () => {
         const tasks = new TaskQueue();
-        const unavailable = new LogicError('unavailable', 'Backend down');
+        const unavailable = new LogicUnavailableError('Backend down');
         const context: MacroGenerationContext = {
           mode: 'static',
           checkout,
@@ -571,7 +571,7 @@ Some content here`;
     describe('graphMacro', () => {
       it('fails the render when the logic backend cannot answer', async () => {
         const run = stub(checkout.calculationEngine, 'runGraph').rejects(
-          new LogicError('unavailable', 'The logic backend is closed'),
+          new LogicUnavailableError('The logic backend is closed'),
         );
         try {
           await expect(
@@ -584,7 +584,7 @@ Some content here`;
                 context: 'localApp',
               },
             ),
-          ).rejects.toMatchObject({ kind: 'unavailable' });
+          ).rejects.toThrow(LogicUnavailableError);
         } finally {
           run.restore();
         }

@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { Hono } from 'hono';
-import { DomainError, LogicError } from '@cyberismo/data-handler';
 import { ssgParams } from 'hono/ssg';
 import * as resourceService from './service.js';
 import type { AppContext, ResourceValidationResponse } from '../../types.js';
@@ -17,7 +16,6 @@ import {
   workflowGraphQuerySchema,
 } from './schema.js';
 import { requireRole } from '../../middleware/auth.js';
-import { errorBody } from '../../common/errors.js';
 
 const router = new Hono();
 
@@ -228,9 +226,20 @@ router.get(
  *                   type: string
  *                   description: The rendered skill content as markdown.
  *       400:
- *         description: Invalid path parameters, or the query or template failed
+ *         description: Invalid path parameters, a query that is not a valid
+ *                      logic program (code `logic-invalid`), or a template
+ *                      that does not render
  *       404:
  *         description: Skill or card not found
+ *       422:
+ *         description: The query has no total answer (code `logic-non-total`)
+ *       500:
+ *         description: The project's stored logic programs fail to parse or
+ *                      ground (code `logic-internal`)
+ *       503:
+ *         description: The logic backend cannot answer now (code
+ *                      `logic-unavailable`); retry after the Retry-After
+ *                      header's seconds
  */
 router.post(
   '/:prefix/skills/:identifier/preview',
@@ -242,25 +251,12 @@ router.post(
     const { prefix, identifier } = c.req.valid('param');
     const body = c.req.valid('json');
     const skillName = `${prefix}/skills/${identifier}`;
-    try {
-      const instructions = await resourceService.previewSkill(
-        ws,
-        skillName,
-        body,
-      );
-      return c.json({ instructions });
-    } catch (error) {
-      // Typed errors (a missing skill or card) take the central status; an
-      // untyped one, or a logic failure, is the query or template failing to
-      // render: a 400.
-      if (
-        (error instanceof DomainError && !(error instanceof LogicError)) ||
-        !(error instanceof Error)
-      ) {
-        throw error;
-      }
-      return c.json(errorBody('validation', error.message), 400);
-    }
+    const instructions = await resourceService.previewSkill(
+      ws,
+      skillName,
+      body,
+    );
+    return c.json({ instructions });
   },
 );
 

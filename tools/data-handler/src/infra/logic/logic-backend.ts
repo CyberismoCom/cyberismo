@@ -15,16 +15,16 @@ import { DomainError } from '../../shared/exceptions/index.js';
  * The backend promises:
  * - `LogicTransaction.query` sees the transaction's changes;
  *   `LogicBackend.query` sees the committed programs.
- * - A query without a total answer fails with kind `nonTotal`.
+ * - A query without a total answer fails with `LogicNonTotalError`.
  * - A failed `LogicTransaction.query` leaves the transaction open.
  * - `abort`, and a `commit` that refuses, leave the committed programs as
  *   they were. A refused commit refuses only the programs; whether the
  *   write's files are kept is the caller's choice (without autocommit they
  *   are, and it rebuilds the programs from them).
  * - `check` never waits for an open transaction.
- * - It fails with `LogicError`s; one that cannot serve now fails with kind
- *   `unavailable`, as does every call after `close`. Closing again does
- *   nothing.
+ * - It fails with `LogicError`s; one that cannot serve now fails with
+ *   `LogicUnavailableError`, as does every call after `close`. Closing
+ *   again does nothing.
  */
 export interface LogicBackend {
   /** Opens the write transaction. */
@@ -55,7 +55,8 @@ export interface LogicTransaction {
   query(text: string): Promise<QueryResult>;
   /**
    * Makes the changes the committed programs, or refuses them, for example
-   * with kind `nonTotal` when they take the project's total answer away.
+   * with `LogicNonTotalError` when they take the project's total answer
+   * away.
    * Ends the transaction either way.
    */
   commit(options?: CommitOptions): Promise<void>;
@@ -75,7 +76,7 @@ export interface Program {
 
 /**
  * The answer to a query: its shown atoms, one per line. A query without a
- * total answer fails with kind `nonTotal` instead.
+ * total answer fails with `LogicNonTotalError` instead.
  */
 export interface QueryResult {
   answers: string[];
@@ -106,29 +107,17 @@ export interface LogicBackendOwner {
 export type LogicBackendFactory = (owner: LogicBackendOwner) => LogicBackend;
 
 /**
- * Why a logic backend failed:
- * - invalid: a program or a query is wrong (see the diagnostics);
- * - nonTotal: the result has no single total answer (a sample of the
- *   undecided atoms in the diagnostics);
- * - unavailable: the backend cannot answer now; the caller retries later;
- * - internal: anything else.
+ * A failure of a logic backend, whichever backend it is; one subclass per
+ * reason, each with its own error code.
  */
-export type LogicErrorKind =
-  'invalid' | 'nonTotal' | 'unavailable' | 'internal';
-
-/** A failure of a logic backend, whichever backend it is. */
-export class LogicError extends DomainError {
-  readonly code = 'logic';
-
+export abstract class LogicError extends DomainError {
   constructor(
-    public readonly kind: LogicErrorKind,
     message: string,
     public readonly diagnostics: Diagnostic[] = [],
     options?: ErrorOptions,
   ) {
     super(message, options);
-    this.name = 'LogicError';
-    this.details = { kind, diagnostics };
+    this.details = { diagnostics };
   }
 
   /** The messages of the error diagnostics, or the error's own message. */
@@ -140,7 +129,41 @@ export class LogicError extends DomainError {
   }
 }
 
-/** Whether `error` is a logic backend that cannot answer now. */
-export function isUnavailable(error: unknown): error is LogicError {
-  return error instanceof LogicError && error.kind === 'unavailable';
+/** A program or a query is wrong (see the diagnostics). */
+export class LogicInvalidError extends LogicError {
+  readonly code = 'logic-invalid';
+  override name = 'LogicInvalidError';
+}
+
+/**
+ * The result has no single total answer (a sample of the undecided atoms in
+ * the diagnostics).
+ */
+export class LogicNonTotalError extends LogicError {
+  readonly code = 'logic-non-total';
+  override name = 'LogicNonTotalError';
+}
+
+/** The backend cannot answer now; the caller retries later. */
+export class LogicUnavailableError extends LogicError {
+  readonly code = 'logic-unavailable';
+  override name = 'LogicUnavailableError';
+}
+
+/**
+ * Any other failure. Its diagnostics stay on the error, for the log, but out
+ * of its details: they are about the project's programs, not the caller's.
+ */
+export class LogicInternalError extends LogicError {
+  readonly code = 'logic-internal';
+  override name = 'LogicInternalError';
+
+  constructor(
+    message: string,
+    diagnostics: Diagnostic[] = [],
+    options?: ErrorOptions,
+  ) {
+    super(message, diagnostics, options);
+    this.details = undefined;
+  }
 }

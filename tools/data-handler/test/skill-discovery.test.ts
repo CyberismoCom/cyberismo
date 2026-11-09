@@ -10,6 +10,7 @@ import { type Workspace } from '../src/api/workspace.js';
 import { copyDir } from '../src/shared/utils/file-utils.js';
 import { openTestWorkspace } from './helpers/open-test-workspace.js';
 import { checkoutOf } from '../src/state/checkout/internal.js';
+import { DHValidationError } from '../src/shared/exceptions/index.js';
 
 const baseDir = import.meta.dirname;
 const testDir = join(baseDir, 'tmp-skill-discovery-tests');
@@ -80,6 +81,8 @@ describe('skill discovery', () => {
       category: 'compliance',
       content: '# Compliance skill\n',
     });
+    // Stored with a template that does not render; never enabled.
+    await seedSkill('brokenSkill', { content: '{{#each results}}unclosed' });
     await seedSkill('cardSkill', {
       query: 'result({{cardKey}}).\n',
       content: '# Card skill\nApplies to {{cardKey}}.\n',
@@ -301,12 +304,43 @@ describe('skill discovery', () => {
       ).rejects.toThrow();
     });
 
-    it('surfaces an error from a broken query', async () => {
+    it('types a template that does not render as a validation error', async () => {
+      const error = await ws.resources
+        .skillPreview('decision/skills/globalSkill', {
+          skillContent: '{{#each results}}unclosed',
+        })
+        .catch((error: unknown) => error);
+
+      expect(error).toBeInstanceOf(DHValidationError);
+      expect(error).toMatchObject({ code: 'validation' });
+    });
+
+    it("fails a stored template that does not render as the project's fault, not a validation error", async () => {
+      const error = await ws.resources
+        .skillPreview('decision/skills/brokenSkill')
+        .catch((error: unknown) => error);
+
+      expect(error).toBeInstanceOf(Error);
+      expect(error).not.toBeInstanceOf(DHValidationError);
+    });
+
+    it('fails an unsaved query with no answer as without a total answer', async () => {
       await expect(
         ws.resources.skillPreview('decision/skills/globalSkill', {
-          skillQuery: 'this is not a logic program',
+          skillQuery: 'a :- not a.',
         }),
-      ).rejects.toThrow();
+      ).rejects.toMatchObject({ code: 'logic-non-total' });
+    });
+
+    it('fails an unsaved query that reports an error as invalid', async () => {
+      await expect(
+        ws.resources.skillPreview('decision/skills/globalSkill', {
+          skillQuery: 'result(decision_5).\norderBy("title").',
+        }),
+      ).rejects.toMatchObject({
+        code: 'logic-invalid',
+        message: expect.stringContaining('Ordering direction missing'),
+      });
     });
   });
 });

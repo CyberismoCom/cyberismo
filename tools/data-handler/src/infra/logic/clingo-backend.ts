@@ -3,7 +3,10 @@
 
 import type * as NodeClingo from '@cyberismo/node-clingo';
 import {
-  LogicError,
+  LogicInternalError,
+  LogicInvalidError,
+  LogicNonTotalError,
+  LogicUnavailableError,
   type Diagnostic,
   type LogicBackend,
   type LogicBackendFactory,
@@ -43,7 +46,7 @@ function diagnostics(
  * admits no other caller during a write; abort puts back the programs the
  * transaction changed. Nothing is refused at commit, which would solve the
  * whole project on every write; a query without an answer set fails as
- * nonTotal.
+ * non-total.
  */
 class ClingoBackend implements LogicBackend {
   private context?: NodeClingo.ClingoContext;
@@ -58,7 +61,7 @@ class ClingoBackend implements LogicBackend {
 
   private available() {
     if (this.closed) {
-      throw new LogicError('unavailable', 'The logic backend is closed');
+      throw new LogicUnavailableError('The logic backend is closed');
     }
   }
 
@@ -72,13 +75,13 @@ class ClingoBackend implements LogicBackend {
   async begin(): Promise<LogicTransaction> {
     const ctx = await this.ctx();
     if (this.open) {
-      throw new LogicError('internal', 'A logic transaction is already open');
+      throw new LogicInternalError('A logic transaction is already open');
     }
     this.open = true;
     let ended = false;
     const live = () => {
       if (ended) {
-        throw new LogicError('internal', 'The logic transaction has ended');
+        throw new LogicInternalError('The logic transaction has ended');
       }
     };
     const end = () => {
@@ -139,8 +142,7 @@ class ClingoBackend implements LogicBackend {
     const { answers } = await this.solve(text, [ALL]);
     // Without an answer set there is no total answer.
     if (answers.length === 0) {
-      throw new LogicError(
-        'nonTotal',
+      throw new LogicNonTotalError(
         'The logic programs have no answer for the query',
       );
     }
@@ -186,8 +188,7 @@ class ClingoBackend implements LogicBackend {
           error.details.program && error.details.program !== QUERY_PROGRAM
             ? error.details.program
             : undefined;
-        throw new LogicError(
-          'invalid',
+        throw new LogicInvalidError(
           error.message,
           diagnostics(error.details.errors, error.details.warnings, key),
           { cause: error },

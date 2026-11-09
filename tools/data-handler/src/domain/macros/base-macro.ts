@@ -10,7 +10,10 @@ import type { MacroMetadata } from '@cyberismo/model';
 import { generateRandomString } from '../../shared/utils/random.js';
 import { MacroError } from '../../shared/exceptions/index.js';
 import type TaskQueue from './task-queue.js';
-import { isUnavailable, LogicError } from '../../infra/logic/logic-backend.js';
+import {
+  LogicError,
+  LogicUnavailableError,
+} from '../../infra/logic/logic-backend.js';
 import { getChildLogger } from '../../shared/utils/log-utils.js';
 
 abstract class BaseMacro {
@@ -141,7 +144,7 @@ abstract class BaseMacro {
         for (const dependency of dependencies) {
           if (dependency.error) {
             const task = this.findTask(this.globalId, localId);
-            if (isUnavailable(dependency.error)) {
+            if (dependency.error instanceof LogicUnavailableError) {
               if (task) task.error = dependency.error;
             } else if (task) {
               // There could be a better way, but multi-nested macros are rare
@@ -215,7 +218,7 @@ abstract class BaseMacro {
         const message =
           err instanceof LogicError ? err.errors.join('\n') : err.message;
         const error =
-          err instanceof MacroError || isUnavailable(err)
+          err instanceof MacroError || err instanceof LogicUnavailableError
             ? err
             : new MacroError(
                 message,

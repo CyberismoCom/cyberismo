@@ -69,12 +69,15 @@ export { SYSTEM_ACTOR, type CommitIdentity } from './infra/tx/tx-record.js';
 export { createGit } from './infra/git/git-config.js';
 export {
   LogicError,
+  LogicInternalError,
+  LogicInvalidError,
+  LogicNonTotalError,
+  LogicUnavailableError,
   type CommitOptions,
   type Diagnostic,
   type LogicBackend,
   type LogicBackendFactory,
   type LogicBackendOwner,
-  type LogicErrorKind,
   type LogicTransaction,
   type Program,
   type QueryResult as LogicQueryResult,

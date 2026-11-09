@@ -170,12 +170,23 @@ test('preview returns 404 for an unknown card', async () => {
   expect(response.status).toBe(404);
 });
 
-test('preview returns 400 with the error when the query is broken', async () => {
+test('preview returns 400 with the error and its diagnostics when the query is broken', async () => {
   await createSkill();
   const response = await preview({
     skillContent: 'anything',
-    skillQuery: 'this is not a logic program',
+    skillQuery: '#const limit = 1. #const limit = 2.',
   });
+  expect(response.status).toBe(400);
+
+  const result = await previewBody(response);
+  expect(result.error).toBeTruthy();
+  expect(result).toMatchObject({ code: 'logic-invalid' });
+  expect(JSON.stringify(result)).toContain('redefinition of constant');
+});
+
+test('preview returns 400 with the error when the template is broken', async () => {
+  await createSkill();
+  const response = await preview({ skillContent: '{{#each results}}unclosed' });
   expect(response.status).toBe(400);
 
   const result = await previewBody(response);

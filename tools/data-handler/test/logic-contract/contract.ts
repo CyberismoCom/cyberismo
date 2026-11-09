@@ -2,12 +2,12 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { afterEach, describe, expect, it } from 'vitest';
-import {
+import type {
+  Diagnostic,
+  LogicBackend,
   LogicError,
-  type Diagnostic,
-  type LogicBackend,
-  type Program,
-  type QueryResult,
+  Program,
+  QueryResult,
 } from '../../src/infra/logic/logic-backend.js';
 
 // Leaves the programs without a total answer while p(1) holds: no answer set
@@ -30,6 +30,14 @@ const atoms = (result: QueryResult) =>
 
 const errorsOf = (diagnostics: Diagnostic[]) =>
   diagnostics.filter((diagnostic) => diagnostic.severity === 'error');
+
+// A logic failure is told by its code, not its class: a backend in another
+// package throws the classes of its own copy of data-handler.
+const logicFailure = (code?: string) => ({
+  code:
+    code ??
+    expect.stringMatching(/^logic-(invalid|non-total|unavailable|internal)$/),
+});
 
 const failure = (call: Promise<unknown>) =>
   call.then(
@@ -138,23 +146,23 @@ export function describeLogicBackendContract(
       const refused = await failure(tx.commit());
       if (backendOptions.refusesNonTotal) {
         // The committed programs stay as they were.
-        expect(refused).toBeInstanceOf(LogicError);
+        expect(refused).toMatchObject(logicFailure());
         expect(await show(logic)).toEqual(['p(1)']);
       } else {
         // The result is kept, so its queries have no total answer.
         expect(refused).toBe(undefined);
-        const error = await failure(logic.query('#show p/1.'));
-        expect(error).toBeInstanceOf(LogicError);
-        expect((error as LogicError).kind).toBe('nonTotal');
+        expect(await failure(logic.query('#show p/1.'))).toMatchObject(
+          logicFailure('logic-non-total'),
+        );
       }
     });
 
     it('opens one transaction at a time, and refuses one that has ended', async () => {
       const logic = await holding();
       const tx = await logic.begin();
-      expect(await failure(logic.begin())).toBeInstanceOf(LogicError);
+      expect(await failure(logic.begin())).toMatchObject(logicFailure());
       await tx.commit();
-      expect(await failure(tx.commit())).toBeInstanceOf(LogicError);
+      expect(await failure(tx.commit())).toMatchObject(logicFailure());
       await (await logic.begin()).abort();
     });
 
@@ -162,8 +170,8 @@ export function describeLogicBackendContract(
       const logic = await holding([knowledge('p', 'p(1).')]);
       const tx = await logic.begin();
       tx.set([knowledge('q', 'p(2).')]);
-      expect(await failure(tx.query('result(X :- '))).toBeInstanceOf(
-        LogicError,
+      expect(await failure(tx.query('result(X :- '))).toMatchObject(
+        logicFailure(),
       );
       await tx.commit();
       expect(await show(logic)).toEqual(['p(1)', 'p(2)']);
@@ -172,21 +180,19 @@ export function describeLogicBackendContract(
     it('fails a query that does not parse as invalid, with diagnostics', async () => {
       const logic = await holding([knowledge('p', 'p(1).')]);
       const error = await failure(logic.query('result(X :- '));
-      expect(error).toBeInstanceOf(LogicError);
-      expect((error as LogicError).kind).toBe('invalid');
+      expect(error).toMatchObject(logicFailure('logic-invalid'));
       expect(errorsOf((error as LogicError).diagnostics)).not.toEqual([]);
     });
 
-    it('fails a query as nonTotal on programs kept without a total answer', async () => {
+    it('fails a query as non-total on programs kept without a total answer', async () => {
       const logic = await holding([
         knowledge('p', `p(1). ${UNDEFINED_WITH_P1}`),
       ]);
       const error = await failure(logic.query('#show p/1.'));
-      expect(error).toBeInstanceOf(LogicError);
-      expect((error as LogicError).kind).toBe('nonTotal');
+      expect(error).toMatchObject(logicFailure('logic-non-total'));
       const tx = await logic.begin();
       const inTransaction = await failure(tx.query('#show p/1.'));
-      expect((inTransaction as LogicError).kind).toBe('nonTotal');
+      expect(inTransaction).toMatchObject(logicFailure('logic-non-total'));
       await tx.abort();
     });
 
@@ -243,8 +249,7 @@ export function describeLogicBackendContract(
       ];
       for (const call of calls) {
         const error = await failure(call());
-        expect(error).toBeInstanceOf(LogicError);
-        expect((error as LogicError).kind).toBe('unavailable');
+        expect(error).toMatchObject(logicFailure('logic-unavailable'));
       }
     });
   });

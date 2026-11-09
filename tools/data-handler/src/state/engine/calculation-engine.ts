@@ -42,10 +42,13 @@ import {
   createTemplateFacts,
   createWorkflowFacts,
 } from './clingo-facts.js';
-import type {
-  LogicBackend,
-  LogicTransaction,
-  Program,
+import {
+  LogicInternalError,
+  LogicInvalidError,
+  LogicNonTotalError,
+  type LogicBackend,
+  type LogicTransaction,
+  type Program,
 } from '../../infra/logic/logic-backend.js';
 import { generateReportContent } from '../../domain/queries/report.js';
 import { lpFiles, graphvizReport } from '@cyberismo/assets';
@@ -244,25 +247,68 @@ export class CalculationEngine {
   }
 
   // Solves the query with the write's changes when a write has made any.
-  private async run(query: string, context: Context): Promise<string[]> {
+  // A failure of a query the request supplied stays what it is, with the
+  // diagnostics, unless the stored programs fail without it: then, as when a
+  // project query fails to parse or ground, it is internal.
+  private async run(
+    query: string,
+    context: Context,
+    requested = false,
+  ): Promise<string[]> {
     try {
       this.logger.trace({ clingo: true }, 'Solving');
       // Inline context facts into the query string to avoid race conditions
       // (concurrent reads could overwrite each other's 'context' program key)
-      const text = createContextFacts(context) + '\n' + query;
-      const result = this.tx
-        ? await (await this.tx).query(text)
-        : await this.backend.query(text);
-      return result.answers;
+      return await this.solve(createContextFacts(context) + '\n' + query);
     } catch (error) {
-      this.logger.error(
-        {
-          error,
-          query,
-        },
-        'Clingo solve failed',
-      );
-      throw error;
+      const failure = await this.failureOf(error, context, requested);
+      // The request's own mistake is no failure of the server.
+      if (
+        requested &&
+        (failure instanceof LogicInvalidError ||
+          failure instanceof LogicNonTotalError)
+      ) {
+        this.logger.debug({ error: failure, query }, 'Requested query failed');
+      } else {
+        this.logger.error({ error: failure, query }, 'Clingo solve failed');
+      }
+      throw failure;
+    }
+  }
+
+  // Solves the text in the write's transaction if one is open.
+  private async solve(text: string): Promise<string[]> {
+    const result = this.tx
+      ? await (await this.tx).query(text)
+      : await this.backend.query(text);
+    return result.answers;
+  }
+
+  // What a failed query fails as: an invalid one is internal unless the
+  // request supplied it and the stored programs are not at fault.
+  private async failureOf(
+    error: unknown,
+    context: Context,
+    requested: boolean,
+  ): Promise<unknown> {
+    if (!(error instanceof LogicInvalidError)) {
+      return error;
+    }
+    if (requested && !(await this.storedProgramsInvalid(context))) {
+      return error;
+    }
+    return new LogicInternalError(error.message, error.diagnostics, {
+      cause: error,
+    });
+  }
+
+  // Whether the stored programs fail to parse or ground on their own.
+  private async storedProgramsInvalid(context: Context): Promise<boolean> {
+    try {
+      await this.solve(createContextFacts(context));
+      return false;
+    } catch (error) {
+      return error instanceof LogicInvalidError;
     }
   }
 
@@ -444,10 +490,19 @@ export class CalculationEngine {
    * Runs a logic program using clingo.
    * @param query Logic program to be run
    * @param context In which type of context the query is run.
+   * @param requested Whether the query comes with the request rather than
+   *   from the project; only then does a failure stay what it is (invalid,
+   *   or non-total when there is no total answer) with the diagnostics,
+   *   unless the stored programs fail without the query. Otherwise an
+   *   invalid one fails as internal.
    * @returns parsed program output
    */
-  public async runLogicProgram(query: string, context: Context = 'localApp') {
-    const clingoOutput = await this.run(query, context);
+  public async runLogicProgram(
+    query: string,
+    context: Context = 'localApp',
+    requested = false,
+  ) {
+    const clingoOutput = await this.run(query, context, requested);
     return this.parseClingoResult(clingoOutput);
   }
 

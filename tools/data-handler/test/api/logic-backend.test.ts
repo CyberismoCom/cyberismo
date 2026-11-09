@@ -7,6 +7,8 @@ import { localFolder } from '../../src/api/directory/local-folder.js';
 import { clingoLogicBackend } from '../../src/infra/logic/clingo-backend.js';
 import {
   LogicError,
+  LogicNonTotalError,
+  LogicUnavailableError,
   type LogicBackend,
   type LogicBackendFactory,
   type LogicBackendOwner,
@@ -205,11 +207,11 @@ describe('logic backend', () => {
 
   it('fails a write whose result the backend refuses, and rebuilds once from the files', async () => {
     const { ws, made, key } = await open();
-    made[0].refuseCommit = new LogicError('nonTotal', 'No total answer');
+    made[0].refuseCommit = new LogicNonTotalError('No total answer');
     const rebuilds = made[0].rebuilds;
 
     await expect(ws.cards.editField(key, 'title', 'Second')).rejects.toThrow(
-      expect.objectContaining({ kind: 'nonTotal' }),
+      LogicNonTotalError,
     );
 
     // Rebuilt from the files, which keep the edit without autocommit.
@@ -221,7 +223,7 @@ describe('logic backend', () => {
 
   it('keeps the programs of a refused write that changed nothing, without a rebuild', async () => {
     const { ws, made, key } = await open();
-    made[0].refuseCommit = new LogicError('nonTotal', 'No total answer');
+    made[0].refuseCommit = new LogicNonTotalError('No total answer');
     const rebuilds = made[0].rebuilds;
 
     await expect(ws.cards.rebalance(key)).rejects.toThrow(LogicError);
@@ -272,7 +274,7 @@ describe('logic backend', () => {
 
   it('fails a render, not a macro, when the backend cannot answer', async () => {
     const { ws, made, key } = await open();
-    const unavailable = new LogicError('unavailable', 'Backend down');
+    const unavailable = new LogicUnavailableError('Backend down');
     made[0].failQueries = unavailable;
 
     await expect(
@@ -293,7 +295,7 @@ describe('logic backend', () => {
       key,
       `{{#field}}"cardKey": "${key}", "field": "title"{{/field}}`,
     );
-    const unavailable = new LogicError('unavailable', 'Backend down');
+    const unavailable = new LogicUnavailableError('Backend down');
     // The backend goes down once the export has its tree.
     const engine = checkoutOf(ws).calculationEngine;
     const runQuery = engine.runQuery.bind(engine);
@@ -315,7 +317,7 @@ describe('logic backend', () => {
     );
     const git = simpleGit(path);
     const head = await git.revparse(['HEAD']);
-    made[0].refuseCommit = new LogicError('nonTotal', 'No total answer');
+    made[0].refuseCommit = new LogicNonTotalError('No total answer');
 
     await expect(ws.cards.editField(key, 'title', 'Second')).rejects.toThrow(
       LogicError,

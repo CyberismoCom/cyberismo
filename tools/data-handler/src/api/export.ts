@@ -26,7 +26,7 @@ import { read } from '../infra/tx/rw-lock.js';
 import { sortItems } from '../shared/utils/lexorank.js';
 import { exportedTree } from '../shared/utils/card-utils.js';
 import { findCard } from '../domain/cards/index.js';
-import { isUnavailable } from '../infra/logic/logic-backend.js';
+import { LogicUnavailableError } from '../infra/logic/logic-backend.js';
 
 // The document the PDF is rendered from.
 type PdfDocument = Omit<ExportPdfOptions, 'date'> & { date?: Date };
@@ -337,7 +337,7 @@ export class Export {
         },
       );
     } catch (error) {
-      if (isUnavailable(error)) throw error;
+      if (error instanceof LogicUnavailableError) throw error;
       asciiDocContent = `Macro error: ${error instanceof Error ? error.message : 'Unknown error'}\n\n${asciiDocContent}`;
     }
 

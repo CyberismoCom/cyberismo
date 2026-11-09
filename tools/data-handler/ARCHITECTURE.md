@@ -55,9 +55,17 @@ from then on the checkout refuses every read and write.
 - An abort or a refused commit leaves the committed programs as they
   were. A failed write that changed files rebuilds them from the files:
   the rollback with autocommit, the reload without it.
-- Logic failures are `LogicError`s (invalid, nonTotal, unavailable,
-  internal); a query without a total answer fails as nonTotal. The contract every backend must pass is the suite in
-  `test/logic-contract/contract.ts`, which runs on clingo in
+- Logic failures are `LogicError`s, one subclass and error code per
+  reason: `LogicInvalidError` (`logic-invalid`), `LogicNonTotalError`
+  (`logic-non-total`), `LogicUnavailableError` (`logic-unavailable`) and
+  `LogicInternalError` (`logic-internal`); a query without a total answer
+  fails as non-total. A failure of a query the request supplied stays
+  what it is, with its diagnostics, unless the stored programs fail
+  without the query. A project or built-in query that is invalid fails as
+  internal, as does a supplied one the stored programs fail; an internal
+  failure keeps its diagnostics out of its details. Nothing else imports
+  `@cyberismo/node-clingo`. The contract every backend must pass is the
+  suite in `test/logic-contract/contract.ts`, which runs on clingo in
   data-handler's tests; another backend's tests import it by path.
 
 ## Known debt
