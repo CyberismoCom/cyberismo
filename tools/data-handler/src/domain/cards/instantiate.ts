@@ -20,6 +20,7 @@ import {
 } from '../../shared/utils/constants.js';
 import { findCard } from './read.js';
 import { runCreationSideEffects } from './transition.js';
+import { ResourceNotFoundError } from '../../shared/exceptions/index.js';
 
 import type { Card, CardAttachment, CardMetadata } from '@cyberismo/model';
 import type { CardTree, NewCard } from '../../state/cards/card-tree.js';
@@ -50,7 +51,10 @@ export async function addCards(
   const specificCard = card ? templateResource.cardTree.card(card) : undefined;
 
   if (!templateResource.isCreated()) {
-    throw new Error(`Template '${templateResource.fullName}' does not exist`);
+    throw new ResourceNotFoundError(
+      templateResource.fullName,
+      `Template '${templateResource.fullName}' does not exist`,
+    );
   }
 
   const cardsContainer = await addTemplateCards(
@@ -84,14 +88,18 @@ export async function createCard(
     checkout.allModulePrefixes(),
   );
 
+  // Checked before validate(), which reads a missing template as invalid content.
+  if (!templateResource.isCreated()) {
+    throw new ResourceNotFoundError(
+      templateName,
+      `Template '${templateName}' not found from project`,
+    );
+  }
   await templateResource.validate();
 
   const specificCard = parentCardKey
     ? findCard(checkout, parentCardKey)
     : undefined;
-  if (!templateResource.isCreated()) {
-    throw new Error(`Template '${templateName}' not found from project`);
-  }
 
   const createdCards = await instantiateTemplate(
     checkout,

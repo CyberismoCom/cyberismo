@@ -32,6 +32,7 @@ export {
 };
 
 export {
+  AttachmentNotFoundError,
   CardNotFoundError,
   ContainerMismatchError,
   CycleError,

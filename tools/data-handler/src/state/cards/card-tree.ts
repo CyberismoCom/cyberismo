@@ -23,6 +23,7 @@ import type {
   Link,
 } from '@cyberismo/model';
 import {
+  AttachmentNotFoundError,
   CardNotFoundError,
   CycleError,
   ReadOnlyContainerError,
@@ -1064,7 +1065,7 @@ export class CardTree {
       await unlink(attachmentPath);
     } catch (error) {
       CardTree.logger.error({ error }, 'Removing card attachment');
-      throw new Error(`Attachment not found: ${fileName}`, { cause: error });
+      throw new AttachmentNotFoundError(cardKey, fileName, { cause: error });
     }
 
     const card = this.stored(cardKey);
@@ -1095,7 +1096,7 @@ export class CardTree {
       (item) => item.fileName === fileName,
     );
     if (!attachment) {
-      throw new Error(`Attachment not found: ${fileName}`);
+      throw new AttachmentNotFoundError(cardKey, fileName);
     }
     if (fileName === newFileName) {
       return;
