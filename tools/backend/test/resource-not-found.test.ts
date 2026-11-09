@@ -97,5 +97,9 @@ test.each([
     },
   );
   expect(response.status).toBe(404);
-  expect(await response.json()).toEqual({ error });
+  expect(await response.json()).toMatchObject({
+    error,
+    code: 'not-found',
+    message: error,
+  });
 });

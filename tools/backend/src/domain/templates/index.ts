@@ -32,17 +32,8 @@ router.get('/', requireRole(UserRole.Reader), async (c) => {
   }
   const ws = c.get('ws');
 
-  try {
-    const response = await templateService.getTemplatesWithDetails(ws);
-    return c.json(response);
-  } catch (error) {
-    return c.json(
-      {
-        error: `${error instanceof Error ? error.message : 'Unknown error'} from path ${c.get('projectPath')}`,
-      },
-      500,
-    );
-  }
+  const response = await templateService.getTemplatesWithDetails(ws);
+  return c.json(response);
 });
 
 /**

@@ -465,8 +465,8 @@ export async function listWorkflowGraphParams(
  * highlighted state matches the diagram even if the card is being
  * transitioned concurrently.
  * @returns base64-encoded sanitized SVG.
- * @throws Error with 'not found' in the message when the workflow or
- *   card cannot be resolved.
+ * @throws ResourceNotFoundError or CardNotFoundError when the workflow or
+ *   card is not in the project.
  */
 export async function getWorkflowGraph(
   ws: Workspace,
@@ -474,28 +474,11 @@ export async function getWorkflowGraph(
   cardKey?: string,
 ): Promise<string> {
   return ws.consistent(async () => {
-    try {
-      await ws.resources.show(workflowName, 'workflows');
-    } catch (error) {
-      if (error instanceof ResourceNotFoundError) {
-        throw new Error(`Workflow '${workflowName}' not found`, {
-          cause: error,
-        });
-      }
-      throw error;
-    }
+    await ws.resources.show(workflowName, 'workflows');
     let currentState: string | undefined;
     if (cardKey) {
-      let card;
-      try {
-        card = await ws.cards.details(cardKey);
-      } catch (error) {
-        throw new Error(`Card '${cardKey}' not found`, { cause: error });
-      }
-      if (!card?.metadata) {
-        throw new Error(`Card '${cardKey}' not found`);
-      }
-      currentState = card.metadata.workflowState;
+      const card = await ws.cards.details(cardKey);
+      currentState = card.metadata?.workflowState;
     }
     return ws.queries.runWorkflowGraph(workflowName, {
       currentState,

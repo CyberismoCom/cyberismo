@@ -4,7 +4,7 @@
 import { Hono } from 'hono';
 import { zValidator } from '../../middleware/zvalidator.js';
 import type { ProjectDirectory } from '@cyberismo/data-handler';
-import { errorBody, errorResponse } from '../../common/errors.js';
+import { errorBody } from '../../common/errors.js';
 import { requireRole, getCurrentUser } from '../../middleware/auth.js';
 import { isProjectReadOnly } from '../../overlay.js';
 import { UserRole } from '../../types.js';
@@ -63,22 +63,12 @@ export function createProjectsRouter(
 
       const params = c.req.valid('json');
 
-      try {
-        const result = await projectsService.createProject(
-          directory,
-          params,
-          getCurrentUser(c),
-        );
-        return c.json(result, 201);
-      } catch (error) {
-        // A taken prefix is the directory's ProjectExistsError: a 409.
-        const { status, body } = errorResponse(
-          error instanceof Error
-            ? error
-            : new Error('Failed to create project'),
-        );
-        return c.json(body, status);
-      }
+      const result = await projectsService.createProject(
+        directory,
+        params,
+        getCurrentUser(c),
+      );
+      return c.json(result, 201);
     },
   );
 
@@ -106,32 +96,20 @@ export function createProjectsRouter(
 
       const { url } = c.req.valid('json');
 
-      try {
-        const result = await directory.clone(url);
+      const result = await directory.clone(url);
 
-        if (result.projects.length === 0) {
-          return c.json(
-            errorBody(
-              'conflict',
-              'All projects in the cloned repository already exist',
-              { skippedDuplicates: result.skippedDuplicates },
-            ),
-            409,
-          );
-        }
-
-        return c.json(result, 201);
-      } catch (error) {
+      if (result.projects.length === 0) {
         return c.json(
           errorBody(
-            'internal',
-            error instanceof Error
-              ? error.message
-              : 'Failed to clone repository',
+            'conflict',
+            'All projects in the cloned repository already exist',
+            { skippedDuplicates: result.skippedDuplicates },
           ),
-          500,
+          409,
         );
       }
+
+      return c.json(result, 201);
     },
   );
 
