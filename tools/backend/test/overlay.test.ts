@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: Cyberismo Ltd and contributors
 // SPDX-License-Identifier: AGPL-3.0-only
 
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { createServer, type Server } from 'node:http';
 import {
   ProjectNotFoundError,
@@ -10,6 +10,7 @@ import {
 } from '@cyberismo/data-handler';
 import {
   isReadOnly,
+  POLL_INTERVAL_MS,
   setPolicy,
   startPolicyPolling,
   writableProjects,
@@ -53,8 +54,10 @@ describe('isReadOnly', () => {
 
 describe('startPolicyPolling', () => {
   let server: Server | undefined;
+  const stops: (() => void)[] = [];
 
   afterEach(async () => {
+    for (const stop of stops.splice(0)) stop();
     delete process.env.CYBERISMO_OVERLAY_URL;
     delete process.env.CYBERISMO_OVERLAY_TOKEN;
     setPolicy({ readOnly: false, projects: {} });
@@ -96,7 +99,7 @@ describe('startPolicyPolling', () => {
   const settle = () => new Promise((resolve) => setTimeout(resolve, 50));
 
   it('does nothing without a URL', async () => {
-    startPolicyPolling();
+    stops.push(startPolicyPolling());
     await settle();
     expect(isReadOnly('/api/auth/me')).toBe(false);
   });
@@ -109,7 +112,7 @@ describe('startPolicyPolling', () => {
     process.env.CYBERISMO_OVERLAY_URL = `http://127.0.0.1:${port}/internal`;
     process.env.CYBERISMO_OVERLAY_TOKEN = 'secret';
 
-    startPolicyPolling();
+    stops.push(startPolicyPolling());
     await until(() => isReadOnly('/api/projects/abc/cards'));
 
     expect(seen.token).toBe('secret');
@@ -121,17 +124,35 @@ describe('startPolicyPolling', () => {
     setPolicy({ readOnly: true, projects: {} });
     process.env.CYBERISMO_OVERLAY_URL = `http://127.0.0.1:${port}/internal`;
 
-    startPolicyPolling();
+    stops.push(startPolicyPolling());
     await until(() => seen.requests > 0);
 
     expect(isReadOnly('/api/auth/me')).toBe(true);
+  });
+
+  it('polls no more once stopped', async () => {
+    vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] });
+    try {
+      const { port, seen } = await serve({ readOnly: false, projects: {} });
+      process.env.CYBERISMO_OVERLAY_URL = `http://127.0.0.1:${port}/internal`;
+
+      const stop = startPolicyPolling();
+      await until(() => seen.requests > 0);
+      stop();
+      vi.advanceTimersByTime(POLL_INTERVAL_MS * 3);
+      await settle();
+
+      expect(seen.requests).toBe(1);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('ignores a malformed document', async () => {
     const { port, seen } = await serve('not an object');
     process.env.CYBERISMO_OVERLAY_URL = `http://127.0.0.1:${port}/internal`;
 
-    startPolicyPolling();
+    stops.push(startPolicyPolling());
     await until(() => seen.requests > 0);
 
     expect(isReadOnly('/api/auth/me')).toBe(false);
