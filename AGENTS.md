@@ -32,6 +32,7 @@ pnpm workspaces under `tools/`:
 - `node-clingo` — native Clingo bindings
 - `assets` — shared JSON schemas and static content
 - `migrations` — schema migrations
+- `logic-contract` — private: the contract tests every logic backend must pass
 
 Internal deps use `"workspace:*"` and are imported as `@cyberismo/<package>`.
 

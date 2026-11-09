@@ -30,6 +30,7 @@ const EXIT_CODES: Record<ErrorCode, number> = {
   macro: 1,
   'replay-failed': 1,
   'workspace-disposed': 1,
+  logic: 1,
   internal: 1,
 };
 

@@ -31,7 +31,7 @@ import type { MacroMetadata, MacroName } from '@cyberismo/model';
 import type BaseMacro from './base-macro.js';
 import TaskQueue from './task-queue.js';
 import { registerQuotedHelper } from '../queries/handlebars-helpers.js';
-import { ClingoError } from '@cyberismo/node-clingo';
+import { isUnavailable, LogicError } from '../../infra/logic/logic-backend.js';
 import type { SchemaObject } from 'ajv';
 const CURLY_LEFT = '&#123;';
 const CURLY_RIGHT = '&#125;';
@@ -355,6 +355,10 @@ export function handleMacroError(
   macro: string,
   context: MacroGenerationContext,
 ): string {
+  // Not the macro's failure: the render fails as a whole.
+  if (isUnavailable(error)) {
+    throw error;
+  }
   let message = `Error: ${error instanceof Error ? error.message : 'Unknown error'}`;
   if (error instanceof DHValidationError) {
     message = `Check json syntax of macro ${macro}: ${error.errors?.map((e) => e.message).join(', ')}`;
@@ -365,8 +369,8 @@ export function handleMacroError(
     if (dependency) {
       message += `\n\nParameters:\n\n${context.mode === 'validate' ? dependency.parameters : createCodeBlock(dependency.parameters)}.\n\n${dependency.output ? `Output:\n\n${context.mode === 'validate' ? dependency.output : createCodeBlock(dependency.output)}` : ''}`;
     }
-  } else if (error instanceof ClingoError) {
-    message = `Error running logic program in macro '${macro}':${error.details.errors.join('\n')}`;
+  } else if (error instanceof LogicError) {
+    message = `Error running logic program in macro '${macro}':${error.errors.join('\n')}`;
   }
 
   if (
