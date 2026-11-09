@@ -20,7 +20,10 @@ import {
 } from '../../shared/utils/constants.js';
 import { findCard } from './read.js';
 import { runCreationSideEffects } from './transition.js';
-import { ResourceNotFoundError } from '../../shared/exceptions/index.js';
+import {
+  DHValidationError,
+  ResourceNotFoundError,
+} from '../../shared/exceptions/index.js';
 
 import type { Card, CardAttachment, CardMetadata } from '@cyberismo/model';
 import type { CardTree, NewCard } from '../../state/cards/card-tree.js';
@@ -40,12 +43,14 @@ export async function addCards(
     !templateName ||
     !isValidFolderName(join(checkout.basePath, templateName))
   ) {
-    throw new Error(
+    throw new DHValidationError(
       `Input validation error: template name is invalid '${templateName}'`,
     );
   }
   if (cardTypeName === undefined) {
-    throw new Error(`Input validation error: card type cannot be empty`);
+    throw new DHValidationError(
+      `Input validation error: card type cannot be empty`,
+    );
   }
   const templateResource = checkout.resources.byType(templateName, 'templates');
   const specificCard = card ? templateResource.cardTree.card(card) : undefined;
@@ -66,7 +71,7 @@ export async function addCards(
   );
 
   if (cardsContainer.length === 0) {
-    throw new Error(`Invalid value for 'repeat:' "${count}"`);
+    throw new DHValidationError(`Invalid value for 'repeat:' "${count}"`);
   }
 
   await runCreationSideEffects(checkout, cardsContainer);
@@ -196,7 +201,7 @@ export async function instantiateTemplate(
   const templateCards = template.cards();
   try {
     if (templateCards.length === 0) {
-      throw new Error(
+      throw new DHValidationError(
         `No cards in template '${template.name}'. Please add template cards with 'add' command first.`,
       );
     }
