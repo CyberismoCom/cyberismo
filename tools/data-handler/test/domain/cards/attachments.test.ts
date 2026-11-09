@@ -5,7 +5,10 @@ import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
-import { ReadOnlyContainerError } from '../../../src/shared/exceptions/index.js';
+import {
+  DHValidationError,
+  ReadOnlyContainerError,
+} from '../../../src/shared/exceptions/index.js';
 import type { Workspace } from '../../../src/api/workspace.js';
 import { expectRefused, projects, readOnlyModule } from './fixture.js';
 
@@ -103,7 +106,6 @@ describe('card attachments', () => {
   });
 
   it.each([
-    // Pins today's behaviour: addAttachment loses the CardNotFoundError, leaving a message.
     [
       'adding to a missing card',
       (c: Workspace['cards']) =>
@@ -172,5 +174,66 @@ describe('card attachments', () => {
       () => operation(cards, card, templateKeys),
       error,
     );
+  });
+});
+
+// Names that resolve outside the card's attachment folder: the card's own
+// index.adoc, a sibling card's attachment, and an absolute path to index.adoc.
+describe('attachment names outside the attachment folder', () => {
+  const outside = (path: string, card: string, other: string) => [
+    join('..', 'index.adoc'),
+    join('..', '..', other, 'a', 'z.txt'),
+    join(path, 'cardRoot', card, 'index.adoc'),
+  ];
+
+  async function withSibling() {
+    const project = await withAttachments();
+    const other = project.keys[1];
+    await project.cards.addAttachment(other, 'z.txt', text('zed'));
+    return { ...project, other };
+  }
+
+  it('refuses to read them', async () => {
+    const { cards, path, card, other } = await withSibling();
+    for (const name of outside(path, card, other)) {
+      await expectRefused(
+        path,
+        () => cards.attachment(card, name),
+        DHValidationError,
+      );
+    }
+  });
+
+  it('refuses to remove them, deleting nothing', async () => {
+    const { cards, path, card, other } = await withSibling();
+    for (const name of outside(path, card, other)) {
+      await expectRefused(
+        path,
+        () => cards.removeAttachment(card, name),
+        DHValidationError,
+      );
+    }
+    expect(existsSync(join(path, 'cardRoot', card, 'index.adoc'))).toBe(true);
+    expect(existsSync(join(path, 'cardRoot', other, 'a', 'z.txt'))).toBe(true);
+  });
+
+  it.each(['..', '.'])('refuses to add one named %s', async (name) => {
+    const { cards, path, card } = await withAttachments();
+    await expectRefused(
+      path,
+      () => cards.addAttachment(card, name, text('x')),
+      DHValidationError,
+    );
+  });
+
+  it('adds a name with directories in it under its base name', async () => {
+    const { ws, path, card } = await withAttachments();
+
+    await ws.cards.addAttachment(card, join('..', 'up.txt'), text('up'));
+
+    expect(existsSync(join(path, 'cardRoot', card, 'up.txt'))).toBe(false);
+    expect(
+      readFileSync(join(path, 'cardRoot', card, 'a', 'up.txt'), 'utf-8'),
+    ).toBe('up');
   });
 });

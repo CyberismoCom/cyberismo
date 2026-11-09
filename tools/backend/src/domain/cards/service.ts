@@ -8,11 +8,7 @@ import type {
   MetadataContent,
   QueryResult,
 } from '@cyberismo/model';
-import {
-  AsciidoctorPdfError,
-  DHValidationError,
-  type Workspace,
-} from '@cyberismo/data-handler';
+import { AsciidoctorPdfError, type Workspace } from '@cyberismo/data-handler';
 import { preprocessMermaidBlocksForHtml } from './mermaid.js';
 import { allCards } from './lib.js';
 import { getCardQueryResult } from '../../export.js';
@@ -217,19 +213,11 @@ export async function uploadAttachments(
   };
 }
 
-function validateAttachmentFileName(filename: string): void {
-  const decoded = decodeURIComponent(filename);
-  if (/(^|[/\\])\.\.([/\\]|$)/.test(decoded)) {
-    throw new DHValidationError('Invalid attachment filename');
-  }
-}
-
 export async function removeAttachment(
   ws: Workspace,
   key: string,
   filename: string,
 ) {
-  validateAttachmentFileName(filename);
   await ws.cards.removeAttachment(key, filename);
   return { message: 'Attachment removed successfully' };
 }
@@ -313,7 +301,6 @@ export async function getAttachment(
   key: string,
   filename: string,
 ): Promise<AttachmentContent> {
-  validateAttachmentFileName(filename);
   return ws.cards.attachment(key, filename);
 }
 
