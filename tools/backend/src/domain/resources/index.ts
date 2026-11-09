@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { Hono } from 'hono';
+import { DomainError } from '@cyberismo/data-handler';
 import { ssgParams } from 'hono/ssg';
 import * as resourceService from './service.js';
 import type { AppContext, ResourceValidationResponse } from '../../types.js';
@@ -16,6 +17,7 @@ import {
   workflowGraphQuerySchema,
 } from './schema.js';
 import { requireRole } from '../../middleware/auth.js';
+import { errorBody } from '../../common/errors.js';
 
 const router = new Hono();
 
@@ -248,11 +250,12 @@ router.post(
       );
       return c.json({ instructions });
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Unknown error';
-      if (message.includes('not found')) {
-        return c.json({ error: message }, 404);
+      // Typed errors (a missing skill or card) take the central status; an
+      // untyped one is the query or template failing to render: a 400.
+      if (error instanceof DomainError || !(error instanceof Error)) {
+        throw error;
       }
-      return c.json({ error: message }, 400);
+      return c.json(errorBody('validation', error.message), 400);
     }
   },
 );
