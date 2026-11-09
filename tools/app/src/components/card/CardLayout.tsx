@@ -169,11 +169,19 @@ export const CardLayout = forwardRef<CardLayoutHandle, CardLayoutProps>(
     const notificationsBadgeCount =
       card.notifications.length + card.policyChecks.failures.length;
 
-    const attachmentPanel = (
+    const attachmentPanel = (variant: 'sidebar' | 'inline') => (
       <AttachmentPanel
+        // Fresh expanded state per card and per view/edit mode.
+        key={`${card.key}-${editingBody}`}
+        variant={variant}
         cardKey={card.key}
         attachments={card.attachments ?? []}
-        onInsert={(attachment) => bodyRef.current?.insertAttachment(attachment)}
+        initialExpanded={editingBody && !isNarrow}
+        onInsert={
+          editingBody
+            ? (attachment) => bodyRef.current?.insertAttachment(attachment)
+            : undefined
+        }
       />
     );
 
@@ -190,6 +198,7 @@ export const CardLayout = forwardRef<CardLayoutHandle, CardLayoutProps>(
           policyChecks={card.policyChecks}
           onGoToField={onMetadataUpdate ? setFocusFieldKey : undefined}
         />
+        {attachmentPanel('sidebar')}
       </>
     );
 
@@ -251,7 +260,7 @@ export const CardLayout = forwardRef<CardLayoutHandle, CardLayoutProps>(
                 onDeleteLink={onDeleteLink}
               />
             )}
-            {isNarrow && editingBody && attachmentPanel}
+            {isNarrow && editingBody && attachmentPanel('inline')}
             {isNarrow &&
               !editingBody &&
               (hasNotifications || hasPolicyChecks) && (
@@ -298,6 +307,7 @@ export const CardLayout = forwardRef<CardLayoutHandle, CardLayoutProps>(
                 />
               </SidebarPanelAccordion>
             )}
+            {isNarrow && !editingBody && attachmentPanel('inline')}
             <CardBody
               key={`body-${card.key}`}
               ref={bodyRef}
@@ -321,11 +331,13 @@ export const CardLayout = forwardRef<CardLayoutHandle, CardLayoutProps>(
               minWidth: 250,
               flexShrink: 0,
               my: 2,
+              // Gutter between the main column's scrollbar and the sidebar.
+              ml: 3,
               mr: 3,
             }}
             data-cy="cardSidebar"
           >
-            {editingBody ? attachmentPanel : viewSidebarContent}
+            {editingBody ? attachmentPanel('sidebar') : viewSidebarContent}
           </Stack>
         )}
       </Stack>

@@ -674,7 +674,9 @@ test.describe('Navigation', () => {
 
     // The attachment panel lives in the right sidebar.
     await expect(
-      page.getByTestId('cardSidebar').getByTestId('addAttachmentButton'),
+      page
+        .getByTestId('cardSidebar')
+        .getByRole('button', { name: t.addAttachment }),
     ).toBeVisible();
 
     // A custom field is already an open editor and saves on its own.
