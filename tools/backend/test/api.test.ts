@@ -313,6 +313,29 @@ test('non-existing attachment file returns an error', async () => {
   });
 });
 
+test.each([
+  [
+    'reading',
+    'GET',
+    '/api/projects/decision/cards/decision_1/a/..%2Findex.adoc',
+  ],
+  [
+    'removing',
+    'DELETE',
+    '/api/projects/decision/cards/decision_1/attachments/..%2Findex.adoc',
+  ],
+])(
+  '%s an attachment named outside the attachment folder is a bad request',
+  async (_name, method, path) => {
+    const response = await app.request(path, { method });
+    expect(response.status).toBe(400);
+    expect(await response.json()).toMatchObject({
+      code: 'validation',
+      message: 'Invalid attachment filename: ../index.adoc',
+    });
+  },
+);
+
 test('fieldTypes endpoint returns proper data', async () => {
   const response = await app.request('/api/projects/decision/fieldTypes');
   expect(response).not.toBe(null);

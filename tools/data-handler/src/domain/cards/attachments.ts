@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import type { Checkout } from '../../state/checkout/checkout.js';
-import { errorFunction } from '../../shared/utils/error-utils.js';
 
 /**
  * Creates an attachment for a card.
@@ -66,11 +65,7 @@ export async function addAttachment(
   attachment: string,
   buffer: Buffer,
 ) {
-  try {
-    await createCardAttachment(checkout, cardKey, attachment, buffer);
-  } catch (error) {
-    throw new Error(errorFunction(error), { cause: error });
-  }
+  await createCardAttachment(checkout, cardKey, attachment, buffer);
 }
 
 // Removes attachment from template or project card

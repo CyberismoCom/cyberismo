@@ -198,6 +198,8 @@ export async function attachment(
   if (!cardKey) {
     throw new Error(`Mandatory parameter 'cardKey' missing`);
   }
+  // Refuses names outside the attachment folder; the read uses the listing's path.
+  checkout.treeOf(cardKey).attachmentPathOf(cardKey, filename);
 
   const found = cardAttachments(checkout, cardKey).find(
     (a) => a.fileName === filename,
