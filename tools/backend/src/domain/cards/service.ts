@@ -8,7 +8,11 @@ import type {
   MetadataContent,
   QueryResult,
 } from '@cyberismo/model';
-import { AsciidoctorPdfError, type Workspace } from '@cyberismo/data-handler';
+import {
+  AsciidoctorPdfError,
+  DHValidationError,
+  type Workspace,
+} from '@cyberismo/data-handler';
 import { preprocessMermaidBlocksForHtml } from './mermaid.js';
 import { allCards } from './lib.js';
 import { getCardQueryResult } from '../../export.js';
@@ -216,7 +220,7 @@ export async function uploadAttachments(
 function validateAttachmentFileName(filename: string): void {
   const decoded = decodeURIComponent(filename);
   if (/(^|[/\\])\.\.([/\\]|$)/.test(decoded)) {
-    throw new Error('Invalid attachment filename');
+    throw new DHValidationError('Invalid attachment filename');
   }
 }
 

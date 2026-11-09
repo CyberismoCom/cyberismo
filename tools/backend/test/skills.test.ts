@@ -154,9 +154,11 @@ test('preview returns 404 for an unknown skill', async () => {
     '/api/projects/decision/resources/decision/skills/does-not-exist/preview',
   );
   expect(response.status).toBe(404);
-
-  const result = await previewBody(response);
-  expect(result.error).toContain('not found');
+  expect(await response.json()).toMatchObject({
+    code: 'not-found',
+    message:
+      "Skill 'decision/skills/does-not-exist' does not exist in the project",
+  });
 });
 
 test('preview returns 404 for an unknown card', async () => {
@@ -178,6 +180,7 @@ test('preview returns 400 with the error when the query is broken', async () => 
 
   const result = await previewBody(response);
   expect(result.error).toBeTruthy();
+  expect(result).toMatchObject({ code: 'validation' });
 });
 
 test('preview blocks non-admin roles', async () => {

@@ -279,15 +279,8 @@ router.patch(
 
     const body = await c.req.json();
 
-    try {
-      await cardService.updateCard(ws, key, body);
-      return c.json(await cardService.getCardData(ws, key, isSSGContext(c)));
-    } catch (error) {
-      return c.text(
-        error instanceof Error ? error.message : 'Unknown error',
-        400,
-      );
-    }
+    await cardService.updateCard(ws, key, body);
+    return c.json(await cardService.getCardData(ws, key, isSSGContext(c)));
   },
 );
 
@@ -318,17 +311,8 @@ router.delete('/:key', requireRole(UserRole.Editor), async (c) => {
     return c.text('No search key', 400);
   }
 
-  try {
-    await cardService.deleteCard(ws, key);
-    return new Response(null, { status: 204 });
-  } catch (error) {
-    return c.json(
-      {
-        error: error instanceof Error ? error.message : 'Unknown error',
-      },
-      400,
-    );
-  }
+  await cardService.deleteCard(ws, key);
+  return new Response(null, { status: 204 });
 });
 
 /**
@@ -365,19 +349,8 @@ router.post('/:key', requireRole(UserRole.Editor), async (c) => {
     return c.text('template is required', 400);
   }
 
-  try {
-    const result = await cardService.createCard(
-      c.get('ws'),
-      body.template,
-      key,
-    );
-    return c.json(result);
-  } catch (error) {
-    if (error instanceof Error) {
-      return c.json({ error: error.message }, 400);
-    }
-    return c.json({ error: 'Unknown error occurred' }, 500);
-  }
+  const result = await cardService.createCard(c.get('ws'), body.template, key);
+  return c.json(result);
 });
 
 /**
@@ -720,33 +693,21 @@ router.get(
       return c.text('Missing cardKey or filename', 400);
     }
 
-    try {
-      const attachmentResponse = await cardService.getAttachment(
-        ws,
-        key,
-        filename,
-      );
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const payload = attachmentResponse as any;
+    const attachmentResponse = await cardService.getAttachment(
+      ws,
+      key,
+      filename,
+    );
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const payload = attachmentResponse as any;
 
-      return new Response(payload.fileBuffer, {
-        headers: {
-          'Content-Type': payload.mimeType,
-          'Content-Disposition': `attachment; filename="${filename}"`,
-          'Cache-Control': 'no-store',
-        },
-      });
-    } catch (error) {
-      return c.json(
-        {
-          error:
-            error instanceof Error
-              ? error.message
-              : `No attachment found from card ${key} and filename ${filename}`,
-        },
-        404,
-      );
-    }
+    return new Response(payload.fileBuffer, {
+      headers: {
+        'Content-Type': payload.mimeType,
+        'Content-Disposition': `attachment; filename="${filename}"`,
+        'Cache-Control': 'no-store',
+      },
+    });
   },
 );
 export default router;
