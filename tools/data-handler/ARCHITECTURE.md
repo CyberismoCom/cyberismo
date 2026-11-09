@@ -56,8 +56,12 @@ from then on the checkout refuses every read and write.
   were. A failed write that changed files rebuilds them from the files:
   the rollback with autocommit, the reload without it.
 - Logic failures are `LogicError`s (invalid, nonTotal, unavailable,
-  internal). The contract every backend must pass is the private package
-  `tools/logic-contract`.
+  internal). A failure of a query the request supplied keeps its kind
+  (invalid, or nonTotal when it has no answer) and its diagnostics, which
+  name a stored program if one is at fault. A project or built-in query
+  that is invalid fails as internal. Nothing else
+  imports `@cyberismo/node-clingo`. The contract every backend must pass
+  is the private package `tools/logic-contract`.
 
 ## Known debt
 

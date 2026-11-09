@@ -11,6 +11,8 @@ import {
   registerQuotedHelper,
   registerReportHelpers,
 } from './handlebars-helpers.js';
+import { DHValidationError } from '../../shared/exceptions/index.js';
+import { LogicError } from '../../infra/logic/logic-backend.js';
 
 /**
  * Parameters for the core generation function
@@ -21,6 +23,17 @@ interface GenerateReportContentParams {
   queryTemplate: string;
   options: Record<string, string | number | boolean | undefined>;
   context: Context;
+  /**
+   * The query template comes with the request, not from the project: one
+   * that does not render fails as a validation error, and a query that is
+   * wrong as an invalid logic failure.
+   */
+  requested?: boolean;
+  /**
+   * The content template comes with the request: one that does not render
+   * fails as a validation error.
+   */
+  contentRequested?: boolean;
 }
 
 /**
@@ -34,13 +47,36 @@ interface GenerateReportContentParams {
 export async function generateReportContent(
   params: GenerateReportContentParams,
 ): Promise<string> {
-  const { calculate, contentTemplate, queryTemplate, options, context } =
-    params;
+  const {
+    calculate,
+    contentTemplate,
+    queryTemplate,
+    options,
+    context,
+    requested,
+    contentRequested,
+  } = params;
 
   const handlebars = Handlebars.create();
   registerComparisonHelpers(handlebars);
   registerMathHelpers(handlebars);
   registerQuotedHelper(handlebars);
+
+  const render = (
+    template: string,
+    data: object,
+    fromRequest: boolean | undefined,
+    strict = false,
+  ) => {
+    try {
+      return handlebars.compile(template, { strict })(data);
+    } catch (error) {
+      if (fromRequest && error instanceof Error) {
+        throw new DHValidationError(error.message);
+      }
+      throw error;
+    }
+  };
 
   // When the query is empty, skip the logic program entirely and render the
   // content template using only the macro parameter context.
@@ -48,19 +84,19 @@ export async function generateReportContent(
     (queryTemplate ?? '').trim() === ''
       ? { results: [], error: null }
       : await calculate.runLogicProgram(
-          handlebars.compile(queryTemplate, { strict: true })(options),
+          render(queryTemplate, options, requested, true),
           context,
+          requested,
         );
 
   if (result.error) {
-    throw new Error(result.error);
+    throw requested
+      ? new LogicError('invalid', result.error)
+      : new Error(result.error);
   }
   // register empty macros so that other macros aren't touched yet
   registerEmptyMacros(handlebars);
   registerReportHelpers(handlebars);
 
-  return handlebars.compile(contentTemplate)({
-    ...options,
-    ...result,
-  });
+  return render(contentTemplate, { ...options, ...result }, contentRequested);
 }

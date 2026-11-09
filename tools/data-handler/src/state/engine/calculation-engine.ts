@@ -42,10 +42,11 @@ import {
   createTemplateFacts,
   createWorkflowFacts,
 } from './clingo-facts.js';
-import type {
-  LogicBackend,
-  LogicTransaction,
-  Program,
+import {
+  LogicError,
+  type LogicBackend,
+  type LogicTransaction,
+  type Program,
 } from '../../infra/logic/logic-backend.js';
 import { generateReportContent } from '../../domain/queries/report.js';
 import { lpFiles, graphvizReport } from '@cyberismo/assets';
@@ -244,7 +245,14 @@ export class CalculationEngine {
   }
 
   // Solves the query with the write's changes when a write has made any.
-  private async run(query: string, context: Context): Promise<string[]> {
+  // A failure of a query the request supplied keeps its kind; the
+  // diagnostics name a stored program if one is at fault. A project query
+  // that fails to parse or ground is internal.
+  private async run(
+    query: string,
+    context: Context,
+    requested = false,
+  ): Promise<string[]> {
     try {
       this.logger.trace({ clingo: true }, 'Solving');
       // Inline context facts into the query string to avoid race conditions
@@ -256,16 +264,28 @@ export class CalculationEngine {
       if (result.answers.length > 0) {
         return result.answers;
       }
-      throw new Error('Failed to run Clingo solve. No answers returned.');
+      const message = 'Failed to run Clingo solve. No answers returned.';
+      throw requested
+        ? new LogicError('nonTotal', message)
+        : new Error(message);
     } catch (error) {
-      this.logger.error(
-        {
-          error,
-          query,
-        },
-        'Clingo solve failed',
-      );
-      throw error;
+      const failure =
+        !requested && error instanceof LogicError && error.kind === 'invalid'
+          ? new LogicError('internal', error.message, error.diagnostics, {
+              cause: error,
+            })
+          : error;
+      // The request's own mistake is no failure of the server.
+      if (
+        requested &&
+        failure instanceof LogicError &&
+        (failure.kind === 'invalid' || failure.kind === 'nonTotal')
+      ) {
+        this.logger.debug({ error: failure, query }, 'Requested query failed');
+      } else {
+        this.logger.error({ error: failure, query }, 'Clingo solve failed');
+      }
+      throw failure;
     }
   }
 
@@ -447,10 +467,18 @@ export class CalculationEngine {
    * Runs a logic program using clingo.
    * @param query Logic program to be run
    * @param context In which type of context the query is run.
+   * @param requested Whether the query comes with the request rather than
+   *   from the project; only then does a failure keep its kind (invalid, or
+   *   nonTotal when there is no answer) with the diagnostics, which name a
+   *   stored program if one is at fault. Otherwise invalid is internal.
    * @returns parsed program output
    */
-  public async runLogicProgram(query: string, context: Context = 'localApp') {
-    const clingoOutput = await this.run(query, context);
+  public async runLogicProgram(
+    query: string,
+    context: Context = 'localApp',
+    requested = false,
+  ) {
+    const clingoOutput = await this.run(query, context, requested);
     return this.parseClingoResult(clingoOutput);
   }
 

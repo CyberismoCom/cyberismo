@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: Cyberismo Ltd and contributors
 // SPDX-License-Identifier: AGPL-3.0-only
 
-import { DomainError } from '@cyberismo/data-handler';
+import { DomainError, LogicError } from '@cyberismo/data-handler';
 import {
   ERROR_HTTP_STATUS,
   type ErrorBody,
@@ -9,23 +9,50 @@ import {
 } from '@cyberismo/model';
 import type { ContentfulStatusCode } from 'hono/utils/http-status';
 
+// The status of each kind of logic failure.
+const LOGIC_STATUS: Record<LogicError['kind'], ContentfulStatusCode> = {
+  invalid: 400,
+  nonTotal: 422,
+  unavailable: 503,
+  internal: 500,
+};
+
+// When to retry once the logic backend is unavailable: after its rebuild.
+const LOGIC_RETRY_AFTER_SECONDS = '5';
+
 /**
- * The HTTP response for an error that reached the edge. Only a DomainError's
- * domain 'code' picks the status; anything else is a 500.
+ * The HTTP response for an error that reached the edge. A DomainError's
+ * domain 'code' picks the status, and a logic failure's kind; anything else
+ * is a 500.
  */
 export function errorResponse(error: Error): {
   status: ContentfulStatusCode;
   body: ErrorBody;
+  headers?: Record<string, string>;
 } {
   const message = error.message || 'Internal Server Error';
   if (error instanceof DomainError) {
+    const unavailable =
+      error instanceof LogicError && error.kind === 'unavailable';
+    // An internal logic failure's diagnostics are about the project's
+    // programs, which are no business of the client's; the log has them.
+    const details =
+      error instanceof LogicError && error.kind === 'internal'
+        ? { kind: error.kind }
+        : error.details;
     return {
-      status: ERROR_HTTP_STATUS[error.code] as ContentfulStatusCode,
+      status:
+        error instanceof LogicError
+          ? LOGIC_STATUS[error.kind]
+          : (ERROR_HTTP_STATUS[error.code] as ContentfulStatusCode),
+      ...(unavailable && {
+        headers: { 'Retry-After': LOGIC_RETRY_AFTER_SECONDS },
+      }),
       body: {
         error: message,
         code: error.code,
         message,
-        ...(error.details && { details: error.details }),
+        ...(details && { details }),
       },
     };
   }

@@ -386,3 +386,25 @@ test('POST /operation blocks Editor role', async () => {
 
   expect(response.status).toBe(403);
 });
+
+test('POST /operation refuses an invalid calculation as a validation error', async () => {
+  const response = await app.request(
+    '/api/projects/decision/resources/decision/calculations/test/operation',
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        updateKey: { key: 'content', subKey: 'calculation' },
+        operation: { name: 'change', to: 'this is not a logic program' },
+      }),
+    },
+  );
+
+  expect(response.status).toBe(400);
+  expect(await response.json()).toMatchObject({
+    code: 'validation',
+    details: { diagnostics: expect.any(Array) },
+  });
+});
