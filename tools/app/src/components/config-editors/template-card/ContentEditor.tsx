@@ -23,7 +23,7 @@ import {
 } from '@/lib/codemirror';
 import { useIsDarkMode } from '@/lib/hooks';
 import { CODE_MIRROR_BASE_PROPS, CODE_MIRROR_THEMES } from '@/lib/constants';
-import type { CardResponse } from '@/lib/api/types';
+import type { CardView } from '@/lib/api/types';
 
 const extensions = [
   StreamLanguage.define(asciidoc),
@@ -31,7 +31,7 @@ const extensions = [
   lineNumbers(),
 ];
 
-type Attachment = CardResponse['attachments'][number];
+type Attachment = CardView['attachments'][number];
 
 export type ContentEditorHandle = {
   insertAttachment: (attachment: Attachment) => void;
