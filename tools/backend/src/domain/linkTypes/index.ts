@@ -27,17 +27,8 @@ const router = new Hono();
 router.get('/', requireRole(UserRole.Reader), async (c) => {
   const ws = c.get('ws');
 
-  try {
-    const linkTypes = await linkTypeService.getLinkTypes(ws);
-    return c.json(linkTypes);
-  } catch (error) {
-    return c.json(
-      {
-        error: `${error instanceof Error ? error.message : 'Unknown error'} from path ${c.get('projectPath')}`,
-      },
-      500,
-    );
-  }
+  const linkTypes = await linkTypeService.getLinkTypes(ws);
+  return c.json(linkTypes);
 });
 
 /**

@@ -28,22 +28,13 @@ router.get('/', requireRole(UserRole.Reader), async (c: AppContext) => {
   const ws = c.get('ws');
   const tree = c.get('tree');
 
-  try {
-    const response = await treeService.getCardTree(
-      ws,
-      isSSGContext(c),
-      tree?.cardKey,
-      tree?.recursive,
-    );
-    return c.json(response);
-  } catch (error) {
-    return c.json(
-      {
-        error: `${error instanceof Error ? error.message : 'Unknown error'} from path ${c.get('projectPath')}`,
-      },
-      500,
-    );
-  }
+  const response = await treeService.getCardTree(
+    ws,
+    isSSGContext(c),
+    tree?.cardKey,
+    tree?.recursive,
+  );
+  return c.json(response);
 });
 
 export default router;

@@ -245,8 +245,11 @@ test.runIf(process.platform === 'linux')(
         exportPdf,
       );
       expect(response.status).toBe(500);
+      const message = 'Asciidoctor-pdf failed with code 1';
       expect(await response.json()).toEqual({
-        error: 'Asciidoctor-pdf failed with code 1',
+        error: message,
+        code: 'internal',
+        message,
       });
       expect(errorSpy.mock.calls.flat().join(' ')).toContain(
         '/srv/secret/path',

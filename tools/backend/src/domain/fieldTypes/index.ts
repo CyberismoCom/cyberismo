@@ -27,17 +27,8 @@ const router = new Hono();
 router.get('/', requireRole(UserRole.Reader), async (c) => {
   const ws = c.get('ws');
 
-  try {
-    const fieldTypes = await fieldTypeService.getFieldTypes(ws);
-    return c.json(fieldTypes);
-  } catch (error) {
-    return c.json(
-      {
-        error: `${error instanceof Error ? error.message : 'Unknown error'} from path ${c.get('projectPath')}`,
-      },
-      500,
-    );
-  }
+  const fieldTypes = await fieldTypeService.getFieldTypes(ws);
+  return c.json(fieldTypes);
 });
 
 /**
@@ -77,17 +68,8 @@ router.post(
     const ws = c.get('ws');
     const { identifier, dataType } = c.req.valid('json');
 
-    try {
-      await fieldTypeService.createFieldType(ws, identifier, dataType);
-      return c.json({ message: 'Field type created successfully' });
-    } catch (error) {
-      return c.json(
-        {
-          error: `${error instanceof Error ? error.message : 'Unknown error'}`,
-        },
-        500,
-      );
-    }
+    await fieldTypeService.createFieldType(ws, identifier, dataType);
+    return c.json({ message: 'Field type created successfully' });
   },
 );
 

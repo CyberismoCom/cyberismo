@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { Hono } from 'hono';
-import { ResourceNotFoundError } from '@cyberismo/data-handler';
 import * as cardTypeService from './service.js';
 import {
   createCardTypeSchema,
@@ -32,17 +31,8 @@ const router = new Hono();
 router.get('/', requireRole(UserRole.Reader), async (c) => {
   const ws = c.get('ws');
 
-  try {
-    const cardTypes = await cardTypeService.getCardTypes(ws);
-    return c.json(cardTypes);
-  } catch (error) {
-    return c.json(
-      {
-        error: `${error instanceof Error ? error.message : 'Unknown error'} from path ${c.get('projectPath')}`,
-      },
-      500,
-    );
-  }
+  const cardTypes = await cardTypeService.getCardTypes(ws);
+  return c.json(cardTypes);
 });
 
 /**
@@ -81,17 +71,8 @@ router.post(
     const ws = c.get('ws');
     const { identifier, workflowName } = c.req.valid('json');
 
-    try {
-      await cardTypeService.createCardType(ws, identifier, workflowName);
-      return c.json({ message: 'Card type created successfully' });
-    } catch (error) {
-      return c.json(
-        {
-          error: `${error instanceof Error ? error.message : 'Unknown error'}`,
-        },
-        500,
-      );
-    }
+    await cardTypeService.createCardType(ws, identifier, workflowName);
+    return c.json({ message: 'Card type created successfully' });
   },
 );
 
@@ -148,20 +129,8 @@ router.patch(
     const { cardTypeName } = c.req.valid('param');
     const body = c.req.valid('json');
 
-    try {
-      await cardTypeService.updateFieldVisibility(ws, cardTypeName, body);
-      return c.json({ message: 'Field visibility updated successfully' });
-    } catch (error) {
-      if (error instanceof ResourceNotFoundError) {
-        return c.json({ error: error.message }, 404);
-      }
-      return c.json(
-        {
-          error: `${error instanceof Error ? error.message : 'Unknown error'}`,
-        },
-        500,
-      );
-    }
+    await cardTypeService.updateFieldVisibility(ws, cardTypeName, body);
+    return c.json({ message: 'Field visibility updated successfully' });
   },
 );
 

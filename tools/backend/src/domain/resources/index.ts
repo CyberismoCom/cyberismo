@@ -34,17 +34,8 @@ const router = new Hono();
 router.get('/tree', requireRole(UserRole.Reader), async (c) => {
   const ws = c.get('ws');
 
-  try {
-    const tree = await resourceService.buildResourceTree(ws);
-    return c.json(tree);
-  } catch (error) {
-    return c.json(
-      {
-        error: `Failed to build resource tree: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      },
-      500,
-    );
-  }
+  const tree = await resourceService.buildResourceTree(ws);
+  return c.json(tree);
 });
 
 /**
@@ -99,16 +90,9 @@ router.get(
     const ws = c.get('ws');
     const resourceParams = c.req.valid('param');
 
-    try {
-      const response: ResourceValidationResponse =
-        await resourceService.validateResource(ws, resourceParams);
-      return c.json(response);
-    } catch (error) {
-      if (error instanceof Error && error.message.includes('not found')) {
-        return c.json({ error: error.message }, 404);
-      }
-      throw error;
-    }
+    const response: ResourceValidationResponse =
+      await resourceService.validateResource(ws, resourceParams);
+    return c.json(response);
   },
 );
 
@@ -186,19 +170,8 @@ router.get(
     const { prefix, identifier } = c.req.valid('param');
     const { card } = c.req.valid('query');
     const workflowName = `${prefix}/workflows/${identifier}`;
-    try {
-      const svg = await resourceService.getWorkflowGraph(
-        ws,
-        workflowName,
-        card,
-      );
-      return c.json({ svg });
-    } catch (error) {
-      if (error instanceof Error && error.message.includes('not found')) {
-        return c.json({ error: error.message }, 404);
-      }
-      throw error;
-    }
+    const svg = await resourceService.getWorkflowGraph(ws, workflowName, card);
+    return c.json({ svg });
   },
 );
 
