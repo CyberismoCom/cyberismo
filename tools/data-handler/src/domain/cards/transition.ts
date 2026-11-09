@@ -7,6 +7,7 @@ import { applySideEffects, type SideEffects } from './side-effects.js';
 import { getChildLogger } from '../../shared/utils/log-utils.js';
 import { updateCardMetadata } from './update.js';
 import { findCard } from './read.js';
+import { DHValidationError } from '../../shared/exceptions/index.js';
 
 const logger = getChildLogger({ module: 'Project' });
 
@@ -63,7 +64,7 @@ export async function performTransition(
   );
   if (byName.length === 0) {
     const transitionNames = workflow.transitions.map((item) => item.name);
-    throw new Error(`Card's workflow '${cardType.workflow}' does not contain state transition '${transitionName}'.
+    throw new DHValidationError(`Card's workflow '${cardType.workflow}' does not contain state transition '${transitionName}'.
                           \nThe available transitions are: ${transitionNames.join(', ')}`);
   }
 
@@ -72,7 +73,7 @@ export async function performTransition(
       item.fromState.includes(currentState) || item.fromState.includes('*'),
   );
   if (!found) {
-    throw new Error(
+    throw new DHValidationError(
       `Card's workflow '${cardType.workflow}' does not contain state transition from state '${currentState}' for '${transitionName}'`,
     );
   }

@@ -26,6 +26,7 @@ import {
   AttachmentNotFoundError,
   CardNotFoundError,
   CycleError,
+  DHValidationError,
   ReadOnlyContainerError,
 } from '../../shared/exceptions/index.js';
 import {
@@ -599,7 +600,7 @@ export class CardTree {
    */
   public async reorderAfter(cardKey: string, afterKey: string): Promise<void> {
     if (this.stored(cardKey).parent !== this.stored(afterKey).parent) {
-      throw new Error(`Cards must be from the same parent`);
+      throw new DHValidationError(`Cards must be from the same parent`);
     }
     await this.applyRanks(
       planAfter(this.rankedSiblingsOf(afterKey), cardKey, afterKey),
@@ -1059,7 +1060,7 @@ export class CardTree {
 
     // Prevent path traversal
     if (!attachmentPath.startsWith(resolve(attachmentFolder) + sep)) {
-      throw new Error(`Invalid attachment filename: ${fileName}`);
+      throw new DHValidationError(`Invalid attachment filename: ${fileName}`);
     }
 
     try {
@@ -1115,12 +1116,14 @@ export class CardTree {
       basename(newFileName) !== newFileName ||
       !target.startsWith(resolve(folder) + sep)
     ) {
-      throw new Error(`Invalid attachment filename: ${newFileName}`);
+      throw new DHValidationError(
+        `Invalid attachment filename: ${newFileName}`,
+      );
     }
     // rename() replaces its destination silently; a plain check is enough
     // because attachment writes hold the project's write lock.
     if (pathExists(target)) {
-      throw new Error(`Attachment already exists: ${newFileName}`);
+      throw new DHValidationError(`Attachment already exists: ${newFileName}`);
     }
     await rename(join(folder, fileName), target);
 

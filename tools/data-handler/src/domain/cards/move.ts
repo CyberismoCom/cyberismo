@@ -4,6 +4,7 @@
 import { assertAllowed } from './guard.js';
 import {
   ContainerMismatchError,
+  DHValidationError,
   ResourceNotFoundError,
 } from '../../shared/exceptions/index.js';
 import type { Checkout } from '../../state/checkout/checkout.js';
@@ -23,10 +24,10 @@ export async function moveCard(
   destination: string,
 ) {
   if (source === ROOT) {
-    throw new Error('Cannot move "root"');
+    throw new DHValidationError('Cannot move "root"');
   }
   if (source === destination) {
-    throw new Error(`Card cannot be moved to itself`);
+    throw new DHValidationError(`Card cannot be moved to itself`);
   }
 
   const sourceTree = checkout.treeOf(source);
@@ -111,7 +112,7 @@ export async function rankAt(
   index: number,
 ) {
   if (index < 0) {
-    throw new Error(`Index must be greater than 0`);
+    throw new DHValidationError(`Index must be greater than 0`);
   }
   if (index === 0) {
     await rankFirst(checkout, cardKey);
@@ -120,7 +121,7 @@ export async function rankAt(
 
   const siblings = checkout.treeOf(cardKey).siblingsOf(cardKey);
   if (siblings.length < index) {
-    throw new Error(`Index ${index} is out of bounds`);
+    throw new DHValidationError(`Index ${index} is out of bounds`);
   }
   await rankAfter(checkout, cardKey, siblings[index - 1]);
 }
@@ -136,7 +137,7 @@ export async function rankAfter(
   beforeCardKey: string,
 ) {
   if (cardKey === beforeCardKey) {
-    throw new Error(`Card cannot be ranked after itself`);
+    throw new DHValidationError(`Card cannot be ranked after itself`);
   }
 
   const tree = checkout.treeOf(cardKey);
@@ -146,7 +147,7 @@ export async function rankAfter(
     tree !== checkout.treeOf(beforeCardKey) ||
     tree.node(beforeCardKey).parent !== tree.node(cardKey).parent
   ) {
-    throw new Error(`Cards must be from the same parent`);
+    throw new DHValidationError(`Cards must be from the same parent`);
   }
 
   await tree.reorderAfter(cardKey, beforeCardKey);
