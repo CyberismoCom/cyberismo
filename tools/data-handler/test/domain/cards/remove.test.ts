@@ -5,7 +5,10 @@ import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
-import { CardNotFoundError } from '../../../src/shared/exceptions/index.js';
+import {
+  CardNotFoundError,
+  ReadOnlyContainerError,
+} from '../../../src/shared/exceptions/index.js';
 import {
   expectRefused,
   metadataOf,
@@ -101,7 +104,7 @@ describe('cards.remove', () => {
     [
       'a card of an imported template',
       (_k: string[], t: Record<string, string[]>) => t['mod/templates/mt'][0],
-      /Cannot modify imported module/,
+      ReadOnlyContainerError,
     ],
   ])('refuses to remove %s', async (_name, pick, error) => {
     const { ws, path, keys, templateKeys } = await open(spec);

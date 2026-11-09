@@ -7,6 +7,7 @@ import { assertAllowed } from './guard.js';
 import { getChildLogger } from '../../shared/utils/log-utils.js';
 import { updateCardMetadataKey } from './update.js';
 import { findCard } from './read.js';
+import { ReadOnlyContainerError } from '../../shared/exceptions/index.js';
 
 const logger = getChildLogger({ module: 'Project' });
 
@@ -113,8 +114,9 @@ export async function removeCard(checkout: Checkout, cardKey: string) {
   const card = findCard(checkout, cardKey);
 
   // Imported templates cannot be modified.
-  if (!checkout.treeOf(cardKey).writable) {
-    throw new Error(`Cannot modify imported module`);
+  const tree = checkout.treeOf(cardKey);
+  if (!tree.writable) {
+    throw new ReadOnlyContainerError(tree.name);
   }
 
   // Only a card in a workflow has a delete transition to permit.

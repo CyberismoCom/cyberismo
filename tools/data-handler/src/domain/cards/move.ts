@@ -2,7 +2,10 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { assertAllowed } from './guard.js';
-import { ContainerMismatchError } from '../../shared/exceptions/index.js';
+import {
+  ContainerMismatchError,
+  ResourceNotFoundError,
+} from '../../shared/exceptions/index.js';
 import type { Checkout } from '../../state/checkout/checkout.js';
 import type { CardTree } from '../../state/cards/card-tree.js';
 
@@ -58,7 +61,8 @@ export async function moveCard(
   if (targetTemplateName) {
     const template = checkout.templateResource(targetTemplateName);
     if (!template) {
-      throw new Error(
+      throw new ResourceNotFoundError(
+        targetTemplateName,
         `Template ${targetTemplateName} not found in this project`,
       );
     }

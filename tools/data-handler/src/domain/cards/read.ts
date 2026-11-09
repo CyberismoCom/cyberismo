@@ -13,6 +13,7 @@ import {
   type TemplateCardTree,
 } from '@cyberismo/model';
 import type { Checkout } from '../../state/checkout/checkout.js';
+import { AttachmentNotFoundError } from '../../shared/exceptions/index.js';
 import {
   buildCardHierarchy,
   compareAttachments,
@@ -203,7 +204,7 @@ export async function attachment(
   );
 
   if (!found) {
-    throw new Error(`Attachment '${filename}' not found for card ${cardKey}`);
+    throw new AttachmentNotFoundError(cardKey, filename);
   }
 
   const attachmentPath = `${found.path}/${found.fileName}`;

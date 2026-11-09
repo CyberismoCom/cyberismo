@@ -203,6 +203,22 @@ export class ResourceNotFoundError extends DomainError {
 }
 
 /**
+ * Thrown when a card has no attachment of the given file name.
+ */
+export class AttachmentNotFoundError extends DomainError {
+  readonly code = 'not-found';
+  constructor(
+    public readonly cardKey: string,
+    public readonly fileName: string,
+    options?: ErrorOptions,
+  ) {
+    super(`Attachment '${fileName}' not found for card ${cardKey}`, options);
+    this.name = 'AttachmentNotFoundError';
+    this.details = { cardKey, fileName };
+  }
+}
+
+/**
  * Thrown when a project is not in the directory.
  */
 export class ProjectNotFoundError extends DomainError {

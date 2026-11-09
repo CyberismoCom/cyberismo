@@ -65,9 +65,10 @@ describe('shows command', () => {
           'decision_1',
           'does-not-exist.png',
         ),
-      ).rejects.toThrow(
-        `Attachment 'does-not-exist.png' not found for card decision_1`,
-      );
+      ).rejects.toMatchObject({
+        code: 'not-found',
+        message: `Attachment 'does-not-exist.png' not found for card decision_1`,
+      });
     });
     // @todo add test cases for error situations
   });
