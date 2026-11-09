@@ -92,6 +92,10 @@ function attachmentsByCard(
   const seen = new Set<string>();
 
   for (const entry of allEntries) {
+    // A folder is not an attachment; the files in it are.
+    if (entry.isDirectory()) {
+      continue;
+    }
     const owner = attachmentOwner(entry, cardFolders, root);
     if (!owner) {
       continue;
