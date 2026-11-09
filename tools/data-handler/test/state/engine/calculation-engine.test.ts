@@ -444,7 +444,7 @@ describe('calculation validation on generate', () => {
     const calculations = checkout.resources.calculations();
     const broken = calculations.find((c) => c.data?.name === brokenCalcName);
     expect(broken).toBeDefined();
-    expect(broken!.validateLogicProgram().valid).toBe(false);
+    expect((await broken!.validateLogicProgram()).valid).toBe(false);
     expect(calculations.some((c) => c.data?.name === validCalcName)).toBe(true);
 
     await checkout.calculationEngine.generate();

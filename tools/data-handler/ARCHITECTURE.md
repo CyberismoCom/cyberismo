@@ -32,6 +32,11 @@ call it and hold no rules of their own.
 - `shared/` is project-independent: no `Checkout`, no `Workspace`, no concept rules. A helper used by one concept
   lives in that concept.
 - Values returned to consumers are copies and serializable. Wire types live in `@cyberismo/model`.
+- Logic programs live in a `LogicBackend` (`infra/logic/`), one per opened checkout, made by the `logic` open option
+  (clingo by default) and closed when the checkout is disposed. Only the calculation engine calls it: a write's
+  changes and queries go through its transaction, and every write ends by replacing all programs. Logic failures are
+  `LogicError`s; nothing else imports `@cyberismo/node-clingo`. The port's contract is in `logic-backend.ts` and its
+  tests in `tools/logic-contract`.
 - Tests call the `Workspace` and are organised by concept; only `test/state/` touches checkout internals
   (`docs/dev/testing.md`).
 

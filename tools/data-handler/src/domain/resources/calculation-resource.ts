@@ -3,8 +3,6 @@
 
 import { join } from 'node:path';
 
-import { validateProgram } from '@cyberismo/node-clingo';
-
 import { CONTENT_FILES, type ResourceName } from '@cyberismo/model';
 import { DefaultContent } from './create-defaults.js';
 import { FolderResource } from './folder-resource.js';
@@ -12,7 +10,6 @@ import { resourceNameToString } from '../../shared/utils/resource-utils.js';
 import { sortCards } from '../../shared/utils/card-utils.js';
 import { writeFileSafe } from '../../shared/utils/file-utils.js';
 
-import type { ClingoValidationResult } from '@cyberismo/node-clingo';
 import type {
   CalculationContent,
   CalculationMetadata,
@@ -65,14 +62,26 @@ export class CalculationResource extends FolderResource<
   }
 
   /**
-   * Validates a calculation logic program without solving it.
-   * Catches syntax errors and safety errors (e.g. unsafe variables).
-   * @param content Logic program to validate; defaults to this resource's
+   * Checks a calculation logic program on its own with the logic backend:
+   * syntax and safety errors (e.g. unsafe variables).
+   * @param content Logic program to check; defaults to this resource's
    *                current calculation content.
-   * @returns validation result with clingo diagnostics.
+   * @returns whether it is valid, and the backend's error messages.
    */
-  public validateLogicProgram(content?: string): ClingoValidationResult {
-    return validateProgram(content ?? this.contentData().calculation);
+  public async validateLogicProgram(
+    content?: string,
+  ): Promise<{ valid: boolean; errors: string[] }> {
+    const diagnostics = await this.checkout.calculationEngine.check([
+      {
+        key: resourceNameToString(this.resourceName),
+        role: 'knowledge',
+        text: content ?? this.contentData().calculation ?? '',
+      },
+    ]);
+    const errors = diagnostics
+      .filter((diagnostic) => diagnostic.severity === 'error')
+      .map((diagnostic) => diagnostic.message);
+    return { valid: errors.length === 0, errors };
   }
 
   /**
@@ -91,7 +100,7 @@ export class CalculationResource extends FolderResource<
     if (program === undefined) {
       return;
     }
-    const validation = this.validateLogicProgram(program);
+    const validation = await this.validateLogicProgram(program);
     if (!validation.valid) {
       throw new Error(
         `Invalid logic program for '${resourceNameToString(this.resourceName)}':\n${validation.errors.join('\n')}`,
@@ -107,7 +116,7 @@ export class CalculationResource extends FolderResource<
    */
   public async updateFile(fileName: string, changedContent: string) {
     if (fileName === CONTENT_FILES.calculation) {
-      const validation = this.validateLogicProgram(changedContent);
+      const validation = await this.validateLogicProgram(changedContent);
       if (!validation.valid) {
         throw new Error(
           `Invalid logic program for '${resourceNameToString(this.resourceName)}' update:\n${validation.errors.join('\n')}`,

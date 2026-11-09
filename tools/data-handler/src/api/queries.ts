@@ -46,7 +46,6 @@ export class Queries {
       );
     }
     return this.checkout.calculationEngine.logicProgram(
-      ['all'],
       query as QueryName | undefined,
     );
   }
