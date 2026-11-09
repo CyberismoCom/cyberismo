@@ -192,7 +192,9 @@ describe('Clingo solver', () => {
   it('does not read files named by #include', async () => {
     const file = join(mkdtempSync(join(tmpdir(), 'clingo-')), 'secret.lp');
     writeFileSync(file, 'secret(42).');
-    ctx.setProgram('includer', `#include "${file}".`, ['includer']);
+    ctx.setProgram('includer', `#include ${JSON.stringify(file)}.`, [
+      'includer',
+    ]);
 
     await expect(
       ctx.solve('leaked(X) :- secret(X).', ['includer']),

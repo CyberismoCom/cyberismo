@@ -46,7 +46,7 @@ describe('validateProgram', () => {
   it('rejects including a file', () => {
     const file = join(mkdtempSync(join(tmpdir(), 'clingo-')), 'included.lp');
     writeFileSync(file, 'fact(1).');
-    const result = validateProgram(`#include "${file}".`);
+    const result = validateProgram(`#include ${JSON.stringify(file)}.`);
     expect(result.valid).toBe(false);
     expect(result.errors.join('\n')).toContain('file includes are disabled');
   });
