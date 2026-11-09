@@ -17,6 +17,7 @@ import {
   exportCardPdfSchema,
   type ExportCardPdfRequestBody,
 } from './schema.js';
+import { passLogicError } from '../../common/errors.js';
 
 const router = new Hono();
 
@@ -41,6 +42,7 @@ router.get('/', requireRole(UserRole.Reader), async (c) => {
     const response = await cardService.getProjectInfo(ws);
     return c.json(response);
   } catch (error) {
+    passLogicError(error);
     return c.text(
       `${error instanceof Error ? error.message : 'Unknown error'} from path ${c.get('projectPath')}`,
       500,
@@ -108,6 +110,7 @@ router.post(
         },
       });
     } catch (error) {
+      passLogicError(error);
       return c.json(
         {
           error:
@@ -246,6 +249,7 @@ router.patch('/:key', requireRole(UserRole.Editor), async (c) => {
       );
     }
   } catch (error) {
+    passLogicError(error);
     return c.text(
       error instanceof Error ? error.message : 'Unknown error',
       400,
@@ -284,6 +288,7 @@ router.delete('/:key', requireRole(UserRole.Editor), async (c) => {
     await cardService.deleteCard(ws, key);
     return new Response(null, { status: 204 });
   } catch (error) {
+    passLogicError(error);
     return c.json(
       {
         error: error instanceof Error ? error.message : 'Unknown error',
@@ -335,6 +340,7 @@ router.post('/:key', requireRole(UserRole.Editor), async (c) => {
     );
     return c.json(result);
   } catch (error) {
+    passLogicError(error);
     if (error instanceof Error) {
       return c.json({ error: error.message }, 400);
     }
@@ -390,6 +396,7 @@ router.post('/:key/attachments', requireRole(UserRole.Editor), async (c) => {
     );
     return c.json(result);
   } catch (error) {
+    passLogicError(error);
     return c.json(
       {
         error:
@@ -437,6 +444,7 @@ router.delete(
       const result = await cardService.removeAttachment(ws, key, filename);
       return c.json(result);
     } catch (error) {
+      passLogicError(error);
       return c.json(
         {
           error:
@@ -490,6 +498,7 @@ router.post('/:key/parse', requireRole(UserRole.Reader), async (c) => {
     const result = await cardService.parseContent(ws, key, content);
     return c.json(result);
   } catch (error) {
+    passLogicError(error);
     return c.json(
       {
         error:
@@ -551,6 +560,7 @@ router.post(
       );
       return c.json(result);
     } catch (error) {
+      passLogicError(error);
       return c.json(
         {
           error:
@@ -613,6 +623,7 @@ router.delete(
       );
       return c.json(result);
     } catch (error) {
+      passLogicError(error);
       return c.json(
         {
           error:
@@ -699,6 +710,7 @@ router.put(
       );
       return c.json(result);
     } catch (error) {
+      passLogicError(error);
       return c.json(
         {
           error:
@@ -767,6 +779,7 @@ router.get(
         },
       });
     } catch (error) {
+      passLogicError(error);
       return c.json(
         {
           error:

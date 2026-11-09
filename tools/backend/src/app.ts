@@ -249,8 +249,8 @@ export function createApp(
         console.error(err.stack);
       }
     }
-    const { status, body } = errorResponse(err);
-    return c.json(body, status);
+    const { status, body, headers } = errorResponse(err);
+    return c.json(body, status, headers);
   });
 
   return app;

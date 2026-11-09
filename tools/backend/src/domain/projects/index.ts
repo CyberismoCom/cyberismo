@@ -4,7 +4,11 @@
 import { Hono } from 'hono';
 import { zValidator } from '../../middleware/zvalidator.js';
 import type { ProjectDirectory } from '@cyberismo/data-handler';
-import { errorBody, errorResponse } from '../../common/errors.js';
+import {
+  errorBody,
+  errorResponse,
+  passLogicError,
+} from '../../common/errors.js';
 import { requireRole, getCurrentUser } from '../../middleware/auth.js';
 import { isProjectReadOnly } from '../../overlay.js';
 import { UserRole } from '../../types.js';
@@ -71,6 +75,7 @@ export function createProjectsRouter(
         );
         return c.json(result, 201);
       } catch (error) {
+        passLogicError(error);
         // A taken prefix is the directory's ProjectExistsError: a 409.
         const { status, body } = errorResponse(
           error instanceof Error
@@ -122,6 +127,7 @@ export function createProjectsRouter(
 
         return c.json(result, 201);
       } catch (error) {
+        passLogicError(error);
         return c.json(
           errorBody(
             'internal',

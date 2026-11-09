@@ -7,6 +7,7 @@ import { createLinkTypeSchema } from './schema.js';
 import { zValidator } from '../../middleware/zvalidator.js';
 import { UserRole } from '../../types.js';
 import { requireRole } from '../../middleware/auth.js';
+import { passLogicError } from '../../common/errors.js';
 
 const router = new Hono();
 
@@ -31,6 +32,7 @@ router.get('/', requireRole(UserRole.Reader), async (c) => {
     const linkTypes = await linkTypeService.getLinkTypes(ws);
     return c.json(linkTypes);
   } catch (error) {
+    passLogicError(error);
     return c.json(
       {
         error: `${error instanceof Error ? error.message : 'Unknown error'} from path ${c.get('projectPath')}`,

@@ -12,6 +12,7 @@ import {
 import { zValidator } from '../../middleware/zvalidator.js';
 import { UserRole } from '../../types.js';
 import { requireRole } from '../../middleware/auth.js';
+import { passLogicError } from '../../common/errors.js';
 
 const router = new Hono();
 
@@ -36,6 +37,7 @@ router.get('/', requireRole(UserRole.Reader), async (c) => {
     const cardTypes = await cardTypeService.getCardTypes(ws);
     return c.json(cardTypes);
   } catch (error) {
+    passLogicError(error);
     return c.json(
       {
         error: `${error instanceof Error ? error.message : 'Unknown error'} from path ${c.get('projectPath')}`,
@@ -85,6 +87,7 @@ router.post(
       await cardTypeService.createCardType(ws, identifier, workflowName);
       return c.json({ message: 'Card type created successfully' });
     } catch (error) {
+      passLogicError(error);
       return c.json(
         {
           error: `${error instanceof Error ? error.message : 'Unknown error'}`,
@@ -152,6 +155,7 @@ router.patch(
       await cardTypeService.updateFieldVisibility(ws, cardTypeName, body);
       return c.json({ message: 'Field visibility updated successfully' });
     } catch (error) {
+      passLogicError(error);
       if (error instanceof ResourceNotFoundError) {
         return c.json({ error: error.message }, 404);
       }

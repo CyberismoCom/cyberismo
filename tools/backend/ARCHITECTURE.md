@@ -26,7 +26,11 @@ static-site export. It holds no project rules; those live in data-handler.
 - Adapter only: parse and validate input, call the Workspace, map the result. No business rules, defaults or orchestration.
 - Only `index.ts` and middleware import `hono`; a service is plain TypeScript.
 - Every route declares a minimum role; an identifier from a request is resolved against the project before use.
-- Errors map to status codes in one place (`common/errors.ts`); client-facing errors stay generic.
+- Errors map to status codes in one place (`common/errors.ts`), a logic failure by its kind; a route that answers
+  failures with a status of its own passes a `LogicError` on first (`passLogicError`). Client-facing errors stay
+  generic.
+- `createServer` in `index.ts` is the composition point of a distribution (auth, directory, logic backend) and
+  serves `/livez`; `main.ts` and the CLI `app` command compose it.
 - Adapter tests check mapping (status, shape, role) and do not re-test Workspace behaviour.
 
 ## Known debt

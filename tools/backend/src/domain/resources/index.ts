@@ -16,6 +16,7 @@ import {
   workflowGraphQuerySchema,
 } from './schema.js';
 import { requireRole } from '../../middleware/auth.js';
+import { passLogicError } from '../../common/errors.js';
 
 const router = new Hono();
 
@@ -38,6 +39,7 @@ router.get('/tree', requireRole(UserRole.Reader), async (c) => {
     const tree = await resourceService.buildResourceTree(ws);
     return c.json(tree);
   } catch (error) {
+    passLogicError(error);
     return c.json(
       {
         error: `Failed to build resource tree: ${error instanceof Error ? error.message : 'Unknown error'}`,
@@ -104,6 +106,7 @@ router.get(
         await resourceService.validateResource(ws, resourceParams);
       return c.json(response);
     } catch (error) {
+      passLogicError(error);
       if (error instanceof Error && error.message.includes('not found')) {
         return c.json({ error: error.message }, 404);
       }
@@ -194,6 +197,7 @@ router.get(
       );
       return c.json({ svg });
     } catch (error) {
+      passLogicError(error);
       if (error instanceof Error && error.message.includes('not found')) {
         return c.json({ error: error.message }, 404);
       }
@@ -275,6 +279,7 @@ router.post(
       );
       return c.json({ instructions });
     } catch (error) {
+      passLogicError(error);
       const message = error instanceof Error ? error.message : 'Unknown error';
       if (message.includes('not found')) {
         return c.json({ error: message }, 404);

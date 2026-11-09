@@ -7,6 +7,7 @@ import { isSSGContext } from 'hono/ssg';
 import type { AppContext } from '../../types.js';
 import { UserRole } from '../../types.js';
 import { requireRole } from '../../middleware/auth.js';
+import { passLogicError } from '../../common/errors.js';
 
 const router = new Hono();
 
@@ -37,6 +38,7 @@ router.get('/', requireRole(UserRole.Reader), async (c: AppContext) => {
     );
     return c.json(response);
   } catch (error) {
+    passLogicError(error);
     return c.json(
       {
         error: `${error instanceof Error ? error.message : 'Unknown error'} from path ${c.get('projectPath')}`,

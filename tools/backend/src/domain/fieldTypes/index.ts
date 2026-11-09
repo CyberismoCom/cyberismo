@@ -7,6 +7,7 @@ import { createFieldTypeSchema } from './schema.js';
 import { zValidator } from '../../middleware/zvalidator.js';
 import { UserRole } from '../../types.js';
 import { requireRole } from '../../middleware/auth.js';
+import { passLogicError } from '../../common/errors.js';
 
 const router = new Hono();
 
@@ -31,6 +32,7 @@ router.get('/', requireRole(UserRole.Reader), async (c) => {
     const fieldTypes = await fieldTypeService.getFieldTypes(ws);
     return c.json(fieldTypes);
   } catch (error) {
+    passLogicError(error);
     return c.json(
       {
         error: `${error instanceof Error ? error.message : 'Unknown error'} from path ${c.get('projectPath')}`,
@@ -81,6 +83,7 @@ router.post(
       await fieldTypeService.createFieldType(ws, identifier, dataType);
       return c.json({ message: 'Field type created successfully' });
     } catch (error) {
+      passLogicError(error);
       return c.json(
         {
           error: `${error instanceof Error ? error.message : 'Unknown error'}`,

@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { localFolder } from '@cyberismo/data-handler';
-import { startServer } from './index.js';
+import { createServer } from './index.js';
 import { exportSite } from './export.js';
 import { MockAuthProvider } from './auth/mock.js';
 import { KeycloakAuthProvider } from './auth/keycloak.js';
@@ -59,13 +59,7 @@ const { values: args } = parseArgs({
   strict: false,
 });
 
-let opened;
-try {
-  opened = await localFolder(
-    projectPath,
-    args.export ? undefined : gitOptionsFromEnv(),
-  );
-} catch (error) {
+function failToStart(error: unknown): never {
   console.error(
     error instanceof Error
       ? error.message
@@ -73,9 +67,15 @@ try {
   );
   process.exit(1);
 }
-const { directory, failed } = opened;
 
 if (args.export) {
+  let opened;
+  try {
+    opened = await localFolder(projectPath);
+  } catch (error) {
+    failToStart(error);
+  }
+  const { directory, failed } = opened;
   const projects = await directory.list();
   if (projects.length === 0 && failed.length === 0) {
     console.error('No projects found to export.');
@@ -101,9 +101,17 @@ if (args.export) {
     process.exit(1);
   }
 } else {
+  const auth = createAuthProvider();
+  let failed;
+  try {
+    ({ failed } = await createServer(
+      { projectPath, multiProject: true, ...gitOptionsFromEnv() },
+      { auth },
+    ));
+  } catch (error) {
+    failToStart(error);
+  }
   if (failed.length > 0) {
     console.error(formatProjectErrors(failed));
   }
-  const authProvider = createAuthProvider();
-  await startServer(authProvider, directory, true, projectPath);
 }
