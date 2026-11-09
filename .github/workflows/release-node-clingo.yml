@@ -86,7 +86,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: tools/node-clingo/external/clingo/build/lib
-          key: clingo-libs-${{ runner.os }}-${{ runner.arch }}-${{ matrix.target }}-node${{ vars.NODE_VERSION }}-${{ steps.clingo-sha.outputs.sha }}-${{ hashFiles('tools/node-clingo/scripts/build-clingo.cmake', 'tools/node-clingo/binding.gyp') }}
+          key: clingo-libs-${{ runner.os }}-${{ runner.arch }}-${{ matrix.target }}-node${{ vars.NODE_VERSION }}-${{ steps.clingo-sha.outputs.sha }}-${{ hashFiles('tools/node-clingo/scripts/build-clingo.cmake', 'tools/node-clingo/patches/**', 'tools/node-clingo/binding.gyp') }}
 
       - name: Build clingo static libs (Linux glibc)
         if: ${{ steps.cache-clingo.outputs.cache-hit != 'true' && startsWith(matrix.target, 'linux-') && !endsWith(matrix.target, '-musl') }}

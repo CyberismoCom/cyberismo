@@ -63,14 +63,14 @@ jobs:
       uses: actions/cache@v4
       with:
         path: tools/node-clingo/build/Release
-        key: binding-${{ runner.os }}-${{ runner.arch }}-node${{ vars.NODE_VERSION }}-${{ steps.clingo-sha.outputs.sha }}-${{ hashFiles('tools/node-clingo/src/**', 'tools/node-clingo/binding.gyp', 'tools/node-clingo/package.json') }}
+        key: binding-${{ runner.os }}-${{ runner.arch }}-node${{ vars.NODE_VERSION }}-${{ steps.clingo-sha.outputs.sha }}-${{ hashFiles('tools/node-clingo/src/**', 'tools/node-clingo/patches/**', 'tools/node-clingo/binding.gyp', 'tools/node-clingo/package.json') }}
     - name: Cache clingo static libs
       if: steps.cache-binding.outputs.cache-hit != 'true'
       id: cache-clingo
       uses: actions/cache@v4
       with:
         path: tools/node-clingo/external/clingo/build/lib
-        key: clingo-libs-${{ runner.os }}-${{ runner.arch }}-node${{ vars.NODE_VERSION }}-${{ steps.clingo-sha.outputs.sha }}-${{ hashFiles('tools/node-clingo/scripts/build-clingo.cmake', 'tools/node-clingo/binding.gyp') }}
+        key: clingo-libs-${{ runner.os }}-${{ runner.arch }}-node${{ vars.NODE_VERSION }}-${{ steps.clingo-sha.outputs.sha }}-${{ hashFiles('tools/node-clingo/scripts/build-clingo.cmake', 'tools/node-clingo/patches/**', 'tools/node-clingo/binding.gyp') }}
     - name: Build clingo static libs
       if: steps.cache-binding.outputs.cache-hit != 'true' && steps.cache-clingo.outputs.cache-hit != 'true'
       run: pnpm --filter @cyberismo/node-clingo run build:clingo

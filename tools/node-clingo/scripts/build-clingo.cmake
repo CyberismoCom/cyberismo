@@ -6,6 +6,34 @@ get_filename_component(ROOT_DIR "${CMAKE_CURRENT_LIST_DIR}/.." ABSOLUTE)
 set(SOURCE_DIR "${ROOT_DIR}/external/clingo")
 set(BUILD_DIR  "${SOURCE_DIR}/build")
 
+# Apply our patches to the submodule. A patch that already reverse-applies is
+# in place from an earlier build; one that applies neither way fails the build.
+find_program(GIT_EXECUTABLE git REQUIRED)
+file(GLOB PATCHES "${ROOT_DIR}/patches/*.patch")
+list(SORT PATCHES)
+foreach(patch IN LISTS PATCHES)
+  get_filename_component(patch_name "${patch}" NAME)
+  execute_process(
+    COMMAND "${GIT_EXECUTABLE}" apply --reverse --check "${patch}"
+    WORKING_DIRECTORY "${SOURCE_DIR}"
+    RESULT_VARIABLE applied
+    OUTPUT_QUIET ERROR_QUIET
+  )
+  if(applied EQUAL 0)
+    message(STATUS "Patch already applied: ${patch_name}")
+    continue()
+  endif()
+  execute_process(
+    COMMAND "${GIT_EXECUTABLE}" apply "${patch}"
+    WORKING_DIRECTORY "${SOURCE_DIR}"
+    RESULT_VARIABLE result
+  )
+  if(NOT result EQUAL 0)
+    message(FATAL_ERROR "Could not apply clingo patch ${patch_name}")
+  endif()
+  message(STATUS "Applied patch: ${patch_name}")
+endforeach()
+
 message(STATUS "Configuring clingo...")
 execute_process(
   COMMAND "${CMAKE_COMMAND}"

@@ -1,6 +1,9 @@
 // SPDX-FileCopyrightText: Cyberismo Ltd and contributors
 // SPDX-License-Identifier: AGPL-3.0-only
 
+import { mkdtempSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { describe, it, expect, afterEach, beforeEach } from 'vitest';
 import { ClingoContext, clearCache } from '../lib/index.js';
 
@@ -184,6 +187,20 @@ describe('Clingo solver', () => {
         });
       }
     }
+  });
+
+  it('does not read files named by #include', async () => {
+    const file = join(mkdtempSync(join(tmpdir(), 'clingo-')), 'secret.lp');
+    writeFileSync(file, 'secret(42).');
+    ctx.setProgram('includer', `#include "${file}".`, ['includer']);
+
+    await expect(
+      ctx.solve('leaked(X) :- secret(X).', ['includer']),
+    ).rejects.toMatchObject({
+      details: {
+        errors: [expect.stringContaining('file includes are disabled')],
+      },
+    });
   });
 
   it('reports the program key when stored content fails to parse', async () => {
