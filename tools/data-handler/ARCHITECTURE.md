@@ -55,8 +55,8 @@ it when it is disposed, and a disposed checkout refuses every operation.
   were. A failed write that changed files rebuilds them from the files:
   the rollback with autocommit, the reload without it.
 - Logic failures are `LogicError`s (invalid, nonTotal, unavailable,
-  internal). The contract every backend must pass is the private package
-  `tools/logic-contract`.
+  internal). Nothing else imports `@cyberismo/node-clingo`. The contract
+  every backend must pass is the private package `tools/logic-contract`.
 
 ## Known debt
 

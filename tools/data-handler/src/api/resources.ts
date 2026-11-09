@@ -27,6 +27,7 @@ import {
 import { runWithDefaultCommitMessage } from '../infra/tx/commit-context.js';
 import { resourceName } from '../shared/utils/resource-utils.js';
 import { read, write } from '../infra/tx/rw-lock.js';
+import { DHValidationError, DomainError } from '../shared/exceptions/index.js';
 import type { CommitIdentity } from '../infra/tx/tx-record.js';
 import type { Changes } from './changes.js';
 
@@ -198,7 +199,21 @@ export class Resources {
       findCard(this.checkout, options.cardKey);
     }
 
-    return renderSkillTemplates(this.checkout, skill.content, options, context);
+    try {
+      return await renderSkillTemplates(
+        this.checkout,
+        skill.content,
+        options,
+        context,
+      );
+    } catch (error) {
+      // A template that does not render is a mistake in the skill: a
+      // validation error. Typed errors, such as a logic failure, keep their own.
+      if (error instanceof Error && !(error instanceof DomainError)) {
+        throw new DHValidationError(error.message);
+      }
+      throw error;
+    }
   }
 
   // Fetch resource names as a list

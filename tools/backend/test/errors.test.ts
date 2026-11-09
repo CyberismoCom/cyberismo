@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest';
 import {
   CardNotFoundError,
   CycleError,
+  LogicError,
   ModuleRequestError,
   PermissionDeniedError,
   ReadOnlyContainerError,
@@ -27,6 +28,25 @@ describe('errorResponse', () => {
       message: error.message,
       details: error.details,
     });
+  });
+
+  it('serves each kind of logic failure with its status', () => {
+    const statuses = [
+      ['invalid', 400, undefined],
+      ['nonTotal', 422, undefined],
+      ['unavailable', 503, '5'],
+      ['internal', 500, undefined],
+    ] as const;
+    for (const [kind, status, retryAfter] of statuses) {
+      const response = errorResponse(new LogicError(kind, 'Logic failed'));
+
+      expect(response.status).toBe(status);
+      expect(response.headers?.['Retry-After']).toBe(retryAfter);
+      expect(response.body).toMatchObject({
+        code: 'logic',
+        details: { kind, diagnostics: [] },
+      });
+    }
   });
 
   it("keeps a module request's git detail off the wire", () => {

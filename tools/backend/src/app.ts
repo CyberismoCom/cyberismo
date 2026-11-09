@@ -245,11 +245,11 @@ export function createApp(
   // Error handling
   // Only server faults are logged; client errors are answered, not logged.
   app.onError((err, c) => {
-    const { status, body } = errorResponse(err);
+    const { status, body, headers } = errorResponse(err);
     if (status >= 500 && !isSSGContext(c) && process.env.NODE_ENV !== 'test') {
       console.error(err.stack);
     }
-    return c.json(body, status);
+    return c.json(body, status, headers);
   });
 
   return app;

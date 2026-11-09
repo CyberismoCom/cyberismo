@@ -10,6 +10,7 @@ import { type Workspace } from '../src/api/workspace.js';
 import { copyDir } from '../src/shared/utils/file-utils.js';
 import { openTestWorkspace } from './helpers/open-test-workspace.js';
 import { checkoutOf } from '../src/state/checkout/internal.js';
+import { DHValidationError } from '../src/shared/exceptions/index.js';
 
 const baseDir = import.meta.dirname;
 const testDir = join(baseDir, 'tmp-skill-discovery-tests');
@@ -299,6 +300,17 @@ describe('skill discovery', () => {
           cardKey: 'decision_does_not_exist',
         }),
       ).rejects.toThrow();
+    });
+
+    it('types a template that does not render as a validation error', async () => {
+      const error = await ws.resources
+        .skillPreview('decision/skills/globalSkill', {
+          skillContent: '{{#each results}}unclosed',
+        })
+        .catch((error: unknown) => error);
+
+      expect(error).toBeInstanceOf(DHValidationError);
+      expect(error).toMatchObject({ code: 'validation' });
     });
 
     it('surfaces an error from a broken query', async () => {
