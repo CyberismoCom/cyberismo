@@ -212,6 +212,7 @@ export class ResourceCache {
         'graphViews',
         'linkTypes',
         'reports',
+        'skills',
         'templates',
         'workflows',
       ];
