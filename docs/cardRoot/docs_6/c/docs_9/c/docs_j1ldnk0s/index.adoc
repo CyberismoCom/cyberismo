@@ -465,3 +465,19 @@ A rendered version of the output is this:
 {{#report}}
   "name": "docs/reports/example5"
 {{/report}}
+
+== Example 6: Editable fields in a report
+
+A report template can use the {{#xref}}"cardKey":"docs_rxscyk66"{{/xref}} macro to show a field of the card that each row describes, which users can edit in place. Pass the key of the row as `"cardKey"` and use the `inline` display. This template lists the child cards with their owners:
+
+```
+{{#raw}}
+
+{{#each results}}
+* {{this.title}}: {{#field}}"cardKey": "{{this.key}}", "field": "base/fieldTypes/owner", "display": "inline"{{/field}}
+{{/each}}
+
+{{/raw}}
+```
+
+The query of the report must return cards, so that `this.key` is a card key.

@@ -1,0 +1,92 @@
+The `field` macro shows a field of a card. In the application, users who are allowed to edit the card can change the value in place. The macro works with custom fields and with the built-in `title` and `workflowState` fields.
+
+== Parameters
+
+The `field` macro supports the following parameters:
+
+* `"field"`: The field to show (required). Use the full name of a custom field, such as `base/fieldTypes/owner`, or one of the names `title` and `workflowState`. The field must belong to the card type of the card.
+* `"cardKey"`: The card whose field is shown (optional). If not specified, the card containing this macro is used. See <<Showing a field of another card>>.
+* `"display"`: How the field is shown (optional). The value `row` (default) shows the label and the value on a row of their own. The value `inline` shows only the value, within the surrounding text.
+* `"showLabel"`: Whether to show the label of the field before the value (optional). The default is `true` for `row` and `false` for `inline`.
+
+== Examples
+
+To show a group of fields as a form-like section, write the macros on consecutive lines. A blank line starts a new section:
+
+```
+{{#raw}}
+
+{{#field}}"field": "title"{{/field}}
+{{#field}}"field": "base/fieldTypes/owner"{{/field}}
+{{#field}}"field": "workflowState"{{/field}}
+
+{{/raw}}
+```
+
+To show a value in a sentence, use the `inline` display:
+
+```
+{{#raw}}
+
+This card is owned by {{#field}}
+    "field": "base/fieldTypes/owner",
+    "display": "inline"
+{{/field}}.
+
+{{/raw}}
+```
+
+Use `inline` whenever the macro is in running text, in a list item or in a table cell.
+
+== Showing a field of another card
+
+With `"cardKey"`, the macro shows and edits a field of another card. The field must belong to the card type of that card, and the workflow and the rules of that card apply. In the application, the macro also tells which card the field belongs to. A card of the project cannot show a field of a template card. A macro in a template card can show a field of any card.
+
+In the content of a card that is included with the {{#xref}}"cardKey":"docs_61tj2hec"{{/xref}} macro, the card containing the macro is the included card.
+
+== Using the macro in a report
+
+A report template can use the macro in each row, with the key of the row as `"cardKey"`. Use the `inline` display, and make the query of the report return cards:
+
+```
+{{#raw}}
+
+{{#each results}}
+* {{this.title}}: {{#field}}
+    "cardKey": "{{this.key}}",
+    "field": "workflowState",
+    "display": "inline"
+{{/field}}
+{{/each}}
+
+{{/raw}}
+```
+
+Without `"cardKey"`, every row shows the field of the card that contains the report.
+
+== Editing
+
+In the application, users with the Editor role or higher can edit the field. The field is read-only for other users, and also when:
+
+* the field is calculated and its card type does not allow overriding it (see {{#xref}}"cardKey":"docs_27"{{/xref}});
+* an `editingFieldDenied` rule denies editing it (see {{#xref}}"cardKey":"docs_eqgqllcc"{{/xref}});
+* the card is shown in the preview of a template card.
+
+For `workflowState`, the macro offers the transitions that are available from the current state. The transitions that the rules deny are disabled and show the reason.
+
+== Static site and exports
+
+In the static site and in exports such as PDF, the macro writes the value into the card as text. A `row` macro is a paragraph of its own and an `inline` macro stays within its line. The label is in bold. A value is shown exactly as typed: markup such as `*bold*`, braces and line breaks are kept as text, so a value cannot add formatting or macros.
+
+* Enumeration: the display value of the selected option.
+* List: the values, separated by commas.
+* Boolean: `Yes` or `No`.
+* Calculated field: the effective value, which is the override if there is one.
+* Other types: the value as it is stored.
+* Empty value: `—`.
+
+== Hidden fields and errors
+
+The visibility of a field in the card type only affects the metadata panel. A hidden field can still be shown with the macro, and its value is then visible to everyone who can read the card, also in the static site and in exports.
+
+The macro shows an error instead of the value if the card does not exist, if the field does not exist or does not belong to the card type, if `"field"` is not a full field name, or if a card of the project targets a template card. Validating the project only checks that the parameters of the macro are well formed, so these errors show when the card is displayed.

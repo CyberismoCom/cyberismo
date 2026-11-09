@@ -4,6 +4,7 @@
 import { useSWRHook } from './common';
 import { downloadBlob } from '@/lib/utils';
 import { callApi, projectApiPaths } from '../swr';
+import { cardFetcher } from './card-batch';
 
 import type { SWRConfiguration } from 'swr';
 import { mutate } from 'swr';
@@ -30,7 +31,10 @@ const useCardData = (
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     isUpdating: _isUpdating,
     ...rest
-  } = useSWRHook(key ? apiPaths.card(key) : null, 'card', null, options);
+  } = useSWRHook(key ? apiPaths.card(key) : null, 'card', null, {
+    fetcher: cardFetcher,
+    ...options,
+  });
 
   return rest;
 };
@@ -229,6 +233,19 @@ function revalidateCardView(key: string, projectPrefix?: string) {
     mutate(apiPaths.card(key)),
     mutate(apiPaths.cardContent(key)),
   ]);
+}
+
+/**
+ * Refetches every mounted card's data and rendered content. A write to one
+ * card can change another's calculated values or the content that shows it.
+ */
+export function revalidateMountedCards(projectPrefix?: string) {
+  const cardsBase = `${projectApiPaths(projectPrefix).cards()}/`;
+  return mutate((key) => {
+    if (typeof key !== 'string' || !key.startsWith(cardsBase)) return false;
+    const [, ...rest] = key.slice(cardsBase.length).split('/');
+    return rest.length === 0 || (rest.length === 1 && rest[0] === 'content');
+  });
 }
 
 export async function updateCard(

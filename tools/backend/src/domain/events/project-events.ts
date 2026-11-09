@@ -173,7 +173,8 @@ export class ProjectEvents {
         userName: actor.name,
       });
       const withoutIdentity = this.encode('card.updated', { cardKey });
-      for (const [connectionId, connection] of this.onCard(cardKey)) {
+      // Project-wide, since a page can show fields of cards it is not on.
+      for (const [connectionId, connection] of [...this.connections]) {
         this.deliver(
           connectionId,
           connection.capabilities.canSeeIdentity
@@ -222,7 +223,7 @@ export class ProjectEvents {
     }
   }
 
-  // Subscription governs delivery.
+  // Presence is delivered per card.
   private onCard(cardKey: string): [string, Connection][] {
     return [...this.connections].filter(([, c]) => c.cardKey === cardKey);
   }
