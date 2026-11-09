@@ -235,9 +235,17 @@ function revalidateCardView(key: string, projectPrefix?: string) {
   ]);
 }
 
-/** Refetches a card's rendered content, e.g. a page showing another card's values. */
-export function revalidateCardContent(key: string, projectPrefix?: string) {
-  return mutate(projectApiPaths(projectPrefix).cardContent(key));
+/**
+ * Refetches every mounted card's data and rendered content. A write to one
+ * card can change another's calculated values or the content that shows it.
+ */
+export function revalidateMountedCards(projectPrefix?: string) {
+  const cardsBase = `${projectApiPaths(projectPrefix).cards()}/`;
+  return mutate((key) => {
+    if (typeof key !== 'string' || !key.startsWith(cardsBase)) return false;
+    const [, ...rest] = key.slice(cardsBase.length).split('/');
+    return rest.length === 0 || (rest.length === 1 && rest[0] === 'content');
+  });
 }
 
 export async function updateCard(

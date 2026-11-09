@@ -337,14 +337,24 @@ describe('Field macro', () => {
       const link = screen.queryByRole('link', {
         name: `${target} · ${cards[target].title}`,
       });
-      const hostContent = '/api/projects/TST/cards/k_1/content';
+      const base = '/api/projects/TST';
+      const matcher = mutate.mock.calls
+        .map(([arg]) => arg)
+        .find((arg) => typeof arg === 'function');
       if (cross) {
         expect(mutations.k_1[save]).not.toHaveBeenCalled();
         expect(link).toHaveAttribute('href', `/cards/${target}`);
-        expect(mutate).toHaveBeenCalledWith(hostContent);
+        // The host's data and content, and any other mounted card's; nothing else.
+        expect(matcher(`${base}/cards/k_1`)).toBe(true);
+        expect(matcher(`${base}/cards/k_1/content`)).toBe(true);
+        expect(matcher(`${base}/cards/k_3`)).toBe(true);
+        expect(matcher(`${base}/cards/k_1/source`)).toBe(false);
+        expect(matcher(`${base}/cards/k_1/a`)).toBe(false);
+        expect(matcher(`${base}/tree`)).toBe(false);
+        expect(matcher(`/api/projects/OTHER/cards/k_1`)).toBe(false);
       } else {
         expect(link).not.toBeInTheDocument();
-        expect(mutate).not.toHaveBeenCalledWith(hostContent);
+        expect(matcher).toBeUndefined();
       }
     },
   );

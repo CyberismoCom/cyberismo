@@ -15,7 +15,7 @@ import {
 import type { ReactNode } from 'react';
 import type { MacroContext } from '.';
 import {
-  revalidateCardContent,
+  revalidateMountedCards,
   useCard,
   useCardMutations,
   useProject,
@@ -89,8 +89,8 @@ export default function Field({
 
   const isTarget = cardKey !== macroKey;
   const target = isTarget ? { key: card.key, title: card.title } : undefined;
-  // The page's own content can show the target too, through xrefs and reports.
-  const onSaved = isTarget ? () => revalidateCardContent(macroKey) : undefined;
+  // The page's card can depend on the target, by calculation, xref or report.
+  const onSaved = isTarget ? () => revalidateMountedCards() : undefined;
   const view =
     field === 'workflowState' ? (
       <WorkflowStateField
