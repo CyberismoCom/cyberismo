@@ -12,9 +12,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import program from '../src/index.js';
 
-const startServer = vi.hoisted(() => vi.fn());
+const createServer = vi.hoisted(() => vi.fn());
 vi.mock('@cyberismo/backend', () => ({
-  startServer,
+  createServer,
   MockAuthProvider: class {},
 }));
 vi.mock('../src/lib/prompts.js', () => ({ confirm: async () => true }));
@@ -34,7 +34,7 @@ describe('app', () => {
     stderr = '';
     vi.spyOn(console, 'error').mockImplementation((text) => (stderr += text));
     vi.spyOn(console, 'warn').mockImplementation(() => {});
-    startServer.mockClear();
+    createServer.mockClear();
   });
 
   afterEach(() => {
@@ -48,13 +48,16 @@ describe('app', () => {
   it('serves a project folder as a single project', async () => {
     await app(join(root, 'mini'));
 
-    expect(startServer.mock.calls[0][3]).toBeUndefined();
+    expect(createServer.mock.calls[0][0].multiProject).toBe(false);
   });
 
   it('serves a collection as its root', async () => {
     await app(root);
 
-    expect(startServer.mock.calls[0][3]).toBe(root);
+    expect(createServer.mock.calls[0][0]).toMatchObject({
+      projectPath: root,
+      multiProject: true,
+    });
   });
 
   it("reports a project it cannot load by the load's own error", async () => {
