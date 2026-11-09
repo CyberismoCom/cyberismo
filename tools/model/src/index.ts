@@ -17,6 +17,7 @@ export * from './interfaces/resource-name.js';
 export * from './interfaces/verbs.js';
 export * from './interfaces/version-source.js';
 export * from './macros/common.js';
+export * from './macros/field/defaults.js';
 export * from './macros/types.js';
 export * from './project-errors.js';
 export * from './types/queries.js';

@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
-import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { getCardQueryResult, reset, exportSite } from '../src/export.js';
@@ -238,6 +238,42 @@ describe('export module', () => {
         'key',
         'path',
       ]);
+    });
+
+    test('exports a field macro as its value text', async () => {
+      const card = join(
+        folder,
+        'decision-records',
+        'cardRoot',
+        'decision_5',
+        'c',
+        'decision_6',
+      );
+      await writeFile(
+        join(card, 'index.adoc'),
+        '{{#field}}"field": "decision/fieldTypes/numberOfCommits"{{/field}}\n',
+      );
+      const { directory: registry } = await localFolder(folder);
+
+      await exportSite(registry, tempDir, { cardKey: 'decision_6' });
+
+      const content = JSON.parse(
+        await readFile(
+          join(
+            tempDir,
+            'api',
+            'projects',
+            'decision',
+            'cards',
+            'decision_6',
+            'content.json',
+          ),
+          'utf8',
+        ),
+      );
+      // Punctuation is a numeric entity, so the value is shown as typed.
+      expect(content.adocContent).toContain('pass:[1&#46;5]');
+      expect(content.adocContent).not.toContain('<card-field');
     });
   });
 });

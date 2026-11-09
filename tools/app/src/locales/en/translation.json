@@ -102,6 +102,7 @@
   },
   "attachment": "Attachment",
   "attachments": "Attachments",
+  "calculatedField": "This field is calculated and cannot be edited",
   "calculatedForEachCard": "calculated for each card",
   "calculatedValue": "Calculated value",
   "cancel": "Cancel",
@@ -243,6 +244,18 @@
   "failedPolicyChecks": "Failed policy checks",
   "failedToLoad": "Failed to load",
   "false": "False",
+  "fieldMacro": {
+    "calculated": "calculated",
+    "calculatedMark": "ƒ",
+    "empty": "—",
+    "enter": "Enter {{label}}",
+    "enterEmail": "Enter email",
+    "error": "Error: {{message}}",
+    "errorTitle": "Macro Error",
+    "notOnCardType": "Error: field '{{field}}' is not a field of card type '{{cardType}}'",
+    "selectDate": "Select date",
+    "selectDateTime": "Select date and time"
+  },
   "fieldSaved": "Field saved",
   "fieldType": "Field type",
   "general": {

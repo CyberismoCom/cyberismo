@@ -114,6 +114,7 @@ export function CardToolbar({
         workflow={workflow}
         onTransition={(transition) => onStateTransition(transition)}
         onViewWorkflow={workflow ? () => setWorkflowGraphOpen(true) : undefined}
+        deniedTransitions={card?.deniedOperations.transition}
         isLoading={isUpdating('updateState')}
         disabled={!canEdit || (isUpdating() && !isUpdating('updateState'))}
       />

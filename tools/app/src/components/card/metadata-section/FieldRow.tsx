@@ -1,20 +1,29 @@
 // SPDX-FileCopyrightText: Cyberismo Ltd and contributors
 // SPDX-License-Identifier: AGPL-3.0-only
 
-import { useEffect, useRef } from 'react';
-import type { FocusEvent } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Accordion, AccordionDetails, Box, IconButton, Stack } from '@mui/joy';
+import {
+  Accordion,
+  AccordionDetails,
+  Box,
+  IconButton,
+  Stack,
+  Tooltip,
+} from '@mui/joy';
 import CheckIcon from '@mui/icons-material/Check';
 import CloseIcon from '@mui/icons-material/Close';
-import { Controller, useForm } from 'react-hook-form';
 import type { DataType, MetadataValue } from '@/lib/definitions';
 import type { EnumDefinition } from '@cyberismo/model/types/queries';
 import EditableField, { FieldLabel } from '@/components/EditableField';
-import FieldEditor from '@/components/FieldEditor';
 import { OverrideEditorFrame, OverriddenMarker } from './OverrideEditorFrame';
-import { coerceMetadataValue, metadataValueToString } from '@/lib/utils';
-import { focusLeftEditor, formKeyHandler } from '@/lib/hooks';
+import { metadataValueToString } from '@/lib/utils';
+import { isOverridden, presentsAsOverride } from './customFieldRow';
+import { useFieldEditForm } from './useFieldEditForm';
+import {
+  fieldRowFrameSx,
+  containerRowSx,
+  rowValueWidthSx,
+} from '@/components/fieldRowFrame';
 
 export interface FieldRowProps {
   id?: string;
@@ -26,6 +35,12 @@ export interface FieldRowProps {
   enumValues?: EnumDefinition[];
   isEditing?: boolean;
   disabled?: boolean;
+  /** Tooltip on the disabled row. */
+  disabledReason?: string;
+  /** Omit the visible label; the display name becomes the control's aria-label. */
+  hideLabel?: boolean;
+  /** Read-mode text for an empty value; without it an empty value shows nothing. */
+  emptyText?: string;
   /** True for a calculated field that can be overridden by the user. */
   overrideMode?: boolean;
   /** The stored override, edited when `overrideMode`. `value` stays the effective value. */
@@ -48,6 +63,9 @@ export function FieldRow({
   enumValues,
   isEditing,
   disabled,
+  disabledReason,
+  hideLabel,
+  emptyText,
   overrideMode,
   overrideValue,
   calculatedValue,
@@ -57,98 +75,38 @@ export function FieldRow({
   onCancel,
 }: FieldRowProps) {
   const { t } = useTranslation();
-  const initialValue = (overrideMode ? overrideValue : value) ?? null;
-  // With nothing calculated there is nothing to override, so the field is
-  // presented as a regular one; its edits still store the override.
-  const hasCalculatedValue =
-    calculatedValue != null &&
-    calculatedValue !== '' &&
-    !(Array.isArray(calculatedValue) && calculatedValue.length === 0);
-  const presentAsOverride = !!overrideMode && hasCalculatedValue;
-  const isOverridden = presentAsOverride && overrideValue != null;
-
-  // Overridable fields are always of a "normal" dataType, never 'label'.
+  const row = {
+    value,
+    overrideMode,
+    overrideValue,
+    calculatedValue,
+    dataType,
+    enumValues,
+  };
+  const presentAsOverride = presentsAsOverride(row);
   const formatValue = (v: MetadataValue) =>
-    metadataValueToString(v ?? null, dataType as DataType, t, enumValues);
+    metadataValueToString(v ?? null, dataType, t, enumValues);
 
   const {
-    control,
-    reset,
-    getValues,
-    formState: { isDirty },
-  } = useForm({ defaultValues: { value: initialValue } });
-
-  // Reseed only when editing opens (rising edge). Resetting when the parent
-  // closes the row would wipe a draft before the blur-triggered save reads it.
-  const serializedInitial = JSON.stringify(initialValue);
-  const rowRef = useRef<HTMLDivElement>(null);
-  const wasEditingRef = useRef(isEditing);
-  useEffect(() => {
-    const enteringEdit = isEditing && !wasEditingRef.current;
-    wasEditingRef.current = isEditing;
-    if (enteringEdit) {
-      reset({ value: initialValue });
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isEditing, serializedInitial, reset]);
-
-  const handleChange = (
-    rawValue: string | string[] | null,
-    onChange: (v: MetadataValue) => void,
-  ) => {
-    const coerced = coerceMetadataValue(rawValue, dataType);
-    onChange(coerced);
-    onAutoSave?.(coerced);
-  };
-
-  const handleSave = () => {
-    onSave?.(getValues('value'));
-  };
-
-  const isValueDirty = () =>
-    JSON.stringify(getValues('value')) !== serializedInitial;
-
-  const handleBlur = (event: FocusEvent) => {
-    if (!isDirty) {
-      return;
-    }
-    if (focusLeftEditor(event, rowRef.current)) {
-      handleSave();
-    }
-  };
-
-  // Reads the live value rather than `isDirty`: the option click that closes
-  // the listbox updates the value in the same tick as this callback.
-  const handleCommit = () => {
-    if (isValueDirty()) {
-      handleSave();
-    }
-  };
-
-  const handleCancel = () => {
-    reset({ value: initialValue });
-    onCancel?.();
-  };
+    rowRef,
+    isDirty,
+    clearDisabled,
+    editorField,
+    handleSave,
+    handleBlur,
+    handleCancel,
+    handleKeyDown,
+  } = useFieldEditForm({
+    row,
+    isEditing,
+    disabled,
+    ariaLabel: hideLabel ? label : undefined,
+    onSave,
+    onAutoSave,
+    onCancel,
+  });
 
   const isClickable = !disabled && !isEditing && !!onStartEdit;
-
-  const editorField = (
-    <Controller
-      name="value"
-      control={control}
-      render={({ field: { value: formValue, onChange } }) => (
-        <FieldEditor
-          value={formValue}
-          onChange={(e: string | string[] | null) => handleChange(e, onChange)}
-          onCommit={handleCommit}
-          dataType={dataType}
-          enumValues={enumValues}
-          disabled={disabled}
-          focus={true}
-        />
-      )}
-    />
-  );
 
   const saveCancelButtons = (
     <>
@@ -183,10 +141,11 @@ export function FieldRow({
       id={id}
       expanded={expanded}
       sx={{
-        borderLeft: '3px solid',
-        borderColor: isEditing ? 'primary.300' : 'neutral.300',
-        paddingX: 0.5,
-        marginY: expanded ? 0.5 : 0,
+        ...fieldRowFrameSx,
+        borderColor: isEditing ? 'primary.300' : fieldRowFrameSx.borderColor,
+        marginY: expanded ? fieldRowFrameSx.marginY : 0,
+        // The rule ties a label to its value; without a label there is nothing to tie.
+        ...(hideLabel && { borderLeft: 0 }),
         ...(isClickable && {
           cursor: 'pointer',
           '&:hover': {
@@ -200,27 +159,22 @@ export function FieldRow({
         {isEditing ? (
           <Stack
             ref={rowRef}
-            direction={{ xs: 'column', md: 'row' }}
-            spacing={{ xs: 0.5, md: 4 }}
+            sx={containerRowSx}
             onBlur={handleBlur}
-            onKeyDown={formKeyHandler({
-              canSubmit: !!onSave && isDirty,
-              onSubmit: handleSave,
-              onCancel: handleCancel,
-              multiline: dataType === 'longText' || dataType === 'label',
-            })}
+            onKeyDown={handleKeyDown}
           >
             <FieldLabel
               label={label}
-              description={description}
+              description={hideLabel ? undefined : description}
               disabled={disabled}
               edit={true}
+              visuallyHidden={hideLabel}
             />
             {presentAsOverride ? (
               <OverrideEditorFrame
                 calculatedValue={formatValue(calculatedValue ?? null)}
                 editor={editorField}
-                clearDisabled={disabled || (initialValue === null && !isDirty)}
+                clearDisabled={disabled || clearDisabled}
                 onClear={() => onSave?.(null)}
                 actions={saveCancelButtons}
               />
@@ -229,13 +183,14 @@ export function FieldRow({
                 direction="row"
                 alignItems="flex-start"
                 spacing={0.5}
-                sx={{
-                  flexGrow: 1,
-                  width: { xs: '100%', md: 'auto' },
-                  minWidth: 0,
-                }}
+                sx={[
+                  { flexGrow: 1, minWidth: 0 },
+                  rowValueWidthSx,
+                  // In a narrow container the buttons drop below the editor.
+                  { flexWrap: 'wrap', rowGap: 0.5 },
+                ]}
               >
-                <Box flexGrow={1} minWidth={0}>
+                <Box flexGrow={1} minWidth={0} sx={{ flexBasis: '8rem' }}>
                   {editorField}
                 </Box>
                 {saveCancelButtons}
@@ -243,27 +198,36 @@ export function FieldRow({
             )}
           </Stack>
         ) : (
-          <Box
-            onClick={isClickable ? onStartEdit : undefined}
-            data-cy="editableFieldRow"
+          <Tooltip
+            title={disabled ? disabledReason : undefined}
+            describeChild
+            placement="top-start"
+            disableInteractive
           >
-            <EditableField
-              value={value ?? null}
-              label={label}
-              dataType={dataType}
-              description={description}
-              enumValues={enumValues}
-              edit={false}
-              disabled={disabled}
-              valueDecorator={
-                isOverridden ? (
-                  <OverriddenMarker
-                    calculatedValue={formatValue(calculatedValue ?? null)}
-                  />
-                ) : undefined
-              }
-            />
-          </Box>
+            <Box
+              onClick={isClickable ? onStartEdit : undefined}
+              data-cy="editableFieldRow"
+            >
+              <EditableField
+                value={value ?? null}
+                label={label}
+                dataType={dataType}
+                description={description}
+                enumValues={enumValues}
+                edit={false}
+                disabled={disabled}
+                hideLabel={hideLabel}
+                emptyText={emptyText}
+                valueDecorator={
+                  isOverridden(row) ? (
+                    <OverriddenMarker
+                      calculatedValue={formatValue(calculatedValue ?? null)}
+                    />
+                  ) : undefined
+                }
+              />
+            </Box>
+          </Tooltip>
         )}
       </AccordionDetails>
     </Accordion>
