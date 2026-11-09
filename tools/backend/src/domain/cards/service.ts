@@ -8,6 +8,7 @@ import type {
   MetadataContent,
   QueryResult,
 } from '@cyberismo/model';
+import { basename, dirname, join } from 'node:path';
 import { AsciidoctorPdfError, type Workspace } from '@cyberismo/data-handler';
 import { preprocessMermaidBlocksForHtml } from './mermaid.js';
 import { allCards } from './lib.js';
@@ -326,7 +327,7 @@ export async function findAllCards(
   return allCards(ws, options);
 }
 /**
- * Gets all attachments that are required for rendering the wanted cards
+ * Gets all attachments of the wanted cards, for copying into the static site
  * @param ws the command manager used for the query
  * @param options optional tree query options
  * @returns all attachments for cards returned by the tree query
@@ -338,15 +339,19 @@ export async function findRelevantAttachments(
   const cards = new Set<string>(
     (await allCards(ws, options)).map((c) => c.key),
   );
-  const attachments = await ws.cards.attachments();
-  return attachments
+  // Only files directly in the card's own a/ folder: files of subfolders would
+  // collide under one flat name.
+  return (await ws.cards.attachments())
     .filter(
-      (attachment) =>
-        cards.has(attachment.card) && attachment.mimeType?.startsWith('image/'),
+      ({ card, path }) =>
+        cards.has(card) &&
+        basename(path) === 'a' &&
+        basename(dirname(path)) === card,
     )
-    .map((attachment) => ({
-      key: attachment.card,
-      attachment: attachment.fileName,
+    .map(({ card, fileName, path }) => ({
+      key: card,
+      attachment: fileName,
+      file: join(path, fileName),
     }));
 }
 
