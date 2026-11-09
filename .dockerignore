@@ -83,5 +83,6 @@ Dockerfile
 docker-compose.yml
 *.dockerfile
 
-
-
+# The submodule's .git file points outside the build context and would make
+# build-clingo.cmake's `git apply` fail; without it git applies as plain patch.
+tools/node-clingo/external/clingo/.git

@@ -1,9 +1,10 @@
 # Isolated stage so the ~5min cmake compile is cached when clingo
 # source is unchanged.
 FROM node:22-alpine AS clingo-builder
-RUN apk add --no-cache g++ python3 make cmake
+RUN apk add --no-cache g++ python3 make cmake git
 WORKDIR /app
 COPY tools/node-clingo/external/clingo ./tools/node-clingo/external/clingo
+COPY tools/node-clingo/patches ./tools/node-clingo/patches
 COPY tools/node-clingo/scripts/build-clingo.cmake ./tools/node-clingo/scripts/build-clingo.cmake
 RUN cmake -P tools/node-clingo/scripts/build-clingo.cmake
 
