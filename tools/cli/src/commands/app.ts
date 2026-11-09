@@ -9,7 +9,7 @@ import { simpleGit } from 'simple-git';
 import {
   MockAuthProvider,
   type MockUserConfig,
-  startServer,
+  createServer,
 } from '@cyberismo/backend';
 import { formatProjectErrors, type ProjectErrors } from '@cyberismo/model';
 import {
@@ -126,12 +126,10 @@ export function registerApp(program: Command) {
       );
     }
 
-    // Pass multiProjectRoot only in multi-project mode (enables project creation)
-    await startServer(
-      new MockAuthProvider(gitUser),
-      directory,
-      true,
-      isSingleProject ? undefined : basePath,
+    // Project creation only in multi-project mode.
+    await createServer(
+      { projectPath: basePath, multiProject: !isSingleProject },
+      { auth: new MockAuthProvider(gitUser), directory },
     );
   });
 }
