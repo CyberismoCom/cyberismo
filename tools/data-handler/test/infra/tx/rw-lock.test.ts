@@ -50,6 +50,22 @@ describe('RWLock', () => {
       const result = await lock.read(async () => 'ok');
       expect(result).toBe('ok');
     });
+
+    it('refuses the reads and writes its admission check throws for', async () => {
+      let refused = true;
+      const lock = new RWLock('test', () => {
+        if (refused) throw new Error('refused');
+      });
+
+      await expect(lock.write(SYSTEM_FRAME, async () => 'no')).rejects.toThrow(
+        'refused',
+      );
+      await expect(lock.read(async () => 'no')).rejects.toThrow('refused');
+      // A refusal releases the lock.
+      refused = false;
+      expect(await lock.write(SYSTEM_FRAME, async () => 'ok')).toBe('ok');
+      expect(await lock.read(async () => 'ok')).toBe('ok');
+    });
   });
 
   describe('concurrent reads', () => {

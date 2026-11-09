@@ -15,6 +15,7 @@ export const ERROR_CODES = [
   'macro',
   'replay-failed',
   'workspace-disposed',
+  'logic',
   'internal',
 ] as const;
 
@@ -43,6 +44,9 @@ export const ERROR_HTTP_STATUS: Record<ErrorCode, number> = {
   'module-request': 500,
   macro: 500,
   'replay-failed': 500,
-  'workspace-disposed': 500,
+  // The project was reopened; a new handle over it answers.
+  'workspace-disposed': 503,
+  // Served by the kind in its details; this is the fallback.
+  logic: 500,
   internal: 500,
 };

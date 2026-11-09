@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { Hono } from 'hono';
-import { DomainError } from '@cyberismo/data-handler';
+import { DomainError, LogicError } from '@cyberismo/data-handler';
 import { ssgParams } from 'hono/ssg';
 import * as resourceService from './service.js';
 import type { AppContext, ResourceValidationResponse } from '../../types.js';
@@ -251,8 +251,12 @@ router.post(
       return c.json({ instructions });
     } catch (error) {
       // Typed errors (a missing skill or card) take the central status; an
-      // untyped one is the query or template failing to render: a 400.
-      if (error instanceof DomainError || !(error instanceof Error)) {
+      // untyped one, or a logic failure, is the query or template failing to
+      // render: a 400.
+      if (
+        (error instanceof DomainError && !(error instanceof LogicError)) ||
+        !(error instanceof Error)
+      ) {
         throw error;
       }
       return c.json(errorBody('validation', error.message), 400);

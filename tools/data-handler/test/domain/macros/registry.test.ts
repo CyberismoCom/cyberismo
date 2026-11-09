@@ -28,12 +28,14 @@ import {
 } from '../../../src/domain/macros/registry.js';
 import type { Checkout } from '../../../src/state/checkout/checkout.js';
 import TaskQueue from '../../../src/domain/macros/task-queue.js';
+import ScoreCardMacro from '../../../src/domain/macros/scoreCard/index.js';
 
 import { MAX_LEVEL_OFFSET, ROOT } from '../../../src/shared/utils/constants.js';
 
 import type { Card } from '@cyberismo/model';
 import type { MacroGenerationContext } from '../../../src/shared/interfaces/macros.js';
 import { CardNotFoundError } from '../../../src/shared/exceptions/index.js';
+import { LogicError } from '../../../src/infra/logic/logic-backend.js';
 import type { Mode } from '../../../src/shared/interfaces/macros.js';
 
 const baseDir = import.meta.dirname;
@@ -69,6 +71,22 @@ class TestMacro extends BaseMacro {
     data: { content: string },
   ) => {
     return 'test-static: ' + data?.content;
+  };
+}
+
+// A macro that fails with the given error.
+class FailingMacro extends BaseMacro {
+  constructor(
+    tasks: TaskQueue,
+    private readonly error: Error,
+  ) {
+    super({ name: 'failing', tagName: 'failing', schema: '' }, tasks);
+  }
+
+  handleValidate = () => {};
+
+  handleStatic = async () => {
+    throw this.error;
   };
 }
 
@@ -510,6 +528,66 @@ Some content here`;
         });
         expect(result).toContain('.Macro Error');
         expect(result).toContain('Division by zero');
+      });
+      it('fails the render when the logic backend cannot answer', async () => {
+        const run = stub(checkout.calculationEngine, 'runLogicProgram').rejects(
+          new LogicError('unavailable', 'The logic backend is closed'),
+        );
+        try {
+          for (const mode of ['static', 'inject'] as const) {
+            await expect(
+              evaluateMacros(
+                `{{#report}}"name": "decision/reports/testReport", "key3": "key"{{/report}}`,
+                { mode, checkout, cardKey: 'decision_5', context: 'localApp' },
+              ),
+            ).rejects.toMatchObject({ kind: 'unavailable' });
+          }
+        } finally {
+          run.restore();
+        }
+      });
+      it("keeps a nested macro's unavailable backend as the error of the macro around it", async () => {
+        const tasks = new TaskQueue();
+        const unavailable = new LogicError('unavailable', 'Backend down');
+        const context: MacroGenerationContext = {
+          mode: 'static',
+          checkout,
+          cardKey: 'decision_5',
+          context: 'localApp',
+        };
+        const inner = new FailingMacro(tasks, unavailable).invokeMacro(
+          context,
+          { fn: () => '' },
+        );
+        const outer = new ScoreCardMacro(tasks).invokeMacro(context, {
+          fn: () => `"title": "${inner}", "value": 1`,
+        });
+        await tasks.waitAll();
+
+        const task = [...tasks].find((queued) => queued.placeholder === outer);
+        expect(task?.error).toBe(unavailable);
+      });
+    });
+    describe('graphMacro', () => {
+      it('fails the render when the logic backend cannot answer', async () => {
+        const run = stub(checkout.calculationEngine, 'runGraph').rejects(
+          new LogicError('unavailable', 'The logic backend is closed'),
+        );
+        try {
+          await expect(
+            evaluateMacros(
+              `{{#graph}}"model": "decision/graphModels/test", "view": "decision/graphViews/test"{{/graph}}`,
+              {
+                mode: 'static',
+                checkout,
+                cardKey: 'decision_5',
+                context: 'localApp',
+              },
+            ),
+          ).rejects.toMatchObject({ kind: 'unavailable' });
+        } finally {
+          run.restore();
+        }
       });
     });
     describe('includeMacro', () => {

@@ -9,7 +9,6 @@ import {
   ModuleRequestError,
   redactUserinfo,
   unreachable,
-  WorkspaceDisposedError,
 } from '../shared/exceptions/index.js';
 import { isValidFolderName, pathExists } from '../shared/utils/file-utils.js';
 import { readJsonFile } from '../shared/utils/json.js';
@@ -169,19 +168,13 @@ export class Modules {
     }
   }
 
-  private assertLive() {
-    if (this.checkout.disposed) throw new WorkspaceDisposedError();
-  }
-
   // Phase 1: the module state the network work is based on.
   private async fingerprint(): Promise<string> {
-    this.assertLive();
     return moduleFingerprint(this.checkout);
   }
 
   // Phase 3: that state must still hold; no retry.
   private async assertUnchanged(fingerprint: string) {
-    this.assertLive();
     if ((await moduleFingerprint(this.checkout)) !== fingerprint) {
       throw new ModuleConflictError();
     }
@@ -314,7 +307,6 @@ export class Modules {
       } finally {
         await sourceLayer.dispose?.();
       }
-      this.assertLive();
       return this.applyInstall(source, { fingerprint, tempDir, ...staged });
     });
   }
@@ -484,7 +476,6 @@ export class Modules {
       // Ensure module list is up to date before updating
       await this.fetchCmd.ensureModuleListUpToDate();
       const staged = await this.stageUpdate(checked, tempDir, credentials);
-      this.assertLive();
       return this.applyUpdate(target, { fingerprint, tempDir, ...staged });
     });
   }
@@ -546,7 +537,6 @@ export class Modules {
 
   @write((moduleName: string) => `Remove module ${moduleName}`)
   private async removeDeclared(moduleName: string) {
-    this.assertLive();
     const declaration = declaredModules(this.checkout).find(
       (d) => d.name === moduleName,
     );
