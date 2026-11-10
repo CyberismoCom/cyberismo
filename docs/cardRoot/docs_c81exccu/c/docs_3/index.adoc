@@ -15,7 +15,7 @@ CLI tool to handle tasks.
 
 Options:
   -v, --version                                                            Output the version information
-  -L, --log-level <level>                                                  Set the log level (choices: "trace", "debug", "info", "warn", "error", "fatal", default: "fatal")
+  -L, --log-level <level>                                                  Also write logs to stderr at this level (choices: "trace", "debug", "info", "warn", "error", "fatal")
   -h, --help                                                               Display help for command
 
 Commands:
@@ -100,3 +100,20 @@ To see what the command would remove without changing any card, add the `--dry-r
 ----
 $ cyberismo clean --dry-run
 ----
+
+== Logs
+
+Commands that work on a project write a log of what they did to the `.logs` folder of the project. Each day has its own file, named `cyberismo-YYYY-MM-DD.log` after the date when the command started, for example `.logs/cyberismo-2026-11-10.log`. Each line of the file is a JSON record, and the file contains messages of all levels. The `.logs` folder ignores itself in git, so the logs never show up as changes in the repository.
+
+The `cyberismo app` command writes to the same place. If it serves a folder of several projects, the log file is in the `.logs` folder of that folder.
+
+Logs are not printed on the terminal by default. To also see them, use the `-L` option with the lowest level that you want to see. The levels are `trace`, `debug`, `info`, `warn`, `error` and `fatal`, and the logs are written to the standard error stream (stderr) so that the results of the command on the standard output stay the same:
+
+[source,console]
+----
+$ cyberismo -L debug validate
+----
+
+Commands that do not use a project, such as `cyberismo preview`, do not write a log file, but they accept the `-L` option. If the project folder is not writable, no log file is written, and the command runs normally.
+
+When you need to send the logs to support, zip the project folder. The archive includes the `.logs` folder.
