@@ -16,6 +16,7 @@ const names = [
   'my file.pdf',
   'ä ö.pdf',
 ];
+const INDEX = '<html>index</html>';
 let tmp: string;
 let app: ReturnType<typeof createPreviewApp>;
 
@@ -23,8 +24,10 @@ beforeAll(async () => {
   tmp = await mkdtemp(join(tmpdir(), 'preview-'));
   const site = join(tmp, 'site');
   await mkdir(site);
-  await writeFile(join(site, 'index.html'), '<html>index</html>');
+  await writeFile(join(site, 'index.html'), INDEX);
   for (const n of names) await writeFile(join(site, n), `bytes of ${n}`);
+  await mkdir(join(site, 'sub'));
+  await writeFile(join(site, 'sub', 'x.txt'), 'bytes of sub/x.txt');
   await writeFile(join(tmp, 'secret'), 'SECRET');
   app = createPreviewApp(site);
 });
@@ -38,13 +41,24 @@ describe('previewSite static serving', () => {
     expect(await res.text()).toBe(`bytes of ${name}`);
   });
 
-  test.each([
-    '/..%2Fsecret',
-    '/%2E%2E%2Fsecret',
-    '/..%5Csecret',
-    '/%2e%2e/secret',
-  ])('does not serve files outside the root via %s', async (url) => {
-    const res = await app.request(url);
-    expect(await res.text()).not.toContain('SECRET');
+  // Each would serve the file above the root without the containment check.
+  test.each(['/..%2Fsecret', '/%2F..%2Fsecret', '/a/..%2F..%2Fsecret'])(
+    'falls through to the index for %s, which leaves the root',
+    async (url) => {
+      const res = await app.request(url);
+      expect(res.status).toBe(200);
+      expect(await res.text()).toBe(INDEX);
+    },
+  );
+
+  test('falls through to the index for a path that does not decode', async () => {
+    const res = await app.request('/bad%E0');
+    expect(res.status).toBe(200);
+    expect(await res.text()).toBe(INDEX);
+  });
+
+  test('treats an encoded slash as a separator inside the root', async () => {
+    const res = await app.request('/sub%2Fx.txt');
+    expect(await res.text()).toBe('bytes of sub/x.txt');
   });
 });

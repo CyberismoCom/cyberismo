@@ -18,21 +18,24 @@ export { exportSite, type ExportSiteOptions } from './export.js';
 const DEFAULT_PORT = 3000;
 const MAX_PORT_ATTEMPTS = 100;
 
-// serveStatic only decodeURI's the path, leaving %23, %26 etc. encoded, and the
-// callback gets that already-decoded path (a literal '%' would double-decode).
-// Decode each segment of the raw URL instead; refuse segments that could escape.
-function decodeStaticPath(c: Context): string {
-  const segments = new URL(c.req.url).pathname.split('/').map((s) => {
-    try {
-      return decodeURIComponent(s);
-    } catch {
-      return undefined;
-    }
-  });
-  const unsafe = segments.some(
-    (s) => s === undefined || s === '..' || s === '.' || /[/\\\0]/.test(s),
-  );
-  return unsafe ? '\0' : segments.join('/');
+// Node's fs refuses a NUL in a path, so the lookup misses and serveStatic
+// falls through; a decoded %00 misses the same way.
+const MISS = '\0';
+
+// serveStatic only decodeURI's the path, leaving %23, %26 etc. encoded, and
+// checks for traversal before the rewrite. Decode the raw URL once, as nginx
+// and Express's send do, and serve it only if it lands inside the root.
+function staticPathWithin(root: string, c: Context): string {
+  let decoded: string;
+  try {
+    decoded = decodeURIComponent(new URL(c.req.url).pathname);
+  } catch {
+    return MISS;
+  }
+  const rel = path.relative(root, path.join(root, decoded));
+  const inside =
+    rel !== '..' && !rel.startsWith(`..${path.sep}`) && !path.isAbsolute(rel);
+  return inside ? rel : MISS;
 }
 
 /**
@@ -43,10 +46,10 @@ export function createPreviewApp(dir: string) {
   const app = new Hono();
   app.use(
     serveFrontend(dir, {
-      // decodeStaticPath decodes once and refuses traversal itself, and no
-      // route middleware runs before this, so encoded names are safe here.
+      // staticPathWithin decodes once and keeps the path inside the root, and
+      // no route middleware runs before this, so encoded names are safe here.
       allowPercentInPath: true,
-      rewriteRequestPath: (_, c) => decodeStaticPath(c),
+      rewriteRequestPath: (_, c) => staticPathWithin(dir, c),
     }),
   );
   app.get('*', async (c) => {
