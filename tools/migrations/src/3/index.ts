@@ -5,7 +5,11 @@ import { existsSync } from 'node:fs';
 import { rm } from 'node:fs/promises';
 import { join } from 'node:path';
 
+import { getLogger } from '@cyberismo/node-common/log';
+
 import type { Migration } from '../migration-interfaces.js';
+
+const logger = getLogger({ module: 'migrations' });
 
 /**
  * Migration from schema version 2 to 3
@@ -19,21 +23,21 @@ import type { Migration } from '../migration-interfaces.js';
  * breaking-change gate on the next version bump.
  */
 const migration: Migration = async (context) => {
-  console.log(
+  logger.info(
     `Migrating from schema version ${context.fromVersion} to ${context.toVersion}`,
   );
-  console.log('Schema changes:');
-  console.log('  - Removed stale migration logs from pre-versioning era');
+  logger.info('Schema changes:');
+  logger.info('  - Removed stale migration logs from pre-versioning era');
 
   const migrationsDir = join(context.cardsConfigPath, 'local', 'migrations');
 
   if (!existsSync(migrationsDir)) {
-    console.log('No migration log directory found, nothing to clean up.');
+    logger.info('No migration log directory found, nothing to clean up.');
     return;
   }
 
   await rm(migrationsDir, { recursive: true, force: true });
-  console.log('Removed .cards/local/migrations/ directory.');
+  logger.info('Removed .cards/local/migrations/ directory.');
 };
 
 export default migration;

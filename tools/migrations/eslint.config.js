@@ -12,4 +12,9 @@ export default [
       },
     },
   },
+  {
+    // Migrations log through getLogger; stdout belongs to the caller.
+    files: ['src/**/*.ts'],
+    rules: { 'no-console': 'error' },
+  },
 ];

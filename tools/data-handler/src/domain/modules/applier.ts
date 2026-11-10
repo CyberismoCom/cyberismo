@@ -8,13 +8,13 @@ import { join } from 'node:path';
 import { ProjectPaths } from '../../infra/paths/project-paths.js';
 import { readModuleConfig } from '../../infra/paths/cards-config.js';
 import { deleteDir, pathExists } from '../../shared/utils/file-utils.js';
-import { getChildLogger } from '../../shared/utils/log-utils.js';
+import { getLogger } from '@cyberismo/node-common/log';
 
 import type { ResolvedModule } from '../resources/changes/replay/module-types.js';
 import type { ModuleSetting } from '@cyberismo/model';
 import type { Checkout } from '../../state/checkout/checkout.js';
 
-const logger = getChildLogger({ module: 'applier' });
+const logger = getLogger({ module: 'applier' });
 
 /**
  * Options consumed by {@link applyModules}.

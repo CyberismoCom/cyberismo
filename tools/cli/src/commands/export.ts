@@ -3,6 +3,7 @@
 
 import { mkdir, truncate, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
+import { resolveTilde } from '@cyberismo/data-handler/utils/file-utils';
 
 import cliProgress from 'cli-progress';
 import { Argument, type Command } from 'commander';
@@ -19,6 +20,7 @@ import type { AdocFiles } from '@cyberismo/model';
 
 import { CommandWithPath } from '../lib/args.js';
 import { onProject } from '../lib/errors.js';
+import { configureCliLogging } from '../lib/logging.js';
 import { handleResponse, printResult } from '../lib/output.js';
 import type { ExportCommandOptions } from '../options.js';
 
@@ -143,8 +145,9 @@ export function registerExport(program: Command) {
           );
           try {
             const projectPath = options.projectPath
-              ? resolve(options.projectPath)
+              ? resolve(resolveTilde(options.projectPath))
               : process.cwd();
+            configureCliLogging(projectPath, program.opts().logLevel);
             const { directory, failed } = await localFolder(projectPath);
             const projects = await directory.list();
             if (projects.length === 0 && failed.length === 0) {

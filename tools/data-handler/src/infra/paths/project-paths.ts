@@ -79,10 +79,6 @@ export class ProjectPaths {
     return join(this.resourcesFolder, 'linkTypes');
   }
 
-  public get logPath(): string {
-    return join(this.path, '.logs', 'cyberismo_data-handler.log');
-  }
-
   public get migrationLogFolder(): string {
     return join(this.resourcesFolder, 'migrations');
   }

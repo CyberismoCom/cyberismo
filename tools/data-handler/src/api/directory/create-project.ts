@@ -6,6 +6,7 @@ import { mkdir, writeFile } from 'node:fs/promises';
 
 import { DEFAULT_HUB } from '@cyberismo/assets';
 import { SCHEMA_VERSION } from '@cyberismo/migrations';
+import { getLogger } from '@cyberismo/node-common/log';
 import type {
   ActorRef,
   CreateProjectParams,
@@ -20,6 +21,8 @@ import { GitManager } from '../../infra/git/git-manager.js';
 import { writeJsonFile } from '../../shared/utils/json.js';
 import type { CommitIdentity } from '../../infra/tx/tx-record.js';
 import { Workspace } from '../workspace.js';
+
+const logger = getLogger({ module: 'create' });
 
 // todo: Is there a easy to way to make JSON schema into a TypeScript interface/type?
 //       Check this out: https://www.npmjs.com/package/json-schema-to-ts
@@ -240,7 +243,7 @@ async function writeProjectFiles(
       join(projectPath, '.gitignore'),
       gitIgnoreContent.join('\n') + '\n',
     );
-  } catch {
-    console.error('Failed to create project');
+  } catch (error) {
+    logger.warn({ err: error }, 'Failed to create project');
   }
 }

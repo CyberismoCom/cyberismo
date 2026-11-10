@@ -12,7 +12,7 @@ import type {
   ProjectSettings,
 } from '@cyberismo/model';
 import { canonicalHubLocation } from '../../infra/modules/hub-utils.js';
-import { getChildLogger } from '../../shared/utils/log-utils.js';
+import { getLogger } from '@cyberismo/node-common/log';
 import { readCardsConfigSync } from '../../infra/paths/cards-config.js';
 import { Validate } from '../../domain/validation/validate.js';
 import { SCHEMA_VERSION } from '@cyberismo/migrations';
@@ -29,7 +29,7 @@ export class ProjectConfiguration implements ProjectSettings {
   version?: string;
   modules: ModuleSetting[];
   hubs: HubSetting[];
-  private logger = getChildLogger({ module: 'Project' });
+  private logger = getLogger({ module: 'Project' });
   private settingPath: string;
 
   constructor(path: string) {

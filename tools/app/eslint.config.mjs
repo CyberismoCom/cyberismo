@@ -47,6 +47,14 @@ export default tseslint.config(
               ],
               message: 'Import shared types from @cyberismo/model.',
             },
+            {
+              group: [
+                '@cyberismo/node-common',
+                '@cyberismo/node-common/*',
+                '**/node-common/**',
+              ],
+              message: 'node-common is Node-only and must not reach the app.',
+            },
           ],
         },
       ],

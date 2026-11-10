@@ -4,7 +4,11 @@
 import { readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
+import { getLogger } from '@cyberismo/node-common/log';
+
 import type { Migration } from '../migration-interfaces.js';
+
+const logger = getLogger({ module: 'migrations' });
 
 /**
  * Migration from schema version 3 to 4
@@ -18,7 +22,7 @@ import type { Migration } from '../migration-interfaces.js';
  * Idempotent: configs without any `branch` fields are left untouched.
  */
 const migration: Migration = async (context) => {
-  console.log(
+  logger.info(
     `Migrating from schema version ${context.fromVersion} to ${context.toVersion}`,
   );
 
@@ -43,11 +47,11 @@ const migration: Migration = async (context) => {
       JSON.stringify(config, null, 4) + '\n',
       'utf-8',
     );
-    console.log(
+    logger.info(
       `Removed legacy 'branch' field from ${stripped} module declaration(s).`,
     );
   } else {
-    console.log("No legacy 'branch' fields found in module declarations.");
+    logger.info("No legacy 'branch' fields found in module declarations.");
   }
 };
 

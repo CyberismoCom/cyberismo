@@ -4,12 +4,12 @@
 import type { Checkout } from '../../state/checkout/checkout.js';
 import { assertAllowed } from './guard.js';
 import { applySideEffects, type SideEffects } from './side-effects.js';
-import { getChildLogger } from '../../shared/utils/log-utils.js';
+import { getLogger } from '@cyberismo/node-common/log';
 import { updateCardMetadata } from './update.js';
 import { findCard } from './read.js';
 import { DHValidationError } from '../../shared/exceptions/index.js';
 
-const logger = getChildLogger({ module: 'Project' });
+const logger = getLogger({ module: 'Project' });
 
 // Wrapper to run onTransition query.
 async function transitionChangesQuery(

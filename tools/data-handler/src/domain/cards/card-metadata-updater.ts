@@ -3,7 +3,7 @@
 
 import type { CardMetadata, UpdateField } from '@cyberismo/model';
 import { FieldTypeResource } from '../resources/field-type-resource.js';
-import { getChildLogger } from '../../shared/utils/log-utils.js';
+import { getLogger } from '@cyberismo/node-common/log';
 import type { Checkout } from '../../state/checkout/checkout.js';
 import { updateCardMetadata } from './update.js';
 import { findCard } from './read.js';
@@ -24,7 +24,7 @@ interface CardUpdateResult {
  */
 export class CardMetadataUpdater {
   private static get logger() {
-    return getChildLogger({
+    return getLogger({
       module: 'cardMetadataUpdater',
     });
   }

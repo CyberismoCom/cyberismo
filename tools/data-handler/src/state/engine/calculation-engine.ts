@@ -27,7 +27,7 @@ import ClingoParser from '../../infra/engine/clingo-parser.js';
 
 import Handlebars from 'handlebars';
 import type { Checkout } from '../checkout/checkout.js';
-import { getChildLogger } from '../../shared/utils/log-utils.js';
+import { getLogger } from '@cyberismo/node-common/log';
 import {
   createCalculatedFieldRules,
   createCardFacts,
@@ -69,7 +69,7 @@ export class CalculationEngine {
   ) {}
 
   private get logger() {
-    return getChildLogger({
+    return getLogger({
       module: 'calculate',
     });
   }

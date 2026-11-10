@@ -4,7 +4,7 @@
 import { dirname, extname, join } from 'node:path';
 import { type Dirent, readdirSync, readFileSync } from 'node:fs';
 
-import { getChildLogger } from '../../shared/utils/log-utils.js';
+import { getLogger } from '@cyberismo/node-common/log';
 import {
   pathToResourceName,
   resourceName,
@@ -324,7 +324,7 @@ export class ResourceCache {
 
   // Returns instance of logger.
   private static get logger() {
-    return getChildLogger({
+    return getLogger({
       module: 'resourceCache',
     });
   }

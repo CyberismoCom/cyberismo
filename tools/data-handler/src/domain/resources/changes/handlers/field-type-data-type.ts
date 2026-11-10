@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: Cyberismo Ltd and contributors
 // SPDX-License-Identifier: AGPL-3.0-only
 
+import { getLogger } from '@cyberismo/node-common/log';
 import type { Handler, MutationContext } from '../handler.js';
 import type { EditInput } from '../types.js';
 import { resourceNameToString } from '../../../../shared/utils/resource-utils.js';
@@ -12,6 +13,8 @@ import {
 import type { Card, MetadataContent, DataType } from '@cyberismo/model';
 import { updateCardMetadata } from '../../../cards/update.js';
 import { allTemplateCards } from '../../../cards/read.js';
+
+const logger = getLogger({ module: 'field-type-data-type' });
 
 const SHORT_TEXT_MAX_LENGTH = 80;
 
@@ -58,7 +61,8 @@ export class FieldTypeDataTypeHandler implements Handler<EditInput> {
         metadata[fieldName] = converted as MetadataContent;
         await updateCardMetadata(ctx.checkout, card, metadata);
       } catch (error) {
-        console.error(
+        logger.warn(
+          { err: error },
           `In card '${card.key}': ${error instanceof Error ? error.message : String(error)}`,
         );
       }

@@ -6,7 +6,7 @@ import { join } from 'node:path';
 
 import semver from 'semver';
 
-import { getChildLogger } from '../../shared/utils/log-utils.js';
+import { getLogger } from '@cyberismo/node-common/log';
 import { formatSealFileName, lastSealedVersion } from './seal-files.js';
 import { ProjectPaths } from '../paths/project-paths.js';
 import { writeFileSafe, pathExists } from '../../shared/utils/file-utils.js';
@@ -61,7 +61,7 @@ export class ConfigurationLogger {
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
     }
-    const logger = getChildLogger({ module: 'ConfigurationLogger' });
+    const logger = getLogger({ module: 'ConfigurationLogger' });
     logger.info('Configuration log cleared');
   }
 
@@ -97,7 +97,7 @@ export class ConfigurationLogger {
       paths.migrationLogFolder,
       formatSealFileName(fromVersion, version),
     );
-    const logger = getChildLogger({ module: 'ConfigurationLogger' });
+    const logger = getLogger({ module: 'ConfigurationLogger' });
 
     if (pathExists(currentLogPath)) {
       await rename(currentLogPath, versionedLogPath);
@@ -123,7 +123,7 @@ export class ConfigurationLogger {
     projectPath: string,
   ): Promise<ConfigurationLogEntry[]> {
     const logFile = ConfigurationLogger.logFile(projectPath);
-    const logger = getChildLogger({ module: 'ConfigurationLogger' });
+    const logger = getLogger({ module: 'ConfigurationLogger' });
 
     try {
       const content = await readFile(logFile, 'utf-8');
@@ -170,7 +170,7 @@ export class ConfigurationLogger {
     entry: Omit<ConfigurationLogEntry, 'timestamp'>,
   ): Promise<void> {
     const logFile = ConfigurationLogger.logFile(projectPath);
-    const logger = getChildLogger({ module: 'ConfigurationLogger' });
+    const logger = getLogger({ module: 'ConfigurationLogger' });
 
     try {
       const full: ConfigurationLogEntry = {

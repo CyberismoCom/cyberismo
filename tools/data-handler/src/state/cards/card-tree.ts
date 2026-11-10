@@ -42,7 +42,7 @@ import {
   deleteDir,
   pathExists,
 } from '../../shared/utils/file-utils.js';
-import { getChildLogger } from '../../shared/utils/log-utils.js';
+import { getLogger } from '@cyberismo/node-common/log';
 import { writeJsonFile } from '../../shared/utils/json.js';
 import { isPredefinedField, ROOT } from '../../shared/utils/constants.js';
 import {
@@ -296,7 +296,7 @@ export class CardTree {
   }
 
   private static get logger() {
-    return getChildLogger({
+    return getLogger({
       module: 'cardTree',
     });
   }

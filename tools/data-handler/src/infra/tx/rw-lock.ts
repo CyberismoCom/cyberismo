@@ -8,7 +8,7 @@ import {
   runWithDefaultCommitMessage,
 } from './commit-context.js';
 import { MissingActorError } from '../../shared/exceptions/index.js';
-import { getChildLogger } from '../../shared/utils/log-utils.js';
+import { getLogger } from '@cyberismo/node-common/log';
 import { createTxRecord, type TxRecord, type WriteFrame } from './tx-record.js';
 
 interface LockContext {
@@ -53,7 +53,7 @@ export class RWLock {
     private readonly name: string = 'RWLock',
     private readonly admit: () => void = () => {},
   ) {
-    this.logger = getChildLogger({ module: 'RWLock', name });
+    this.logger = getLogger({ module: 'RWLock', name });
   }
 
   /**

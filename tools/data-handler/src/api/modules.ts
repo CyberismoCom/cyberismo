@@ -13,7 +13,7 @@ import {
 } from '../shared/exceptions/index.js';
 import { isValidFolderName, pathExists } from '../shared/utils/file-utils.js';
 import { readJsonFile } from '../shared/utils/json.js';
-import { getChildLogger } from '../shared/utils/log-utils.js';
+import { getLogger } from '@cyberismo/node-common/log';
 import { read, write } from '../infra/tx/rw-lock.js';
 import { Validate } from '../domain/validation/index.js';
 import {
@@ -138,7 +138,7 @@ interface Staged {
  */
 export class Modules {
   private get logger() {
-    return getChildLogger({ module: 'modules' });
+    return getLogger({ module: 'modules' });
   }
 
   private readonly fetchCmd: Fetch;

@@ -8,7 +8,7 @@ import { readdir, readFile } from 'node:fs/promises';
 
 import type { CardMetadata, MetadataContent } from '@cyberismo/model';
 import { CardNameRegEx } from '@cyberismo/model';
-import { getChildLogger } from '../../shared/utils/log-utils.js';
+import { getLogger } from '@cyberismo/node-common/log';
 import { ROOT } from '../../shared/utils/constants.js';
 
 // A card's own files, inside its folder.
@@ -68,7 +68,7 @@ function frozenList(values: unknown[]): MetadataContent {
   ) as MetadataContent;
 }
 
-const logger = getChildLogger({ module: 'cardTree' });
+const logger = getLogger({ module: 'cardTree' });
 
 // Gets all directory entries recursively.
 async function entries(path: string): Promise<Dirent[]> {

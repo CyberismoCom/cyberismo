@@ -11,15 +11,15 @@ import { generateRandomString } from '../../shared/utils/random.js';
 import { MacroError } from '../../shared/exceptions/index.js';
 import type TaskQueue from './task-queue.js';
 import { LogicError } from '../../infra/logic/logic-backend.js';
-import { getChildLogger } from '../../shared/utils/log-utils.js';
+import { getLogger, type Logger } from '@cyberismo/node-common/log';
 
 abstract class BaseMacro {
   private globalId: string;
   private localCounter: number = 0;
 
   // Macros share the same logger
-  protected get logger() {
-    return getChildLogger({
+  protected get logger(): Logger {
+    return getLogger({
       module: 'macro',
       macro: this.macroMetadata.name,
     });

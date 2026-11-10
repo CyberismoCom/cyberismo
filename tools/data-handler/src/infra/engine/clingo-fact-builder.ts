@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { INT32_MAX } from '../../shared/utils/constants.js';
-import { getChildLogger } from '../../shared/utils/log-utils.js';
+import { getLogger } from '@cyberismo/node-common/log';
 
 export type AllowedClingoType = string | number | boolean;
 
@@ -36,7 +36,7 @@ export class ClingoFactBuilder {
   private end: string;
   private arguments: ClingoArgumentInternal[] = [];
   private get logger() {
-    return getChildLogger({
+    return getLogger({
       module: 'clingoFactBuilder',
     });
   }

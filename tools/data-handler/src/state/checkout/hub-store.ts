@@ -13,7 +13,7 @@ import {
   MODULE_LIST_FILE,
 } from '../../infra/modules/hub-utils.js';
 import { egressFetch } from '../../shared/utils/egress.js';
-import { getChildLogger } from '../../shared/utils/log-utils.js';
+import { getLogger } from '@cyberismo/node-common/log';
 import { readJsonFile, writeJsonFile } from '../../shared/utils/json.js';
 import { validateJson } from '../../shared/utils/validate.js';
 import { write } from '../../infra/tx/rw-lock.js';
@@ -74,7 +74,7 @@ export class Fetch {
   }
 
   private get logger() {
-    return getChildLogger({
+    return getLogger({
       module: 'fetch',
     });
   }

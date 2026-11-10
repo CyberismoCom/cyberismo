@@ -2,11 +2,11 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { CardMetadataUpdater } from './card-metadata-updater.js';
-import { getChildLogger } from '../../shared/utils/log-utils.js';
+import { getLogger } from '@cyberismo/node-common/log';
 import type { Checkout } from '../../state/checkout/checkout.js';
 import type { ExecuteTransition, UpdateField } from '@cyberismo/model';
 
-const logger = getChildLogger({ module: 'sideEffects' });
+const logger = getLogger({ module: 'sideEffects' });
 
 /**
  * Side effects of one workflow transition or card creation, as returned by

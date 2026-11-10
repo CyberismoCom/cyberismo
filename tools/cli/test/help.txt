@@ -5,7 +5,7 @@ CLI tool to handle tasks.
 
 Options:
   -v, --version                                                         Output the version information
-  -L, --log-level <level>                                               Set the log level (choices: "trace", "debug", "info", "warn", "error", "fatal", default: "fatal")
+  -L, --log-level <level>                                               Also write logs to stderr at this level (choices: "trace", "debug", "info", "warn", "error", "fatal")
   --autocommit                                                          Enable git-backed transactional writes
   --autopush                                                            Push autocommitted changes to the remote
   -h, --help                                                            Display help for command

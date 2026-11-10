@@ -10,6 +10,7 @@ import type { AuthProvider } from './auth/types.js';
 import { formatProjectErrors } from '@cyberismo/model';
 import { gitOptionsFromEnv } from './utils.js';
 import { parseArgs } from 'node:util';
+import { configureLogging, type LogLevel } from '@cyberismo/node-common/log';
 import dotenv from 'dotenv';
 
 // Load environment variables from .env file
@@ -48,6 +49,8 @@ function createAuthProvider(): AuthProvider {
   );
   process.exit(1);
 }
+
+const LOG_LEVELS = ['trace', 'debug', 'info', 'warn', 'error', 'fatal'];
 
 const projectPath = process.env.npm_config_project_path || process.cwd();
 
@@ -102,6 +105,12 @@ if (args.export) {
   }
 } else {
   const auth = createAuthProvider();
+  const level = process.env.LOG_LEVEL || 'trace';
+  if (!LOG_LEVELS.includes(level)) {
+    console.error(`Fatal: Unrecognized LOG_LEVEL "${level}".`);
+    process.exit(1);
+  }
+  configureLogging([{ stream: 'stdout', level: level as LogLevel }]);
   let failed;
   try {
     ({ failed } = await createServer(

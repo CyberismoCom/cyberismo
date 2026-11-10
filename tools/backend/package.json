@@ -6,7 +6,7 @@
   "scripts": {
     "start": "tsx src/main.ts",
     "start-e2e": "cross-env AUTH_MODE=mock node dist/main.js",
-    "dev": "cross-env AUTH_MODE=mock tsx watch src/main.ts",
+    "dev": "cross-env AUTH_MODE=mock tsx watch src/main.ts | pino-pretty",
     "debug": "tsx --inspect-brk src/main.ts",
     "export": "pnpm build && node dist/main.js --export",
     "build": "tsc -p tsconfig.build.json && shx rm -rf ./dist/public && shx cp -r ../app/dist ./dist/public",
@@ -30,6 +30,7 @@
     "@cyberismo/data-handler": "workspace:*",
     "@cyberismo/mcp": "workspace:*",
     "@cyberismo/model": "workspace:*",
+    "@cyberismo/node-common": "workspace:*",
     "@hono/mcp": "^0.3.5",
     "@hono/node-server": "^2.1.5",
     "@hono/zod-validator": "^0.9.1",
@@ -42,7 +43,8 @@
     "zod": "^4.6.7"
   },
   "devDependencies": {
-    "@cyberismo/app": "workspace:*"
+    "@cyberismo/app": "workspace:*",
+    "pino-pretty": "^13.2.0"
   },
   "types": "dist/index.d.ts",
   "exports": {

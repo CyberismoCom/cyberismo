@@ -5,7 +5,7 @@ import type { Handler, MutationContext } from '../handler.js';
 import type { EditInput } from '../types.js';
 import { resourceNameToString } from '../../../../shared/utils/resource-utils.js';
 import { ResourcesFrom } from '../../../../state/resources/resources-from.js';
-import { getChildLogger } from '../../../../shared/utils/log-utils.js';
+import { getLogger } from '@cyberismo/node-common/log';
 import type { Card, ChangeOperation, Operation } from '@cyberismo/model';
 import { updateCardMetadata } from '../../../cards/update.js';
 
@@ -67,7 +67,7 @@ export class CardTypeWorkflowChangeHandler implements Handler<EditInput> {
     cardTypeName: string,
     stateMapping: Record<string, string>,
   ): Promise<void> {
-    const logger = getChildLogger({ module: 'card-type-workflow-change' });
+    const logger = getLogger({ module: 'card-type-workflow-change' });
     const cards = this.affectedCards(ctx, cardTypeName);
     const unmappedStates: string[] = [];
 

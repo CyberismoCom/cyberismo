@@ -9,7 +9,7 @@ import { basename, join } from 'node:path';
 
 import { ArrayHandler } from './array-handler.js';
 import { deleteFile, pathExists } from '../../shared/utils/file-utils.js';
-import { getChildLogger } from '../../shared/utils/log-utils.js';
+import { getLogger } from '@cyberismo/node-common/log';
 import {
   readJsonFile,
   readJsonFileSync,
@@ -30,7 +30,7 @@ import type {
   Operation,
   ResourceName,
 } from '@cyberismo/model';
-import type { Logger } from 'pino';
+import type { Logger } from '@cyberismo/node-common/log';
 import type { Checkout } from '../../state/checkout/checkout.js';
 import type { Validate } from '../validation/validate.js';
 import { allTemplateCards } from '../cards/read.js';
@@ -246,7 +246,7 @@ export abstract class ResourceObject<
    * @returns logger instance
    */
   protected getLogger(loggerName: string): Logger {
-    return getChildLogger({
+    return getLogger({
       module: loggerName,
     });
   }

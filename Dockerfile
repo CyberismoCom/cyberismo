@@ -112,6 +112,11 @@ RUN mkdir -p ./tools/migrations
 COPY --from=builder /app/tools/migrations/package.json ./tools/migrations/package.json
 COPY --from=builder /app/tools/migrations/dist ./tools/migrations/dist
 
+# node-common
+RUN mkdir -p ./tools/node-common
+COPY --from=builder /app/tools/node-common/package.json ./tools/node-common/package.json
+COPY --from=builder /app/tools/node-common/dist ./tools/node-common/dist
+
 # install deps without dev dependencies
 RUN pnpm install --prod --ignore-scripts
 

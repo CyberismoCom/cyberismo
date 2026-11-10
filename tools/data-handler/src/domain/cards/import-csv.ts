@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: Cyberismo Ltd and contributors
 // SPDX-License-Identifier: AGPL-3.0-only
 
+import { getLogger } from '@cyberismo/node-common/log';
 import { parseCsv } from '../../shared/utils/csv.js';
 import { Validate } from '../validation/validate.js';
 import type { Checkout } from '../../state/checkout/checkout.js';
@@ -11,6 +12,8 @@ import {
 } from './update.js';
 import { createCard } from './instantiate.js';
 import { findCard } from './read.js';
+
+const logger = getLogger({ module: 'import' });
 
 // Creates a card per row of a CSV text from the row's template.
 export async function importCsv(
@@ -62,7 +65,8 @@ export async function importCsv(
         try {
           await addLabel(checkout, cardKey, label);
         } catch (e) {
-          console.error(
+          logger.warn(
+            { err: e },
             `Failed to create label ${label}: ${e instanceof Error ? e.message : 'Unknown error'}`,
           );
         }

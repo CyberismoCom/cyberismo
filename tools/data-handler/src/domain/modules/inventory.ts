@@ -6,7 +6,7 @@ import { join } from 'node:path';
 
 import semver from 'semver';
 
-import { getChildLogger } from '../../shared/utils/log-utils.js';
+import { getLogger } from '@cyberismo/node-common/log';
 import { readJsonFile } from '../../shared/utils/json.js';
 import { isGitLocation } from '../../shared/utils/location.js';
 import {
@@ -28,7 +28,7 @@ import type {
   ProjectModuleInfo,
 } from '@cyberismo/model';
 
-const logger = getChildLogger({ module: 'inventory' });
+const logger = getLogger({ module: 'inventory' });
 
 /** Top-level declarations persisted in `project.configuration.modules`. */
 export function declaredModules(checkout: Checkout): ModuleDeclaration[] {

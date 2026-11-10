@@ -33,6 +33,7 @@ import { registerShow } from './commands/show.js';
 import { registerTransition } from './commands/transition.js';
 import { registerUpdate } from './commands/update.js';
 import { registerValidate } from './commands/validate.js';
+import { configureCliLogging } from './lib/logging.js';
 import { program } from './lib/program.js';
 
 // To avoid duplication, fetch description and version from package.json file.
@@ -51,12 +52,17 @@ program
   )
   .helpOption('-h, --help', 'Display help for command')
   .addOption(
-    new Option('-L, --log-level <level>', 'Set the log level')
-      .choices(['trace', 'debug', 'info', 'warn', 'error', 'fatal'])
-      .default('fatal'),
+    new Option(
+      '-L, --log-level <level>',
+      'Also write logs to stderr at this level',
+    ).choices(['trace', 'debug', 'info', 'warn', 'error', 'fatal']),
   )
   .option('--autocommit', 'Enable git-backed transactional writes')
-  .option('--autopush', 'Push autocommitted changes to the remote');
+  .option('--autopush', 'Push autocommitted changes to the remote')
+  // Project-less paths log to stderr only; opening a project adds its file.
+  .hook('preAction', () => {
+    configureCliLogging(undefined, program.opts().logLevel);
+  });
 
 registerAdd(program);
 registerCalc(program);

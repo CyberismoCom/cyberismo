@@ -16,7 +16,10 @@ import {
   pathExists,
   resolveTilde,
 } from '@cyberismo/data-handler/utils/file-utils';
+import type { LogLevel } from '@cyberismo/node-common/log';
 import type { ActorRef } from '@cyberismo/model';
+
+import { configureCliLogging } from './logging.js';
 import type { AllCommandOptions } from '../options.js';
 
 // Nearest folder at or above 'path' that holds '.cards'; '' if none.
@@ -102,11 +105,12 @@ let open: Workspace | undefined;
  * @param options Resolved project path and the CLI's checkout options.
  */
 export async function openProject(
-  options: WorkspaceOptions & { projectPath: string },
+  options: WorkspaceOptions & { projectPath: string; logLevel?: LogLevel },
 ): Promise<Workspace> {
-  const { projectPath, ...checkoutOptions } = options;
+  const { projectPath, logLevel, ...checkoutOptions } = options;
   if (open?.path !== projectPath) {
     open = undefined;
+    configureCliLogging(projectPath, logLevel);
     const { actor, identity } = await gitAuthor(projectPath);
     open = await openProjectAt(projectPath, actor, identity, checkoutOptions);
   }
@@ -137,8 +141,8 @@ export async function openWorkspace(
 ): Promise<Workspace> {
   return openProject({
     projectPath: projectPathOf(options),
-    logLevel: options.logLevel,
     autocommit: options.autocommit,
     autopush: options.autopush,
+    logLevel: options.logLevel,
   });
 }
