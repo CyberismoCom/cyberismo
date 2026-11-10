@@ -9,6 +9,7 @@ import { UserRole } from '../../types.js';
 import { requireRole } from '../../middleware/auth.js';
 import { zValidator } from '../../middleware/zvalidator.js';
 import {
+  attachmentParamSchema,
   cardKeyParamSchema,
   createLinkSchema,
   removeLinkSchema,
@@ -789,41 +790,39 @@ router.put(
  *       500:
  *         description: project_path not set.
  */
-router.get('/:key/a/:attachment', requireRole(UserRole.Reader), async (c) => {
-  const ws = c.get('ws');
-  const { key, attachment } = c.req.param();
-  const filename = decodeURI(attachment);
+router.get(
+  '/:key/a/:attachment',
+  requireRole(UserRole.Reader),
+  zValidator('param', attachmentParamSchema),
+  async (c) => {
+    const ws = c.get('ws');
+    const { key, attachment } = c.req.valid('param');
+    const filename = decodeURI(attachment);
 
-  if (!filename || !key) {
-    return c.text('Missing cardKey or filename', 400);
-  }
-
-  try {
-    const attachmentResponse = await cardService.getAttachment(
-      ws,
-      key,
-      filename,
-    );
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const payload = attachmentResponse as any;
-
-    return new Response(payload.fileBuffer, {
-      headers: {
-        'Content-Type': payload.mimeType,
-        'Content-Disposition': `attachment; filename="${filename}"`,
-        'Cache-Control': 'no-store',
-      },
-    });
-  } catch (error) {
-    return c.json(
-      {
-        error:
-          error instanceof Error
-            ? error.message
-            : `No attachment found from card ${key} and filename ${filename}`,
-      },
-      404,
-    );
-  }
-});
+    try {
+      const attachmentResponse = await cardService.getAttachment(
+        ws,
+        key,
+        filename,
+      );
+      return new Response(attachmentResponse.fileBuffer, {
+        headers: {
+          'Content-Type': attachmentResponse.mimeType,
+          'Content-Disposition': `attachment; filename="${filename}"`,
+          'Cache-Control': 'no-store',
+        },
+      });
+    } catch (error) {
+      return c.json(
+        {
+          error:
+            error instanceof Error
+              ? error.message
+              : `No attachment found from card ${key} and filename ${filename}`,
+        },
+        404,
+      );
+    }
+  },
+);
 export default router;
