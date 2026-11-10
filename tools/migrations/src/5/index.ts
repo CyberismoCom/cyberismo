@@ -4,7 +4,11 @@
 import { readdir, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 
+import { getLogger } from '@cyberismo/node-common/log';
+
 import type { Migration } from '../migration-interfaces.js';
+
+const logger = getLogger({ module: 'migrations' });
 
 // Pre-replay seals carry a single version (migrationLog_<version>.jsonl).
 // Lineage-named seals (migrationLog_<from>_<to>.jsonl) must not match.
@@ -33,7 +37,7 @@ const OLD_SEAL_NAME = /^migrationLog_\d+\.\d+\.\d+\.jsonl$/;
  * Idempotent: a project without old-format snapshots is left untouched.
  */
 const migration: Migration = async (context) => {
-  console.log(
+  logger.info(
     `Migrating from schema version ${context.fromVersion} to ${context.toVersion}`,
   );
 
@@ -48,12 +52,12 @@ const migration: Migration = async (context) => {
     const entries = await readdirOrEmpty(folder);
     for (const name of entries.filter((n) => OLD_SEAL_NAME.test(n))) {
       await rm(join(folder, name));
-      console.log(`Removed pre-replay migration log snapshot '${name}'.`);
+      logger.info(`Removed pre-replay migration log snapshot '${name}'.`);
       removed++;
     }
   }
   if (removed === 0) {
-    console.log('No pre-replay migration log snapshots found.');
+    logger.info('No pre-replay migration log snapshots found.');
   }
 };
 

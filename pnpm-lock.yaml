@@ -630,6 +630,9 @@ importers:
 
   tools/migrations:
     dependencies:
+      '@cyberismo/node-common':
+        specifier: workspace:*
+        version: link:../node-common
       write-json-file:
         specifier: ^7.0.0
         version: 7.0.0

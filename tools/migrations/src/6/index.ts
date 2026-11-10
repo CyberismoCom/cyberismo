@@ -1,7 +1,11 @@
 // SPDX-FileCopyrightText: Cyberismo Ltd and contributors
 // SPDX-License-Identifier: AGPL-3.0-only
 
+import { getLogger } from '@cyberismo/node-common/log';
+
 import type { Migration } from '../migration-interfaces.js';
+
+const logger = getLogger({ module: 'migrations' });
 
 /**
  * Migration from schema version 5 to 6
@@ -15,12 +19,12 @@ import type { Migration } from '../migration-interfaces.js';
  * Idempotent: it changes no files.
  */
 const migration: Migration = async (context) => {
-  console.log(
+  logger.info(
     `Migrating from schema version ${context.fromVersion} to ${context.toVersion}`,
   );
-  console.log('Schema changes:');
-  console.log('  - Added the field macro');
-  console.log('No data transformation required.');
+  logger.info('Schema changes:');
+  logger.info('  - Added the field macro');
+  logger.info('No data transformation required.');
 };
 
 export default migration;

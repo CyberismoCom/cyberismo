@@ -2,10 +2,13 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { runMigrationChain, SCHEMA_VERSION } from '@cyberismo/migrations';
+import { getLogger } from '@cyberismo/node-common/log';
 
 import { readModuleConfig } from '../../infra/paths/cards-config.js';
 
 import type { ResolvedModule } from '../resources/changes/replay/module-types.js';
+
+const logger = getLogger({ module: 'modules' });
 
 /**
  * Enforce the schema-level invariant on staged module trees before any
@@ -38,7 +41,7 @@ export async function ensureStagedSchemas(
     }
     if (staged < SCHEMA_VERSION) {
       await runMigrationChain(entry.stagedPath, staged);
-      console.log(
+      logger.info(
         `Migrated staged module '${name}' from schema ${staged} to ${SCHEMA_VERSION}`,
       );
     }

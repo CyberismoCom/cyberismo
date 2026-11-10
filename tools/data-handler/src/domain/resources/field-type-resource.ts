@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: Cyberismo Ltd and contributors
 // SPDX-License-Identifier: AGPL-3.0-only
 
+import { getLogger } from '@cyberismo/node-common/log';
 import { allowed } from '../../shared/utils/value-utils.js';
 import { DefaultContent } from './create-defaults.js';
 import { FileResource } from './file-resource.js';
@@ -20,6 +21,8 @@ import type {
   ResourceName,
 } from '@cyberismo/model';
 import type { Checkout } from '../../state/checkout/checkout.js';
+
+const logger = getLogger({ module: 'field-type' });
 
 /**
  * Field type resource class.
@@ -192,7 +195,8 @@ export class FieldTypeResource extends FileResource<FieldType> {
           return value;
       }
     } catch (error) {
-      console.error(
+      logger.warn(
+        { err: error },
         `Failed to convert value '${value}' to field '${typeName}': ${error instanceof Error ? error.message : String(error)}`,
       );
       return null;

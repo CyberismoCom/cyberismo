@@ -10,6 +10,7 @@ import { readdir } from 'node:fs/promises';
 import type { Ajv, ErrorObject, SchemaObject } from 'ajv';
 import { Validator as DirectoryValidator } from 'directory-schema-validator';
 import { parentSchema } from '@cyberismo/assets';
+import { getLogger } from '@cyberismo/node-common/log';
 
 // data-handler
 import type {
@@ -51,6 +52,8 @@ import * as EmailValidator from 'email-validator';
 import { evaluateMacros } from '../macros/registry.js';
 import { allTemplateCards } from '../cards/read.js';
 import { checkoutOf } from '../../state/checkout/internal.js';
+const logger = getLogger({ module: 'validate' });
+
 const baseDir = import.meta.dirname ?? new URL('.', import.meta.url).pathname;
 const subFoldersToValidate = ['.cards', 'cardRoot'];
 
@@ -466,7 +469,7 @@ export class Validate {
       );
       return found ? true : false;
     }
-    console.error(`Type ${field} is not supported`);
+    logger.warn(`Type ${field} is not supported`);
     return false;
   }
 

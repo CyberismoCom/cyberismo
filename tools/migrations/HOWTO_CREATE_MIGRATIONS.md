@@ -56,10 +56,14 @@ A migration is a single async function that transforms the tree in place
 and throws on failure:
 
 ```typescript
+import { getLogger } from '@cyberismo/node-common/log';
+
 import type { Migration } from '../migration-interfaces.js';
 
+const logger = getLogger({ module: 'migrations' });
+
 const migration: Migration = async (context) => {
-  console.log(
+  logger.info(
     `Migrating from schema version ${context.fromVersion} to ${context.toVersion}`,
   );
   // transform files under context.cardsConfigPath / context.cardRootPath
@@ -81,7 +85,8 @@ there is no Project API during migration.
 
 1. **Be idempotent**: a migration must handle being run multiple times
    safely.
-2. **Log progress**: `console.log()` what changed.
+2. **Log progress**: `logger.info()` what changed. Never print: stdout
+   carries command results and the hosted JSON log stream.
 3. **Throw on failure** with a descriptive message. The runner stamps
    `schemaVersion` only after a step succeeds, so a failed run leaves a
    consistent, resumable tree; version control is the recovery mechanism.

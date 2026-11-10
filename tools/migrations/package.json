@@ -24,6 +24,7 @@
   },
   "type": "module",
   "dependencies": {
+    "@cyberismo/node-common": "workspace:*",
     "write-json-file": "^7.0.0"
   },
   "devDependencies": {

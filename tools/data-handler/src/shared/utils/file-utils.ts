@@ -13,6 +13,10 @@ import { existsSync, readdirSync } from 'node:fs';
 import { basename, dirname, join, sep } from 'node:path';
 import { homedir } from 'node:os';
 
+import { getLogger } from '@cyberismo/node-common/log';
+
+const logger = getLogger({ module: 'file-utils' });
+
 /**
  * Copies directory content (subdirectories and files) to destination.
  * Note that it won't create 'source', but copies all that is inside of 'source'.
@@ -54,7 +58,7 @@ export async function deleteFile(path: string): Promise<boolean> {
   try {
     await unlink(path);
   } catch {
-    console.error(`Cannot delete file '${path}'`);
+    logger.error(`Cannot delete file '${path}'`);
     return false;
   }
   return true;
