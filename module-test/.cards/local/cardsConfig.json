@@ -1,5 +1,5 @@
 {
-    "schemaVersion": 5,
+    "schemaVersion": 6,
     "cardKeyPrefix": "test",
     "name": "Cyberismo test module",
     "modules": [],

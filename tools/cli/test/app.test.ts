@@ -75,7 +75,7 @@ describe('app', () => {
     cpSync(minimal, join(root, 'con'), { recursive: true });
     writeFileSync(
       join(root, 'con', '.cards', 'local', 'cardsConfig.json'),
-      JSON.stringify({ schemaVersion: 5, cardKeyPrefix: 'con', name: 'Con' }),
+      JSON.stringify({ schemaVersion: 6, cardKeyPrefix: 'con', name: 'Con' }),
     );
 
     await app(root);
