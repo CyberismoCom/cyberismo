@@ -8,7 +8,7 @@ import type {
   MetadataContent,
   QueryResult,
 } from '@cyberismo/model';
-import { basename, dirname, join } from 'node:path';
+import { join } from 'node:path';
 import { AsciidoctorPdfError, type Workspace } from '@cyberismo/data-handler';
 import { preprocessMermaidBlocksForHtml } from './mermaid.js';
 import { allCards } from './lib.js';
@@ -339,15 +339,8 @@ export async function findRelevantAttachments(
   const cards = new Set<string>(
     (await allCards(ws, options)).map((c) => c.key),
   );
-  // Only files directly in the card's own a/ folder: files of subfolders would
-  // collide under one flat name.
   return (await ws.cards.attachments())
-    .filter(
-      ({ card, path }) =>
-        cards.has(card) &&
-        basename(path) === 'a' &&
-        basename(dirname(path)) === card,
-    )
+    .filter(({ card }) => cards.has(card))
     .map(({ card, fileName, path }) => ({
       key: card,
       attachment: fileName,
