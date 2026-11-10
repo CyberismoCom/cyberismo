@@ -39,14 +39,6 @@ export class ClingoProgramBuilder {
     return this;
   }
   /**
-   * Adds an import to the clingo program
-   */
-  addImport(path: string): ClingoProgramBuilder {
-    this.rows.push({ build: () => `#include "${path}".` });
-    return this;
-  }
-
-  /**
    * Adds a comment
    */
   addComment(comment: string): ClingoProgramBuilder {

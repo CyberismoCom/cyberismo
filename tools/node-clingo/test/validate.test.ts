@@ -1,6 +1,9 @@
 // SPDX-FileCopyrightText: Cyberismo Ltd and contributors
 // SPDX-License-Identifier: AGPL-3.0-only
 
+import { mkdtempSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { validateProgram } from '../lib/index.js';
 
@@ -38,5 +41,13 @@ describe('validateProgram', () => {
     const result = validateProgram('fact(1).\nbroken(:- x.\nother(2).');
     expect(result.valid).toBe(false);
     expect(result.errors.join('\n')).toMatch(/2:\d+/);
+  });
+
+  it('rejects including a file', () => {
+    const file = join(mkdtempSync(join(tmpdir(), 'clingo-')), 'included.lp');
+    writeFileSync(file, 'fact(1).');
+    const result = validateProgram(`#include ${JSON.stringify(file)}.`);
+    expect(result.valid).toBe(false);
+    expect(result.errors.join('\n')).toContain('file includes are disabled');
   });
 });

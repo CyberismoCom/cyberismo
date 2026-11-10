@@ -1,0 +1,38 @@
+Subject: [PATCH] Disable file includes
+
+Programs come from project content, so #include "<path>" lets content read
+any file the server process can open, probe whether a path exists, or hang
+the process on a FIFO. Report every file include as an error without
+touching the filesystem. The built-in #include <incmode> is kept.
+
+---
+diff --git a/libgringo/src/input/nongroundparser.cc b/libgringo/src/input/nongroundparser.cc
+index 85843663..4bf44651 100644
+--- a/libgringo/src/input/nongroundparser.cc
++++ b/libgringo/src/input/nongroundparser.cc
+@@ -68,6 +68,11 @@ template <typename T> void report_not_found(T const &loc, char const *filename,
+                                                << "  " << filename << "\n";
+ }
+ 
++template <typename T> void report_include_disabled(T const &loc, char const *filename, Logger &log) {
++    GRINGO_REPORT(log, Warnings::RuntimeError) << loc << ": error: file includes are disabled:\n"
++                                               << "  " << filename << "\n";
++}
++
+ // NOTE: is there a better way?
+ #ifdef __USE_GNU
+ 
+@@ -322,12 +327,7 @@ void NonGroundParser::include(String file, Location const &loc, bool inbuilt, Lo
+             report_not_found(loc, (std::string("<") + file.c_str() + ">").c_str(), log);
+         }
+     } else {
+-        auto paths = check_file(file.c_str(), loc.beginFilename.c_str());
+-        if (!paths.first.empty() && !filenames_.emplace(paths.first).second) {
+-            report_included(loc, file.c_str(), log);
+-        } else if (paths.first.empty() || !push(paths.second, true)) {
+-            report_not_found(loc, file.c_str(), log);
+-        }
++        report_include_disabled(loc, file.c_str(), log);
+     }
+ }
+ 
