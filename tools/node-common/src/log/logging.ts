@@ -30,7 +30,12 @@ let openFiles: Closable[] = [];
 
 function openFile(file: string): DestinationStream & Closable {
   const dir = dirname(file);
-  mkdirSync(dir, { recursive: true });
+  // Never create the parent: a mistyped project path must not appear on disk.
+  try {
+    mkdirSync(dir);
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== 'EEXIST') throw error;
+  }
   // Only the project log directory ignores itself; other hosts' dirs are left alone.
   const ignore = join(dir, '.gitignore');
   if (basename(dir) === LOG_DIR_NAME && !existsSync(ignore)) {
@@ -41,9 +46,18 @@ function openFile(file: string): DestinationStream & Closable {
     sync: true,
     append: true,
   });
-  // Logging must never take the process down.
-  destination.on('error', () => {});
-  return destination;
+  // Logging must never take the process down; a failed write switches the
+  // file off so records do not pile up in memory on a failing disk.
+  let failed = false;
+  destination.on('error', () => {
+    failed = true;
+  });
+  return {
+    write: (chunk) => {
+      if (!failed) destination.write(chunk);
+    },
+    end: () => destination.end(),
+  };
 }
 
 /** Replaces the process's log destinations. `level` defaults to 'trace'. */
@@ -116,9 +130,6 @@ export function getLogger(
       const logger = resolve();
       const value = Reflect.get(logger, property, logger);
       return typeof value === 'function' ? value.bind(logger) : value;
-    },
-    set(_, property, value) {
-      return Reflect.set(resolve(), property, value);
     },
   });
 }

@@ -57,8 +57,8 @@ export async function deleteFile(path: string): Promise<boolean> {
   }
   try {
     await unlink(path);
-  } catch {
-    logger.error(`Cannot delete file '${path}'`);
+  } catch (error) {
+    logger.error({ err: error }, `Cannot delete file '${path}'`);
     return false;
   }
   return true;

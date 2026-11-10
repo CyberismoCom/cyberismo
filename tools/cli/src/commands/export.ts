@@ -3,6 +3,7 @@
 
 import { mkdir, truncate, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
+import { resolveTilde } from '@cyberismo/data-handler/utils/file-utils';
 
 import cliProgress from 'cli-progress';
 import { Argument, type Command } from 'commander';
@@ -144,7 +145,7 @@ export function registerExport(program: Command) {
           );
           try {
             const projectPath = options.projectPath
-              ? resolve(options.projectPath)
+              ? resolve(resolveTilde(options.projectPath))
               : process.cwd();
             configureCliLogging(projectPath, program.opts().logLevel);
             const { directory, failed } = await localFolder(projectPath);

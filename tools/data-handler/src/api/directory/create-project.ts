@@ -243,7 +243,7 @@ async function writeProjectFiles(
       join(projectPath, '.gitignore'),
       gitIgnoreContent.join('\n') + '\n',
     );
-  } catch {
-    logger.warn('Failed to create project');
+  } catch (error) {
+    logger.warn({ err: error }, 'Failed to create project');
   }
 }

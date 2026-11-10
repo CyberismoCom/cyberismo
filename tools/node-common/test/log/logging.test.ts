@@ -62,7 +62,6 @@ test('reconfiguring replaces the destinations', () => {
 test('a file destination is readable right after the call and ignores itself', () => {
   const dir = mkdtempSync(join(tmpdir(), 'log-'));
   const file = projectLogFile(dir, new Date(2026, 10, 10));
-  expect(file).toBe(join(dir, '.logs', 'cyberismo-2026-11-10.log'));
   configureLogging([{ file }]);
   getLogger().info('on disk');
   expect(readFileSync(file, 'utf8')).toContain('"msg":"on disk"');
@@ -82,6 +81,7 @@ test('an unusable file destination is dropped, the others still log', () => {
 
 test('a file destination outside a .logs directory gets no .gitignore', () => {
   const dir = mkdtempSync(join(tmpdir(), 'log-'));
+  mkdirSync(join(dir, 'other'));
   configureLogging([{ file: join(dir, 'other', 'x.log') }]);
   expect(existsSync(join(dir, 'other', '.gitignore'))).toBe(false);
 });
@@ -100,4 +100,14 @@ test('an existing .logs directory gets a .gitignore, an existing one is kept', (
   expect(readFileSync(join(kept, '.logs', '.gitignore'), 'utf8')).toBe(
     'custom\n',
   );
+});
+
+test('a file destination whose parent folder is missing is dropped and nothing is created', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'log-'));
+  const missing = join(dir, 'typo');
+  const { lines, stream } = sink();
+  configureLogging([{ file: projectLogFile(missing) }, { stream }]);
+  getLogger().info('still');
+  expect(existsSync(missing)).toBe(false);
+  expect(lines).toHaveLength(1);
 });

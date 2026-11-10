@@ -78,6 +78,15 @@ describe('CLI logging', () => {
     );
   }, 60_000);
 
+  it('a project folder that does not exist is not created by the logger', async () => {
+    const missing = join(home, 'typo');
+
+    const { code } = await run('app', '-p', missing);
+
+    expect(code).not.toBe(0);
+    expect(existsSync(missing)).toBe(false);
+  }, 60_000);
+
   it.skipIf(process.platform === 'win32')(
     'a read-only project still runs the command',
     async () => {

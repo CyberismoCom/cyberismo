@@ -12,8 +12,8 @@ migrations, mcp). Browser code (app) must not import it.
 
 ## Logging (`/log`)
 
-Logging is process-wide and host-configured. Entry points (CLI, backend
-server, MCP server) call `configureLogging` once, choosing destinations (file,
+Logging is process-wide and host-configured. Entry points (the CLI, the
+standalone backend, an embedding host) call `configureLogging` once, choosing destinations (file,
 stdout, stderr, or a stream) and their levels. Library code calls
 `getLogger({ module: '...' })`.
 

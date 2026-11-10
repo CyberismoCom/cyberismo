@@ -105,7 +105,7 @@ if (args.export) {
   }
 } else {
   const auth = createAuthProvider();
-  const level = process.env.LOG_LEVEL ?? 'trace';
+  const level = process.env.LOG_LEVEL || 'trace';
   if (!LOG_LEVELS.includes(level)) {
     console.error(`Fatal: Unrecognized LOG_LEVEL "${level}".`);
     process.exit(1);

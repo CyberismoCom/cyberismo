@@ -24,8 +24,6 @@ import type {
 import { updateCardMetadata } from '../domain/cards/index.js';
 import type { CommitIdentity } from '../infra/tx/tx-record.js';
 
-// The logger is initialized while the project loads, so the child logger is
-// taken at call time; binding it at module scope would keep the silent default.
 const logger = () => getLogger({ module: 'clean' });
 
 /**
