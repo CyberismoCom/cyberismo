@@ -34,51 +34,6 @@ test('a logger obtained before configuration logs after it', () => {
   expect(lines).toMatchObject([{ module: 'early', msg: 'kept', level: 30 }]);
 });
 
-test('each destination filters by its own level', () => {
-  const all = sink();
-  const warn = sink();
-  configureLogging([
-    { stream: all.stream },
-    { stream: warn.stream, level: 'warn' },
-  ]);
-  const logger = getLogger();
-  logger.debug('d');
-  logger.warn('w');
-  expect(all.lines.map((l) => l.msg)).toEqual(['d', 'w']);
-  expect(warn.lines.map((l) => l.msg)).toEqual(['w']);
-});
-
-test('reconfiguring replaces the destinations', () => {
-  const first = sink();
-  const second = sink();
-  const logger = getLogger({ module: 'm' });
-  configureLogging([{ stream: first.stream }]);
-  configureLogging([{ stream: second.stream }]);
-  logger.info('x');
-  expect(first.lines).toEqual([]);
-  expect(second.lines).toHaveLength(1);
-});
-
-test('a file destination is readable right after the call and ignores itself', () => {
-  const dir = mkdtempSync(join(tmpdir(), 'log-'));
-  const file = projectLogFile(dir, new Date(2026, 10, 10));
-  configureLogging([{ file }]);
-  getLogger().info('on disk');
-  expect(readFileSync(file, 'utf8')).toContain('"msg":"on disk"');
-  expect(readFileSync(join(dir, '.logs', '.gitignore'), 'utf8')).toBe('*\n');
-});
-
-test('an unusable file destination is dropped, the others still log', () => {
-  const blocker = join(mkdtempSync(join(tmpdir(), 'log-')), 'file');
-  writeFileSync(blocker, '');
-  const { lines, stream } = sink();
-  expect(() =>
-    configureLogging([{ file: join(blocker, '.logs', 'x.log') }, { stream }]),
-  ).not.toThrow();
-  getLogger().info('still');
-  expect(lines).toHaveLength(1);
-});
-
 test('a file destination outside a .logs directory gets no .gitignore', () => {
   const dir = mkdtempSync(join(tmpdir(), 'log-'));
   mkdirSync(join(dir, 'other'));

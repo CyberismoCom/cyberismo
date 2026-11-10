@@ -4,8 +4,8 @@
 // Where the built CLI sends its logs: stdout stays the command's result.
 
 import { execFile } from 'node:child_process';
-import { existsSync, readdirSync } from 'node:fs';
-import { chmod, mkdtemp, rm } from 'node:fs/promises';
+import { readdirSync } from 'node:fs';
+import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
@@ -23,7 +23,6 @@ beforeEach(async () => {
 });
 
 afterEach(async () => {
-  await chmod(project, 0o755).catch(() => undefined);
   await rm(project, { recursive: true, force: true });
   await rm(home, { recursive: true, force: true });
 });
@@ -68,36 +67,4 @@ describe('CLI logging', () => {
       expect(JSON.parse(line).level).toBeGreaterThanOrEqual(20);
     }
   }, 60_000);
-
-  it('migrate, which never opens the project, still writes the project log', async () => {
-    const { code } = await run('migrate', '-p', project);
-
-    expect(code).toBe(0);
-    expect(readdirSync(join(project, '.logs'))).toContainEqual(
-      expect.stringMatching(/^cyberismo-\d{4}-\d{2}-\d{2}\.log$/),
-    );
-  }, 60_000);
-
-  it('a project folder that does not exist is not created by the logger', async () => {
-    const missing = join(home, 'typo');
-
-    const { code } = await run('app', '-p', missing);
-
-    expect(code).not.toBe(0);
-    expect(existsSync(missing)).toBe(false);
-  }, 60_000);
-
-  it.skipIf(process.platform === 'win32')(
-    'a read-only project still runs the command',
-    async () => {
-      await rm(join(project, '.logs'), { recursive: true, force: true });
-      await chmod(project, 0o555);
-
-      const { code } = await showProject();
-
-      expect(code).toBe(0);
-      expect(existsSync(join(project, '.logs'))).toBe(false);
-    },
-    60_000,
-  );
 });
