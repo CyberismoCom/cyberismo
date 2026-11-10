@@ -35,6 +35,29 @@ async function addPngAttachment(page: Page) {
   await expect(toast).toHaveCount(0);
 }
 
+// Upload cyberismo.png to the open card through the API and reload.
+async function uploadPngAttachment(page: Page) {
+  const urlMatch = page.url().match(/\/projects\/([^/]+)\/cards\/([^/?#]+)/);
+  if (!urlMatch) {
+    throw new Error(`expected /projects/<prefix>/cards/<key>: ${page.url()}`);
+  }
+  const [, prefix, cardKey] = urlMatch;
+  const response = await page.request.post(
+    `/api/projects/${prefix}/cards/${cardKey}/attachments`,
+    {
+      multipart: {
+        files: {
+          name: 'cyberismo.png',
+          mimeType: 'image/png',
+          buffer: readFileSync('./e2e/assets/cyberismo.png'),
+        },
+      },
+    },
+  );
+  expect(response.ok()).toBeTruthy();
+  await page.reload();
+}
+
 test.describe('Attachments', () => {
   test.beforeEach(async ({ page, resetProject }) => {
     await resetProject();
@@ -87,25 +110,7 @@ test.describe('Attachments', () => {
   test('removes the attachment', async ({ page }) => {
     await openRootCard(page);
 
-    const urlMatch = page.url().match(/\/projects\/([^/]+)\/cards\/([^/?#]+)/);
-    if (!urlMatch) {
-      throw new Error(`expected /projects/<prefix>/cards/<key>: ${page.url()}`);
-    }
-    const [, prefix, cardKey] = urlMatch;
-    const response = await page.request.post(
-      `/api/projects/${prefix}/cards/${cardKey}/attachments`,
-      {
-        multipart: {
-          files: {
-            name: 'cyberismo.png',
-            mimeType: 'image/png',
-            buffer: readFileSync('./e2e/assets/cyberismo.png'),
-          },
-        },
-      },
-    );
-    expect(response.ok()).toBeTruthy();
-    await page.reload();
+    await uploadPngAttachment(page);
 
     // Enter inline edit mode so the AttachmentPanel is rendered
     await editPage(page);
@@ -120,6 +125,24 @@ test.describe('Attachments', () => {
 
     // After deletion the count badge shows 0
     await expect(page.getByTestId('attachmentCountBadge')).toHaveText('0');
+  });
+
+  test('inserts an attachment dragged into the editor', async ({ page }) => {
+    await openRootCard(page);
+    await uploadPngAttachment(page);
+    await editPage(page);
+
+    const editor = page.locator('.cm-content');
+    await expect(editor).not.toContainText('cyberismo.png');
+
+    await page
+      .locator('[draggable="true"]')
+      .filter({ hasText: 'cyberismo.png' })
+      .dragTo(editor);
+
+    await expect(editor).toContainText(
+      '{{#image}}"fileName": "cyberismo.png"{{/image}}',
+    );
   });
 
   test('adds a second attachment immediately after the first', async ({
