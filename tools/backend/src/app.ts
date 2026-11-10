@@ -3,7 +3,7 @@
 
 import { Hono, type MiddlewareHandler } from 'hono';
 import { staticFrontendDirRelative } from './utils.js';
-import { serveStatic } from '@hono/node-server/serve-static';
+import { frontendFallback, serveFrontend } from './frontend.js';
 import { attachProjectDirectory } from './middleware/commandManager.js';
 import { errorResponse } from './common/errors.js';
 import calculationsRouter from './domain/calculations/index.js';
@@ -222,12 +222,7 @@ export function createApp(
   // MCP endpoint for AI assistant integration
   app.route('/mcp', createMcpRouter(writableProjects(directory)));
 
-  app.use(
-    '*',
-    serveStatic({
-      root: staticFrontendDirRelative,
-    }),
-  );
+  app.use('*', serveFrontend(staticFrontendDirRelative));
 
   // serve index.html for all other routes
   app.notFound(async (c) => {
@@ -237,10 +232,10 @@ export function createApp(
     ) {
       return c.text('Not Found', 404);
     }
-    const file = await readFile(
+    return frontendFallback(
+      c,
       path.join(import.meta.dirname, 'public', 'index.html'),
     );
-    return c.html(file.toString());
   });
   // Error handling
   // Only server faults are logged; client errors are answered, not logged.
