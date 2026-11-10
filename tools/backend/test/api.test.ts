@@ -4,7 +4,9 @@
 import { chmodSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { expect, test, beforeAll, afterAll, vi } from 'vitest';
+import { Writable } from 'node:stream';
+import { configureLogging } from '@cyberismo/node-common/log';
+import { expect, test, beforeAll, afterAll } from 'vitest';
 import { createApp } from '../src/app.js';
 import { MockAuthProvider, MOCK_ROLE_COOKIE } from '../src/auth/mock.js';
 import { type QueryResult } from '@cyberismo/model';
@@ -238,7 +240,17 @@ test.runIf(process.platform === 'linux')(
 test.runIf(process.platform === 'linux')(
   '/api/cards/export-pdf logs failure diagnostics instead of sending them',
   async () => {
-    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    let logged = '';
+    configureLogging([
+      {
+        stream: new Writable({
+          write(chunk, _encoding, done) {
+            logged += String(chunk);
+            done();
+          },
+        }),
+      },
+    ]);
     try {
       const response = await withPdfStub(
         'cat > /dev/null\necho "asciidoctor: ERROR: /srv/secret/path" >&2\nexit 1\n',
@@ -251,11 +263,9 @@ test.runIf(process.platform === 'linux')(
         code: 'internal',
         message,
       });
-      expect(errorSpy.mock.calls.flat().join(' ')).toContain(
-        '/srv/secret/path',
-      );
+      expect(logged).toContain('/srv/secret/path');
     } finally {
-      errorSpy.mockRestore();
+      configureLogging([]);
     }
   },
 );

@@ -20,6 +20,9 @@ import type {
   UpdateOperationBody,
   ValidateResourceParams,
 } from './schema.js';
+import { getLogger } from '@cyberismo/node-common/log';
+
+const logger = getLogger({ module: 'backend' });
 
 const resourceTypes: ResourceFolderType[] = [
   'calculations',
@@ -245,7 +248,10 @@ async function createResourceNode(
 
       node.children = children ? [...children, ...fileNodes] : fileNodes;
     } catch (error) {
-      console.warn(`Failed to get file names for resource '${name}'`, error);
+      logger.warn(
+        { err: error },
+        `Failed to get file names for resource '${name}'`,
+      );
     }
   } else if (children) {
     node.children = children;

@@ -13,6 +13,9 @@ import { preprocessMermaidBlocksForHtml } from './mermaid.js';
 import { allCards } from './lib.js';
 import { getCardQueryResult } from '../../export.js';
 import type { TreeOptions } from '../../types.js';
+import { getLogger } from '@cyberismo/node-common/log';
+
+const logger = getLogger({ module: 'backend' });
 
 type RenderMode = 'inject' | 'staticSite';
 
@@ -350,7 +353,7 @@ export async function exportCard(
   } catch (error) {
     // Diagnostics can carry server paths: logged here, never sent.
     if (error instanceof AsciidoctorPdfError) {
-      console.error(error.message, error.diagnostics.join('\n'));
+      logger.error({ diagnostics: error.diagnostics }, error.message);
     }
     throw error;
   }

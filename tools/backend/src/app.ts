@@ -41,6 +41,9 @@ import type { ProjectDirectory } from '@cyberismo/data-handler';
 import { EventsByProject } from './domain/events/events-by-project.js';
 import { createProjectsRouter } from './domain/projects/index.js';
 import { simpleMcpAuthRouter } from '@hono/mcp';
+import { getLogger } from '@cyberismo/node-common/log';
+
+const logger = getLogger({ module: 'backend' });
 
 /**
  * Create a Hono sub-app with all project-scoped routes.
@@ -246,8 +249,8 @@ export function createApp(
   // Only server faults are logged; client errors are answered, not logged.
   app.onError((err, c) => {
     const { status, body, headers } = errorResponse(err);
-    if (status >= 500 && !isSSGContext(c) && process.env.NODE_ENV !== 'test') {
-      console.error(err.stack);
+    if (status >= 500 && !isSSGContext(c)) {
+      logger.error({ err }, 'Request failed');
     }
     return c.json(body, status, headers);
   });

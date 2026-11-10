@@ -14,6 +14,9 @@ import {
   ProjectNotFoundError,
   type ProjectDirectory,
 } from '@cyberismo/data-handler';
+import { getLogger } from '@cyberismo/node-common/log';
+
+const logger = getLogger({ module: 'backend' });
 
 const POLL_INTERVAL_MS = 10_000;
 const FETCH_TIMEOUT_MS = 2_000;
@@ -104,14 +107,14 @@ export function startPolicyPolling(
       }
       setPolicy(policySchema.parse(await response.json()));
       if (lastFailure) {
-        console.error(`overlay: ${url} is reachable again`);
+        logger.info(`overlay: ${url} is reachable again`);
         lastFailure = undefined;
       }
     } catch (error) {
       const reason = error instanceof Error ? error.message : String(error);
       if (reason !== lastFailure) {
         lastFailure = reason;
-        console.error(`overlay: ${url} ${reason}, keeping the previous policy`);
+        logger.warn(`overlay: ${url} ${reason}, keeping the previous policy`);
       }
     }
   };
@@ -129,7 +132,7 @@ export function startPolicyPolling(
       const reason = error instanceof Error ? error.message : String(error);
       if (reason !== lastReportFailure) {
         lastReportFailure = reason;
-        console.error(`overlay: could not report projects, ${reason}`);
+        logger.warn(`overlay: could not report projects, ${reason}`);
       }
     }
   };

@@ -9,6 +9,9 @@ import {
   type ProjectModuleInfo,
   type UpdatePlan,
 } from '@cyberismo/model';
+import { getLogger } from '@cyberismo/node-common/log';
+
+const logger = getLogger({ module: 'backend' });
 
 // Never carries the module's source location.
 export interface ProjectModule extends ProjectModuleInfo {
@@ -155,7 +158,7 @@ async function populateHubCache(ws: Workspace) {
     await ws.modules.ensureModuleListExists();
   } catch (error) {
     // An unreachable hub must not fail listing the hubs we already know about.
-    console.warn('Failed to populate the hub cache', error);
+    logger.warn({ err: error }, 'Failed to populate the hub cache');
   }
 }
 
