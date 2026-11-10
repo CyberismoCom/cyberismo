@@ -1,5 +1,43 @@
 # Changelog
 
+## [1.3.0] — 2026-11-10
+
+### Highlights
+
+Card content can now show and edit card fields in place with the new `{{#field}}` macro: it works on the card it sits in or, with `cardKey`, on another card, and the editor toolbar has a Field button to insert it. Modules can ship skills that projects pick up automatically, and the schema version is now 6, so run `cyberismo migrate` on existing projects (no files change).
+
+### Features
+
+- New `{{#field}}` macro shows and edits a field of the card it sits in, as a row or inline in text and tables (#1655)
+- The field macro can target another card with `cardKey`; edits refresh every mounted card that depends on it (#1657)
+- A "Field" button in the editor toolbar inserts the field macro (#1666)
+- Skills shipped by modules are now available in projects that use the module (#1669)
+- Improved AsciiDoc table layout (#1639)
+- Schema version 6: projects that use the field macro can no longer be opened by older Cyberismo versions; run `cyberismo migrate` to upgrade (no file changes)
+
+### Fixes
+
+- `#include` is disabled in logic programs (#1677)
+- An empty string is treated as no value for custom fields (#1653)
+- An override with nothing calculated is shown as a regular field (#1640)
+- Query output no longer pollutes `Object.prototype` (#1651)
+- Module seal entries that target resources outside the module are skipped (#1648)
+- The server binds directly and retries the next port when one is taken (#1644)
+- Graphviz nodes are declared before edges so tree order is kept (#1668)
+- Only server faults are logged, not client errors (#1675)
+
+### Dependencies
+
+- 7 dependency updates (#1658–#1663, #1665)
+
+### Internal
+
+- API refactor: per-actor workspaces, domain façades and a new data-handler layout (#1633, #1634, #1637)
+- Card read split into data, content and source routes (#1654)
+- SPDX headers on all source files, a header check in lint, and the `AGPL-3.0-only` identifier in package licence fields
+- Publish workflow runs only on a CLI version change
+- CodeQL alert fixes in tests and an e2e save-shortcut fix (#1645, #1646)
+
 ## [1.2.0] — 2026-10-14
 
 ### Highlights

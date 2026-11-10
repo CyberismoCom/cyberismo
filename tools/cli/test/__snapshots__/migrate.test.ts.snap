@@ -4,7 +4,7 @@ exports[`migrate > leaves a current project as it is 1`] = `
 {
   "code": 0,
   "stderr": "",
-  "stdout": "Project is already at version 5. No migration needed.
+  "stdout": "Project is already at version 6. No migration needed.
 ",
 }
 `;
@@ -13,9 +13,11 @@ exports[`migrate > migrates an older project 1`] = `
 {
   "code": 0,
   "stderr": "",
-  "stdout": "Migrating from schema version 4 to 5
-No pre-replay migration log snapshots found.
-Successfully migrated from version 4 to 5. Run 'cyberismo validate' to check the project.
+  "stdout": "Migrating from schema version 5 to 6
+Schema changes:
+  - Added the field macro
+No data transformation required.
+Successfully migrated from version 5 to 6. Run 'cyberismo validate' to check the project.
 ",
 }
 `;
