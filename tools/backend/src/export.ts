@@ -19,6 +19,7 @@ import type { TreeOptions } from './types.js';
 import {
   findAllCards,
   findRelevantAttachments,
+  getAttachment,
 } from './domain/cards/service.js';
 import { CARD_ROUTES_PER_KEY } from './domain/cards/lib.js';
 
@@ -116,13 +117,16 @@ export async function exportSite(
   let total = OVERHEAD_CALLS;
   const attachmentsByPrefix = new Map<
     string,
-    Awaited<ReturnType<typeof findRelevantAttachments>>
+    {
+      ws: Workspace;
+      attachments: Awaited<ReturnType<typeof findRelevantAttachments>>;
+    }
   >();
   for (const prefix of prefixes) {
     const ws = await directory.open(prefix, SYSTEM_ACTOR);
     const cards = await findAllCards(ws, opts);
     const attachments = await findRelevantAttachments(ws, opts);
-    attachmentsByPrefix.set(prefix, attachments);
+    attachmentsByPrefix.set(prefix, { ws, attachments });
     total += cards.length * CARD_ROUTES_PER_KEY + attachments.length;
   }
 
@@ -182,11 +186,12 @@ export async function exportSite(
     });
     // Written directly: toSSG would append an extension derived from the
     // Content-Type, so the files would not land under their own names.
-    if (scope !== undefined) {
-      for (const { key, attachment, file } of attachmentsByPrefix.get(scope) ??
-        []) {
+    const project =
+      scope === undefined ? undefined : attachmentsByPrefix.get(scope);
+    if (scope !== undefined && project) {
+      for (const { key, fileName } of project.attachments) {
         try {
-          const fileBuffer = await fs.readFile(file);
+          const { fileBuffer } = await getAttachment(project.ws, key, fileName);
           const target = join(
             exportDir,
             'api',
@@ -195,7 +200,7 @@ export async function exportSite(
             'cards',
             key,
             'a',
-            attachment,
+            fileName,
           );
           await fs.mkdir(dirname(target), { recursive: true });
           await fs.writeFile(target, fileBuffer);
@@ -204,7 +209,7 @@ export async function exportSite(
           onProgress?.(done, total);
         } catch (error) {
           scopeErrors.push(
-            `${key}/${attachment}: ${error instanceof Error ? error.message : String(error)}`,
+            `${key}/${fileName}: ${error instanceof Error ? error.message : String(error)}`,
           );
         }
       }

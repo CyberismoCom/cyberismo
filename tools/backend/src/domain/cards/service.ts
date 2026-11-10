@@ -8,7 +8,6 @@ import type {
   MetadataContent,
   QueryResult,
 } from '@cyberismo/model';
-import { join } from 'node:path';
 import { AsciidoctorPdfError, type Workspace } from '@cyberismo/data-handler';
 import { preprocessMermaidBlocksForHtml } from './mermaid.js';
 import { allCards } from './lib.js';
@@ -341,11 +340,7 @@ export async function findRelevantAttachments(
   );
   return (await ws.cards.attachments())
     .filter(({ card }) => cards.has(card))
-    .map(({ card, fileName, path }) => ({
-      key: card,
-      attachment: fileName,
-      file: join(path, fileName),
-    }));
+    .map(({ card, fileName }) => ({ key: card, fileName }));
 }
 
 export async function exportCard(
