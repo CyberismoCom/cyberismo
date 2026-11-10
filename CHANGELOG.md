@@ -4,9 +4,7 @@
 
 ### Highlights
 
-<one or two sentences — replace before merging>
-
-<!-- REVIEW: edit Highlights and skim every section before merging -->
+Card content can now show and edit card fields in place with the new `{{#field}}` macro: it works on the card it sits in or, with `cardKey`, on another card, and the editor toolbar has a Field button to insert it. Modules can ship skills that projects pick up automatically, and the schema version is now 6, so run `cyberismo migrate` on existing projects (no files change).
 
 ### Features
 
