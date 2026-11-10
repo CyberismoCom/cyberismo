@@ -3,7 +3,7 @@
 
 import { watch } from 'node:fs';
 
-import { getChildLogger } from '../../shared/utils/log-utils.js';
+import { getLogger } from '@cyberismo/node-common/log';
 
 /**
  * Class that starts watching certain path for changes.
@@ -41,7 +41,7 @@ export class ContentWatcher {
 
   // Returns instance of logger.
   private static get logger() {
-    return getChildLogger({
+    return getLogger({
       module: 'contentWatcher',
     });
   }

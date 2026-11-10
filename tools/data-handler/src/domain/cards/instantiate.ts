@@ -11,7 +11,7 @@ import {
   resourceName,
   resourceNameToString,
 } from '../../shared/utils/resource-utils.js';
-import { getChildLogger } from '../../shared/utils/log-utils.js';
+import { getLogger } from '@cyberismo/node-common/log';
 import { compare, EMPTY_RANK, sortItems } from '../../shared/utils/lexorank.js';
 import {
   isEmptyFieldValue,
@@ -29,7 +29,7 @@ import type { Card, CardAttachment, CardMetadata } from '@cyberismo/model';
 import type { CardTree, NewCard } from '../../state/cards/card-tree.js';
 import type { Checkout } from '../../state/checkout/checkout.js';
 
-const logger = getChildLogger({ module: 'template' });
+const logger = getLogger({ module: 'template' });
 
 // Adds cards of a card type to a template, then runs the creation side effects.
 export async function addCards(

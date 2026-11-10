@@ -23,7 +23,7 @@ import { ProjectPaths } from '../../infra/paths/project-paths.js';
 import { readCardsConfig } from '../../infra/paths/cards-config.js';
 import { ResourceHandler } from '../resources/resource-handler.js';
 import { ContentWatcher } from './project-content-watcher.js';
-import { getChildLogger, initLogger } from '../../shared/utils/log-utils.js';
+import { getLogger } from '@cyberismo/node-common/log';
 import { RWLock } from '../../infra/tx/rw-lock.js';
 import { GitSync } from '../../infra/git/git-sync.js';
 import { GitManager } from '../../infra/git/git-manager.js';
@@ -34,7 +34,6 @@ import type { LogicBackendFactory } from '../../infra/logic/logic-backend.js';
 import { clingoLogicBackend } from '../../infra/logic/clingo-backend.js';
 
 import type { TemplateResource } from '../../domain/resources/template-resource.js';
-import type { Level } from 'pino';
 
 /**
  * Options for Project initialization. All default to off.
@@ -54,10 +53,8 @@ export interface CheckoutOptions {
   logic?: LogicBackendFactory;
 }
 
-/** How a checkout is opened: its options and the level it logs at. */
-export interface OpenOptions extends CheckoutOptions {
-  logLevel?: Level;
-}
+/** How a checkout is opened. */
+export type OpenOptions = CheckoutOptions;
 
 /**
  * Represents project folder.
@@ -84,7 +81,7 @@ export class Checkout {
   public readonly keyRegistry: CardKeyRegistry;
   private gitManager: GitManager;
   private readonly gitSync: GitSync;
-  private logger = getChildLogger({ module: 'Project' });
+  private logger = getLogger({ module: 'Project' });
   private projectPaths: ProjectPaths;
   private resourceHandler: ResourceHandler;
   private resourceWatcher: ContentWatcher | undefined;
@@ -222,11 +219,6 @@ export class Checkout {
     path: string,
     options?: OpenOptions,
   ): Promise<Checkout> {
-    // Set up logger before constructing anything so eager child loggers work
-    if (options?.logLevel) {
-      const logPath = join(path, '.logs', 'cyberismo_data-handler.log');
-      initLogger(options.logLevel, logPath);
-    }
     const checkout = new Checkout(path, {
       watchResourceChanges: options?.watchResourceChanges,
       autocommit: options?.autocommit,

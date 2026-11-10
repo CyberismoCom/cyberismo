@@ -25,6 +25,8 @@ it returns, and calls domain operations on the checkout.
 
 No relative `import()` in `src/`: it hides a cycle from these rules.
 
+Logging goes through `@cyberismo/node-common/log`; see `tools/node-common/ARCHITECTURE.md`. data-handler never configures it.
+
 ## Where new code goes
 
 - A new operation or rule on a concept: `domain/<concept>/`, as a function

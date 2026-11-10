@@ -3,7 +3,7 @@
 
 import { randomUUID } from 'node:crypto';
 import type { Change, ChangeEvent } from '@cyberismo/model';
-import { getChildLogger } from '../../shared/utils/log-utils.js';
+import { getLogger } from '@cyberismo/node-common/log';
 import type { RWLock } from './rw-lock.js';
 import type { TxRecord } from './tx-record.js';
 
@@ -54,7 +54,7 @@ export class ChangeFeed {
   private readonly epoch = randomUUID();
   private revision = 0;
   private readonly listeners = new Set<ChangeListener>();
-  private readonly logger = getChildLogger({ module: 'ChangeFeed' });
+  private readonly logger = getLogger({ module: 'ChangeFeed' });
 
   /** Adds a listener; the returned function removes it. */
   public subscribe(listener: ChangeListener): () => void {

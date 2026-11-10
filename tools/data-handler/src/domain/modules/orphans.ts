@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { deleteDir } from '../../shared/utils/file-utils.js';
-import { getChildLogger } from '../../shared/utils/log-utils.js';
+import { getLogger } from '@cyberismo/node-common/log';
 import { declaredModules, installedModules } from './inventory.js';
 
 import type { Checkout } from '../../state/checkout/checkout.js';
@@ -54,7 +54,7 @@ export async function cleanOrphans(
   checkout: Checkout,
   options: CleanOrphansOptions = {},
 ): Promise<number> {
-  const logger = getChildLogger({ module: 'orphans' });
+  const logger = getLogger({ module: 'orphans' });
   const orphans = findOrphans(
     declaredModules(checkout).map((d) => d.name),
     await installedModules(checkout),

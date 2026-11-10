@@ -3,7 +3,7 @@
 
 import semver from 'semver';
 import { createGit, gitTimeout } from './git-config.js';
-import { getChildLogger } from '../../shared/utils/log-utils.js';
+import { getLogger } from '@cyberismo/node-common/log';
 import { stripTagPrefix, versionToTag } from '../../shared/utils/version.js';
 import type { CommitIdentity } from '../tx/tx-record.js';
 
@@ -12,7 +12,7 @@ const LINE_BREAKING = /[\s\p{Cc}]+/gu;
 
 export class GitManager {
   private git: ReturnType<typeof createGit>;
-  private logger = getChildLogger({ module: 'GitManager' });
+  private logger = getLogger({ module: 'GitManager' });
 
   constructor(projectPath: string) {
     this.git = createGit({

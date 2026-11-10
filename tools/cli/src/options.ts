@@ -1,13 +1,13 @@
 // SPDX-FileCopyrightText: Cyberismo Ltd and contributors
 // SPDX-License-Identifier: AGPL-3.0-only
 
-import type { WorkspaceOptions } from '@cyberismo/data-handler';
+import type { LogLevel } from '@cyberismo/node-common/log';
 import type { Context } from '@cyberismo/model';
 
 // Base options shared across multiple commands
 export interface BaseCommandOptions {
   projectPath?: string;
-  logLevel?: WorkspaceOptions['logLevel'];
+  logLevel?: LogLevel;
   autocommit?: boolean;
   autopush?: boolean;
 }

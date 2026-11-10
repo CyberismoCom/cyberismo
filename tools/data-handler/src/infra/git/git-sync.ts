@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { sleep } from '../../shared/utils/common-utils.js';
-import { getChildLogger } from '../../shared/utils/log-utils.js';
+import { getLogger } from '@cyberismo/node-common/log';
 import { GitManager } from './git-manager.js';
 
 const MAX_RETRIES = 2;
@@ -23,7 +23,7 @@ const RETRY_DELAY_MS = 5000;
 export class GitSync {
   private running = false;
   private requestedAgain = false;
-  private readonly logger = getChildLogger({ module: 'GitSync' });
+  private readonly logger = getLogger({ module: 'GitSync' });
 
   constructor(
     private readonly git: GitManager,

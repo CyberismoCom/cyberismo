@@ -16,11 +16,11 @@ import {
   isEmptyFieldValue,
   isPredefinedField,
 } from '../../shared/utils/constants.js';
-import { getChildLogger } from '../../shared/utils/log-utils.js';
+import { getLogger } from '@cyberismo/node-common/log';
 import { findCard } from './read.js';
 import { DHValidationError } from '../../shared/exceptions/index.js';
 
-const logger = getChildLogger({ module: 'edit' });
+const logger = getLogger({ module: 'edit' });
 
 async function saveCardContent(checkout: Checkout, card: Card): Promise<void> {
   return checkout.treeOf(card.key).writeContent(card);

@@ -88,7 +88,6 @@ async function createProjectAt(
     actor,
     identity,
     {
-      logLevel: options.logLevel,
       autocommit: options.autocommit,
       autopush: options.autopush,
     },

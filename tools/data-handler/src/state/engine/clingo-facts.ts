@@ -27,11 +27,11 @@ import {
   isPredefinedField,
   ROOT,
 } from '../../shared/utils/constants.js';
-import { getChildLogger } from '../../shared/utils/log-utils.js';
+import { getLogger } from '@cyberismo/node-common/log';
 import type { Checkout } from '../checkout/checkout.js';
 import type { CardTreeKind } from '../cards/card-tree.js';
 
-const logger = getChildLogger({ module: 'clingo-facts' });
+const logger = getLogger({ module: 'clingo-facts' });
 
 /**
  * How a card container is projected into facts. 'name' is what the

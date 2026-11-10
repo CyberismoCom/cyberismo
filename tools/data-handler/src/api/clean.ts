@@ -7,7 +7,7 @@ import {
   isEmptyFieldValue,
   isPredefinedField,
 } from '../shared/utils/constants.js';
-import { getChildLogger } from '../shared/utils/log-utils.js';
+import { getLogger } from '@cyberismo/node-common/log';
 import { sortCards } from '../shared/utils/card-utils.js';
 import { read, write } from '../infra/tx/rw-lock.js';
 
@@ -26,7 +26,7 @@ import type { CommitIdentity } from '../infra/tx/tx-record.js';
 
 // The logger is initialized while the project loads, so the child logger is
 // taken at call time; binding it at module scope would keep the silent default.
-const logger = () => getChildLogger({ module: 'clean' });
+const logger = () => getLogger({ module: 'clean' });
 
 /**
  * Removes stored field values that the card's card type does not require:

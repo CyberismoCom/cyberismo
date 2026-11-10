@@ -4,12 +4,12 @@
 import type { Card } from '@cyberismo/model';
 import type { Checkout } from '../../state/checkout/checkout.js';
 import { assertAllowed } from './guard.js';
-import { getChildLogger } from '../../shared/utils/log-utils.js';
+import { getLogger } from '@cyberismo/node-common/log';
 import { updateCardMetadataKey } from './update.js';
 import { findCard } from './read.js';
 import { ReadOnlyContainerError } from '../../shared/exceptions/index.js';
 
-const logger = getChildLogger({ module: 'Project' });
+const logger = getLogger({ module: 'Project' });
 
 async function removeSubtree(
   checkout: Checkout,

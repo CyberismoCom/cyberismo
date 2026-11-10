@@ -137,7 +137,6 @@ export async function openWorkspace(
 ): Promise<Workspace> {
   return openProject({
     projectPath: projectPathOf(options),
-    logLevel: options.logLevel,
     autocommit: options.autocommit,
     autopush: options.autopush,
   });

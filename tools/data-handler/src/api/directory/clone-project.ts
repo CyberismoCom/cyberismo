@@ -8,9 +8,9 @@ import { mkdir, mkdtemp, rename, rm } from 'node:fs/promises';
 import { createGit, gitTimeout } from '../../infra/git/git-config.js';
 import { configuredFolders } from '../../infra/paths/project-folders.js';
 import { pathExists } from '../../shared/utils/file-utils.js';
-import { getChildLogger } from '../../shared/utils/log-utils.js';
+import { getLogger } from '@cyberismo/node-common/log';
 
-const logger = getChildLogger({ module: 'create' });
+const logger = getLogger({ module: 'create' });
 
 /**
  * Clones a git repository into the given destination directory.
