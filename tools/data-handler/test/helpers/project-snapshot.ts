@@ -29,7 +29,7 @@ export async function isolatedGitEnv(
 
 /**
  * What creating a project left at `path`: each file with its content (logs
- * by name only), and each commit's author, committer, subject and files;
+ * by name only, the day in a log's name masked), and each commit's author, committer, subject and files;
  * `git status --porcelain` lines (sorted) show what was left uncommitted;
  * `commits` and `uncommitted` are null when there is no repository.
  */
@@ -42,9 +42,10 @@ export async function projectSnapshot(path: string) {
       .split(sep)
       .join('/');
     if (name.startsWith('.git/')) continue;
-    files[name] = name.startsWith('.logs/')
-      ? '<log>'
-      : await readFile(join(path, name), 'utf-8');
+    files[name.replace(/^(\.logs\/cyberismo-)\d{4}-\d{2}-\d{2}/, '$1<date>')] =
+      name.startsWith('.logs/')
+        ? '<log>'
+        : await readFile(join(path, name), 'utf-8');
   }
   const commits = existsSync(join(path, '.git'))
     ? (

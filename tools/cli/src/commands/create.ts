@@ -15,6 +15,7 @@ import { resolveTilde } from '@cyberismo/data-handler/utils/file-utils';
 import type { DataType } from '@cyberismo/model';
 
 import { CommandGroup, commandType, nameGuideline } from '../lib/args.js';
+import { configureCliLogging } from '../lib/logging.js';
 import { program } from '../lib/program.js';
 import { errorMessage, fail, onProject } from '../lib/errors.js';
 import { existingAncestor, gitAuthor, openWorkspace } from '../lib/open.js';
@@ -92,6 +93,7 @@ async function createProjectAt(
       autopush: options.autopush,
     },
   ).catch((error: unknown) => fail(errorFunction(error)));
+  configureCliLogging(projectPath, options.logLevel);
   for (const warning of warnings) {
     console.warn(warning);
   }

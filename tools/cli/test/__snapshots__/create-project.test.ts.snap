@@ -64,6 +64,8 @@ exports[`create project > skipping module import 1`] = `
 .logs
 .cache
 ",
+    ".logs/.gitignore": "<log>",
+    ".logs/cyberismo-<date>.log": "<log>",
   },
   "output": {
     "code": 0,
@@ -118,6 +120,8 @@ exports[`create project > with autocommit 1`] = `
 .logs
 .cache
 ",
+    ".logs/.gitignore": "<log>",
+    ".logs/cyberismo-<date>.log": "<log>",
     ".temp/moduleList.json": "{
     "modules": [],
     "hubs": []
@@ -171,6 +175,8 @@ exports[`create project > with autocommit, skipping module import 1`] = `
 .logs
 .cache
 ",
+    ".logs/.gitignore": "<log>",
+    ".logs/cyberismo-<date>.log": "<log>",
   },
   "output": {
     "code": 0,
@@ -223,6 +229,8 @@ exports[`create project > without autocommit 1`] = `
 .logs
 .cache
 ",
+    ".logs/.gitignore": "<log>",
+    ".logs/cyberismo-<date>.log": "<log>",
     ".temp/moduleList.json": "{
     "modules": [],
     "hubs": []

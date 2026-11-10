@@ -20,6 +20,7 @@ import {
 } from '@cyberismo/data-handler';
 
 import { CommandWithPath } from '../lib/args.js';
+import { configureCliLogging } from '../lib/logging.js';
 import { isProjectFolder } from '../lib/open.js';
 import { confirm } from '../lib/prompts.js';
 import { validation } from './validate.js';
@@ -77,6 +78,7 @@ export function registerApp(program: Command) {
   appCmd.action(async (options: StartCommandOptions) => {
     const basePath = options.projectPath || process.cwd();
     const mergedOptions = Object.assign({}, options, program.opts());
+    configureCliLogging(resolve(basePath), mergedOptions.logLevel);
     let opened: Awaited<ReturnType<typeof localFolder>>;
     try {
       opened = await localFolder(basePath, {
