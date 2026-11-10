@@ -145,6 +145,45 @@ test.describe('Attachments', () => {
     );
   });
 
+  // Chrome lists text/plain ahead of text/uri-list on the drop. Headless
+  // Chromium does not, so the drag test above cannot show it.
+  test('inserts an attachment dropped with text/plain listed first', async ({
+    page,
+  }) => {
+    await openRootCard(page);
+    await uploadPngAttachment(page);
+    await editPage(page);
+
+    const editor = page.locator('.cm-content');
+    await expect(editor).not.toContainText('cyberismo.png');
+
+    const url = page
+      .url()
+      .replace(
+        /\/projects\/([^/]+)\/cards\/([^/?#]+).*$/,
+        '/api/projects/$1/cards/$2/a/cyberismo.png',
+      );
+    await editor.evaluate((target, url) => {
+      const dataTransfer = new DataTransfer();
+      dataTransfer.setData('text/plain', url);
+      dataTransfer.setData('text/uri-list', url);
+      const { x, y } = target.getBoundingClientRect();
+      target.dispatchEvent(
+        new DragEvent('drop', {
+          bubbles: true,
+          cancelable: true,
+          clientX: x + 5,
+          clientY: y + 5,
+          dataTransfer,
+        }),
+      );
+    }, url);
+
+    await expect(editor).toContainText(
+      '{{#image}}"fileName": "cyberismo.png"{{/image}}',
+    );
+  });
+
   test('adds a second attachment immediately after the first', async ({
     page,
   }) => {
