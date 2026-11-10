@@ -182,7 +182,10 @@ export const AttachmentPanel: React.FC<AttachmentPanelProps> = ({
                 e.dataTransfer.effectAllowed = 'copy';
                 e.dataTransfer.setData(
                   'text/uri-list',
-                  apiPaths.attachment(cardKey, attachment.fileName),
+                  new URL(
+                    apiPaths.attachment(cardKey, attachment.fileName),
+                    window.location.href,
+                  ).href,
                 );
                 const preview = e.currentTarget.querySelector<HTMLElement>(
                   '[data-attachment-preview]',
