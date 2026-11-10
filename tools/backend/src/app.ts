@@ -243,13 +243,12 @@ export function createApp(
     return c.html(file.toString());
   });
   // Error handling
+  // Only server faults are logged; client errors are answered, not logged.
   app.onError((err, c) => {
-    if (!isSSGContext(c)) {
-      if (process.env.NODE_ENV !== 'test') {
-        console.error(err.stack);
-      }
-    }
     const { status, body } = errorResponse(err);
+    if (status >= 500 && !isSSGContext(c) && process.env.NODE_ENV !== 'test') {
+      console.error(err.stack);
+    }
     return c.json(body, status);
   });
 
