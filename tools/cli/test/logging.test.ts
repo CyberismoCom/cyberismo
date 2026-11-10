@@ -28,18 +28,22 @@ afterEach(async () => {
   await rm(home, { recursive: true, force: true });
 });
 
-function showProject(...flags: string[]) {
+function run(...args: string[]) {
   return new Promise<{ code: number; stdout: string; stderr: string }>(
     (resolve) => {
       execFile(
         process.execPath,
-        [bin, ...flags, 'show', 'project', '-p', project],
+        [bin, ...args],
         { env: { ...process.env, HOME: home, NO_COLOR: '1' } },
         (error, stdout, stderr) =>
           resolve({ code: error ? Number(error.code) : 0, stdout, stderr }),
       );
     },
   );
+}
+
+function showProject(...flags: string[]) {
+  return run(...flags, 'show', 'project', '-p', project);
 }
 
 describe('CLI logging', () => {
@@ -63,6 +67,15 @@ describe('CLI logging', () => {
     for (const line of lines) {
       expect(JSON.parse(line).level).toBeGreaterThanOrEqual(20);
     }
+  }, 60_000);
+
+  it('migrate, which never opens the project, still writes the project log', async () => {
+    const { code } = await run('migrate', '-p', project);
+
+    expect(code).toBe(0);
+    expect(readdirSync(join(project, '.logs'))).toContainEqual(
+      expect.stringMatching(/^cyberismo-\d{4}-\d{2}-\d{2}\.log$/),
+    );
   }, 60_000);
 
   it.skipIf(process.platform === 'win32')(

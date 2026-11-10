@@ -7,6 +7,7 @@ import { migrateProject, errorFunction } from '@cyberismo/data-handler';
 
 import { pathGuideline } from '../lib/args.js';
 import { fail } from '../lib/errors.js';
+import { configureCliLogging } from '../lib/logging.js';
 import { projectPathOf } from '../lib/open.js';
 import { printResult } from '../lib/output.js';
 import type { MigrateCommandOptions } from '../options.js';
@@ -20,11 +21,10 @@ export function registerMigrate(program: Command) {
     .action(async (options: MigrateCommandOptions) => {
       // The project is not opened: its schema may be one opening refuses.
       try {
-        printResult(
-          await migrateProject(
-            projectPathOf(Object.assign({}, options, program.opts())),
-          ),
-        );
+        const merged = Object.assign({}, options, program.opts());
+        const projectPath = projectPathOf(merged);
+        configureCliLogging(projectPath, merged.logLevel);
+        printResult(await migrateProject(projectPath));
       } catch (error) {
         fail(errorFunction(error));
       }
