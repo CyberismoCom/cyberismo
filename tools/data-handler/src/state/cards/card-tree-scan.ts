@@ -3,7 +3,7 @@
 
 // node
 import type { Dirent } from 'node:fs';
-import { basename, dirname, join, relative, resolve } from 'node:path';
+import { basename, dirname, join, resolve } from 'node:path';
 import { readdir, readFile } from 'node:fs/promises';
 
 import type { CardMetadata, MetadataContent } from '@cyberismo/model';
@@ -19,12 +19,10 @@ export const ATTACHMENT_FOLDER = 'a';
 // A card's children live in this folder, inside its folder.
 export const CHILDREN_FOLDER = 'c';
 
-// An attachment as the tree stores it: the file's name, and the folder it
-// sits in relative to its card's attachment folder (empty for the common
-// case). Its full path is derived from its card's.
+// An attachment as the tree stores it: a file directly in its card's
+// attachment folder. Its full path is derived from its card's.
 export interface StoredAttachment {
   fileName: string;
-  dir: string;
 }
 
 // A card as the tree stores it: identity, tree position and the card's own
@@ -86,64 +84,33 @@ async function entries(path: string): Promise<Dirent[]> {
 function attachmentsByCard(
   allEntries: Dirent[],
   cardFolders: Map<string, string>,
-  root: string,
 ): Map<string, StoredAttachment[]> {
   const attachments = new Map<string, StoredAttachment[]>();
-  const seen = new Set<string>();
 
   for (const entry of allEntries) {
-    // A folder is not an attachment; the files in it are.
+    // Only files directly in a card's attachment folder are attachments;
+    // subfolders of it are not scanned.
     if (entry.isDirectory()) {
       continue;
     }
-    const owner = attachmentOwner(entry, cardFolders, root);
-    if (!owner) {
+    const folder = resolve(entry.parentPath);
+    if (basename(folder) !== ATTACHMENT_FOLDER) {
       continue;
     }
-    const dir = relative(owner.attachmentFolder, entry.parentPath);
-    const attachmentKey = `${owner.cardKey}:${dir}:${entry.name}`;
-    if (seen.has(attachmentKey)) {
-      logger.warn(
-        `Duplicate attachment found during cache population: ${entry.name} for card ${owner.cardKey}`,
-      );
+    const cardKey = cardFolders.get(dirname(folder));
+    if (!cardKey) {
       continue;
     }
-    seen.add(attachmentKey);
-    const attachment: StoredAttachment = { fileName: entry.name, dir };
-    const listing = attachments.get(owner.cardKey);
+    const attachment: StoredAttachment = { fileName: entry.name };
+    const listing = attachments.get(cardKey);
     if (listing) {
       listing.push(attachment);
     } else {
-      attachments.set(owner.cardKey, [attachment]);
+      attachments.set(cardKey, [attachment]);
     }
   }
 
   return attachments;
-}
-
-// Which card an entry is an attachment of: walks the entry's folder up to
-// the tree root looking for an attachment folder that belongs to a card.
-// Returns undefined when the entry is not inside one.
-function attachmentOwner(
-  entry: Dirent,
-  cardFolders: Map<string, string>,
-  root: string,
-): { cardKey: string; attachmentFolder: string } | undefined {
-  let folder = resolve(entry.parentPath);
-  while (folder !== root) {
-    const parent = dirname(folder);
-    if (parent === folder) {
-      return undefined;
-    }
-    if (basename(folder) === ATTACHMENT_FOLDER) {
-      const cardKey = cardFolders.get(parent);
-      if (cardKey) {
-        return { cardKey, attachmentFolder: folder };
-      }
-    }
-    folder = parent;
-  }
-  return undefined;
 }
 
 // Gets content from disk.
@@ -185,7 +152,7 @@ export async function scanCardTree(
       entry.name,
     ]),
   );
-  const attachments = attachmentsByCard(allEntries, cardFolders, root);
+  const attachments = attachmentsByCard(allEntries, cardFolders);
   const loadedKeys = new Set(cardEntries.map((entry) => entry.name));
 
   const cardPromises = cardEntries.map(async (entry) => {
