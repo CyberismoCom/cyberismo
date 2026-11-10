@@ -253,9 +253,18 @@ export function registerTools(
         sourceKey: z.string().describe('Source card key'),
         destinationKey: z.string().describe('Destination card key'),
         linkType: z.string().describe('Link type name'),
+        linkDescription: z
+          .string()
+          .optional()
+          .describe(
+            'Description of the link; required if the link has one, and must match it exactly',
+          ),
       },
     },
-    async ({ projectPrefix, sourceKey, destinationKey, linkType }, extra) => {
+    async (
+      { projectPrefix, sourceKey, destinationKey, linkType, linkDescription },
+      extra,
+    ) => {
       try {
         const ws = await resolveWorkspace(
           directory,
@@ -263,8 +272,18 @@ export function registerTools(
           extra,
           server,
         );
-        await ws.cards.removeLink(sourceKey, destinationKey, linkType);
-        return toolResult({ sourceKey, destinationKey, linkType });
+        await ws.cards.removeLink(
+          sourceKey,
+          destinationKey,
+          linkType,
+          linkDescription,
+        );
+        return toolResult({
+          sourceKey,
+          destinationKey,
+          linkType,
+          linkDescription,
+        });
       } catch (error) {
         return toolError('removing link', error);
       }

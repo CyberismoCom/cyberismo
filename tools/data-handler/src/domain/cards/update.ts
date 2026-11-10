@@ -593,10 +593,23 @@ async function removeLocalLink(
       (l.linkDescription ?? '') === (linkDescription ?? ''),
   );
   if (!link) {
+    const described =
+      !linkDescription &&
+      sourceCard.metadata?.links.some(
+        (l) =>
+          l.cardKey === destination &&
+          l.linkType === (linkType ?? '') &&
+          l.linkDescription,
+      );
     throw new Error(
-      linkType
-        ? `Link from '${source}' to '${destination}' with link type '${linkType}' not found`
-        : `Link from '${source}' to '${destination}' not found`,
+      (linkType
+        ? `Link from '${source}' to '${destination}' with link type '${linkType}'`
+        : `Link from '${source}' to '${destination}'`) +
+        (linkDescription ? ` and description '${linkDescription}'` : '') +
+        ' not found' +
+        (described
+          ? '. A link of this type has a description; pass it to remove the link'
+          : ''),
     );
   }
 

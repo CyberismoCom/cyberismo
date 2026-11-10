@@ -35,10 +35,11 @@ const additionalHelpForRemove = `Sub-command help:
       <cardKey> Card key of the label
       [label] Label being removed
 
-  remove link <source> <destination> <linkType>, where
+  remove link <source> <destination> <linkType> [description], where
       <source> Source card key or external item (connector:itemKey)
       <destination> Destination card key or external item (connector:itemKey)
       <linkType> Link type to remove
+      [description] Description of the link; required if the link has one
 
   remove hub <location>, where
       <location> URL of hub to remove. Use 'default' if removing default hub.
@@ -105,6 +106,7 @@ export async function removeAction(
   parameter2: string | undefined,
   parameter3: string | undefined,
   options: RemoveCommandOptions,
+  parameter4?: string,
 ) {
   if (type) {
     if (!parameter1) {
@@ -135,7 +137,11 @@ export async function removeAction(
     }
     if (['attachment', 'card', 'label', 'link'].includes(type)) {
       await onProject(Object.assign({}, options, program.opts()), (ws) =>
-        removeFromCard(ws, type, parameter1!, [parameter2!, parameter3!]),
+        removeFromCard(ws, type, parameter1!, [
+          parameter2!,
+          parameter3!,
+          parameter4!,
+        ]),
       );
       printResult();
       return;
@@ -200,6 +206,10 @@ export function registerRemove(program: Command) {
       '[parameter3]',
       'Depends on context; see below for specific remove operation',
     )
+    .argument(
+      '[parameter4]',
+      'Depends on context; see below for specific remove operation',
+    )
     .addHelpText('after', additionalHelpForRemove)
     .action(
       async (
@@ -207,12 +217,20 @@ export function registerRemove(program: Command) {
         parameter1: string,
         parameter2: string,
         parameter3: string,
+        parameter4: string | undefined,
         options: RemoveCommandOptions,
       ) => {
         if (type === 'module') {
           deprecationNote('remove module', 'module remove');
         }
-        await removeAction(type, parameter1, parameter2, parameter3, options);
+        await removeAction(
+          type,
+          parameter1,
+          parameter2,
+          parameter3,
+          options,
+          parameter4,
+        );
       },
     );
 }

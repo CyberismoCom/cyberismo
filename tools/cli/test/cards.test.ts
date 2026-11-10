@@ -89,6 +89,13 @@ const TABLE: [string, string, unknown[], unknown, string][] = [
     undefined,
     'Done',
   ],
+  [
+    'remove link a b t why',
+    'removeLink',
+    ['a', 'b', 't', 'why', undefined],
+    undefined,
+    'Done',
+  ],
   ['remove attachment a f', 'removeAttachment', ['a', 'f'], undefined, 'Done'],
   [
     'show card a',
