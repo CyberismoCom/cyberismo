@@ -2,8 +2,9 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
-import { dirname, join } from 'node:path';
+import { basename, dirname, join } from 'node:path';
 import pino from 'pino';
+import { LOG_DIR_NAME } from './project-log-file.js';
 import type {
   ChildLoggerOptions,
   DestinationStream,
@@ -30,8 +31,11 @@ let openFiles: Closable[] = [];
 function openFile(file: string): DestinationStream & Closable {
   const dir = dirname(file);
   mkdirSync(dir, { recursive: true });
+  // Only the project log directory ignores itself; other hosts' dirs are left alone.
   const ignore = join(dir, '.gitignore');
-  if (!existsSync(ignore)) writeFileSync(ignore, '*\n');
+  if (basename(dir) === LOG_DIR_NAME && !existsSync(ignore)) {
+    writeFileSync(ignore, '*\n');
+  }
   const destination = pino.destination({
     dest: file,
     sync: true,

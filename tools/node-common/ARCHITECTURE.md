@@ -12,17 +12,24 @@ migrations, mcp). Browser code (app) must not import it.
 
 ## Logging (`/log`)
 
-Logging is process-wide and host-configured.
+Logging is process-wide and host-configured. Entry points (CLI, backend
+server, MCP server) call `configureLogging` once, choosing destinations (file,
+stdout, stderr, or a stream) and their levels. Library code calls
+`getLogger({ module: '...' })`.
 
-- Entry points (CLI, backend server, MCP server) call `configureLogging` once,
-  choosing destinations (file, stdout, stderr, or a stream) and their levels.
-- Library code calls `getLogger({ module: '...' })` and logs. It never
-  configures logging, never opens destinations, never reads log settings from
-  the environment, and never writes to the console.
-- A logger obtained before `configureLogging` works afterwards: the handle
-  resolves the current destinations on every call. Unconfigured, logging is a
-  no-op.
-- Calling `configureLogging` again replaces all destinations and closes the
-  files it had opened.
-- `projectLogFile(dir)` names the per-day project log file; the file's
-  directory gets a `.gitignore` so logs are never committed.
+The rule for data-handler, backend, mcp and migrations:
+
+- emit application logs through `getLogger` only;
+- never write to `console` or `process.stdout`/`process.stderr`;
+- hand information meant for the user back to the caller (return value or
+  thrown error); the entry point prints it;
+- never choose a log destination and never read logging configuration from env
+  or flags. Only process entry points call `configureLogging`.
+
+A logger obtained before `configureLogging` works afterwards: the handle
+resolves the current destinations on every call. Unconfigured, logging is a
+no-op. Calling `configureLogging` again replaces all destinations and closes the
+files it had opened.
+
+`projectLogFile(dir)` names the per-day project log file in `<dir>/.logs`; that
+directory gets a `.gitignore` (if missing) so logs are never committed.

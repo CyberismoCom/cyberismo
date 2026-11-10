@@ -2,7 +2,13 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { afterEach, expect, test } from 'vitest';
-import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import {
@@ -72,4 +78,26 @@ test('an unusable file destination is dropped, the others still log', () => {
   ).not.toThrow();
   getLogger().info('still');
   expect(lines).toHaveLength(1);
+});
+
+test('a file destination outside a .logs directory gets no .gitignore', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'log-'));
+  configureLogging([{ file: join(dir, 'other', 'x.log') }]);
+  expect(existsSync(join(dir, 'other', '.gitignore'))).toBe(false);
+});
+
+test('an existing .logs directory gets a .gitignore, an existing one is kept', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'log-'));
+  const logs = join(dir, '.logs');
+  mkdirSync(logs);
+  configureLogging([{ file: join(logs, 'x.log') }]);
+  expect(readFileSync(join(logs, '.gitignore'), 'utf8')).toBe('*\n');
+
+  const kept = mkdtempSync(join(tmpdir(), 'log-'));
+  mkdirSync(join(kept, '.logs'));
+  writeFileSync(join(kept, '.logs', '.gitignore'), 'custom\n');
+  configureLogging([{ file: join(kept, '.logs', 'x.log') }]);
+  expect(readFileSync(join(kept, '.logs', '.gitignore'), 'utf8')).toBe(
+    'custom\n',
+  );
 });
