@@ -7,11 +7,12 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createPreviewApp } from '../src/index.js';
 
+// Windows filenames cannot contain '?'.
 const names = [
   'a#b.pdf',
   'c&d.pdf',
   'e+f.pdf',
-  'q?x.pdf',
+  ...(process.platform === 'win32' ? [] : ['q?x.pdf']),
   '50%.pdf',
   'my file.pdf',
   'ä ö.pdf',
