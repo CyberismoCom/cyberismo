@@ -34,9 +34,13 @@ export default function TwoColumnLayout({
     { defaultMatches: false, noSsr: true },
   );
 
-  if (collapseBelow && collapsed) {
-    return (
-      <Box height="100%" display="flex">
+  const drawer = !!collapseBelow && collapsed;
+
+  // One tree in both modes: the right panel holds the open page, including any
+  // unsaved draft, so crossing the breakpoint must not remount it.
+  return (
+    <Box height="100%">
+      {drawer && (
         <Drawer
           open={drawerOpen}
           onClose={onDrawerClose}
@@ -49,24 +53,18 @@ export default function TwoColumnLayout({
             {leftPanel}
           </Box>
         </Drawer>
-        <Box flexGrow={1} height="100%" overflow="hidden">
-          {rightPanel}
-        </Box>
-      </Box>
-    );
-  }
-
-  return (
-    <Box height="100%">
+      )}
       <Group orientation="horizontal">
-        <Panel
-          defaultSize={leftPanelDefaultSize}
-          minSize={leftPanelMinSize}
-          maxSize={leftPanelMaxSize}
-        >
-          <Box height="100%">{leftPanel}</Box>
-        </Panel>
-        <Separator className="resizeHandle" />
+        {!drawer && (
+          <Panel
+            defaultSize={leftPanelDefaultSize}
+            minSize={leftPanelMinSize}
+            maxSize={leftPanelMaxSize}
+          >
+            <Box height="100%">{leftPanel}</Box>
+          </Panel>
+        )}
+        {!drawer && <Separator className="resizeHandle" />}
         <Panel>
           <Box flexGrow={1} height="100%" overflow="hidden">
             {rightPanel}

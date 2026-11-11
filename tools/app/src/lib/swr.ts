@@ -123,6 +123,18 @@ export class ApiCallError extends Error {
   }
 }
 
+/**
+ * The fetch error that should replace a view, if any. A failed refresh keeps
+ * the last data, so the view stays (with any unsaved edits in it) unless the
+ * data never loaded or the resource is gone.
+ */
+export function blockingError<E>(error: E, hasData: boolean): E | undefined {
+  if (!error || !hasData) return error;
+  return error instanceof ApiCallError && error.response.status === 404
+    ? error
+    : undefined;
+}
+
 export async function createApiCallError(
   response: Response,
 ): Promise<ApiCallError> {
