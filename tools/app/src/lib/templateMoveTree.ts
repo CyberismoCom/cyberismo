@@ -28,6 +28,7 @@ export function cardNodeToTreeResult(
     rank: data.metadata?.rank ?? '',
     title: data.metadata?.title ?? node.id,
     cardType: data.metadata?.cardType ?? '',
+    isHidden: false,
     children,
   };
 }
@@ -77,6 +78,7 @@ export function buildTemplateMoveTree(
     rank: '',
     title: template.name,
     cardType: '',
+    isHidden: false,
     children: (template.children ?? [])
       .map((child) => cardNodeToTreeResult(child as AnyNode))
       .filter((child): child is QueryResult<'tree'> => child !== null),
@@ -96,6 +98,7 @@ export function buildProjectDestinationsTree(
       rank: '',
       title: PROJECT_ROOT_KEY,
       cardType: '',
+      isHidden: false,
       children: projectTree ? [...projectTree] : [],
     },
   ];

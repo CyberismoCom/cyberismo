@@ -29,7 +29,7 @@ vi.mock('@/lib/api', () => ({
 }));
 
 vi.mock('@/lib/api/tree', () => ({
-  useTree: () => ({
+  useVisibleTree: () => ({
     tree: [
       { key: 'host_1', title: 'Host' },
       { key: 'other_2', title: 'Other' },
