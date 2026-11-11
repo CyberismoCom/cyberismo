@@ -9,6 +9,7 @@ on:
     branches:
       - main
       - cli-bin-dev-binary
+      - cli-bin-dev-fake-feature
   workflow_dispatch: {}
 
 permissions:

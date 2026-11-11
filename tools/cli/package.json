@@ -1,7 +1,7 @@
 {
   "name": "@cyberismo/cli",
   "version": "1.3.0",
-  "description": "CLI tool to handle tasks.",
+  "description": "CLI tool to handle tasks. FAKE FEATURE BUILD.",
   "main": "dist/index.js",
   "bin": {
     "cyberismo": "bin/run"
