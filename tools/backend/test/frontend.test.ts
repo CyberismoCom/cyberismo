@@ -85,3 +85,12 @@ describe.each(['app server', 'site preview'])(
     });
   },
 );
+
+test('a later route under /assets/ is not marked immutable', async () => {
+  const app = new Hono();
+  app.use(serveFrontend(dir));
+  app.get('/assets/generated.js', (c) => c.text('export {};'));
+  const res = await app.request('/assets/generated.js');
+  expect(res.status).toBe(200);
+  expect(res.headers.get('cache-control')).toBeNull();
+});

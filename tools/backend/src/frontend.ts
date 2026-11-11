@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import type { Context, MiddlewareHandler } from 'hono';
+import { every } from 'hono/combine';
 import { serveStatic } from '@hono/node-server/serve-static';
 import { readFile } from 'node:fs/promises';
 
@@ -25,20 +26,21 @@ export function isAssetPath(requestPath: string): boolean {
  * browser from pairing an old index.html with a newer build.
  */
 export function serveFrontend(root: string): MiddlewareHandler {
-  const serve = serveStatic({ root });
-  return async (c, next) => {
-    // serveStatic returns a Response only when it found a file. Otherwise it
-    // returns what next() resolved to: undefined, or the Context when a later
-    // handler (e.g. a catch-all route) answered.
-    const res = await serve(c, next);
-    if (!(res instanceof Response)) return res;
-    if (res.headers.get('Content-Type')?.startsWith('text/html')) {
-      res.headers.set('Cache-Control', INDEX_CACHE_CONTROL);
-    } else if (isAssetPath(c.req.path)) {
-      res.headers.set('Cache-Control', ASSET_CACHE_CONTROL);
-    }
-    return res;
-  };
+  // Only files served from disk get these headers, not the responses of
+  // later handlers that serveStatic falls through to.
+  const servedFromDisk = new WeakSet<Context>();
+  return every(
+    async (c, next) => {
+      await next();
+      if (!servedFromDisk.has(c)) return;
+      if (c.res.headers.get('Content-Type')?.startsWith('text/html')) {
+        c.res.headers.set('Cache-Control', INDEX_CACHE_CONTROL);
+      } else if (isAssetPath(c.req.path)) {
+        c.res.headers.set('Cache-Control', ASSET_CACHE_CONTROL);
+      }
+    },
+    serveStatic({ root, onFound: (_path, c) => void servedFromDisk.add(c) }),
+  );
 }
 
 /**
