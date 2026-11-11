@@ -23,6 +23,7 @@ import { Checkout } from '../state/checkout/checkout.js';
 import { ROOT } from '../shared/utils/constants.js';
 import { read } from '../infra/tx/rw-lock.js';
 import { sortItems } from '../shared/utils/lexorank.js';
+import { omitHiddenCards } from '../shared/utils/card-utils.js';
 import { findCard, cardsByKeys } from '../domain/cards/index.js';
 
 // The document the PDF is rendered from.
@@ -440,9 +441,11 @@ export class Export {
       });
     }
 
-    const tree = await this.checkout.calculationEngine.runQuery(
-      'tree',
-      'exportedDocument',
+    const tree = omitHiddenCards(
+      await this.checkout.calculationEngine.runQuery(
+        'tree',
+        'exportedDocument',
+      ),
     );
 
     if (cardKey) {

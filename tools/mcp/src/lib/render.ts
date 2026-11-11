@@ -2,7 +2,11 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { convert } from '@asciidoctor/core';
-import { type Workspace, macroErrorText } from '@cyberismo/data-handler';
+import {
+  type Workspace,
+  macroErrorText,
+  omitHiddenCards,
+} from '@cyberismo/data-handler';
 import type { QueryResult } from '@cyberismo/model';
 
 // Special constant for transitions that work from any state
@@ -394,6 +398,6 @@ function transformNotifications(
 export async function getCardTree(ws: Workspace): Promise<unknown> {
   return ws.consistent(async () => {
     const result = await ws.queries.runQuery('tree', 'localApp', {});
-    return result;
+    return omitHiddenCards(result);
   });
 }

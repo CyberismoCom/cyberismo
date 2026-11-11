@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { useMemo } from 'react';
-import { useTree } from '../api';
+import { useVisibleTree } from '../api';
 import { countChildren, findCard, getMoveableCards } from '../utils';
 
 /**
@@ -11,7 +11,7 @@ import { countChildren, findCard, getMoveableCards } from '../utils';
  *
  */
 export function useListCard(key: string) {
-  const { tree } = useTree();
+  const { tree } = useVisibleTree();
 
   const listCard = useMemo(() => {
     return tree ? findCard(tree, key) : null;
@@ -25,7 +25,7 @@ export function useListCard(key: string) {
  * @returns
  */
 export function useChildAmount(key: string) {
-  const { tree } = useTree();
+  const { tree } = useVisibleTree();
 
   const childAmount = useMemo(() => {
     if (!tree) {
@@ -45,7 +45,7 @@ export function useChildAmount(key: string) {
  * @returns A list of cards that the given card can be moved to
  */
 export function useMoveableCards(key: string) {
-  const { tree } = useTree();
+  const { tree } = useVisibleTree();
 
   const moveableCards = useMemo(
     () => (tree ? getMoveableCards(tree, key) : null),

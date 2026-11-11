@@ -17,13 +17,17 @@ import {
   resourceName,
   resourceNameToString,
 } from './shared/utils/resource-utils.js';
-import { moduleNameFromCardKey } from './shared/utils/card-utils.js';
+import {
+  moduleNameFromCardKey,
+  omitHiddenCards,
+} from './shared/utils/card-utils.js';
 
 export {
   Workspace,
   ExportFormats,
   isResourceFolderType,
   moduleNameFromCardKey,
+  omitHiddenCards,
   resourceName,
   resourceNameToString,
   Validate,
