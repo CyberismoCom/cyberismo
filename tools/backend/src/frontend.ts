@@ -4,7 +4,6 @@
 import type { Context, MiddlewareHandler } from 'hono';
 import { serveStatic } from '@hono/node-server/serve-static';
 import { readFile } from 'node:fs/promises';
-import path from 'node:path';
 
 /**
  * index.html names the hashed bundles of one build, so the browser must
@@ -26,22 +25,13 @@ export function isAssetPath(requestPath: string): boolean {
  * browser from pairing an old index.html with a newer build.
  */
 export function serveFrontend(root: string): MiddlewareHandler {
-  // serveStatic calls onFound after it has built the response, so a header
-  // set there never reaches the client; set it on the returned response.
-  const servedFiles = new WeakMap<Context, string>();
-  const serve = serveStatic({
-    root,
-    onFound: (filePath, c) => {
-      servedFiles.set(c, filePath);
-    },
-  });
+  const serve = serveStatic({ root });
   return async (c, next) => {
+    // serveStatic returns a response only when it found a file.
     const res = await serve(c, next);
-    const filePath = servedFiles.get(c);
-    if (!res || !filePath) return res;
-    if (path.extname(filePath) === '.html') {
+    if (res?.headers.get('Content-Type')?.startsWith('text/html')) {
       res.headers.set('Cache-Control', INDEX_CACHE_CONTROL);
-    } else if (isAssetPath(c.req.path)) {
+    } else if (res && isAssetPath(c.req.path)) {
       res.headers.set('Cache-Control', ASSET_CACHE_CONTROL);
     }
     return res;
