@@ -89,6 +89,8 @@ jobs:
           mv tools "$RUNNER_TEMP/tools-hidden"
           cd "$RUNNER_TEMP/docs"
           ../cyberismo-dev --version
+          # The docs project may trail the current schema version.
+          ../cyberismo-dev migrate
           ../cyberismo-dev validate
           ../cyberismo-dev export site "$RUNNER_TEMP/site"
           test -f "$RUNNER_TEMP/site/index.html"
