@@ -3,9 +3,8 @@
 
 import type { Env, Schema } from 'hono';
 import { Hono } from 'hono';
-import { serveStatic } from '@hono/node-server/serve-static';
 import path from 'node:path';
-import { readFile } from 'node:fs/promises';
+import { frontendFallback, serveFrontend } from './frontend.js';
 import { listen } from './utils.js';
 import { startPolicyPolling } from './overlay.js';
 import { createApp } from './app.js';
@@ -26,13 +25,12 @@ const MAX_PORT_ATTEMPTS = 100;
  */
 export async function previewSite(dir: string, findPort: boolean = true) {
   const app = new Hono();
-  app.use(serveStatic({ root: dir }));
+  app.use(serveFrontend(dir));
   app.get('*', async (c) => {
     if (c.req.path.startsWith('/api/')) {
       return c.json({ error: 'Resource not found' }, 404);
     }
-    const file = await readFile(path.join(dir, 'index.html'));
-    return c.html(file.toString());
+    return frontendFallback(c, path.join(dir, 'index.html'));
   });
 
   const port = parseInt(process.env.PORT || DEFAULT_PORT.toString(), 10);
