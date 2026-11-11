@@ -4,7 +4,7 @@
 import { useMemo } from 'react';
 import type { QueryResult } from '@cyberismo/model';
 import { flattenTree } from '@/lib/utils';
-import { useTree } from '@/lib/api/tree';
+import { useVisibleTree } from '@/lib/api/tree';
 import type { AnyNode, GenericNode, NodeKey } from '@/lib/api/types';
 
 export type CardOption = {
@@ -52,7 +52,7 @@ export function collectResourceNodes<T extends NodeKey>(
  * @returns cards with a label and the key
  */
 export function useCardOptions() {
-  const { tree, isLoading } = useTree();
+  const { tree, isLoading } = useVisibleTree();
 
   const options = useMemo<CardOption[]>(() => {
     const flattened: QueryResult<'tree'>[] = flattenTree(tree ?? []);

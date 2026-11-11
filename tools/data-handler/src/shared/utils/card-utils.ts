@@ -8,6 +8,7 @@ import type {
   Card,
   CardAttachment,
   CardWithChildrenCards,
+  QueryResult,
 } from '@cyberismo/model';
 
 /**
@@ -155,3 +156,21 @@ export const compareAttachments = (a: CardAttachment, b: CardAttachment) =>
  * rather than a card key (prefix_id format). Card keys never contain colons.
  */
 export const isExternalItemKey = (value: string) => value.includes(':');
+
+/**
+ * Drops hidden cards, and with them their descendants, from a tree query result.
+ * @param tree tree query result
+ * @param keepRoots keep the top level nodes even when hidden (a query started from a given card)
+ */
+export function omitHiddenCards(
+  tree: QueryResult<'tree'>[],
+  keepRoots = false,
+): QueryResult<'tree'>[] {
+  return tree
+    .filter((node) => keepRoots || !node.isHidden)
+    .map((node) =>
+      node.children
+        ? { ...node, children: omitHiddenCards(node.children) }
+        : node,
+    );
+}

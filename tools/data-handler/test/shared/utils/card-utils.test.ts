@@ -9,9 +9,10 @@ import {
   buildCardHierarchy,
   isExternalItemKey,
   moduleNameFromCardKey,
+  omitHiddenCards,
   sortCards,
 } from '../../../src/shared/utils/card-utils.js';
-import type { Card } from '@cyberismo/model';
+import type { Card, QueryResult } from '@cyberismo/model';
 
 describe('card utils', () => {
   const moduleCard: Card = {
@@ -150,5 +151,24 @@ describe('card utils', () => {
     expect(isExternalItemKey('test_1')).to.equal(false);
     expect(isExternalItemKey('prefix_abc123')).to.equal(false);
     expect(isExternalItemKey('')).to.equal(false);
+  });
+});
+
+describe('omitHiddenCards', () => {
+  const node = (
+    key: string,
+    isHidden: boolean,
+    children?: QueryResult<'tree'>[],
+  ) => ({ key, isHidden, children }) as unknown as QueryResult<'tree'>;
+  const keys = (nodes: QueryResult<'tree'>[]): string[] =>
+    nodes.flatMap((n) => [n.key, ...keys(n.children ?? [])]);
+
+  it.each([
+    [false, []],
+    [true, ['root', 'a']],
+  ])('with keepRoots %s drops hidden descendants', (keepRoots, expected) => {
+    const tree = [node('root', true, [node('a', false), node('b', true)])];
+
+    expect(keys(omitHiddenCards(tree, keepRoots))).toEqual(expected);
   });
 });

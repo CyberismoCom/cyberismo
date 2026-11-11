@@ -15,6 +15,9 @@ const spec = {
     { title: 'Top', children: [{ title: 'Child A' }, { title: 'Child B' }] },
     { title: 'Other', workflowState: 'Closed' },
   ],
+  calculations: {
+    hide: 'hiddenInTreeView(C) :- field(C, "title", "Hidden").\n',
+  },
   reports: {
     children: {
       query: 'select("title").\nresult(C) :- parent(C, {{cardKey}}).\n',
@@ -42,6 +45,32 @@ describe('queries.runQuery', () => {
         .children!.map((child) => child.key)
         .sort(),
     ).toEqual([childA, childB].sort());
+  });
+
+  it('returns hidden cards flagged, and hides their descendants too', async () => {
+    const { ws, keys } = await open({
+      ...spec,
+      cards: [
+        {
+          title: 'Shown',
+          children: [{ title: 'Hidden', children: [{ title: 'Inner' }] }],
+        },
+      ],
+    });
+    const [shown, hidden, inner] = keys;
+
+    const tree = await ws.queries.runQuery('tree');
+
+    const child = tree.find((item) => item.key === shown)!.children![0];
+    expect([tree[0].isHidden, child.key, child.isHidden]).toEqual([
+      false,
+      hidden,
+      true,
+    ]);
+    expect([child.children![0].key, child.children![0].isHidden]).toEqual([
+      inner,
+      true,
+    ]);
   });
 
   it('reads the card the project holds as the query sees it', async () => {
