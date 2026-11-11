@@ -87,8 +87,22 @@ else
   mkdir -p "$tmp"
   trap 'rm -rf "$tmp"' EXIT
   echo "Downloading $artifact from run $run ($id)"
-  gh run download "$run" -R "$REPO" -n "$artifact" -D "$tmp" ||
-    die "run $run has no artifact $artifact (expired, or this platform is not built)"
+  if command -v curl >/dev/null 2>&1 && command -v unzip >/dev/null 2>&1; then
+    # Fetched directly so curl can show progress; `gh run download` shows none.
+    artifact_id=$(gh api "repos/$REPO/actions/runs/$run/artifacts" \
+      -q ".artifacts[] | select(.name == \"$artifact\") | .id")
+    [ -n "$artifact_id" ] ||
+      die "run $run has no artifact $artifact (expired, or this platform is not built)"
+    curl -fL --progress-bar -o "$tmp/artifact.zip" \
+      -H "Authorization: Bearer $(gh auth token)" \
+      "https://api.github.com/repos/$REPO/actions/artifacts/$artifact_id/zip" ||
+      die "download of artifact $artifact failed"
+    unzip -q "$tmp/artifact.zip" -d "$tmp"
+    rm "$tmp/artifact.zip"
+  else
+    gh run download "$run" -R "$REPO" -n "$artifact" -D "$tmp" ||
+      die "run $run has no artifact $artifact (expired, or this platform is not built)"
+  fi
   [ -f "$tmp/cyberismo-dev" ] || die "artifact $artifact does not contain cyberismo-dev"
   chmod +x "$tmp/cyberismo-dev"
   "$tmp/cyberismo-dev" --version >/dev/null || die "downloaded binary does not run"
