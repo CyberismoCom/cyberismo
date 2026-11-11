@@ -241,9 +241,22 @@ describe('MCP card write tools', () => {
     expect((await card(alpha)).metadata.links).toEqual([]);
   });
 
-  test('remove_link cannot remove a link that has a description', async () => {
-    // Current behaviour: the tool takes no description, so it can match only
-    // links without one; the call fails and nothing is committed.
+  test('remove_link removes a link that has a description', async () => {
+    const linkType = await addLinkType(true);
+    await ws.cards.addLink(alpha, beta, linkType, 'why');
+    await ws.cards.addLink(alpha, beta, linkType, 'other');
+    await write('remove_link', {
+      sourceKey: alpha,
+      destinationKey: beta,
+      linkType,
+      linkDescription: 'why',
+    });
+    expect((await card(alpha)).metadata.links).toEqual([
+      { cardKey: beta, linkType, linkDescription: 'other' },
+    ]);
+  });
+
+  test('remove_link without the description of a described link fails', async () => {
     const linkType = await addLinkType(true);
     await ws.cards.addLink(alpha, beta, linkType, 'why');
     const before = await commitCount();
@@ -253,6 +266,7 @@ describe('MCP card write tools', () => {
       linkType,
     });
     expect(result.isError).toBe(true);
+    expect(JSON.stringify(result.content)).toContain('has a description');
     expect(await commitCount()).toBe(before);
     expect((await card(alpha)).metadata.links).toHaveLength(1);
   });

@@ -180,7 +180,12 @@ describe('cards.removeLink', () => {
     [
       'a link with another description',
       (c: Links, k: string[]) => c.removeLink(k[0], k[2], described, 'else'),
-      /not found/,
+      /description 'else' not found/,
+    ],
+    [
+      'a described link without its description',
+      (c: Links, k: string[]) => c.removeLink(k[0], k[2], described),
+      /not found\. A link of this type has a description/,
     ],
     [
       'a link the card lacks',

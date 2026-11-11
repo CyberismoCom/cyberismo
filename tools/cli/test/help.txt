@@ -4,37 +4,37 @@ Usage: cyberismo [options] [command]
 CLI tool to handle tasks.
 
 Options:
-  -v, --version                                                         Output the version information
-  -L, --log-level <level>                                               Set the log level (choices: "trace", "debug", "info", "warn", "error", "fatal", default: "fatal")
-  --autocommit                                                          Enable git-backed transactional writes
-  --autopush                                                            Push autocommitted changes to the remote
-  -h, --help                                                            Display help for command
+  -v, --version                                                                Output the version information
+  -L, --log-level <level>                                                      Set the log level (choices: "trace", "debug", "info", "warn", "error", "fatal", default: "fatal")
+  --autocommit                                                                 Enable git-backed transactional writes
+  --autopush                                                                   Push autocommitted changes to the remote
+  -h, --help                                                                   Display help for command
 
 Commands:
-  add                                                                   Add items to the project
-  calc                                                                  Used for running logic programs
-  create                                                                Create cards, resources and other project items
-  edit [options] <cardKey>                                              Edit a card
-  export [options] <format> <output> [cardKey]                          Export a project or a card
-  fetch                                                                 Retrieve external data to local file system.
-  import                                                                Import modules and data into the project
-  migrate [options]                                                     Migrate project schema to the latest version.
-  module                                                                Manage the modules of the project
-  move [options] [source] [destination]                                 Moves a card from root to under another card, from under another card to root, or from under a one card to another.
-  preview [dir]                                                         Preview the exported site
-  rank                                                                  Manage card ranking and ordering
-  remove [options] <type> [parameter1] [parameter2] [parameter3]        Remove cards, resources and other project items
-  rename [options] <to>                                                 Change project prefix and rename all the content with the new prefix. Only possible before the project has published a version, unless --force is given
-  report [options] <parameters> [output]                                Runs a report
-  show [options] <type> [typeDetail]                                    Shows details from a project
-  transition [options] <cardKey> <transition>                           Transition a card to the specified state
-  update [options] <resourceName> <operation> <key> <value> [newValue]  Update resource details
-  validate [options]                                                    Validate project structure
-  install-skills [options] [path]                                       Install the dynamic skill discovery bootstrap skill and MCP server configuration for an AI agent platform. Installs into the current directory by default — run it from (or pass) the directory your AI agent operates in, usually the repository root.
-  app [options]                                                         Starts the cyberismo app, accessible with a web browser at http://localhost:3000
-  publish [options]                                                     Publish the current version (creates annotated git tag, pushes to remote). Run "cyberismo create version" first to set the version.
-  clean [options]                                                       Remove dormant field values: values a card stores but that are not shown and not visible to logic programs (empty placeholders, fields the card type no longer declares, values on calculated fields)
-  help [command]                                                        display help for command
+  add                                                                          Add items to the project
+  calc                                                                         Used for running logic programs
+  create                                                                       Create cards, resources and other project items
+  edit [options] <cardKey>                                                     Edit a card
+  export [options] <format> <output> [cardKey]                                 Export a project or a card
+  fetch                                                                        Retrieve external data to local file system.
+  import                                                                       Import modules and data into the project
+  migrate [options]                                                            Migrate project schema to the latest version.
+  module                                                                       Manage the modules of the project
+  move [options] [source] [destination]                                        Moves a card from root to under another card, from under another card to root, or from under a one card to another.
+  preview [dir]                                                                Preview the exported site
+  rank                                                                         Manage card ranking and ordering
+  remove [options] <type> [parameter1] [parameter2] [parameter3] [parameter4]  Remove cards, resources and other project items
+  rename [options] <to>                                                        Change project prefix and rename all the content with the new prefix. Only possible before the project has published a version, unless --force is given
+  report [options] <parameters> [output]                                       Runs a report
+  show [options] <type> [typeDetail]                                           Shows details from a project
+  transition [options] <cardKey> <transition>                                  Transition a card to the specified state
+  update [options] <resourceName> <operation> <key> <value> [newValue]         Update resource details
+  validate [options]                                                           Validate project structure
+  install-skills [options] [path]                                              Install the dynamic skill discovery bootstrap skill and MCP server configuration for an AI agent platform. Installs into the current directory by default — run it from (or pass) the directory your AI agent operates in, usually the repository root.
+  app [options]                                                                Starts the cyberismo app, accessible with a web browser at http://localhost:3000
+  publish [options]                                                            Publish the current version (creates annotated git tag, pushes to remote). Run "cyberismo create version" first to set the version.
+  clean [options]                                                              Remove dormant field values: values a card stores but that are not shown and not visible to logic programs (empty placeholders, fields the card type no longer declares, values on calculated fields)
+  help [command]                                                               display help for command
 
 $ cyberismo create --help
 Usage: cyberismo create [options] [command]
@@ -92,7 +92,7 @@ Options:
   -h, --help                 display help for command
 
 $ cyberismo remove --help
-Usage: cyberismo remove [options] <type> [parameter1] [parameter2] [parameter3]
+Usage: cyberismo remove [options] <type> [parameter1] [parameter2] [parameter3] [parameter4]
 
 Remove cards, resources and other project items
 
@@ -107,6 +107,8 @@ Arguments:
   parameter2                 Depends on context; see below for specific remove
                              operation
   parameter3                 Depends on context; see below for specific remove
+                             operation
+  parameter4                 Depends on context; see below for specific remove
                              operation
 
 Options:
@@ -125,10 +127,11 @@ Sub-command help:
       <cardKey> Card key of the label
       [label] Label being removed
 
-  remove link <source> <destination> <linkType>, where
+  remove link <source> <destination> <linkType> [description], where
       <source> Source card key or external item (connector:itemKey)
       <destination> Destination card key or external item (connector:itemKey)
       <linkType> Link type to remove
+      [description] Description of the link; required if the link has one
 
   remove hub <location>, where
       <location> URL of hub to remove. Use 'default' if removing default hub.
