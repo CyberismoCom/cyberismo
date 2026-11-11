@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.3.1] — 2026-11-11
+
+### Highlights
+
+A patch release with two fixes: the app no longer goes blank after a rebuild because the browser cached an old `index.html`, and links that have a description can be removed again.
+
+### Fixes
+
+- A cached `index.html` no longer blanks the app after a rebuild (#1684)
+- Links that have a description can be removed (#1683)
+
 ## [1.3.0] — 2026-11-10
 
 ### Highlights
