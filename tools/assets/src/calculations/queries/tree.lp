@@ -1,6 +1,5 @@
-select("title";"statusIndicator";"progress";"rank";"cardType";"isHidden").
+select("title";"statusIndicator";"progress";"rank";"cardType").
 
-% hidden cards stay in the result; consumers that display a navigation tree filter on isHidden
 {{#if cardKey}}
 result({{cardKey}}).
 {{#if recursive}}
@@ -17,8 +16,10 @@ childResult(Parent, Card, "children") :- card(Card), parent(Card, Parent).
 order(Level, "children", 1, "rank", "ASC") :-
     level(Level).
 
-
-% any card in the tree, top level or nested
+% The tree returns every card, hidden ones included. isHidden is true when the
+% card or one of its ancestors is hiddenInTreeView. It only says the card is left
+% out of navigation trees (the sidebar, exported sites); a hidden card is still
+% a real card that can be opened, linked to and shown in breadcrumbs.
 treeCard(Card) :- result(Card).
 treeCard(Card) :- childResult(_, Card, "children").
 
