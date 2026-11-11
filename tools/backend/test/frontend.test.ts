@@ -14,7 +14,7 @@ import {
 } from '../src/frontend.js';
 
 let dir: string;
-let app: Hono;
+const apps: Record<string, Hono> = {};
 
 beforeAll(async () => {
   dir = await mkdtemp(path.join(os.tmpdir(), 'cyberismo-frontend-'));
@@ -23,49 +23,65 @@ beforeAll(async () => {
   await writeFile(path.join(dir, 'assets', 'index-abc123.js'), 'export {};');
   await writeFile(path.join(dir, 'favicon.png'), 'png');
 
-  app = new Hono();
-  app.use(serveFrontend(dir));
-  app.notFound((c) => frontendFallback(c, path.join(dir, 'index.html')));
+  const indexPath = path.join(dir, 'index.html');
+
+  // The app server answers unknown paths from notFound.
+  const server = new Hono();
+  server.use(serveFrontend(dir));
+  server.notFound((c) => frontendFallback(c, indexPath));
+  apps['app server'] = server;
+
+  // The site preview answers them from a catch-all route after the
+  // middleware, so serveStatic hands back the Context instead of undefined.
+  const preview = new Hono();
+  preview.use(serveFrontend(dir));
+  preview.get('*', (c) => frontendFallback(c, indexPath));
+  apps['site preview'] = preview;
 });
 
 afterAll(async () => {
   await rm(dir, { recursive: true, force: true });
 });
 
-describe('serving the frontend', () => {
-  test.each(['/', '/index.html'])(
-    '%s is revalidated on every load',
-    async (url) => {
-      const res = await app.request(url);
+describe.each(['app server', 'site preview'])(
+  'serving the frontend from the %s',
+  (name) => {
+    const app = { request: (url: string) => apps[name].request(url) };
+
+    test.each(['/', '/index.html'])(
+      '%s is revalidated on every load',
+      async (url) => {
+        const res = await app.request(url);
+        expect(res.status).toBe(200);
+        expect(res.headers.get('content-type')).toMatch(/text\/html/);
+        expect(res.headers.get('cache-control')).toBe(INDEX_CACHE_CONTROL);
+      },
+    );
+
+    test('a client-side route gets index.html, revalidated on every load', async () => {
+      const res = await app.request('/projects/demo/cards/demo_1');
       expect(res.status).toBe(200);
-      expect(res.headers.get('content-type')).toMatch(/text\/html/);
+      expect(await res.text()).toContain('<p>app</p>');
       expect(res.headers.get('cache-control')).toBe(INDEX_CACHE_CONTROL);
-    },
-  );
+    });
 
-  test('a client-side route gets index.html, revalidated on every load', async () => {
-    const res = await app.request('/projects/demo/cards/demo_1');
-    expect(res.status).toBe(200);
-    expect(await res.text()).toContain('<p>app</p>');
-    expect(res.headers.get('cache-control')).toBe(INDEX_CACHE_CONTROL);
-  });
+    test('a hashed bundle is cached as immutable', async () => {
+      const res = await app.request('/assets/index-abc123.js');
+      expect(res.status).toBe(200);
+      expect(res.headers.get('content-type')).toMatch(/javascript/);
+      expect(res.headers.get('cache-control')).toBe(ASSET_CACHE_CONTROL);
+    });
 
-  test('a hashed bundle is cached as immutable', async () => {
-    const res = await app.request('/assets/index-abc123.js');
-    expect(res.status).toBe(200);
-    expect(res.headers.get('content-type')).toMatch(/javascript/);
-    expect(res.headers.get('cache-control')).toBe(ASSET_CACHE_CONTROL);
-  });
+    test('an unhashed public file gets no cache header', async () => {
+      const res = await app.request('/favicon.png');
+      expect(res.status).toBe(200);
+      expect(res.headers.get('cache-control')).toBeNull();
+    });
 
-  test('an unhashed public file gets no cache header', async () => {
-    const res = await app.request('/favicon.png');
-    expect(res.status).toBe(200);
-    expect(res.headers.get('cache-control')).toBeNull();
-  });
-
-  test('a bundle from an earlier build is a 404, not index.html', async () => {
-    const res = await app.request('/assets/index-oldbuild.js');
-    expect(res.status).toBe(404);
-    expect(res.headers.get('content-type')).not.toMatch(/text\/html/);
-  });
-});
+    test('a bundle from an earlier build is a 404, not index.html', async () => {
+      const res = await app.request('/assets/index-oldbuild.js');
+      expect(res.status).toBe(404);
+      expect(res.headers.get('content-type')).not.toMatch(/text\/html/);
+    });
+  },
+);

@@ -27,11 +27,14 @@ export function isAssetPath(requestPath: string): boolean {
 export function serveFrontend(root: string): MiddlewareHandler {
   const serve = serveStatic({ root });
   return async (c, next) => {
-    // serveStatic returns a response only when it found a file.
+    // serveStatic returns a Response only when it found a file. Otherwise it
+    // returns what next() resolved to: undefined, or the Context when a later
+    // handler (e.g. a catch-all route) answered.
     const res = await serve(c, next);
-    if (res?.headers.get('Content-Type')?.startsWith('text/html')) {
+    if (!(res instanceof Response)) return res;
+    if (res.headers.get('Content-Type')?.startsWith('text/html')) {
       res.headers.set('Cache-Control', INDEX_CACHE_CONTROL);
-    } else if (res && isAssetPath(c.req.path)) {
+    } else if (isAssetPath(c.req.path)) {
       res.headers.set('Cache-Control', ASSET_CACHE_CONTROL);
     }
     return res;
