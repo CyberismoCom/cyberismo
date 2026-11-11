@@ -19,6 +19,7 @@ import { useCard } from '../../lib/api/card';
 import { CardTreeMenu } from '@/components/CardTreeMenu';
 import type { AppLayoutOutletContext } from '../layout';
 import { UserRole, useHasMinRole } from '@/lib/auth';
+import { blockingError } from '@/lib/swr';
 
 /**
  * Delay in milliseconds before hiding the loading overlay after a move operation.
@@ -61,14 +62,15 @@ export default function AppLayout() {
       </Box>
     );
 
-  if (error || !project || !tree) {
+  const projectError = blockingError(error, !!project);
+  if (projectError || !project || !tree) {
     return (
       <Container>
         <Typography level="body-md" color="danger">
           Could not open project
         </Typography>
         <Typography level="body-md" color="danger">
-          {treeError ? treeError.message : error.message}
+          {treeError ? treeError.message : projectError?.message}
         </Typography>
       </Container>
     );
