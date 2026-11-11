@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { Hono, type MiddlewareHandler } from 'hono';
-import { staticFrontendDirRelative } from './utils.js';
+import { staticFrontendDir, staticFrontendDirRelative } from './utils.js';
 import { serveStatic } from '@hono/node-server/serve-static';
 import { attachProjectDirectory } from './middleware/commandManager.js';
 import { errorResponse } from './common/errors.js';
@@ -237,9 +237,7 @@ export function createApp(
     ) {
       return c.text('Not Found', 404);
     }
-    const file = await readFile(
-      path.join(import.meta.dirname, 'public', 'index.html'),
-    );
+    const file = await readFile(path.join(staticFrontendDir, 'index.html'));
     return c.html(file.toString());
   });
   // Error handling
