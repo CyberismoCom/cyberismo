@@ -160,7 +160,9 @@ export const isExternalItemKey = (value: string) => value.includes(':');
 /**
  * Drops hidden cards, and with them their descendants, from a tree query result.
  * @param tree tree query result
- * @param keepRoots keep the top level nodes even when hidden (a query started from a given card)
+ * @param keepRoots keep the top level nodes even when hidden (a query started from a given card),
+ *        and mark them as not hidden. Their descendants inherit hiddenness, so a hidden
+ *        start card is kept without its subtree.
  */
 export function omitHiddenCards(
   tree: QueryResult<'tree'>[],
@@ -168,9 +170,11 @@ export function omitHiddenCards(
 ): QueryResult<'tree'>[] {
   return tree
     .filter((node) => keepRoots || !node.isHidden)
-    .map((node) =>
-      node.children
-        ? { ...node, children: omitHiddenCards(node.children) }
-        : node,
-    );
+    .map((node) => ({
+      ...node,
+      // Every node left is shown, so a hidden root kept by keepRoots is no longer
+      // hidden for consumers that drop hidden nodes themselves (useVisibleTree).
+      isHidden: false,
+      ...(node.children ? { children: omitHiddenCards(node.children) } : {}),
+    }));
 }
