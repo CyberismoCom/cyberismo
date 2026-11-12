@@ -8,6 +8,7 @@ import { join } from 'node:path';
 import { getCardQueryResult, reset, exportSite } from '../src/export.js';
 import {
   localFolder,
+  notExportedWarning,
   type ProjectDirectory,
   type Workspace,
 } from '@cyberismo/data-handler';
@@ -358,6 +359,66 @@ describe('export module', () => {
         } else {
           await expect(written).rejects.toThrow('ENOENT');
         }
+      },
+    );
+
+    test.each([
+      {
+        given: 'xrefs',
+        adoc: 'See xref:decision_5.adoc[the parent] and {{#xref}}"cardKey": "decision_5"{{/xref}}.\n',
+        links: [],
+        text: 'See the parent and Decision Records.',
+      },
+      {
+        given: 'a link',
+        adoc: 'No xrefs.\n',
+        links: [{ linkType: 'decision/linkTypes/test', cardKey: 'decision_5' }],
+        text: 'No xrefs.',
+      },
+    ])(
+      'renders $given to a card outside the export as text, with a warning',
+      async ({ adoc, links, text }) => {
+        const card = join(
+          folder,
+          'decision-records',
+          'cardRoot',
+          'decision_5',
+          'c',
+          'decision_6',
+        );
+        await writeFile(join(card, 'index.adoc'), adoc);
+        const metadata = JSON.parse(
+          await readFile(join(card, 'index.json'), 'utf8'),
+        );
+        await writeFile(
+          join(card, 'index.json'),
+          JSON.stringify({ ...metadata, links }),
+        );
+        const { directory: registry } = await localFolder(folder);
+
+        const { warnings } = await exportSite(registry, tempDir, {
+          cardKey: 'decision_6',
+        });
+
+        const content = JSON.parse(
+          await readFile(
+            join(
+              tempDir,
+              'api',
+              'projects',
+              'decision',
+              'cards',
+              'decision_6',
+              'content.json',
+            ),
+            'utf8',
+          ),
+        );
+        expect(content.adocContent).toContain(text);
+        expect(content.adocContent).not.toContain('link:');
+        expect(warnings).toEqual([
+          { prefix: 'decision', warnings: [notExportedWarning('decision_5')] },
+        ]);
       },
     );
 

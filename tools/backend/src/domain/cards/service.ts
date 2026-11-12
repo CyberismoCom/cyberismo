@@ -11,7 +11,11 @@ import type {
 import { AsciidoctorPdfError, type Workspace } from '@cyberismo/data-handler';
 import { preprocessMermaidBlocksForHtml } from './mermaid.js';
 import { allCards } from './lib.js';
-import { getCardQueryResult } from '../../export.js';
+import {
+  addExportWarning,
+  exportedKeys,
+  getCardQueryResult,
+} from '../../export.js';
 import type { TreeOptions } from '../../types.js';
 
 type RenderMode = 'inject' | 'staticSite';
@@ -22,6 +26,7 @@ async function renderAdoc(
   content: string,
   mode: RenderMode,
   fallback?: string,
+  tree?: TreeOptions,
 ): Promise<string> {
   let { content: asciidocContent } = await ws.render.macros(content, {
     context: mode === 'staticSite' ? 'exportedSite' : 'localApp',
@@ -34,7 +39,16 @@ async function renderAdoc(
   asciidocContent = preprocessMermaidBlocksForHtml(asciidocContent);
 
   // Rewrite native AsciiDoc xrefs that target other cards into
-  // /projects/<prefix>/cards/<key> links.
+  // /projects/<prefix>/cards/<key> links. On the static site, an xref to a
+  // card the site does not hold becomes text, and the warning is kept for the
+  // export's result.
+  if (mode === 'staticSite') {
+    const prefix = ws.settings.prefix;
+    return ws.render.xrefs(asciidocContent, mode, {
+      exported: await exportedKeys(ws, tree),
+      onWarning: (message) => addExportWarning(prefix, message),
+    });
+  }
   return ws.render.xrefs(asciidocContent, mode);
 }
 
@@ -81,6 +95,7 @@ export async function getCardContent(
   ws: Workspace,
   key: string,
   staticMode: boolean,
+  tree?: TreeOptions,
 ): Promise<{ adocContent: string }> {
   return ws.consistent(async () => {
     const card = await ws.cards.details(key);
@@ -90,6 +105,7 @@ export async function getCardContent(
       card.content || '',
       staticMode ? 'staticSite' : 'inject',
       '',
+      tree,
     );
     return { adocContent };
   });
