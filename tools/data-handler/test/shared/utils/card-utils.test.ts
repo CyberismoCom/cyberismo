@@ -163,12 +163,26 @@ describe('omitHiddenCards', () => {
   const keys = (nodes: QueryResult<'tree'>[]): string[] =>
     nodes.flatMap((n) => [n.key, ...keys(n.children ?? [])]);
 
+  // Shapes the tree query produces: descendants of a hidden card are hidden too.
+  it('drops hidden cards with their descendants', () => {
+    const tree = [
+      node('root', false, [
+        node('a', false),
+        node('b', true, [node('c', true)]),
+      ]),
+    ];
+
+    expect(keys(omitHiddenCards(tree))).toEqual(['root', 'a']);
+  });
+
   it.each([
     [false, []],
-    [true, ['root', 'a']],
-  ])('with keepRoots %s drops hidden descendants', (keepRoots, expected) => {
-    const tree = [node('root', true, [node('a', false), node('b', true)])];
+    [true, ['root']],
+  ])('with keepRoots %s on a hidden start card', (keepRoots, expected) => {
+    const tree = [node('root', true, [node('a', true)])];
 
-    expect(keys(omitHiddenCards(tree, keepRoots))).toEqual(expected);
+    const result = omitHiddenCards(tree, keepRoots);
+    expect(keys(result)).toEqual(expected);
+    if (keepRoots) expect(result[0].isHidden).toBe(false);
   });
 });
