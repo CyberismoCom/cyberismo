@@ -14,6 +14,7 @@ import eventsRouter from './domain/events/index.js';
 import fieldTypesRouter from './domain/fieldTypes/index.js';
 import graphModelsRouter from './domain/graphModels/index.js';
 import graphViewsRouter from './domain/graphViews/index.js';
+import linkCandidatesRouter from './domain/linkCandidates/index.js';
 import linkTypesRouter from './domain/linkTypes/index.js';
 import reportsRouter from './domain/reports/index.js';
 import skillsRouter from './domain/skills/index.js';
@@ -58,6 +59,7 @@ function createProjectScopedRoutes(
   projectScoped.route('/fieldTypes', fieldTypesRouter);
   projectScoped.route('/graphModels', graphModelsRouter);
   projectScoped.route('/graphViews', graphViewsRouter);
+  projectScoped.route('/linkCandidates', linkCandidatesRouter);
   projectScoped.route('/linkTypes', linkTypesRouter);
   projectScoped.route('/reports', reportsRouter);
   projectScoped.route('/skills', skillsRouter);
