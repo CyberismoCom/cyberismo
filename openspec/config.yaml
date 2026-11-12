@@ -1,0 +1,25 @@
+schema: spec-driven
+
+context: |
+  Cyberismo is a pnpm monorepo: tools/{app,backend,cli,data-handler,mcp,node-clingo,assets,migrations}.
+  Each package's architecture is described in tools/<pkg>/ARCHITECTURE.md.
+  Review rules and change classes (M, R, B) are in docs/dev/review-rubric.md.
+  Changes are contracts: proposal, spec deltas and design. No tasks.md: OpenSpec is not used to implement.
+  Implementation plans are personal working material and stay out of the repo.
+  An archived change means "this is the contract", not "implemented".
+  User-facing documentation lives in the docs project (docs/cardRoot), not here.
+
+rules:
+  proposal:
+    - State the change class using the rubric's names (behaviour; mechanical and refactor changes do not use OpenSpec).
+    - 'State the architecture impact: none, or which tools/<pkg>/ARCHITECTURE.md changes.'
+    - State what is out of scope.
+  specs:
+    - Scenarios must be observable outcomes written as WHEN/THEN, testable at one level named in docs/dev/testing.md.
+    - Name the surfaces affected (app, static site export, PDF export, CLI, MCP) when more than one.
+    - Never invent defaults, error messages or requirements; list gaps as open questions in design.md.
+  design:
+    - Hold the "why" - the decision, the alternatives rejected and the cost to reverse it. This replaces ADRs and is archived with the change.
+    - Do not describe implementation steps.
+  tasks:
+    - Do not create tasks.md; implementation is planned outside OpenSpec.
