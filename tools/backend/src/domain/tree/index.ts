@@ -33,6 +33,7 @@ router.get('/', requireRole(UserRole.Reader), async (c: AppContext) => {
     isSSGContext(c),
     tree?.cardKey,
     tree?.recursive,
+    tree?.includeHidden,
   );
   return c.json(response);
 });

@@ -234,6 +234,43 @@ test.runIf(process.platform === 'linux')(
   },
 );
 
+// The stub echoes the AsciiDoc source; decision_6 is hidden in a project of its own.
+test.runIf(process.platform === 'linux').each([false, true])(
+  '/api/cards/export-pdf with includeHidden %s holds the hidden child as asked',
+  async (includeHidden) => {
+    const path = await createTempTestData('decision-records');
+    try {
+      writeFileSync(
+        join(path, '.cards', 'local', 'calculations', 'test', 'calculation.lp'),
+        'hiddenInTreeView(decision_6).\n',
+        { flag: 'a' },
+      );
+      const ws = await openTestWorkspace(path);
+      const hiddenApp = createApp(new MockAuthProvider(), directoryOf(ws));
+
+      const source = await withPdfStub('cat\n', async () =>
+        (
+          await hiddenApp.request('/api/projects/decision/cards/export-pdf', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              title: 'Exported file',
+              cardKey: 'decision_5',
+              name: 'exported-file',
+              exportChildCards: true,
+              includeHidden,
+            }),
+          })
+        ).text(),
+      );
+
+      expect(source.includes('[[decision_6]]')).toBe(includeHidden);
+    } finally {
+      await cleanupTempTestData(path);
+    }
+  },
+);
+
 // The stub fails with a server path in its output.
 test.runIf(process.platform === 'linux')(
   '/api/cards/export-pdf logs failure diagnostics instead of sending them',

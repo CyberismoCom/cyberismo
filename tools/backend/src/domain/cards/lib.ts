@@ -18,9 +18,10 @@ export async function allCards(
   ws: Workspace,
   options?: TreeOptions,
 ): Promise<QueryResult<'tree'>[]> {
+  const { cardKey, recursive, includeHidden } = options ?? {};
   const fetchedCards = exportedTree(
-    await ws.queries.runQuery('tree', 'exportedSite', options || {}),
-    { cardKey: options?.cardKey },
+    await ws.queries.runQuery('tree', 'exportedSite', { cardKey, recursive }),
+    { cardKey, includeHidden },
   );
 
   function flattenCards(cards: QueryResult<'tree'>[]): QueryResult<'tree'>[] {

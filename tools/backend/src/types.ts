@@ -14,6 +14,8 @@ export interface ResourceValidationResponse {
 export interface TreeOptions {
   recursive?: boolean;
   cardKey?: string;
+  /** Export the hidden cards too, marked as hidden. */
+  includeHidden?: boolean;
 }
 
 /**

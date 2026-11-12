@@ -78,6 +78,7 @@ export async function getCardQueryResult(
  * @param options - Export options.
  * @param options.recursive - Whether to export cards recursively.
  * @param options.cardKey - Key of the card to export. If not provided, all cards will be exported.
+ * @param options.includeHidden - Whether to export the hidden cards too; they are marked as hidden, so the site leaves them out of its navigation.
  * @param options.defaultProject - Default project prefix to write into config.json.
  * @param onProgress - Optional progress callback function.
  * @returns Errors that occurred during export, grouped by project.

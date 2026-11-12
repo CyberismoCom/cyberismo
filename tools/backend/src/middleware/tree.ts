@@ -12,7 +12,11 @@ import type { AppContext, TreeOptions } from '../types.js';
 const treeMiddleware =
   (opts?: TreeOptions) => async (c: AppContext, next: Next) => {
     if (opts) {
-      c.set('tree', { recursive: opts.recursive, cardKey: opts.cardKey });
+      c.set('tree', {
+        recursive: opts.recursive,
+        cardKey: opts.cardKey,
+        includeHidden: opts.includeHidden,
+      });
     }
     await next();
   };
