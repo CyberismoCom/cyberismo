@@ -15,19 +15,20 @@ import { adocToHtml, cachedAdocHtml } from '../asciidoc';
  * @returns the rendered HTML, empty until the first conversion for the card resolves
  */
 export function useAdocHtml(adoc: string, cardKey: string): string {
-  // Tagged so a pending conversion cannot paint over the next card.
+  // Tagged with its card so one card's HTML never shows on another.
   const [converted, setConverted] = useState<{
     cardKey: string;
-    token: string;
     html: string;
   } | null>(null);
 
-  const token = `${cardKey}\n${adoc}`;
   const cached = cachedAdocHtml(adoc, cardKey);
 
   // Remember cached results too, so they are the fallback for the next change.
-  if (cached !== undefined && converted?.token !== token) {
-    setConverted({ cardKey, token, html: cached });
+  if (
+    cached !== undefined &&
+    (converted?.cardKey !== cardKey || converted.html !== cached)
+  ) {
+    setConverted({ cardKey, html: cached });
   }
 
   useEffect(() => {
@@ -37,13 +38,13 @@ export function useAdocHtml(adoc: string, cardKey: string): string {
     let current = true;
     adocToHtml(adoc, cardKey).then((html) => {
       if (current) {
-        setConverted({ cardKey, token, html });
+        setConverted({ cardKey, html });
       }
     });
     return () => {
       current = false;
     };
-  }, [adoc, cardKey, token, cached]);
+  }, [adoc, cardKey, cached]);
 
   if (cached !== undefined) {
     return cached;
