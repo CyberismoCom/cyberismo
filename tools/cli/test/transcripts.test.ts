@@ -452,6 +452,35 @@ describe('CLI transcripts', { timeout: 30000 }, () => {
       expect(await exported('--include-hidden')).toEqual([alpha, shown, gone]);
     });
 
+    it('export site prints its warnings by project', async () => {
+      const beta = project.keys[3];
+      await writeFile(
+        join(project.path, 'cardRoot', alpha, 'index.adoc'),
+        `See xref:${beta}.adoc[] and xref:nowhere.adoc[].\n`,
+      );
+
+      const { code, stdout, stderr } = await cli(
+        'export',
+        'site',
+        'site',
+        '<card1>',
+      );
+
+      expect(code).toBe(0);
+      expect(stdout).toContain(
+        'Exported site to site with 2 rendering warnings',
+      );
+      expect(stderr).toContain(
+        [
+          '1 project has warnings:',
+          '',
+          'test (2):',
+          '  card "<card4>" is not part of this export; links to it are rendered as text',
+          '  xref target "nowhere.adoc" does not match a known card; leaving link unchanged',
+        ].join('\n'),
+      );
+    });
+
     it('export site holds the hidden cards with --include-hidden, marked', async () => {
       const tree = async (...options: string[]) => {
         const out = `site${options.length}`;

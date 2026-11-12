@@ -196,6 +196,18 @@ export function registerExport(program: Command) {
               },
             );
             progress.stop();
+            if (warnings.length > 0) {
+              console.warn(
+                formatProjectErrors(
+                  warnings.map(({ prefix, warnings }) => ({
+                    prefix,
+                    errors: warnings,
+                  })),
+                  10,
+                  'warnings',
+                ),
+              );
+            }
             const errors = [...failed, ...exportErrors];
             if (errors.length > 0) {
               handleResponse({

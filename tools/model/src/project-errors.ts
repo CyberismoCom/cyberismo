@@ -6,12 +6,16 @@ export interface ProjectErrors {
   errors: string[];
 }
 
-/** Formats errors as one block per project, capping each at `limit` lines. */
+/**
+ * Formats errors as one block per project, capping each at `limit` lines.
+ * `kind` names the messages in the heading.
+ */
 export function formatProjectErrors(
   groups: ProjectErrors[],
   limit: number = 10,
+  kind: 'errors' | 'warnings' = 'errors',
 ): string {
-  const heading = `${groups.length} ${groups.length === 1 ? 'project has' : 'projects have'} errors:`;
+  const heading = `${groups.length} ${groups.length === 1 ? 'project has' : 'projects have'} ${kind}:`;
   const blocks = groups.map(({ prefix, errors }) => {
     const lines = errors.slice(0, limit).map((e) => `  ${e}`);
     if (errors.length > limit) {
