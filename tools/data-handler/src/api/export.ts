@@ -36,6 +36,8 @@ type PdfDocument = Omit<ExportPdfOptions, 'date'> & { date?: Date };
 const attachmentFolder: string = 'a';
 const ASCIIDOCTOR_DIAGNOSTIC = /^asciidoctor: (WARNING|ERROR):/;
 const FAILURE_DIAGNOSTIC_LINES = 20;
+// An anchor as the include macro gives each card.
+const CARD_ANCHOR = /^\[\[([\w-]+)\]\]$/gm;
 
 // To what format the content can be exported to.
 export enum ExportFormats {
@@ -299,10 +301,13 @@ export class Export {
         cardKey: '', // top level report does not contain any macros that use cardKey
       },
     );
-    return {
-      content: evaluated,
-      exported: new Set(result.results.map((card) => card.key)),
-    };
+    // The query's cards, and any card an include brought in with its anchor:
+    // an xref resolves wherever the document has the card's anchor.
+    const exported = new Set(result.results.map((card) => card.key));
+    for (const [, key] of evaluated.matchAll(CARD_ANCHOR)) {
+      exported.add(key);
+    }
+    return { content: evaluated, exported };
   }
 
   /**

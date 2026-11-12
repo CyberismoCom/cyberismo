@@ -460,6 +460,48 @@ describe('export.pdf links outside the document', () => {
     expect(source).not.toContain(other);
     expect(warnings).toEqual([notExportedWarning(other)]);
   });
+
+  it('keeps links to a card the document includes', async () => {
+    // Top(Sub) links to Other, and includes it.
+    const { ws, keys } = await open({
+      linkTypes: [{ name: 'rel' }],
+      cards: [
+        {
+          title: 'Top',
+          links: [{ linkType: 'rel', to: 2 }],
+          children: [{ title: 'Sub' }],
+        },
+        { title: 'Other' },
+      ],
+    });
+    const other = keys[2];
+    await ws.cards.edit(
+      keys[0],
+      `See xref:${other}.adoc[that].\n\n` +
+        `{{#include}}"cardKey": "${other}"{{/include}}\n`,
+    );
+    const run = vi
+      .spyOn(
+        Export.prototype as unknown as {
+          runAsciidoctorPdf: (content: string) => Promise<unknown>;
+        },
+        'runAsciidoctorPdf',
+      )
+      .mockResolvedValue({ pdf: Buffer.from(''), warnings: [] });
+
+    const { warnings } = await ws.export.pdf({
+      cardKey: keys[0],
+      recursive: true,
+    });
+
+    const source: string = run.mock.calls[0][0];
+    expect(source).toContain(`[[${other}]]`);
+    expect(source).toContain(`See <<${other},that>>.`);
+    expect(source).toMatch(
+      new RegExp(`^\\| rel out \\| <<${other},Other>>$`, 'm'),
+    );
+    expect(warnings).toEqual([]);
+  });
 });
 
 // A stand-in for asciidoctor-pdf found first on the PATH.
