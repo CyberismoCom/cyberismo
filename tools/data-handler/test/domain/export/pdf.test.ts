@@ -238,28 +238,31 @@ describe('export.pdf cards', () => {
     vi.restoreAllMocks();
   });
 
-  it.each(hiddenCases)('$name', async ({ hidden, start, exported }) => {
-    const { ws, keys } = await open(hiddenCaseSpec(hidden));
-    const run = vi
-      .spyOn(
-        Export.prototype as unknown as {
-          runAsciidoctorPdf: (content: string) => Promise<unknown>;
-        },
-        'runAsciidoctorPdf',
-      )
-      .mockResolvedValue({ pdf: Buffer.from(''), warnings: [] });
+  it.each(hiddenCases)(
+    '$name',
+    async ({ hidden, start, recursive = true, exported }) => {
+      const { ws, keys } = await open(hiddenCaseSpec(hidden));
+      const run = vi
+        .spyOn(
+          Export.prototype as unknown as {
+            runAsciidoctorPdf: (content: string) => Promise<unknown>;
+          },
+          'runAsciidoctorPdf',
+        )
+        .mockResolvedValue({ pdf: Buffer.from(''), warnings: [] });
 
-    await ws.export.pdf(
-      start ? { cardKey: keyOf(keys, start), recursive: true } : {},
-    );
+      await ws.export.pdf(
+        start ? { cardKey: keyOf(keys, start), recursive } : {},
+      );
 
-    const source = run.mock.calls[0][0];
-    // Each card starts at its anchor.
-    const cardKeys = [...source.matchAll(/^\[\[(\S+)\]\]$/gm)].map(
-      (match) => match[1],
-    );
-    expect(titlesOf(keys, cardKeys)).toEqual([...exported].sort());
-  });
+      const source = run.mock.calls[0][0];
+      // Each card starts at its anchor.
+      const cardKeys = [...source.matchAll(/^\[\[(\S+)\]\]$/gm)].map(
+        (match) => match[1],
+      );
+      expect(titlesOf(keys, cardKeys)).toEqual([...exported].sort());
+    },
+  );
 });
 
 // A stand-in for asciidoctor-pdf found first on the PATH.

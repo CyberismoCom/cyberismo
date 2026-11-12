@@ -2,8 +2,9 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 // Which cards an export holds when some are hidden from the tree view. The
-// adoc export (tree query and exportedTree) and the PDF export (its report
-// query) each implement the rule, so both run this one table.
+// site and adoc exports (tree query and exportedTree) and the PDF export (its
+// report query) each implement the rule, so all run this one table. The adoc
+// export always holds the descendants, so it skips the rows that leave them out.
 
 import type { ProjectSpec } from '../../helpers/project-builder.js';
 
@@ -39,8 +40,10 @@ export interface HiddenCase {
   name: string;
   /** Cards hidden from the tree view by content; their descendants inherit it. */
   hidden: string[];
-  /** The card the export starts from, with its descendants; none for the project. */
+  /** The card the export starts from; none for the project. */
   start?: string;
+  /** Whether an export from a card holds its descendants; by default it does. */
+  recursive?: boolean;
   /** The titles of the exported cards. */
   exported: string[];
 }
@@ -74,6 +77,13 @@ export const hiddenCases: HiddenCase[] = [
     hidden: ['Hid'],
     start: 'HidMid',
     exported: ['HidMid', 'HidLeaf'],
+  },
+  {
+    name: 'an export of a hidden card without its descendants holds the card',
+    hidden: ['Hid'],
+    start: 'Hid',
+    recursive: false,
+    exported: ['Hid'],
   },
   // Known limit: under a hidden start card, a card hidden on its own counts as
   // hidden through the start card, so it is exported.

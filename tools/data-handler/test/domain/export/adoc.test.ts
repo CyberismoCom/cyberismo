@@ -3,6 +3,9 @@
 
 import { describe, expect, it } from 'vitest';
 
+import type { QueryResult } from '@cyberismo/model';
+
+import { exportedTree } from '../../../src/shared/utils/card-utils.js';
 import { expectRefused, projects, snapshot } from '../cards/fixture.js';
 import {
   hiddenCaseSpec,
@@ -104,6 +107,60 @@ describe('export.adoc', () => {
     expect(adoc).not.toContain('== Second');
   });
 
+  it('evaluates the macros of a card below the top level', async () => {
+    const { ws, keys } = await open({
+      ...spec,
+      cards: [
+        {
+          title: 'Top',
+          children: [
+            {
+              title: 'Mid',
+              children: [
+                {
+                  title: 'Leaf',
+                  fields: { 'test/fieldTypes/note': 'leaf note' },
+                  content:
+                    '{{#field}}"field": "test/fieldTypes/note"{{/field}}',
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    });
+
+    const adoc = text(await ws.export.adoc(keys[0]));
+
+    expect(adoc).toContain('pass:[leaf note]');
+    expect(adoc).not.toContain('{{#field}}');
+  });
+
+  it('orders the cards below the top level by rank', async () => {
+    const { ws, keys } = await open({
+      cards: [
+        {
+          title: 'Top',
+          children: [
+            {
+              title: 'Mid',
+              children: [{ title: 'Leaf1' }, { title: 'Leaf2' }],
+            },
+          ],
+        },
+      ],
+    });
+    await ws.cards.rankFirst(keys[3]);
+
+    const [leaf1, leaf2] = order(
+      text(await ws.export.adoc()),
+      'Leaf1',
+      'Leaf2',
+    );
+    expect(leaf2).toBeGreaterThanOrEqual(0);
+    expect(leaf2).toBeLessThan(leaf1);
+  });
+
   it('exports a card below the top as its own section', async () => {
     const { ws, keys } = await open(spec);
 
@@ -131,18 +188,21 @@ describe('export.adoc', () => {
     expect(text(await ws.export.adoc())).toContain('Edited body.');
   });
 
-  it.each(hiddenCases)('$name', async ({ hidden, start, exported }) => {
-    const { ws, keys } = await open(hiddenCaseSpec(hidden));
+  it.each(hiddenCases.filter((row) => row.recursive !== false))(
+    '$name',
+    async ({ hidden, start, exported }) => {
+      const { ws, keys } = await open(hiddenCaseSpec(hidden));
 
-    const adoc = text(
-      await ws.export.adoc(start ? keyOf(keys, start) : undefined),
-    );
+      const adoc = text(
+        await ws.export.adoc(start ? keyOf(keys, start) : undefined),
+      );
 
-    const cardKeys = [...adoc.matchAll(/^\|Card key\|(\S+)$/gm)].map(
-      (match) => match[1],
-    );
-    expect(titlesOf(keys, cardKeys)).toEqual([...exported].sort());
-  });
+      const cardKeys = [...adoc.matchAll(/^\|Card key\|(\S+)$/gm)].map(
+        (match) => match[1],
+      );
+      expect(titlesOf(keys, cardKeys)).toEqual([...exported].sort());
+    },
+  );
 
   it('refuses a card the project does not have, writing nothing', async () => {
     const { ws, path } = await open(spec);
@@ -162,4 +222,28 @@ describe('export.adoc', () => {
 
     expect(snapshot(path)).toEqual(before);
   });
+});
+
+// The site export runs the tree query and exportedTree, as the backend does.
+describe('exportedTree on the site tree query', () => {
+  it.each(hiddenCases)(
+    '$name',
+    async ({ hidden, start, recursive = true, exported }) => {
+      const { ws, keys } = await open(hiddenCaseSpec(hidden));
+      const cardKey = start ? keyOf(keys, start) : undefined;
+
+      const tree = exportedTree(
+        await ws.queries.runQuery(
+          'tree',
+          'exportedSite',
+          cardKey ? { cardKey, recursive } : {},
+        ),
+        { cardKey },
+      );
+
+      const flat = (nodes: QueryResult<'tree'>[]): string[] =>
+        nodes.flatMap((node) => [node.key, ...flat(node.children ?? [])]);
+      expect(titlesOf(keys, flat(tree))).toEqual([...exported].sort());
+    },
+  );
 });
