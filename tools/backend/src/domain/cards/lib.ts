@@ -19,10 +19,7 @@ export async function allCards(
   options?: TreeOptions,
 ): Promise<QueryResult<'tree'>[]> {
   const fetchedCards = exportedTree(
-    await ws.queries.runQuery('tree', 'exportedSite', {
-      cardKey: options?.cardKey,
-      recursive: options?.recursive,
-    }),
+    await ws.queries.runQuery('tree', 'exportedSite', options || {}),
     { cardKey: options?.cardKey },
   );
 
