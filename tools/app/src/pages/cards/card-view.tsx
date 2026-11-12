@@ -27,7 +27,6 @@ import {
 import { addNotification } from '@/lib/slices/notifications';
 import { isEdited } from '@/lib/slices/pageState';
 import { setLastPathForPrefix } from '@/lib/slices/project';
-import { blockingError } from '@/lib/swr';
 import { expandLinkTypes } from '@/lib/utils';
 import { Box, Stack, Typography } from '@mui/joy';
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -52,11 +51,12 @@ export default function Page() {
   } = useCard(key);
   const { cardContent, error: contentError } = useCardContent(key);
   const { cardSource, error: sourceError } = useCardSource(key);
+  const error = dataError ?? contentError ?? sourceError;
+
   const card = useMemo(
     () => toCardView(cardData, cardContent, cardSource),
     [cardData, cardContent, cardSource],
   );
-  const error = blockingError(dataError ?? contentError ?? sourceError, !!card);
 
   const { tree } = useTree();
 

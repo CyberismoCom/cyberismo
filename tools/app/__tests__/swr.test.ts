@@ -2,12 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { describe, it, expect } from 'vitest';
-import {
-  ApiCallError,
-  blockingError,
-  globalApiPaths,
-  projectApiPaths,
-} from '@/lib/swr';
+import { globalApiPaths, projectApiPaths } from '@/lib/swr';
 
 describe('globalApiPaths', () => {
   it('returns /api/projects for projects()', () => {
@@ -112,21 +107,5 @@ describe('projectApiPaths', () => {
       expect(pathsA.tree()).toBe('/api/projects/AAA/tree');
       expect(pathsB.tree()).toBe('/api/projects/BBB/tree');
     });
-  });
-});
-
-describe('blockingError', () => {
-  const notFound = new ApiCallError(new Response(null, { status: 404 }));
-  const serverError = new ApiCallError(new Response(null, { status: 500 }));
-  const network = new TypeError('Failed to fetch');
-
-  it.each([
-    ['no error', undefined, true, undefined],
-    ['a failure before any data loaded', serverError, false, serverError],
-    ['a failed refresh', serverError, true, undefined],
-    ['a network drop during a refresh', network, true, undefined],
-    ['a resource gone since it loaded', notFound, true, notFound],
-  ])('%s', (_, error, hasData, expected) => {
-    expect(blockingError(error, hasData)).toBe(expected);
   });
 });
