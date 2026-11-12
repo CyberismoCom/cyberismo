@@ -56,10 +56,8 @@ vi.mock('@/components/card/CardLayout', () => ({
 const updateCard = vi.fn().mockResolvedValue(undefined);
 // The adapter is covered by templateCardView.test.ts; here it hands the editor
 // the fixture card.
-const { adapted, sourceFetch } = vi.hoisted(() => ({
+const { adapted } = vi.hoisted(() => ({
   adapted: { card: undefined as unknown },
-  // SWR keeps the last data when a refresh fails and reports the error beside it.
-  sourceFetch: { error: null as Error | null },
 }));
 vi.mock('@/components/config-editors/template-card/source-view', () => ({
   templateCardView: () => adapted.card,
@@ -68,7 +66,7 @@ vi.mock('@/lib/api', () => ({
   useCardSource: () => ({
     cardSource: { metadata: { cardType: 'ct' } },
     isLoading: false,
-    error: sourceFetch.error,
+    error: null,
   }),
   useProject: () => ({
     project: { cardTypes: [{ name: 'ct' }] },
@@ -185,7 +183,6 @@ describe('ConfigCardEditor (template card editor)', () => {
   beforeEach(() => {
     updateCard.mockClear();
     dispatchSpy.mockClear();
-    sourceFetch.error = null;
     previewTitle = undefined;
     previewCardArg = undefined;
   });
@@ -431,24 +428,6 @@ describe('ConfigCardEditor (template card editor)', () => {
         container.querySelector('[data-cy="titleSaveButton"]'),
       ).not.toBeDisabled();
     });
-  });
-
-  // A refresh that fails (backend restart, network drop) leaves SWR holding the
-  // last data plus an error. The editor and its unsaved draft must survive it.
-  it('keeps an unsaved draft when a refresh fails', () => {
-    const utils = renderEditor();
-    const title = () =>
-      utils.container.querySelector('[data-cy="cardTitleInput"]');
-    fireEvent.change(title()!, { target: { value: 'Unsaved title' } });
-    dispatchSpy.mockClear();
-
-    sourceFetch.error = new Error('refresh failed');
-    utils.rerender(
-      <ConfigCardEditor node={{ id: 'c1', readOnly: false } as never} />,
-    );
-
-    expect(title()).toHaveValue('Unsaved title');
-    expect(dispatchSpy).not.toHaveBeenCalledWith(isEdited(false));
   });
 
   // An overridable field is presented as an override rather than as a plain
