@@ -1017,3 +1017,110 @@ test.describe('Field macro', () => {
     }
   });
 });
+
+test.describe('Create links macro', () => {
+  const titles = ['Link host', 'Alpha target', 'Beta target', 'Gamma target'];
+  const keys: Record<string, string> = {};
+  let hostPath = '';
+
+  test.beforeAll(async ({ resetProject, browser, backend }) => {
+    await resetProject();
+    const context = await browser.newContext({ baseURL: backend.baseURL });
+    try {
+      const listed = await context.request.get('/api/projects');
+      const { prefix } = (
+        (await listed.json()) as { projects: { prefix: string }[] }
+      ).projects[0];
+      for (const title of titles) {
+        const created = await context.request.post(
+          `/api/projects/${prefix}/cards/root`,
+          { data: { template: 'test/templates/page' } },
+        );
+        expect(created.ok()).toBeTruthy();
+        const [card] = (await created.json()) as { key: string }[];
+        const patched = await context.request.patch(
+          `/api/projects/${prefix}/cards/${card.key}`,
+          { data: { metadata: { title } } },
+        );
+        expect(patched.ok()).toBeTruthy();
+        keys[title] = card.key;
+      }
+      hostPath = `/projects/${prefix}/cards/${keys['Link host']}`;
+    } finally {
+      await context.close();
+    }
+  });
+
+  test('authors the macro, links two picked cards and stops offering them', async ({
+    page,
+  }) => {
+    await page.goto(hostPath);
+    await expect(
+      page.getByRole('heading', { level: 1, name: 'Link host' }),
+    ).toBeVisible();
+
+    // Author the macro through the toolbar
+    await page.getByRole('button', { name: t.editContent }).click();
+    await page
+      .getByRole('button', { name: t.asciiDocEditor.toolbar.insertMacro })
+      .click();
+    await page
+      .getByRole('menuitem', {
+        name: t.asciiDocEditor.toolbar.macros.createLinks,
+      })
+      .click();
+    const editor = page.getByRole('dialog', {
+      name: t.asciiDocEditor.macros.createLinks.title,
+    });
+    const labels = t.asciiDocEditor.macros.createLinks;
+    await editor.getByRole('combobox', { name: labels.linkTypeLabel }).click();
+    await page.getByRole('option', { name: 'test/linkTypes/test' }).click();
+    await editor
+      .getByRole('textbox', { name: labels.buttonLabel })
+      .fill('Link pages');
+    await editor.getByRole('textbox', { name: labels.queryLabel }).click();
+    // insertText sidesteps CodeMirror's bracket auto-closing
+    await page.keyboard.insertText(
+      'result(X) :- projectCard(X), field(X, "cardType", "test/cardTypes/page").\n' +
+        'select(1, "results", "title").\n' +
+        'select(1, "results", "cardType").',
+    );
+    await editor
+      .getByRole('button', { name: t.asciiDocEditor.macros.insert })
+      .click();
+    await expect(editor).toHaveCount(0);
+    await page.getByRole('button', { name: t.save, exact: true }).click();
+    await expect(page.getByText(t.saveCard.success)).toBeVisible();
+
+    // Pick one target directly and another through the search
+    const dialog = page.getByRole('dialog', { name: t.createLinks.title });
+    const candidate = (title: string) =>
+      dialog.getByRole('checkbox', { name: `${title} (${keys[title]})` });
+    await page.getByRole('button', { name: 'Link pages' }).click();
+    await candidate('Alpha target').check();
+    await dialog
+      .getByRole('textbox', { name: t.createLinks.search })
+      .fill('Beta');
+    await candidate('Beta target').check();
+    await dialog.getByRole('button', { name: t.createLinks.create }).click();
+
+    await expect(
+      page.getByText(t.createLink.success_other.replace('{{count}}', '2')),
+    ).toBeVisible();
+    await expect(dialog).toHaveCount(0);
+
+    const linked = page.getByRole('region', { name: t.linkedCards });
+    await linked.getByRole('button', { name: t.showMore }).click();
+    await expect(
+      linked.getByRole('link', { name: keys['Alpha target'] }),
+    ).toBeVisible();
+    await expect(
+      linked.getByRole('link', { name: keys['Beta target'] }),
+    ).toBeVisible();
+
+    // Linked cards are no longer offered
+    await page.getByRole('button', { name: 'Link pages' }).click();
+    await expect(candidate('Gamma target')).toBeVisible();
+    await expect(candidate('Alpha target')).toHaveCount(0);
+  });
+});

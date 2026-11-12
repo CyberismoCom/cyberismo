@@ -24,10 +24,12 @@
       "highlight": "Highlight",
       "insertTable": "Insert table",
       "mermaidDiagram": "Insert Mermaid diagram",
+      "insertMacro": "Insert macro",
       "macros": {
         "include": "Include a card",
         "xref": "Cross reference",
         "createCards": "Create cards",
+        "createLinks": "Create links",
         "field": "Field",
         "report": "Report",
         "graph": "Graph"
@@ -86,6 +88,18 @@
         "templatePlaceholder": "Select a template",
         "buttonLabel": "Button text",
         "buttonPlaceholder": "Enter button text"
+      },
+      "createLinks": {
+        "title": "Create links",
+        "linkTypeLabel": "Link type",
+        "linkTypePlaceholder": "Select a link type",
+        "directionLabel": "Direction",
+        "directionOutbound": "Outbound",
+        "directionInbound": "Inbound",
+        "linkDescriptionLabel": "Link description",
+        "buttonLabel": "Button text (optional)",
+        "queryLabel": "Query",
+        "queryPlaceholder": "Logic program that lists the items to pick from"
       },
       "field": {
         "dialogTitle": "Field",
@@ -172,10 +186,24 @@
     "success": "Card created successfully"
   },
   "createLink": {
-    "success": "{{count}} link created successfully",
-    "success_plural": "{{count}} links created successfully",
-    "partialFailure": "{{count}} link failed to create",
-    "partialFailure_plural": "{{count}} links failed to create"
+    "success_one": "{{count}} link created successfully",
+    "success_other": "{{count}} links created successfully",
+    "partialFailure_one": "{{count}} link failed to create",
+    "partialFailure_other": "{{count}} links failed to create"
+  },
+  "createLinks": {
+    "buttonLabel": "Create links",
+    "title": "Create links",
+    "search": "Search by title or key",
+    "noResults": "Nothing to link",
+    "description": "Description",
+    "create": "Create",
+    "page": "Page {{page}} / {{pages}}",
+    "previousPage": "Previous page",
+    "nextPage": "Next page",
+    "preview": "Creating links with this macro is not supported in the preview mode",
+    "unavailable": "The card has no such link type in this direction",
+    "loadFailed": "Could not load the card or its link types"
   },
   "createOnTopLevel": "Create on top level",
   "createUnder": "Create under \"{{parent}}\"",
@@ -237,6 +265,7 @@
   "destinationCardTypes": "Destination card types",
   "displayName": "Display name",
   "edit": "Edit",
+  "editContent": "Edit content",
   "emptyCardBody": "No content yet.",
   "emptyProject": "Project is empty",
   "enableLinkDescription": "Enable link description",

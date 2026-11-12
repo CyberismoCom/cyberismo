@@ -33,6 +33,7 @@ import {
   ReportMacroModal,
   GraphMacroModal,
   CreateCardsMacroModal,
+  CreateLinksMacroModal,
   FieldMacroModal,
 } from './macro-editors';
 import { useModals } from '@/lib/utils';
@@ -57,6 +58,7 @@ export function AsciiDocToolbar({
     include: false,
     xref: false,
     createCards: false,
+    createLinks: false,
     field: false,
     report: false,
     graph: false,
@@ -160,6 +162,7 @@ export function AsciiDocToolbar({
         <>
           <Dropdown>
             <MenuButton
+              aria-label={t('asciiDocEditor.toolbar.insertMacro')}
               variant="soft"
               color="primary"
               size="sm"
@@ -180,6 +183,9 @@ export function AsciiDocToolbar({
               </MenuItem>
               <MenuItem onClick={openModal('createCards')}>
                 {t('asciiDocEditor.toolbar.macros.createCards')}
+              </MenuItem>
+              <MenuItem onClick={openModal('createLinks')}>
+                {t('asciiDocEditor.toolbar.macros.createLinks')}
               </MenuItem>
               <MenuItem onClick={openModal('field')}>
                 {t('asciiDocEditor.toolbar.macros.field')}
@@ -227,6 +233,18 @@ export function AsciiDocToolbar({
                 view,
                 readOnly,
                 'createCards',
+                options,
+              )
+            }
+          />
+          <CreateLinksMacroModal
+            open={modalOpen.createLinks}
+            onClose={closeModal('createLinks')}
+            onInsert={(options) =>
+              asciiDocToolbarActions.insertMacro(
+                view,
+                readOnly,
+                'createLinks',
                 options,
               )
             }

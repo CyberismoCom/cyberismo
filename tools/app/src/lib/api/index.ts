@@ -12,6 +12,7 @@ export * from './calculation';
 export * from './connectors';
 export * from './templates';
 export * from './linkTypes';
+export * from './linkCandidates';
 export * from './tree';
 export * from './resources';
 export * from './cardType';

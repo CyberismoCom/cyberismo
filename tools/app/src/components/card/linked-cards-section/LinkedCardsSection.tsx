@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: Cyberismo Ltd and contributors
 // SPDX-License-Identifier: AGPL-3.0-only
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Box, Button, IconButton, Stack, Typography } from '@mui/joy';
 import { CountBadge } from '@/components/CountBadge';
@@ -62,6 +62,7 @@ export default function LinkedCardsSection({
   });
 
   const sectionRef = useRef<HTMLDivElement>(null);
+  const headingId = useId();
 
   useEffect(() => {
     if (linkFormState === 'add' || linkFormState === 'add-from-toolbar') {
@@ -86,6 +87,8 @@ export default function LinkedCardsSection({
     <>
       <Box
         ref={sectionRef}
+        role="region"
+        aria-labelledby={headingId}
         border="1px solid"
         borderColor={
           editing ? 'primary.outlinedBorder' : 'neutral.outlinedBorder'
@@ -119,6 +122,7 @@ export default function LinkedCardsSection({
             </Box>
           )}
           <Typography
+            id={headingId}
             level="title-sm"
             component="h2"
             fontWeight="bold"

@@ -11,7 +11,12 @@ import type {
   Workflow,
 } from './definitions';
 import { useForm } from 'react-hook-form';
-import type { LinkType, QueryResult, CalculationLink } from '@cyberismo/model';
+import type {
+  LinkType,
+  LinkCandidate,
+  QueryResult,
+  CalculationLink,
+} from '@cyberismo/model';
 import { WorkflowCategory } from '@cyberismo/model';
 import type { AnyNode } from './api/types';
 import type { CardView } from './api/types';
@@ -61,6 +66,55 @@ export function canCreateLinkToCard(
     return false;
   return true;
 }
+/**
+ * The candidates the user may still link: cards the link type permits and
+ * that are not linked yet, external items of an allowed connector not linked
+ * yet.
+ */
+export function eligibleCandidates(
+  cardKey: string,
+  candidates: LinkCandidate[],
+  linkType: ExpandedLinkType,
+  links: CalculationLink[],
+): LinkCandidate[] {
+  return candidates.filter((candidate) => {
+    if (candidate.kind === 'card') {
+      const card = {
+        key: candidate.key,
+        cardType: candidate.cardType,
+      } as QueryResult<'tree'>;
+      return canCreateLinkToCard(cardKey, linkType, links, card);
+    }
+    const { connector, itemKey } = candidate;
+    const allowed = linkType.destinationConnectors ?? [];
+    if (allowed.length > 0 && !allowed.includes(connector)) return false;
+    return !links.some(
+      (link) =>
+        !linkType.enableLinkDescription &&
+        link.connector === connector &&
+        link.key === itemKey &&
+        link.linkType === linkType.name &&
+        link.direction === linkType.direction,
+    );
+  });
+}
+
+/**
+ * The candidates whose title or key contains the search text, ignoring case.
+ */
+export function searchCandidates(
+  candidates: LinkCandidate[],
+  search: string,
+): LinkCandidate[] {
+  const needle = search.trim().toLowerCase();
+  return candidates.filter(
+    (candidate) =>
+      !needle ||
+      candidate.title.toLowerCase().includes(needle) ||
+      candidate.key.toLowerCase().includes(needle),
+  );
+}
+
 let _config: AppConfig = { staticMode: false };
 
 /**
