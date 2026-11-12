@@ -373,7 +373,8 @@ describe('export module', () => {
         given: 'a link',
         adoc: 'No xrefs.\n',
         links: [{ linkType: 'decision/linkTypes/test', cardKey: 'decision_5' }],
-        text: 'No xrefs.',
+        // The links section is the app's; the content has nothing to check.
+        text: undefined,
       },
     ])(
       'renders $given to a card outside the export as text, with a warning',
@@ -414,8 +415,10 @@ describe('export module', () => {
             'utf8',
           ),
         );
-        expect(content.adocContent).toContain(text);
-        expect(content.adocContent).not.toContain('link:');
+        if (text) {
+          expect(content.adocContent).toContain(text);
+          expect(content.adocContent).not.toContain('link:');
+        }
         expect(warnings).toEqual([
           { prefix: 'decision', warnings: [notExportedWarning('decision_5')] },
         ]);

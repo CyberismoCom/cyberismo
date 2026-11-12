@@ -461,6 +461,43 @@ describe('export.pdf links outside the document', () => {
     expect(warnings).toEqual([notExportedWarning(other)]);
   });
 
+  it('shows a link to a connector item with no address as its title', async () => {
+    const { ws, keys } = await open({
+      linkTypes: [{ name: 'rel' }],
+      cards: [
+        {
+          title: 'Top',
+          fields: {
+            externalLinks: [
+              {
+                linkType: 'test/linkTypes/rel',
+                connector: 'jira',
+                externalItemKey: 'P-1',
+                direction: 'outbound',
+              },
+            ],
+          },
+        },
+      ],
+    });
+    const run = vi
+      .spyOn(
+        Export.prototype as unknown as {
+          runAsciidoctorPdf: (content: string) => Promise<unknown>;
+        },
+        'runAsciidoctorPdf',
+      )
+      .mockResolvedValue({ pdf: Buffer.from(''), warnings: [] });
+
+    const { warnings } = await ws.export.pdf({ cardKey: keys[0] });
+
+    const source: string = run.mock.calls[0][0];
+    const row = source.split('\n').find((line) => line.startsWith('| rel out'));
+    expect(row).toBeDefined();
+    expect(row).not.toMatch(/xref:|<<|P-1\[/);
+    expect(warnings).toEqual([]);
+  });
+
   it('keeps links to a card the document includes', async () => {
     // Top(Sub) links to Other, and includes it.
     const { ws, keys } = await open({
