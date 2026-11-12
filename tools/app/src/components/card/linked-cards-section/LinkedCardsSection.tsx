@@ -11,7 +11,7 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import type { ExpandedLinkType } from '@/lib/definitions';
 import type { CardView, Connector } from '@/lib/api/types';
 import type { CalculationLink, QueryResult } from '@cyberismo/model';
-import { useModals } from '@/lib/utils';
+import { findCard, getConfig, useModals } from '@/lib/utils';
 import { UserRole, useHasMinRole } from '@/lib/auth';
 import { useCard } from '@/lib/api';
 import { useAppDispatch, useAppSelector } from '@/lib/hooks/redux';
@@ -256,7 +256,14 @@ export default function LinkedCardsSection({
         ) : expanded && linkCount > 0 ? (
           <>
             {card.links.map((link, index) => (
-              <LinkRow key={link.key + index} link={link} />
+              <LinkRow
+                key={link.key + index}
+                link={link}
+                // A static site holds only the exported cards, which `cards` lists.
+                exported={
+                  !getConfig().staticMode || findCard(cards, link.key) != null
+                }
+              />
             ))}
             <Box display="flex" justifyContent="flex-end">
               <Button
