@@ -4,6 +4,7 @@
 import Handlebars from 'handlebars';
 
 import createCards from './createCards/index.js';
+import createLinks from './createLinks/index.js';
 import field from './field/index.js';
 import graph from './graph/index.js';
 import image from './image/index.js';
@@ -29,6 +30,7 @@ import type {
 import type { MacroMetadata, MacroName } from '@cyberismo/model';
 import type BaseMacro from './base-macro.js';
 import TaskQueue from './task-queue.js';
+import { registerQuotedHelper } from '../queries/handlebars-helpers.js';
 import { ClingoError } from '@cyberismo/node-clingo';
 import type { SchemaObject } from 'ajv';
 const CURLY_LEFT = '&#123;';
@@ -133,6 +135,7 @@ export const macros: {
   [K in MacroName]: MacroConstructor;
 } = {
   createCards,
+  createLinks,
   field,
   graph,
   image,
@@ -190,6 +193,7 @@ export async function registerMacros(
   context: MacroGenerationContext,
   tasks: TaskQueue,
 ) {
+  registerQuotedHelper(instance);
   const macroInstances: BaseMacro[] = [];
   for (const macro of Object.keys(macros) as MacroName[]) {
     const MacroClass = macros[macro];

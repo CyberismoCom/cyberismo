@@ -8,6 +8,7 @@ import type { Context } from '@cyberismo/model';
 import {
   registerComparisonHelpers,
   registerMathHelpers,
+  registerQuotedHelper,
   registerReportHelpers,
 } from './handlebars-helpers.js';
 
@@ -39,6 +40,7 @@ export async function generateReportContent(
   const handlebars = Handlebars.create();
   registerComparisonHelpers(handlebars);
   registerMathHelpers(handlebars);
+  registerQuotedHelper(handlebars);
 
   // When the query is empty, skip the logic program entirely and render the
   // content template using only the macro parameter context.

@@ -1,0 +1,34 @@
+{
+  "$id": "createLinksMacroSchema",
+  "additionalProperties": false,
+  "properties": {
+    "cardKey": {
+      "type": "string",
+      "description": "The card the links are created on. If not given, the card that includes this macro."
+    },
+    "direction": {
+      "type": "string",
+      "enum": ["inbound", "outbound"],
+      "description": "Outbound links go from the card to the picked item, inbound links the other way. Defaults to 'outbound'."
+    },
+    "linkType": {
+      "type": "string",
+      "description": "Name of the link type to create"
+    },
+    "linkDescription": {
+      "type": "string",
+      "description": "Description prefilled on each link. Only for link types that allow link descriptions."
+    },
+    "buttonLabel": {
+      "type": "string",
+      "description": "The label of the button. For example, 'Link decisions'."
+    },
+    "query": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Logic program that lists the items to pick from. Card rows need 'cardType'; external items need 'connector' and 'itemKey'."
+    }
+  },
+  "required": ["linkType", "query"],
+  "type": "object"
+}

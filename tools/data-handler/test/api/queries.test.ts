@@ -21,6 +21,11 @@ const spec = {
       content: '{{#each results}}* {{this.title}}\n{{/each}}',
     },
     echo: { content: 'Value is {{value}}.' },
+    quoted: {
+      query:
+        'result(C) :- parent(C, {{cardKey}}).\nresultField(C, "title", {{#quoted}}\na "q" b\\c\nd\n{{/quoted}}) :- parent(C, {{cardKey}}).\n',
+      content: '{{#each results}}{{{this.title}}}{{/each}}',
+    },
     helpers: {
       content:
         '{{#if (eq value 1)}}EQ{{/if}}{{#if (ne value 1)}}NE{{/if}} {{subtract 100 value}} {{multiply value 2}}',
@@ -194,6 +199,66 @@ describe('queries.runLogicProgram', () => {
   });
 });
 
+describe('queries.linkCandidates', () => {
+  it('gives cards as full candidates with their card type', async () => {
+    const { ws, keys } = await open(spec);
+
+    const candidates = await ws.queries.linkCandidates(
+      `select(1, "results", "title").\nselect(1, "results", "cardType").\nresult(C) :- parent(C, ${keys[0]}).`,
+    );
+
+    expect(candidates.sort((a, b) => a.title.localeCompare(b.title))).toEqual([
+      {
+        key: keys[1],
+        kind: 'card',
+        title: 'Child A',
+        cardType: 'test/cardTypes/page',
+      },
+      {
+        key: keys[2],
+        kind: 'card',
+        title: 'Child B',
+        cardType: 'test/cardTypes/page',
+      },
+    ]);
+  });
+
+  it('keys an external item by its connector and item key, not the parsed tuple', async () => {
+    const { ws } = await open(spec);
+
+    const candidates = await ws.queries.linkCandidates(
+      [
+        'externalItem(("jira", "J-1")).',
+        'field(("jira", "J-1"), "title", "First").',
+        'result((C, K)) :- externalItem((C, K)).',
+        'resultField((C, K), "connector", C) :- externalItem((C, K)).',
+        'resultField((C, K), "itemKey", K) :- externalItem((C, K)).',
+        'resultField((C, K), "title", T) :- externalItem((C, K)), field((C, K), "title", T).',
+      ].join('\n'),
+    );
+
+    expect(candidates).toEqual([
+      {
+        key: 'jira:J-1',
+        kind: 'external',
+        title: 'First',
+        connector: 'jira',
+        itemKey: 'J-1',
+      },
+    ]);
+  });
+
+  it('refuses a program the query language rejects', async () => {
+    const { ws } = await open(spec);
+
+    await expect(
+      ws.queries.linkCandidates(
+        'result(X) :- projectCard(X).\norderBy("title").',
+      ),
+    ).rejects.toThrow(DHValidationError);
+  });
+});
+
 describe('queries.logicProgram', () => {
   it('gives the facts of a resource', async () => {
     const { ws } = await open(spec);
@@ -228,6 +293,18 @@ describe('queries.runReport', () => {
         'localApp',
       ),
     ).toBe('');
+  });
+
+  it('hands a quoted body to Clingo as one intact string', async () => {
+    const { ws, keys } = await open(spec);
+
+    const result = await ws.queries.runReport(
+      'test/reports/quoted',
+      { cardKey: keys[0] },
+      'localApp',
+    );
+
+    expect(result).toBe('a "q" b\\c\nd'.repeat(2));
   });
 
   it('renders a report without a query from its parameters', async () => {

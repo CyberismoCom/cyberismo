@@ -55,6 +55,18 @@ export interface BaseResult extends Record<string, unknown> {
   key: string;
 }
 
+/** An item a createLinks dialog offers: a card, or an item of a connector. */
+export type LinkCandidate =
+  | { kind: 'card'; key: string; title: string; cardType: string }
+  | {
+      kind: 'external';
+      /** `connector:itemKey` */
+      key: string;
+      title: string;
+      connector: string;
+      itemKey: string;
+    };
+
 export interface ParseResult<T extends BaseResult> {
   results: T[];
   error: string | null;

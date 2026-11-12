@@ -406,7 +406,7 @@ async function createLocalLink(
 /**
  * Gets the link type object and validates link description is allowed.
  */
-function getLinkTypeWithValidation(
+export function getLinkTypeWithValidation(
   checkout: Checkout,
   linkType: string,
   linkDescription?: string,

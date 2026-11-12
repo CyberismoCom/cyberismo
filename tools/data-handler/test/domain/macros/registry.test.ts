@@ -170,6 +170,72 @@ describe('macros', () => {
         expect(result).not.toContain('<create-cards');
       });
     });
+    describe('createLinks', () => {
+      const query =
+        'result(X) :- projectCard(X).\nselect(1, "results", "title").';
+      const linksAdoc = (body: string, q: string) => `
+{{#createLinks}}
+  ${body},
+  "query": {{#quoted}}
+${q}
+{{/quoted}}
+{{/createLinks}}`;
+      const run = (mode: Mode, body: string, q = query) =>
+        evaluateMacros(linksAdoc(body, q), {
+          mode,
+          checkout,
+          cardKey: '',
+          context: 'localApp',
+        });
+      const valid = '"linkType": "decision/linkTypes/testTypes"';
+
+      it.each(['static', 'staticSite'] as const)(
+        'renders nothing in %s mode',
+        async (mode) => {
+          expect((await run(mode, valid)).trim()).toBe('');
+        },
+      );
+
+      it('passes the query through quoted in the placeholder', async () => {
+        const result = await run('inject', valid);
+        expect(result).toContain('<create-links');
+        const options = /options="([^"]*)"/.exec(result)![1];
+        expect(
+          JSON.parse(Buffer.from(options, 'base64').toString('utf-8')),
+        ).toEqual({ linkType: 'decision/linkTypes/testTypes', query });
+      });
+
+      it.each([
+        [
+          'unknown link type',
+          '"linkType": "decision/linkTypes/nope"',
+          /does not exist/,
+        ],
+        [
+          'description on a link type that does not allow one',
+          `${valid}, "linkDescription": "why"`,
+          /does not allow link description/,
+        ],
+        ['an empty query', valid, /query/, ''],
+      ])('rejects %s', async (_, body, message, q = query) => {
+        await expect(run('validate', body, q)).rejects.toThrow(message);
+      });
+
+      it('shows a macro error instead of the button when viewed', async () => {
+        const result = await run(
+          'inject',
+          '"linkType": "decision/linkTypes/nope"',
+        );
+        expect(result).not.toContain('<create-links');
+        expect(result).toMatch(/does not exist/);
+      });
+
+      it('accepts an empty description', async () => {
+        await expect(
+          run('validate', `${valid}, "linkDescription": ""`),
+        ).resolves.toBeDefined();
+      });
+    });
     describe('raw', () => {
       it('raw macro (success)', async () => {
         const macro = `{{#scoreCard}}"title": "Open issues", "value": 0 {{/scoreCard}}`;
