@@ -7,8 +7,14 @@ import { tmpdir } from 'node:os';
 import { delimiter, join } from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { AsciidoctorPdfError } from '../../../src/api/export.js';
+import { AsciidoctorPdfError, Export } from '../../../src/api/export.js';
 import { projects } from '../cards/fixture.js';
+import {
+  hiddenCaseSpec,
+  hiddenCases,
+  keyOf,
+  titlesOf,
+} from './hidden-cases.js';
 
 const open = projects();
 
@@ -222,6 +228,37 @@ describe.skipIf(!installed && !process.env.CI)('export.pdf', () => {
       },
       SPAWN_TIMEOUT,
     );
+  });
+});
+
+// The cards the report query puts in the document, read from the AsciiDoc
+// source; asciidoctor-pdf itself is not run.
+describe('export.pdf cards', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it.each(hiddenCases)('$name', async ({ hidden, start, exported }) => {
+    const { ws, keys } = await open(hiddenCaseSpec(hidden));
+    const run = vi
+      .spyOn(
+        Export.prototype as unknown as {
+          runAsciidoctorPdf: (content: string) => Promise<unknown>;
+        },
+        'runAsciidoctorPdf',
+      )
+      .mockResolvedValue({ pdf: Buffer.from(''), warnings: [] });
+
+    await ws.export.pdf(
+      start ? { cardKey: keyOf(keys, start), recursive: true } : {},
+    );
+
+    const source = run.mock.calls[0][0];
+    // Each card starts at its anchor.
+    const cardKeys = [...source.matchAll(/^\[\[(\S+)\]\]$/gm)].map(
+      (match) => match[1],
+    );
+    expect(titlesOf(keys, cardKeys)).toEqual([...exported].sort());
   });
 });
 

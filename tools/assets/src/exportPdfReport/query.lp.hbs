@@ -2,7 +2,10 @@
 result({{cardKey}}).
 
 {{#if recursive}}
-result(Card) :- parent(Card, Parent), result(Parent).
+% From a visible start card its hidden descendants are left out; from a hidden
+% one (itself or through an ancestor) its whole subtree is exported.
+result(Card) :- parent(Card, Parent), result(Parent), not hiddenInTreeView(Card).
+result(Card) :- parent(Card, Parent), result(Parent), hiddenInTreeView({{cardKey}}).
 {{/if}}
 
 {{else}}
