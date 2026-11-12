@@ -2,18 +2,25 @@
 {{#if cardKey}}
 exported({{cardKey}}).
 
+% A card is hidden in this export when it is hidden from the tree view and the
+% start card is not: from a hidden start card (itself or through an ancestor)
+% nothing in its subtree is hidden.
+exportHidden(Card) :- hiddenInTreeView(Card), not hiddenInTreeView({{cardKey}}).
+
 {{#if recursive}}
-% From a visible start card its hidden descendants are left out; from a hidden
-% one (itself or through an ancestor) its whole subtree is exported.
-exported(Card) :- parent(Card, Parent), exported(Parent), not hiddenInTreeView(Card).
-exported(Card) :- parent(Card, Parent), exported(Parent), hiddenInTreeView({{cardKey}}).
+exported(Card) :- parent(Card, Parent), exported(Parent){{#unless includeHidden}}, not exportHidden(Card){{/unless}}.
 {{/if}}
 
 {{else}}
-exported(Card) :- projectCard(Card), not hiddenInTreeView(Card).
+exportHidden(Card) :- hiddenInTreeView(Card).
+exported(Card) :- projectCard(Card){{#unless includeHidden}}, not exportHidden(Card){{/unless}}.
 {{/if}}
 
 result(Card) :- exported(Card).
+
+% Hidden cards are only exported when asked to, and then they are marked
+resultField(Card, "isHidden", true, "boolean") :- exported(Card), exportHidden(Card).
+resultField(Card, "isHidden", false, "boolean") :- exported(Card), not exportHidden(Card).
 
 % Calculate depth levels; an exported card whose parent is not exported is at the top
 cardLevel(Card, 1) :- exported(Card), not exported(Parent) : parent(Card, Parent).
@@ -148,6 +155,7 @@ select(1, "policyChecks").
 select(1, "labels").
 select(1, "levelOffset").
 select(1, "treePath").
+select(1, "isHidden").
 
 % Fields
 select(2, "fields", "key").

@@ -34,8 +34,8 @@ const spec = {
   ],
 };
 
-// The section headings of the document, from its outline, without their numbers.
-const headings = (pdf: Uint8Array) =>
+// The section headings of the document as its outline numbers them.
+const outline = (pdf: Uint8Array) =>
   [
     ...Buffer.from(pdf)
       .toString('latin1')
@@ -43,8 +43,11 @@ const headings = (pdf: Uint8Array) =>
   ]
     .map((match) => Buffer.from(match[1], 'hex').swap16().toString('utf16le'))
     .slice(1) // the document title
-    .filter((heading) => heading !== 'Table of Contents')
-    .map((heading) => heading.replace(/^[\d.]+ /, ''));
+    .filter((heading) => heading !== 'Table of Contents');
+
+// The section headings of the document, without their numbers.
+const headings = (pdf: Uint8Array) =>
+  outline(pdf).map((heading) => heading.replace(/^[\d.]+ /, ''));
 
 const info = (pdf: Uint8Array, field: 'Title' | 'Author') =>
   new RegExp(`/${field} \\(([^)]*)\\)`).exec(
@@ -94,6 +97,53 @@ describe.skipIf(!installed && !process.env.CI)('export.pdf', () => {
         'Top',
         'Sub',
       ]);
+    },
+    SPAWN_TIMEOUT,
+  );
+
+  it(
+    'holds the hidden cards when asked, unnumbered and out of the table of contents and bookmarks',
+    async () => {
+      const { ws, keys } = await open({
+        cards: [
+          {
+            title: 'Top',
+            children: [
+              { title: 'Kid' },
+              {
+                title: 'Gone',
+                content: '== Gone detail\n\nText.',
+                children: [{ title: 'Gone leaf' }],
+              },
+              { title: 'After' },
+            ],
+          },
+          { title: 'Other' },
+        ],
+        calculations: {
+          hide: 'hiddenInTreeView(C) :- field(C, "title", "Gone").\n',
+        },
+      });
+      const [, kid, gone, goneLeaf] = keys;
+
+      const { pdf, warnings } = await ws.export.pdf({ includeHidden: true });
+
+      // Numbered without a gap where the hidden cards are
+      expect(outline(pdf)).toEqual([
+        '1. Top',
+        '1.1. Kid',
+        '1.2. After',
+        '2. Other',
+      ]);
+      // A card in the document has a named destination; the table of contents
+      // and the bookmarks link to it.
+      const bytes = Buffer.from(pdf).toString('latin1');
+      for (const key of [gone, goneLeaf]) {
+        expect(bytes).toMatch(new RegExp(`\\(${key}\\) \\d+ 0 R`));
+        expect(bytes).not.toContain(`/Dest (${key})`);
+      }
+      expect(bytes).toContain(`/Dest (${kid})`);
+      expect(warnings).toEqual([]);
     },
     SPAWN_TIMEOUT,
   );
@@ -254,17 +304,32 @@ describe('export.pdf cards', () => {
 
   it.each(hiddenCases)(
     '$name',
-    async ({ hidden, start, recursive = true, exported }) => {
+    async ({
+      hidden,
+      start,
+      recursive = true,
+      includeHidden,
+      exported,
+      markedHidden = [],
+    }) => {
       const { ws, keys } = await open(hiddenCaseSpec(hidden));
 
       const source = await sourceOf(() =>
-        ws.export.pdf(start ? { cardKey: keyOf(keys, start), recursive } : {}),
+        ws.export.pdf({
+          ...(start ? { cardKey: keyOf(keys, start), recursive } : {}),
+          includeHidden,
+        }),
       );
-      // Each card starts at its anchor.
-      const cardKeys = [...source.matchAll(/^\[\[(\S+)\]\]$/gm)].map(
-        (match) => match[1],
-      );
-      expect(titlesOf(keys, cardKeys)).toEqual([...exported].sort());
+      // Each card starts at its anchor, a hidden one after its attribute list.
+      const anchors = (pattern: RegExp) =>
+        titlesOf(
+          keys,
+          [...source.matchAll(pattern)].map((match) => match[1]),
+        );
+      expect(anchors(/^\[\[(\S+)\]\]$/gm)).toEqual([...exported].sort());
+      expect(
+        anchors(/^\[toclevels=0,outlinelevels=0\]\n+\[\[(\S+)\]\]$/gm),
+      ).toEqual([...markedHidden].sort());
     },
   );
 

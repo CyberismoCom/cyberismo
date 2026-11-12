@@ -5,6 +5,7 @@
 // site and adoc exports (tree query and exportedTree) and the PDF export (its
 // report query) each implement the rule, so all run this one table. The adoc
 // export always holds the descendants, so it skips the rows that leave them out.
+// With includeHidden the hidden cards are exported too, marked as hidden.
 
 import type { CardSpec, ProjectSpec } from '../../helpers/project-builder.js';
 
@@ -37,8 +38,12 @@ export interface HiddenCase {
   start?: string;
   /** Whether an export from a card holds its descendants; by default it does. */
   recursive?: boolean;
+  /** Whether the hidden cards are exported too; by default they are not. */
+  includeHidden?: boolean;
   /** The titles of the exported cards. */
   exported: string[];
+  /** The titles of the exported cards marked as hidden; by default none. */
+  markedHidden?: string[];
 }
 
 export const hiddenCases: HiddenCase[] = [
@@ -84,6 +89,28 @@ export const hiddenCases: HiddenCase[] = [
     name: 'an export from a hidden card holds a descendant hidden on its own too',
     hidden: ['Hid', 'HidLeaf'],
     start: 'Hid',
+    exported: ['Hid', 'HidMid', 'HidLeaf'],
+  },
+  {
+    name: 'a project export with hidden cards holds them and their descendants, marked',
+    hidden: ['Gone', 'Hid'],
+    includeHidden: true,
+    exported: titles,
+    markedHidden: ['Gone', 'GoneLeaf', 'Hid', 'HidMid', 'HidLeaf'],
+  },
+  {
+    name: 'an export with hidden cards from a visible card holds its hidden child, marked',
+    hidden: ['Gone'],
+    start: 'Top',
+    includeHidden: true,
+    exported: ['Top', 'Kid', 'Gone', 'GoneLeaf'],
+    markedHidden: ['Gone', 'GoneLeaf'],
+  },
+  {
+    name: 'an export with hidden cards from a hidden card marks none of its subtree',
+    hidden: ['Hid', 'HidLeaf'],
+    start: 'Hid',
+    includeHidden: true,
     exported: ['Hid', 'HidMid', 'HidLeaf'],
   },
 ];

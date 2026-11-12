@@ -123,12 +123,15 @@ export type DotSchemaContent = DotSchemaItem[];
  * @param cardKey - Key of the card to be exported.
  * @param recursive - Whether to export recursively ie. export all cards below the given card.
  * @param revremark - Revision remark of the exported document.
+ * @param includeHidden - Whether cards hidden from the tree view are exported too,
+ *   unnumbered and left out of the table of contents and bookmarks; defaults to false.
  */
 export interface ExportPdfOptions {
   name?: string;
   title?: string;
   date?: string;
   cardKey?: string;
+  includeHidden?: boolean;
   recursive?: boolean;
   revremark?: string;
   version?: string;

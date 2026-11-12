@@ -376,7 +376,9 @@ export class Export {
 
   /**
    * Renders the card(s) as a PDF, with its rendering warnings. Unset document
-   * fields default to Title, Name, 1.0.0, Initial version and today.
+   * fields default to Title, Name, 1.0.0, Initial version and today. Hidden
+   * cards are left out unless includeHidden is set; then they are unnumbered
+   * and left out of the table of contents and bookmarks.
    * @throws AsciidoctorPdfError when asciidoctor-pdf fails; its diagnostics
    *   stay off the message.
    */
@@ -388,6 +390,7 @@ export class Export {
       name: options.name || 'Name',
       version: options.version || '1.0.0',
       revremark: options.revremark || 'Initial version',
+      includeHidden: options.includeHidden ?? false,
       date: options.date ? new Date(options.date) : new Date(),
     });
   }
@@ -396,9 +399,13 @@ export class Export {
    * The card(s) as an AsciiDoc document with its attachments, by path:
    * 'index.adoc' and 'a/<file name>'.
    * @param cardKey If not exporting the whole card tree, card key of parent card.
+   * @param options.includeHidden Export the hidden cards too.
    */
   @read
-  public async adoc(cardKey?: string): Promise<AdocFiles> {
+  public async adoc(
+    cardKey?: string,
+    options: { includeHidden?: boolean } = {},
+  ): Promise<AdocFiles> {
     // An unknown key is refused before it reaches the logic program.
     if (cardKey) findCard(this.checkout, cardKey);
 
@@ -408,7 +415,7 @@ export class Export {
         'exportedDocument',
         cardKey ? { cardKey, recursive: true } : {},
       ),
-      { cardKey },
+      { cardKey, includeHidden: options.includeHidden },
     );
     let cards: CardWithChildrenCards[] = [];
     for (const treeQueryResult of tree) {
