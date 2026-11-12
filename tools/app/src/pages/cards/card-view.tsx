@@ -43,14 +43,14 @@ export default function Page() {
 
   const {
     card: cardData,
-    error: dataError,
+    loadError: dataError,
     createLink,
     deleteLink,
     editLink,
     updateCard,
   } = useCard(key);
-  const { cardContent, error: contentError } = useCardContent(key);
-  const { cardSource, error: sourceError } = useCardSource(key);
+  const { cardContent, loadError: contentError } = useCardContent(key);
+  const { cardSource, loadError: sourceError } = useCardSource(key);
   const error = dataError ?? contentError ?? sourceError;
 
   const card = useMemo(

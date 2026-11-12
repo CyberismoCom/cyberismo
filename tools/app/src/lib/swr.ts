@@ -1,10 +1,12 @@
 // SPDX-FileCopyrightText: Cyberismo Ltd and contributors
 // SPDX-License-Identifier: AGPL-3.0-only
 
-import type { SWRConfiguration } from 'swr';
+import type { Cache, SWRConfiguration } from 'swr';
+import i18n from 'i18next';
 import { getConfig } from './utils';
 import { store } from './store';
 import { setSessionExpired } from './slices/session';
+import { addNotification, removeNotification } from './slices/notifications';
 
 /**
  * Resolves the project prefix from the URL if not explicitly provided.
@@ -123,6 +125,18 @@ export class ApiCallError extends Error {
   }
 }
 
+/**
+ * The failure a view should show in its place: the first load failed, or the
+ * resource is gone (404). A failed refresh leaves the last data on screen,
+ * along with any unsaved edits over it; SWR retries on its own.
+ */
+export function loadError<E>(error: E, hasData: boolean): E | undefined {
+  if (!hasData) return error;
+  return error instanceof ApiCallError && error.response.status === 404
+    ? error
+    : undefined;
+}
+
 export async function createApiCallError(
   response: Response,
 ): Promise<ApiCallError> {
@@ -196,9 +210,36 @@ export const fetcher = async function (...args: Parameters<typeof fetch>) {
   return handleResponse(await fetch(...args));
 };
 
+// One notice per outage: every mounted key fails at once and each retries, so
+// later failures add nothing, and any answer from the backend ends the outage.
+let staleNotice: string | null = null;
+
+function refreshFailed(error: unknown, key: string, cache: Cache) {
+  const hasData = cache.get(key)?.data !== undefined;
+  // Without data, or once the resource is gone, the view shows the error.
+  if (staleNotice || loadError(error, hasData)) return;
+  staleNotice = store.dispatch(
+    addNotification({
+      message: i18n.t('refreshFailed'),
+      type: 'warning',
+      disableAutoClose: true,
+    }),
+  ).payload.id;
+}
+
+function refreshSucceeded() {
+  if (!staleNotice) return;
+  store.dispatch(removeNotification(staleNotice));
+  staleNotice = null;
+}
+
 // used to configure swr on a global level
 export function getSwrConfig(): SWRConfiguration {
   return {
+    // SWR hands the callbacks its full configuration, cache included.
+    onError: (error, key, config) =>
+      refreshFailed(error, key, (config as unknown as { cache: Cache }).cache),
+    onSuccess: refreshSucceeded,
     fetcher: getConfig().staticMode
       ? async function (...args: Parameters<typeof fetch>) {
           if (typeof args[0] === 'string') {

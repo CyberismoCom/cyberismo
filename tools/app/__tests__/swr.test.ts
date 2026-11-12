@@ -1,8 +1,15 @@
 // SPDX-FileCopyrightText: Cyberismo Ltd and contributors
 // SPDX-License-Identifier: AGPL-3.0-only
 
-import { describe, it, expect } from 'vitest';
-import { globalApiPaths, projectApiPaths } from '@/lib/swr';
+import { describe, it, expect, beforeEach } from 'vitest';
+import type { Cache } from 'swr';
+import {
+  ApiCallError,
+  getSwrConfig,
+  globalApiPaths,
+  projectApiPaths,
+} from '@/lib/swr';
+import { store } from '@/lib/store';
 
 describe('globalApiPaths', () => {
   it('returns /api/projects for projects()', () => {
@@ -107,5 +114,45 @@ describe('projectApiPaths', () => {
       expect(pathsA.tree()).toBe('/api/projects/AAA/tree');
       expect(pathsB.tree()).toBe('/api/projects/BBB/tree');
     });
+  });
+});
+
+describe('refresh failure notice', () => {
+  const { onError, onSuccess } = getSwrConfig();
+  const cache = new Map([
+    ['/loaded', { data: 'last' }],
+    ['/other', { data: 'last' }],
+  ]) as unknown as Cache;
+  const config = { cache } as never;
+  const fail = (key: string, error: unknown = new TypeError('down')) =>
+    onError!(error, key, config);
+  const succeed = (key = '/loaded') => onSuccess!(undefined, key, config);
+  const notices = () => store.getState().notifications.notifications;
+
+  beforeEach(() => succeed());
+
+  it('shows one notice per outage and clears it once the backend answers', () => {
+    fail('/loaded');
+    fail('/other');
+    fail('/loaded');
+    expect(notices()).toHaveLength(1);
+
+    succeed('/other');
+    expect(notices()).toHaveLength(0);
+
+    fail('/loaded');
+    expect(notices()).toHaveLength(1);
+  });
+
+  it.each([
+    ['a first load fails', '/never-loaded', new TypeError('down')],
+    [
+      'a loaded resource is gone',
+      '/loaded',
+      new ApiCallError(new Response(null, { status: 404 })),
+    ],
+  ])('shows nothing when %s, since the view shows it', (_, key, error) => {
+    fail(key, error);
+    expect(notices()).toHaveLength(0);
   });
 });

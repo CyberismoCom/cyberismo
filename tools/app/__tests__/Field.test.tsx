@@ -40,7 +40,7 @@ vi.mock('swr', async (importOriginal) => ({
 
 vi.mock('@/lib/api', async (importOriginal) => ({
   ...(await importOriginal<typeof ApiModule>()),
-  useCard: (key: string) => ({ card: cards[key], error: errors[key] }),
+  useCard: (key: string) => ({ card: cards[key], loadError: errors[key] }),
   useCardMutations: (key: string) => ({
     ...mutations[key],
     isUpdating: () => false,

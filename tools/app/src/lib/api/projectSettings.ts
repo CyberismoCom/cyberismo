@@ -65,6 +65,8 @@ export const useModuleVersions = (
       revalidateOnFocus: false,
       revalidateOnReconnect: false,
       shouldRetryOnError: false,
+      // The install modal shows a failed listing itself.
+      onError: () => {},
     },
   );
 

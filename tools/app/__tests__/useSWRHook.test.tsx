@@ -11,8 +11,8 @@ import rootReducer from '@/lib/slices';
 import { ApiCallError } from '@/lib/swr';
 import { useSWRHook } from '@/lib/api/common';
 
-// INTDEV-1512: views replace themselves with `error`, so a failed refresh must
-// not surface there while the last data is still on screen.
+// Views replace themselves with `loadError`, so a failed refresh must not
+// surface there while the last data is still on screen.
 
 const notFound = new ApiCallError(new Response(null, { status: 404 }));
 const serverError = new ApiCallError(new Response(null, { status: 500 }));
@@ -49,23 +49,21 @@ async function refresh(result: ReturnType<typeof renderTree>) {
   });
 }
 
-describe('useSWRHook error', () => {
+describe('useSWRHook loadError', () => {
   it('is the failure when the first load fails', async () => {
     const result = renderTree([serverError]);
-    await waitFor(() => expect(result.current.error).toBe(serverError));
+    await waitFor(() => expect(result.current.loadError).toBe(serverError));
     expect(result.current.tree).toBeUndefined();
   });
 
-  it.each([
-    ['a server error', serverError],
-    ['a network drop', networkDrop],
-  ])('stays unset when a refresh hits %s', async (_, failure) => {
-    const result = renderTree([tree, failure]);
+  it('stays unset when a refresh fails, while error still reports it', async () => {
+    const result = renderTree([tree, networkDrop]);
     await waitFor(() => expect(result.current.tree).toEqual(tree));
 
     await refresh(result);
 
-    expect(result.current.error).toBeUndefined();
+    expect(result.current.loadError).toBeUndefined();
+    expect(result.current.error).toBe(networkDrop);
     expect(result.current.tree).toEqual(tree);
   });
 
@@ -75,6 +73,6 @@ describe('useSWRHook error', () => {
 
     await refresh(result);
 
-    expect(result.current.error).toBe(notFound);
+    expect(result.current.loadError).toBe(notFound);
   });
 });
