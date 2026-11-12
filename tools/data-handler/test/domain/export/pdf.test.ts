@@ -101,30 +101,33 @@ describe.skipIf(!installed && !process.env.CI)('export.pdf', () => {
     SPAWN_TIMEOUT,
   );
 
+  // Early, the first chapter, and Gone, with Gone leaf, are hidden.
+  const hiddenSpec = {
+    cards: [
+      { title: 'Early' },
+      {
+        title: 'Top',
+        children: [
+          { title: 'Kid' },
+          {
+            title: 'Gone',
+            children: [{ title: 'Gone leaf' }],
+          },
+          { title: 'After' },
+        ],
+      },
+      { title: 'Other' },
+    ],
+    calculations: {
+      hide: 'hiddenInTreeView(C) :- field(C, "title", "Early").\nhiddenInTreeView(C) :- field(C, "title", "Gone").\n',
+    },
+  };
+
   it(
     'holds the hidden cards when asked, unnumbered and out of the table of contents and bookmarks',
     async () => {
-      const { ws, keys } = await open({
-        cards: [
-          {
-            title: 'Top',
-            children: [
-              { title: 'Kid' },
-              {
-                title: 'Gone',
-                content: '== Gone detail\n\nText.',
-                children: [{ title: 'Gone leaf' }],
-              },
-              { title: 'After' },
-            ],
-          },
-          { title: 'Other' },
-        ],
-        calculations: {
-          hide: 'hiddenInTreeView(C) :- field(C, "title", "Gone").\n',
-        },
-      });
-      const [, kid, gone, goneLeaf] = keys;
+      const { ws, keys } = await open(hiddenSpec);
+      const [early, , kid, gone, goneLeaf] = keys;
 
       const { pdf, warnings } = await ws.export.pdf({ includeHidden: true });
 
@@ -136,13 +139,31 @@ describe.skipIf(!installed && !process.env.CI)('export.pdf', () => {
         '2. Other',
       ]);
       // A card in the document has a named destination; the table of contents
-      // and the bookmarks link to it.
+      // and the bookmarks each link to it.
       const bytes = Buffer.from(pdf).toString('latin1');
-      for (const key of [gone, goneLeaf]) {
-        expect(bytes).toMatch(new RegExp(`\\(${key}\\) \\d+ 0 R`));
-        expect(bytes).not.toContain(`/Dest (${key})`);
+      const links = (id: string) => bytes.split(`/Dest (${id})`).length - 1;
+      for (const id of [early, gone, goneLeaf]) {
+        expect(bytes).toMatch(new RegExp(`\\(${id}\\) \\d+ 0 R`));
+        expect(links(id)).toBe(0);
       }
-      expect(bytes).toContain(`/Dest (${kid})`);
+      expect(links(kid)).toBe(2);
+      expect(warnings).toEqual([]);
+    },
+    SPAWN_TIMEOUT,
+  );
+
+  it(
+    'numbers an export from a hidden card and its subtree as visible chapters',
+    async () => {
+      const { ws, keys } = await open(hiddenSpec);
+
+      const { pdf, warnings } = await ws.export.pdf({
+        cardKey: keys[3],
+        recursive: true,
+        includeHidden: true,
+      });
+
+      expect(outline(pdf)).toEqual(['1. Gone', '1.1. Gone leaf']);
       expect(warnings).toEqual([]);
     },
     SPAWN_TIMEOUT,
