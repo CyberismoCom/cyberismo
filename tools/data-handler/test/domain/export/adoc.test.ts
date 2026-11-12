@@ -4,6 +4,12 @@
 import { describe, expect, it } from 'vitest';
 
 import { expectRefused, projects, snapshot } from '../cards/fixture.js';
+import {
+  hiddenCaseSpec,
+  hiddenCases,
+  keyOf,
+  titlesOf,
+} from './hidden-cases.js';
 
 const open = projects();
 
@@ -123,6 +129,19 @@ describe('export.adoc', () => {
     await ws.cards.edit(keys[3], 'Edited body.');
 
     expect(text(await ws.export.adoc())).toContain('Edited body.');
+  });
+
+  it.each(hiddenCases)('$name', async ({ hidden, start, exported }) => {
+    const { ws, keys } = await open(hiddenCaseSpec(hidden));
+
+    const adoc = text(
+      await ws.export.adoc(start ? keyOf(keys, start) : undefined),
+    );
+
+    const cardKeys = [...adoc.matchAll(/^\|Card key\|(\S+)$/gm)].map(
+      (match) => match[1],
+    );
+    expect(titlesOf(keys, cardKeys)).toEqual([...exported].sort());
   });
 
   it('refuses a card the project does not have, writing nothing', async () => {

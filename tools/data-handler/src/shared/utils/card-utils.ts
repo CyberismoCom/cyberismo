@@ -160,21 +160,66 @@ export const isExternalItemKey = (value: string) => value.includes(':');
 /**
  * Drops hidden cards, and with them their descendants, from a tree query result.
  * @param tree tree query result
- * @param keepRoots keep the top level nodes even when hidden (a query started from a given card),
- *        and mark them as not hidden. Their descendants inherit hiddenness, so a hidden
- *        start card is kept without its subtree.
  */
 export function omitHiddenCards(
   tree: QueryResult<'tree'>[],
-  keepRoots = false,
 ): QueryResult<'tree'>[] {
   return tree
-    .filter((node) => keepRoots || !node.isHidden)
+    .filter((node) => !node.isHidden)
     .map((node) => ({
       ...node,
-      // Every node left is shown, so a hidden root kept by keepRoots is no longer
-      // hidden for consumers that drop hidden nodes themselves (useVisibleTree).
-      isHidden: false,
       ...(node.children ? { children: omitHiddenCards(node.children) } : {}),
     }));
+}
+
+/**
+ * The cards an export holds, from the tree query run with the same options.
+ * A project export leaves out hidden cards. An export from a card holds the card
+ * and, as far as the query went, its subtree: when the card is visible, its hidden
+ * descendants are left out; when it is hidden (itself or through an ancestor), its
+ * whole subtree is exported. A card under a hidden start card that content hid
+ * separately is exported as well, since the tree query cannot tell it apart.
+ * Every card returned is shown, so it is marked as not hidden.
+ * @param tree tree query result; when exporting from a card, the query started from it
+ * @param options.cardKey the card the export starts from, if any
+ * @throws when the card the export starts from is not in the tree
+ */
+export function exportedTree(
+  tree: QueryResult<'tree'>[],
+  options: { cardKey?: string } = {},
+): QueryResult<'tree'>[] {
+  const shown = (
+    nodes: QueryResult<'tree'>[],
+    keepHidden: boolean,
+  ): QueryResult<'tree'>[] =>
+    nodes
+      .filter((node) => keepHidden || !node.isHidden)
+      .map((node) => ({
+        ...node,
+        isHidden: false,
+        ...(node.children
+          ? { children: shown(node.children, keepHidden) }
+          : {}),
+      }));
+
+  if (!options.cardKey) return shown(tree, false);
+  const start = findInTree(tree, options.cardKey);
+  if (!start) {
+    throw new Error(`Cannot find card '${options.cardKey}' in the card tree`);
+  }
+  // From a hidden start card nothing below it counts as hidden.
+  return shown([{ ...start, isHidden: false }], start.isHidden);
+}
+
+// The node with the given key, searched depth first.
+function findInTree(
+  nodes: QueryResult<'tree'>[],
+  key: string,
+): QueryResult<'tree'> | undefined {
+  for (const node of nodes) {
+    if (node.key === key) return node;
+    const found = findInTree(node.children ?? [], key);
+    if (found) return found;
+  }
+  return undefined;
 }

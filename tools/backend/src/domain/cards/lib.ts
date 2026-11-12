@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import type { QueryResult } from '@cyberismo/model';
-import { omitHiddenCards, type Workspace } from '@cyberismo/data-handler';
+import { exportedTree, type Workspace } from '@cyberismo/data-handler';
 import type { TreeOptions } from '../../types.js';
 
 /** Routes exported per card: data, content and source. */
@@ -18,9 +18,12 @@ export async function allCards(
   ws: Workspace,
   options?: TreeOptions,
 ): Promise<QueryResult<'tree'>[]> {
-  const fetchedCards = omitHiddenCards(
-    await ws.queries.runQuery('tree', 'exportedSite', options || {}),
-    !!options?.cardKey,
+  const fetchedCards = exportedTree(
+    await ws.queries.runQuery('tree', 'exportedSite', {
+      cardKey: options?.cardKey,
+      recursive: options?.recursive,
+    }),
+    { cardKey: options?.cardKey },
   );
 
   function flattenCards(cards: QueryResult<'tree'>[]): QueryResult<'tree'>[] {
