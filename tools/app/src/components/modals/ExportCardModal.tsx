@@ -118,7 +118,9 @@ const ExportModal = ({
           )}
           <FormControl>
             <Checkbox
-              checked={includeHidden}
+              // Hidden cards are descendants of the card, so only exported with them
+              disabled={!exportChildCards}
+              checked={includeHidden && exportChildCards}
               onChange={(e) => setIncludeHidden(e.target.checked)}
               label={t('exportIncludeHidden')}
             />
@@ -135,7 +137,7 @@ const ExportModal = ({
                 title,
                 name,
                 exportChildCards,
-                includeHidden,
+                includeHidden: includeHidden && exportChildCards,
                 ...(version && { version }),
               });
               handleClose();
