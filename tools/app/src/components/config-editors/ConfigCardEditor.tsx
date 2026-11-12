@@ -19,7 +19,7 @@ export function ConfigCardEditor({ node }: { node: AnyNode }) {
   const fieldTypes = useFieldTypes();
   const { t } = useTranslation();
 
-  const error = source.error ?? project.error ?? fieldTypes.error;
+  const error = source.loadError ?? project.loadError ?? fieldTypes.loadError;
   const cardType = project.project?.cardTypes.find(
     (c) => c.name === source.cardSource?.metadata?.cardType,
   );

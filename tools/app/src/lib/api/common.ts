@@ -6,20 +6,7 @@ import useSWR from 'swr';
 
 import type { Resources, ResourceName, SwrResult } from './types';
 import { useUpdating } from '../hooks';
-import { ApiCallError } from '../swr';
-
-/**
- * A failed request is reported as `error` only when there is nothing to show:
- * the first load failed, or the resource is gone (404). A failed refresh keeps
- * the last data on screen, with any unsaved edits a view holds over it; SWR
- * retries on its own.
- */
-function viewError(error: unknown, hasData: boolean) {
-  if (!hasData) return error;
-  return error instanceof ApiCallError && error.response.status === 404
-    ? error
-    : undefined;
-}
+import { loadError } from '../swr';
 
 export function useSWRHook<T extends ResourceName, InitialData = null>(
   swrKey: string | null,
@@ -32,7 +19,8 @@ export function useSWRHook<T extends ResourceName, InitialData = null>(
 
   return {
     ...rest,
-    error: viewError(error, data !== undefined),
+    error,
+    loadError: loadError(error, data !== undefined),
     [name]: data || initialData,
     isUpdating,
     callUpdate: <T>(fn: () => Promise<T>, key2?: string): Promise<T> =>
