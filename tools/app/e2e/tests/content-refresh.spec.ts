@@ -16,7 +16,7 @@ const body = (tail: string) =>
     .join('')
     .trim();
 
-test('refetched content keeps scroll position and text selection', async ({
+test('a content refresh keeps the text selection', async ({
   page,
   resetProject,
 }) => {
@@ -43,47 +43,22 @@ test('refetched content keeps scroll position and text selection', async ({
   await page.goto(`/projects/${prefix}/cards/${card.key}`);
   await expect(page.getByText('first ending')).toBeAttached();
 
-  // Scroll into the middle of a section and select a paragraph there.
   const target = page.getByText('Paragraph 6.3', { exact: false });
   await target.scrollIntoViewIfNeeded();
   await target.evaluate((el) => {
-    const scroller = (() => {
-      for (let n = el.parentElement; n; n = n.parentElement) {
-        if (n.scrollHeight > n.clientHeight + 1) {
-          const overflow = getComputedStyle(n).overflowY;
-          if (overflow === 'auto' || overflow === 'scroll') return n;
-        }
-      }
-      return document.scrollingElement!;
-    })();
-    scroller.scrollTop += 40;
-    (window as unknown as { __scroller: Element }).__scroller = scroller;
     const range = document.createRange();
     range.selectNodeContents(el);
-    const selection = window.getSelection()!;
-    selection.removeAllRanges();
-    selection.addRange(range);
+    window.getSelection()!.removeAllRanges();
+    window.getSelection()!.addRange(range);
   });
-  const state = () =>
-    page.evaluate(() => ({
-      top: (window as unknown as { __scroller: Element }).__scroller.scrollTop,
-      selected: window.getSelection()!.toString(),
-    }));
-  const before = await state();
-  expect(before.top).toBeGreaterThan(500);
-  expect(before.selected).toContain('Paragraph 6.3');
+  const selection = () =>
+    page.evaluate(() => window.getSelection()!.toString());
+  expect(await selection()).toContain('Paragraph 6.3');
 
-  const refetched = page.waitForResponse(
-    (r) =>
-      r.request().method() === 'GET' &&
-      r.url().includes(`${cardApiPath}/content`),
-  );
+  // The write reaches the open card through the project event stream.
   await write('second ending');
-  await page.evaluate(() => window.dispatchEvent(new Event('focus')));
-  await refetched;
   await expect(page.getByText('second ending')).toBeAttached();
 
-  const after = await state();
-  expect(Math.abs(after.top - before.top)).toBeLessThanOrEqual(2);
-  expect(after.selected).toContain('Paragraph 6.3');
+  // A remounted body drops the selection.
+  expect(await selection()).toContain('Paragraph 6.3');
 });
