@@ -11,6 +11,11 @@ import { cardNode } from '../cards/read.js';
 // '[' that isn't a bracket. Label may be empty.
 const NATIVE_CARD_XREF = /xref:([\w-]+)\.adoc(#[^[\]]+)?\[([^\]]*)\]/g;
 
+/** The warning for links to a card that is not part of an export. */
+export function notExportedWarning(cardKey: string): string {
+  return `card "${cardKey}" is not part of this export; links to it are rendered as text`;
+}
+
 type RewriteMode = 'inject' | 'staticSite' | 'static';
 
 function isRewriteMode(mode: Mode): mode is RewriteMode {
@@ -29,13 +34,19 @@ function isRewriteMode(mode: Mode): mode is RewriteMode {
  *   for each card in the PDF source.
  * - any other mode → content returned unchanged.
  *
- * Unresolvable targets are reported through `onWarning`.
+ * In `static` and `staticSite` mode, a card that is not in `exported` has no
+ * page or anchor in the export, so its xref becomes plain text: the label, or
+ * else the card's title. An undefined `exported` means the whole project.
+ *
+ * Unresolvable targets, and targets left out of the export, are reported
+ * through `onWarning`, once per target.
  */
 export function rewriteAsciidocCardXrefs(
   content: string,
   checkout: Checkout,
   mode: Mode,
   onWarning: (message: string) => void = console.warn,
+  exported?: ReadonlySet<string>,
 ): string {
   if (!isRewriteMode(mode)) {
     return content;
@@ -43,6 +54,7 @@ export function rewriteAsciidocCardXrefs(
 
   const warned = new Set<string>();
   const anchorDropWarned = new Set<string>();
+  const notExportedWarned = new Set<string>();
 
   return content.replace(
     NATIVE_CARD_XREF,
@@ -63,6 +75,14 @@ export function rewriteAsciidocCardXrefs(
           );
         }
         return match;
+      }
+
+      if (mode !== 'inject' && exported && !exported.has(cardKey)) {
+        if (!notExportedWarned.has(cardKey)) {
+          notExportedWarned.add(cardKey);
+          onWarning(notExportedWarning(cardKey));
+        }
+        return label !== '' ? label : (card.metadata?.title ?? cardKey);
       }
 
       if (mode === 'static') {

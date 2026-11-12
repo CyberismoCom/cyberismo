@@ -16,7 +16,10 @@ import type {
   QueryResult,
 } from '@cyberismo/model';
 import { evaluateMacros } from '../domain/macros/index.js';
-import { generateReportContent } from '../domain/queries/index.js';
+import {
+  renderReportContent,
+  runReportQuery,
+} from '../domain/queries/index.js';
 import { preprocessMermaidBlocksForPdf } from '../shared/utils/mermaid-renderer.js';
 import { rewriteAsciidocCardXrefs } from '../domain/macros/index.js';
 import { getStaticDirectoryPath, pdfReport } from '@cyberismo/assets';
@@ -272,25 +275,34 @@ export class Export {
     }
   }
 
-  private async evaluateExportContent(options: PdfDocument): Promise<string> {
-    const result = await generateReportContent({
+  // The document's content, with the keys of the cards it holds.
+  private async evaluateExportContent(
+    options: PdfDocument,
+  ): Promise<{ content: string; exported: Set<string> }> {
+    const reportOptions = {
+      ...options,
+      date: options.date?.toISOString().split('T')[0],
+      recursive: options.recursive ?? false,
+    };
+    const result = await runReportQuery({
       calculate: this.checkout.calculationEngine,
-      contentTemplate: pdfReport.content,
       queryTemplate: pdfReport.query,
       context: 'exportedDocument',
-      options: {
-        ...options,
-        date: options.date?.toISOString().split('T')[0],
-        recursive: options.recursive ?? false,
+      options: reportOptions,
+    });
+    const evaluated = await evaluateMacros(
+      renderReportContent(pdfReport.content, reportOptions, result),
+      {
+        context: 'exportedDocument',
+        mode: 'static',
+        checkout: this.checkout,
+        cardKey: '', // top level report does not contain any macros that use cardKey
       },
-    });
-    const evaluated = await evaluateMacros(result, {
-      context: 'exportedDocument',
-      mode: 'static',
-      checkout: this.checkout,
-      cardKey: '', // top level report does not contain any macros that use cardKey
-    });
-    return evaluated;
+    );
+    return {
+      content: evaluated,
+      exported: new Set(result.results.map((card) => card.key)),
+    };
   }
 
   /**
@@ -346,19 +358,21 @@ export class Export {
   /**
    * Assembles the AsciiDoc source that will be handed to asciidoctor-pdf.
    * Runs macro evaluation, mermaid preprocessing, and native-xref rewriting in
-   * the order Asciidoctor expects.
+   * the order Asciidoctor expects. Xrefs and links to cards the document does
+   * not hold become plain text.
    */
   protected async buildPdfAsciidocSource(
     options: PdfDocument,
     onWarning?: (message: string) => void,
   ): Promise<string> {
-    const evaluated = await this.evaluateExportContent(options);
-    const withMermaid = await preprocessMermaidBlocksForPdf(evaluated);
+    const { content, exported } = await this.evaluateExportContent(options);
+    const withMermaid = await preprocessMermaidBlocksForPdf(content);
     return rewriteAsciidocCardXrefs(
       withMermaid,
       this.checkout,
       'static',
       onWarning,
+      exported,
     );
   }
 

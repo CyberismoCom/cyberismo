@@ -8,6 +8,7 @@ import { delimiter, join } from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { AsciidoctorPdfError, Export } from '../../../src/api/export.js';
+import { notExportedWarning } from '../../../src/api/render.js';
 import { projects } from '../cards/fixture.js';
 import {
   hiddenCaseSpec,
@@ -411,6 +412,53 @@ describe('export.pdf cards', () => {
       '== Gone',
       '=== GoneLeaf',
     ]);
+  });
+});
+
+// Links to a card the document does not hold, read from the AsciiDoc source.
+describe('export.pdf links outside the document', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('renders them as text and warns once', async () => {
+    // Top(Sub) links to Other.
+    const { ws, keys } = await open({
+      linkTypes: [{ name: 'rel' }],
+      cards: [
+        {
+          title: 'Top',
+          links: [{ linkType: 'rel', to: 2 }],
+          children: [{ title: 'Sub' }],
+        },
+        { title: 'Other' },
+      ],
+    });
+    const [, sub, other] = keys;
+    await ws.cards.edit(
+      keys[0],
+      `See xref:${other}.adoc[that], xref:${other}.adoc[], ` +
+        `{{#xref}}"cardKey": "${other}"{{/xref}} and xref:${sub}.adoc[Sub].`,
+    );
+    const run = vi
+      .spyOn(
+        Export.prototype as unknown as {
+          runAsciidoctorPdf: (content: string) => Promise<unknown>;
+        },
+        'runAsciidoctorPdf',
+      )
+      .mockResolvedValue({ pdf: Buffer.from(''), warnings: [] });
+
+    const { warnings } = await ws.export.pdf({
+      cardKey: keys[0],
+      recursive: true,
+    });
+
+    const source: string = run.mock.calls[0][0];
+    expect(source).toContain(`See that, Other, Other and <<${sub},Sub>>.`);
+    expect(source).toMatch(/^\| rel out \| Other$/m);
+    expect(source).not.toContain(other);
+    expect(warnings).toEqual([notExportedWarning(other)]);
   });
 });
 

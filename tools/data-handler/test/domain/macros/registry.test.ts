@@ -1088,7 +1088,7 @@ Some content here`;
       [
         {
           mode: 'static',
-          expected: '<<xref-test-card>>',
+          expected: 'xref:xref-test-card.adoc[]',
         },
         {
           mode: 'inject',
@@ -1096,7 +1096,7 @@ Some content here`;
         },
         {
           mode: 'staticSite',
-          expected: 'link:/cards/xref-test-card[Test Card for Cross Reference]',
+          expected: 'xref:xref-test-card.adoc[]',
         },
       ].forEach(({ mode, expected }) => {
         it(`xrefMacro ${mode} (success)`, async () => {

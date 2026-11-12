@@ -19,6 +19,9 @@ export default class XrefMacro extends BaseMacro {
     this.validate(input);
   };
 
+  // A native card xref: the xref rewriter that runs after the macros turns it
+  // into an anchor reference (PDF) or a card link (site), or into text when
+  // the card is not part of the export.
   handleStatic = async (
     context: MacroGenerationContext,
     input: unknown,
@@ -30,9 +33,10 @@ export default class XrefMacro extends BaseMacro {
       throw new Error(`Card key ${options.cardKey} not found`);
     }
 
-    // in static mode we need to use internal references
-    return `<<${options.cardKey}>>`;
+    return `xref:${options.cardKey}.adoc[]`;
   };
+
+  handleStaticSite = this.handleStatic;
 
   handleInject = async (context: MacroGenerationContext, input: unknown) => {
     const options = this.validate(input);

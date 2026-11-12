@@ -3,7 +3,10 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
-import { rewriteAsciidocCardXrefs } from '../../../src/domain/macros/asciidoc-xref.js';
+import {
+  notExportedWarning,
+  rewriteAsciidocCardXrefs,
+} from '../../../src/domain/macros/asciidoc-xref.js';
 import type { Checkout } from '../../../src/state/checkout/checkout.js';
 import type { CardNode } from '@cyberismo/model';
 import type { Mode } from '../../../src/shared/interfaces/macros.js';
@@ -160,6 +163,75 @@ describe('rewriteAsciidocCardXrefs', () => {
         'static',
       );
       expect(out).toBe('* <<docs_12,Demo>> * <<docs_2>>');
+    });
+  });
+
+  describe('a target that is not part of the export', () => {
+    const exported = new Set(['docs_12']);
+    it.each([
+      {
+        given: 'static, with a label',
+        mode: 'static',
+        exported,
+        input: 'See xref:docs_2.adoc[the tutorial].',
+        output: 'See the tutorial.',
+        warns: true,
+      },
+      {
+        given: 'static, with no label',
+        mode: 'static',
+        exported,
+        input: 'See xref:docs_2.adoc[].',
+        output: 'See Getting started tutorial.',
+        warns: true,
+      },
+      {
+        given: 'staticSite',
+        mode: 'staticSite',
+        exported,
+        input: 'See xref:docs_2.adoc#part[].',
+        output: 'See Getting started tutorial.',
+        warns: true,
+      },
+      {
+        given: 'an exported target',
+        mode: 'static',
+        exported,
+        input: 'See xref:docs_12.adoc[].',
+        output: 'See <<docs_12>>.',
+        warns: false,
+      },
+      {
+        given: 'no set',
+        mode: 'staticSite',
+        exported: undefined,
+        input: 'See xref:docs_2.adoc[].',
+        output:
+          'See link:/projects/docs/cards/docs_2[Getting started tutorial].',
+        warns: false,
+      },
+      {
+        given: 'inject',
+        mode: 'inject',
+        exported,
+        input: 'See xref:docs_2.adoc[].',
+        output:
+          'See link:/projects/docs/cards/docs_2[Getting started tutorial].',
+        warns: false,
+      },
+    ] as const)('$given', ({ mode, exported, input, output, warns }) => {
+      const warnings: string[] = [];
+      expect(
+        rewriteAsciidocCardXrefs(
+          `${input} ${input}`,
+          checkout,
+          mode,
+          (message) => warnings.push(message),
+          exported,
+        ),
+      ).toBe(`${output} ${output}`);
+      // Once for the two xrefs.
+      expect(warnings).toEqual(warns ? [notExportedWarning('docs_2')] : []);
     });
   });
 

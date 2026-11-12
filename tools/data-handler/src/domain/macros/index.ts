@@ -3,7 +3,10 @@
 
 /** The door of this domain: api/ imports it only through here. */
 
-export { rewriteAsciidocCardXrefs } from './asciidoc-xref.js';
+export {
+  notExportedWarning,
+  rewriteAsciidocCardXrefs,
+} from './asciidoc-xref.js';
 export { evaluateMacros } from './registry.js';
 export { default as ReportMacro } from './report/index.js';
 export { default as TaskQueue } from './task-queue.js';

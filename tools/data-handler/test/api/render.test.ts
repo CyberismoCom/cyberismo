@@ -55,7 +55,7 @@ describe('render', () => {
         'See {{#xref}}"cardKey": "decision_6"{{/xref}}.',
         options,
       ),
-    ).toEqual({ content: 'See <<decision_6>>.' });
+    ).toEqual({ content: 'See xref:decision_6.adoc[].' });
   });
 
   it.each([
