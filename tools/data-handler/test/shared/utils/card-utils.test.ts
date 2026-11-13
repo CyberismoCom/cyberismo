@@ -183,6 +183,10 @@ describe('exportedTree', () => {
   const hiddenFlags = (nodes: QueryResult<'tree'>[]): boolean[] =>
     nodes.flatMap((n) => [n.isHidden, ...hiddenFlags(n.children ?? [])]);
 
+  it('gives an empty tree for an empty tree', () => {
+    expect(exportedTree([], { cardKey: 'root' })).toEqual([]);
+  });
+
   it('marks every card it keeps as shown', () => {
     const tree = [node('root', true, [node('a', true)])];
 

@@ -186,7 +186,7 @@ export function exportedTree(
   if (!options.cardKey) return omitHiddenCards(tree);
   const [start] = tree;
   // From a hidden start card nothing in its subtree counts as hidden.
-  return start.isHidden ? keepShown(tree, () => false) : omitHiddenCards(tree);
+  return start?.isHidden ? keepShown(tree, () => false) : omitHiddenCards(tree);
 }
 
 // The nodes that are not hidden, with their descendants that are not, marked as shown.
