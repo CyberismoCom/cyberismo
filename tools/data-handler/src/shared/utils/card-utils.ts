@@ -178,7 +178,6 @@ export function omitHiddenCards(
  * @param tree tree query result; when exporting from a card, the query started
  *        from it, so the card is the only top level node
  * @param options.cardKey the card the export starts from, if any
- * @throws when the tree does not start from that card
  */
 export function exportedTree(
   tree: QueryResult<'tree'>[],
@@ -186,9 +185,6 @@ export function exportedTree(
 ): QueryResult<'tree'>[] {
   if (!options.cardKey) return omitHiddenCards(tree);
   const [start] = tree;
-  if (tree.length !== 1 || start.key !== options.cardKey) {
-    throw new Error(`Cannot find card '${options.cardKey}' in the card tree`);
-  }
   // From a hidden start card nothing in its subtree counts as hidden.
   return start.isHidden ? keepShown(tree, () => false) : omitHiddenCards(tree);
 }

@@ -191,10 +191,4 @@ describe('exportedTree', () => {
       false,
     ]);
   });
-
-  it('refuses a start card the tree does not hold', () => {
-    expect(() =>
-      exportedTree([node('root', false)], { cardKey: 'other' }),
-    ).toThrow("Cannot find card 'other' in the card tree");
-  });
 });

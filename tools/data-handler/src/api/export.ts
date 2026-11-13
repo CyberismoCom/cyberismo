@@ -267,13 +267,8 @@ export class Export {
         content.push(fileContent);
       }
 
-      // Ordered as the top level is, by rank and then key; a card without a
-      // rank goes last.
-      await this.toAdocFileAsContent(
-        files,
-        content,
-        sortItems(card.childrenCards, (child) => child.metadata?.rank || '1|z'),
-      );
+      // The tree query already orders the children by rank.
+      await this.toAdocFileAsContent(files, content, card.childrenCards);
     }
   }
 
