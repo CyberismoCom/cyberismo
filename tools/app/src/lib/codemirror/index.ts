@@ -163,33 +163,27 @@ export function handleAttachmentDrop(
   cardKey: string,
 ) {
   event.preventDefault();
-  const { items } = event.dataTransfer;
-  if (items.length === 0) return;
-  if (items[0].kind !== 'string' || items[0].type !== 'text/uri-list') return;
+  // Chrome lists text/plain first, so look the type up rather than items[0].
+  const uri = event.dataTransfer.getData('text/uri-list');
+  if (!uri) return;
 
-  const x = event.pageX;
-  const y = event.pageY;
+  let decodedURI: string;
+  try {
+    decodedURI = decodeURI(uri);
+  } catch {
+    return;
+  }
 
-  items[0].getAsString((uri) => {
-    let decodedURI: string;
-    try {
-      decodedURI = decodeURI(uri);
-    } catch {
-      return;
-    }
+  const attachment = attachments?.find((a) => decodedURI.includes(a.fileName));
+  if (!attachment || !view || !editor) return;
 
-    const attachment = attachments?.find((a) =>
-      decodedURI.includes(a.fileName),
-    );
-    if (!attachment || !view || !editor) return;
-
-    editor.focus();
-    const dropPosition = view.posAtCoords({ x, y }) ?? 0;
-    view.dispatch({
-      selection: { anchor: dropPosition, head: dropPosition },
-    });
-    addAttachment(view, attachment, cardKey);
+  editor.focus();
+  const dropPosition =
+    view.posAtCoords({ x: event.pageX, y: event.pageY }) ?? 0;
+  view.dispatch({
+    selection: { anchor: dropPosition, head: dropPosition },
   });
+  addAttachment(view, attachment, cardKey);
 }
 
 /**
