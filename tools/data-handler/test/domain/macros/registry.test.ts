@@ -235,6 +235,52 @@ ${q}
           run('validate', `${valid}, "linkDescription": ""`),
         ).resolves.toBeDefined();
       });
+
+      // testTypes: decision cards as source, simplepage cards as destination
+      it.each([
+        ['an outbound link from a decision card', '"cardKey": "decision_6"'],
+        [
+          'an inbound link to a simplepage card',
+          '"cardKey": "decision_5", "direction": "inbound"',
+        ],
+      ])('accepts %s', async (_, card) => {
+        await expect(
+          run('validate', `${valid}, ${card}`),
+        ).resolves.toBeDefined();
+      });
+
+      it.each([
+        [
+          'a card that does not exist',
+          '"cardKey": "decision_999"',
+          /card 'decision_999' does not exist/,
+        ],
+        [
+          'a card type the link type does not allow as source',
+          '"cardKey": "decision_5"',
+          /cannot be used as source/,
+        ],
+        [
+          'a card type the link type does not allow as destination',
+          '"cardKey": "decision_6", "direction": "inbound"',
+          /cannot be used as destination/,
+        ],
+      ])('rejects %s', async (_, card, message) => {
+        await expect(run('validate', `${valid}, ${card}`)).rejects.toThrow(
+          message,
+        );
+      });
+
+      it('checks the card holding the macro when cardKey is left out', async () => {
+        await expect(
+          evaluateMacros(linksAdoc(valid, query), {
+            mode: 'validate',
+            checkout,
+            cardKey: 'decision_5',
+            context: 'localApp',
+          }),
+        ).rejects.toThrow(/cannot be used as source/);
+      });
     });
     describe('raw', () => {
       it('raw macro (success)', async () => {

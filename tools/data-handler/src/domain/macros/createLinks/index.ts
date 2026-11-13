@@ -8,7 +8,11 @@ import type { MacroGenerationContext } from '../../../shared/interfaces/macros.j
 import macroMetadata from '@cyberismo/model/macros/createLinks/metadata';
 import BaseMacro from '../base-macro.js';
 import type TaskQueue from '../task-queue.js';
-import { getLinkTypeWithValidation } from '../../cards/update.js';
+import { cardNode } from '../../cards/read.js';
+import {
+  getLinkTypeWithValidation,
+  validateCardTypeForLink,
+} from '../../cards/update.js';
 
 class CreateLinksMacro extends BaseMacro {
   constructor(tasksQueue: TaskQueue) {
@@ -46,12 +50,35 @@ class CreateLinksMacro extends BaseMacro {
     if (options.linkDescription === '') {
       delete options.linkDescription;
     }
-    getLinkTypeWithValidation(
+    const linkType = getLinkTypeWithValidation(
       context.checkout,
       options.linkType,
       options.linkDescription,
     );
+    const cardKey = options.cardKey || context.cardKey;
+    // No card to check when validating content outside a card
+    if (cardKey) {
+      const cardType = existingCard(context, cardKey).metadata?.cardType;
+      if (cardType) {
+        validateCardTypeForLink(
+          context.checkout,
+          cardType,
+          linkType,
+          options.direction === 'inbound' ? 'destination' : 'source',
+          options.linkType,
+        );
+      }
+    }
     return options;
+  }
+}
+
+// One message for any failed lookup; the key is echoed literally.
+function existingCard(context: MacroGenerationContext, cardKey: string) {
+  try {
+    return cardNode(context.checkout, cardKey);
+  } catch {
+    throw new Error(`card '${cardKey}' does not exist`);
   }
 }
 

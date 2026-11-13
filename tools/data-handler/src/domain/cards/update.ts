@@ -425,7 +425,7 @@ export function getLinkTypeWithValidation(
 /**
  * Validates that a card type is allowed as source or destination for a link type.
  */
-function validateCardTypeForLink(
+export function validateCardTypeForLink(
   checkout: Checkout,
   cardType: string,
   linkTypeObject: {
