@@ -1088,7 +1088,7 @@ Some content here`;
       [
         {
           mode: 'static',
-          expected: 'xref:xref-test-card.adoc[]',
+          expected: '<<xref-test-card>>',
         },
         {
           mode: 'inject',

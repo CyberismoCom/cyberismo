@@ -194,6 +194,22 @@ describe('rewriteAsciidocCardXrefs', () => {
         warns: true,
       },
       {
+        given: 'static, an anchor reference',
+        mode: 'static',
+        exported,
+        input: 'See <<docs_2>> and <<docs_2,the tutorial>>.',
+        output: 'See Getting started tutorial and the tutorial.',
+        warns: true,
+      },
+      {
+        given: 'static, an anchor reference to an exported card or no card',
+        mode: 'static',
+        exported,
+        input: 'See <<docs_12>> and <<Some section>>.',
+        output: 'See <<docs_12>> and <<Some section>>.',
+        warns: false,
+      },
+      {
         given: 'an exported target',
         mode: 'static',
         exported,

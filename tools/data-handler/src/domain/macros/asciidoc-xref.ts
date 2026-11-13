@@ -10,6 +10,8 @@ import { cardNode } from '../cards/read.js';
 // Card key chars: word chars plus hyphen. Anchor (optional) is anything up to
 // '[' that isn't a bracket. Label may be empty.
 const NATIVE_CARD_XREF = /xref:([\w-]+)\.adoc(#[^[\]]+)?\[([^\]]*)\]/g;
+// <<cardKey>> or <<cardKey,label>>: a reference to a card's anchor in a PDF.
+const CARD_ANCHOR_REF = /<<([\w-]+)(?:,([^>]*))?>>/g;
 
 /** The warning for links to a card that is not part of an export. */
 export function notExportedWarning(cardKey: string): string {
@@ -36,7 +38,9 @@ function isRewriteMode(mode: Mode): mode is RewriteMode {
  *
  * In `static` and `staticSite` mode, a card that is not in `exported` has no
  * page or anchor in the export, so its xref becomes plain text: the label, or
- * else the card's title. An undefined `exported` means the whole project.
+ * else the card's title. In `static` mode so does a `<<cardKey>>` reference to
+ * its anchor, as the xref macro writes it. An undefined `exported` means the
+ * whole project.
  *
  * Unresolvable targets, and targets left out of the export, are reported
  * through `onWarning`, once per target.
@@ -55,17 +59,30 @@ export function rewriteAsciidocCardXrefs(
   const warned = new Set<string>();
   const anchorDropWarned = new Set<string>();
   const notExportedWarned = new Set<string>();
+  const findCard = (cardKey: string) => {
+    try {
+      return cardNode(checkout, cardKey);
+    } catch {
+      return undefined;
+    }
+  };
+  // The text that stands for a card left out of the export, warned once.
+  const notExported = (
+    cardKey: string,
+    label: string,
+    title: string | undefined,
+  ) => {
+    if (!notExportedWarned.has(cardKey)) {
+      notExportedWarned.add(cardKey);
+      onWarning(notExportedWarning(cardKey));
+    }
+    return label !== '' ? label : (title ?? cardKey);
+  };
 
-  return content.replace(
+  const rewritten = content.replace(
     NATIVE_CARD_XREF,
     (match, cardKey: string, anchor: string | undefined, label: string) => {
-      let card;
-
-      try {
-        card = cardNode(checkout, cardKey);
-      } catch {
-        card = undefined;
-      }
+      const card = findCard(cardKey);
 
       if (!card) {
         if (!warned.has(cardKey)) {
@@ -78,11 +95,7 @@ export function rewriteAsciidocCardXrefs(
       }
 
       if (mode !== 'inject' && exported && !exported.has(cardKey)) {
-        if (!notExportedWarned.has(cardKey)) {
-          notExportedWarned.add(cardKey);
-          onWarning(notExportedWarning(cardKey));
-        }
-        return label !== '' ? label : (card.metadata?.title ?? cardKey);
+        return notExported(cardKey, label, card.metadata?.title);
       }
 
       if (mode === 'static') {
@@ -111,6 +124,20 @@ export function rewriteAsciidocCardXrefs(
       const linkText = label !== '' ? label : (card.metadata?.title ?? cardKey);
       const target = `/projects/${projectPrefix}/cards/${cardKey}${anchor ?? ''}`;
       return `link:${target}[${linkText}]`;
+    },
+  );
+
+  if (mode !== 'static' || !exported) {
+    return rewritten;
+  }
+  return rewritten.replace(
+    CARD_ANCHOR_REF,
+    (match, cardKey: string, label: string | undefined) => {
+      if (exported.has(cardKey)) return match;
+      const card = findCard(cardKey);
+      return card
+        ? notExported(cardKey, label ?? '', card.metadata?.title)
+        : match;
     },
   );
 }
