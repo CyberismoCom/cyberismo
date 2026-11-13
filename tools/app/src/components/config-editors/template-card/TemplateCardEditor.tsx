@@ -240,6 +240,7 @@ export function TemplateCardEditor({
                 />
                 {isNarrow && editable && (
                   <AttachmentPanel
+                    variant="inline"
                     cardKey={card.key}
                     attachments={card.attachments ?? []}
                     onInsert={(attachment) =>
@@ -274,8 +275,10 @@ export function TemplateCardEditor({
                 }}
               >
                 <AttachmentPanel
+                  variant="sidebar"
                   cardKey={card.key}
                   attachments={card.attachments ?? []}
+                  initialExpanded
                   onInsert={(attachment) =>
                     contentRef.current?.insertAttachment(attachment)
                   }
