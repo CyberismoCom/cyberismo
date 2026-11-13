@@ -235,7 +235,7 @@ test.runIf(process.platform === 'linux')(
 );
 
 // The stub echoes the AsciiDoc source; decision_6 is hidden in a project of its own.
-test.runIf(process.platform === 'linux').each([false, true])(
+test.skipIf(process.platform === 'win32').each([false, true])(
   '/api/cards/export-pdf with includeHidden %s holds the hidden child as asked',
   async (includeHidden) => {
     const path = await createTempTestData('decision-records');
