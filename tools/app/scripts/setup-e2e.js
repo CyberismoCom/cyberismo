@@ -8,7 +8,14 @@
  */
 
 import { execSync } from 'node:child_process';
-import { existsSync, rmSync, mkdirSync, writeFileSync, cpSync } from 'node:fs';
+import {
+  appendFileSync,
+  existsSync,
+  rmSync,
+  mkdirSync,
+  writeFileSync,
+  cpSync,
+} from 'node:fs';
 import { join } from 'node:path';
 
 const tmpPath = join(import.meta.dirname, '..', '..', '..', '.tmp');
@@ -18,6 +25,7 @@ const cli = `node ${join(import.meta.dirname, '..', '..', 'cli', 'bin', 'run')}`
 const graphModelPath = `${batPath}/.cards/local/graphModels/test1/model.lp`;
 const graphViewPath = `${batPath}/.cards/local/graphViews/test1/view.lp.hbs`;
 const reportPath = `${batPath}/.cards/local/reports/test1/query.lp.hbs`;
+const hiddenCalculationPath = `${batPath}/.cards/local/calculations/hidden/calculation.lp`;
 
 const graphModelContent =
   'view(Child) :- view(Parent), parent(Child, Parent).node(Card) :- card(Card), view(Card).attr(node, Card, "label", Title) :- node(Card), field(Card, "title", Title).attr(node, Card, "shape", "Box") :- node(Card).edge((Parent, Child)) :- parent(Child, Parent), view(Child), view(Parent).';
@@ -50,6 +58,7 @@ execSync(
     `${cli} create report test1`,
     `${cli} create template page`,
     `${cli} create template checks`,
+    `${cli} create calculation hidden`,
   ].join(' && '),
   { stdio: 'inherit' },
 );
@@ -85,6 +94,12 @@ execSync(`${cli} add card bat/templates/checks test/cardTypes/page`, {
 writeFileSync(graphModelPath, graphModelContent);
 writeFileSync(graphViewPath, graphViewContent);
 writeFileSync(reportPath, reportContent);
+// Cards titled 'Hidden note' are hidden from the tree view; the hidden card
+// export tests create them.
+appendFileSync(
+  hiddenCalculationPath,
+  '\nhiddenInTreeView(Card) :- field(Card, "title", "Hidden note").\n',
+);
 
 const e2eFixturesDir = join(import.meta.dirname, '..', 'e2e', 'assets');
 if (!existsSync(e2eFixturesDir)) {
