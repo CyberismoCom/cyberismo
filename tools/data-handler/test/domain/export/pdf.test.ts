@@ -238,24 +238,28 @@ describe('export.pdf cards', () => {
     vi.restoreAllMocks();
   });
 
+  // The AsciiDoc source the PDF would be rendered from.
+  const sourceOf = async (render: () => Promise<unknown>) => {
+    const run = vi
+      .spyOn(
+        Export.prototype as unknown as {
+          runAsciidoctorPdf: (content: string) => Promise<unknown>;
+        },
+        'runAsciidoctorPdf',
+      )
+      .mockResolvedValue({ pdf: Buffer.from(''), warnings: [] });
+    await render();
+    return run.mock.calls[0][0];
+  };
+
   it.each(hiddenCases)(
     '$name',
     async ({ hidden, start, recursive = true, exported }) => {
       const { ws, keys } = await open(hiddenCaseSpec(hidden));
-      const run = vi
-        .spyOn(
-          Export.prototype as unknown as {
-            runAsciidoctorPdf: (content: string) => Promise<unknown>;
-          },
-          'runAsciidoctorPdf',
-        )
-        .mockResolvedValue({ pdf: Buffer.from(''), warnings: [] });
 
-      await ws.export.pdf(
-        start ? { cardKey: keyOf(keys, start), recursive } : {},
+      const source = await sourceOf(() =>
+        ws.export.pdf(start ? { cardKey: keyOf(keys, start), recursive } : {}),
       );
-
-      const source = run.mock.calls[0][0];
       // Each card starts at its anchor.
       const cardKeys = [...source.matchAll(/^\[\[(\S+)\]\]$/gm)].map(
         (match) => match[1],
@@ -263,6 +267,20 @@ describe('export.pdf cards', () => {
       expect(titlesOf(keys, cardKeys)).toEqual([...exported].sort());
     },
   );
+
+  it('makes a card below the top a chapter, its descendants sections below it', async () => {
+    const { ws, keys } = await open(hiddenCaseSpec([]));
+
+    const source = await sourceOf(() =>
+      ws.export.pdf({ cardKey: keyOf(keys, 'Gone'), recursive: true }),
+    );
+
+    // The card titles, at their levels in the document, in document order.
+    expect(source.match(/^=+ (Gone|GoneLeaf)$/gm)).toEqual([
+      '== Gone',
+      '=== GoneLeaf',
+    ]);
+  });
 });
 
 // A stand-in for asciidoctor-pdf found first on the PATH.

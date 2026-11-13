@@ -1,23 +1,26 @@
+% The cards the document holds
 {{#if cardKey}}
-result({{cardKey}}).
+exported({{cardKey}}).
 
 {{#if recursive}}
 % From a visible start card its hidden descendants are left out; from a hidden
 % one (itself or through an ancestor) its whole subtree is exported.
-result(Card) :- parent(Card, Parent), result(Parent), not hiddenInTreeView(Card).
-result(Card) :- parent(Card, Parent), result(Parent), hiddenInTreeView({{cardKey}}).
+exported(Card) :- parent(Card, Parent), exported(Parent), not hiddenInTreeView(Card).
+exported(Card) :- parent(Card, Parent), exported(Parent), hiddenInTreeView({{cardKey}}).
 {{/if}}
 
 {{else}}
-result(Card) :- projectCard(Card), not hiddenInTreeView(Card).
+exported(Card) :- projectCard(Card), not hiddenInTreeView(Card).
 {{/if}}
 
-% Calculate depth levels
-cardLevel(Card, 1) :- result(Card), not parent(Card, _).
+result(Card) :- exported(Card).
+
+% Calculate depth levels; an exported card whose parent is not exported is at the top
+cardLevel(Card, 1) :- exported(Card), not exported(Parent) : parent(Card, Parent).
 cardLevel(Card, Level + 1) :- 
     cardLevel(Parent, Level), 
     parent(Card, Parent), 
-    result(Card).
+    exported(Card).
 
 % Create a path-based ordering system using string concatenation
 % For each card, create a path that represents its position in the tree
@@ -27,7 +30,7 @@ cardLevel(Card, Level + 1) :-
 % Base case: root cards use their rank directly as the path
 treePath(Card, Rank) :- 
     cardLevel(Card, 1),
-    result(Card),
+    exported(Card),
     field(Card, "rank", Rank).
 
 % Recursive case: children append their rank to parent's path
@@ -37,7 +40,7 @@ treePath(Card, FullPath) :-
     parent(Card, Parent),
     treePath(Parent, ParentPath),
     field(Card, "rank", Rank),
-    result(Card),
+    exported(Card),
     FullPath = @concatenate(ParentPath, "!", Rank).
 
 % Sort by tree path (lexicographic ordering will give us depth-first)
