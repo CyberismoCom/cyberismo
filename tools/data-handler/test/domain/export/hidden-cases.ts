@@ -113,6 +113,13 @@ export const hiddenCases: HiddenCase[] = [
     includeHidden: true,
     exported: ['Hid', 'HidMid', 'HidLeaf'],
   },
+  {
+    name: 'an export with hidden cards from a card hidden through its parent marks none of its subtree',
+    hidden: ['Hid'],
+    start: 'HidMid',
+    includeHidden: true,
+    exported: ['HidMid', 'HidLeaf'],
+  },
 ];
 
 /** The project of a case: the tree, with its hidden cards hidden by a calculation. */

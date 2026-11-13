@@ -351,6 +351,23 @@ describe('export.pdf cards', () => {
       expect(
         anchors(/^\[toclevels=0,outlinelevels=0\]\n+\[\[(\S+)\]\]$/gm),
       ).toEqual([...markedHidden].sort());
+      // Numbering is turned off right before each hidden card and back on right
+      // before each visible one; without hidden cards it is left alone.
+      if (!includeHidden) {
+        expect(source).not.toContain(':sectnums');
+      } else {
+        const marks = [
+          ...source.matchAll(/^(:sectnums!?:)$|^\[\[(\S+)\]\]$/gm),
+        ].map(([, mark, key]) => mark ?? titlesOf(keys, [key])[0]);
+        expect(marks).toEqual(
+          marks
+            .filter((mark) => !mark.startsWith(':'))
+            .flatMap((title) => [
+              markedHidden.includes(title) ? ':sectnums!:' : ':sectnums:',
+              title,
+            ]),
+        );
+      }
     },
   );
 
