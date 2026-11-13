@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: Cyberismo Ltd and contributors
 // SPDX-License-Identifier: AGPL-3.0-only
 
-import type { Workspace } from '@cyberismo/data-handler';
+import { omitHiddenCards, type Workspace } from '@cyberismo/data-handler';
 
 /**
  * Returns the card tree of the project
@@ -17,8 +17,11 @@ export async function getCardTree(
   cardKey?: string,
   recursive?: boolean,
 ): ReturnType<typeof ws.queries.runQuery> {
-  return ws.queries.runQuery('tree', isSsg ? 'exportedSite' : 'localApp', {
-    cardKey,
-    recursive,
-  });
+  const tree = await ws.queries.runQuery(
+    'tree',
+    isSsg ? 'exportedSite' : 'localApp',
+    { cardKey, recursive },
+  );
+  // The app filters hidden cards from its navigation tree; a static site never contains them.
+  return isSsg ? omitHiddenCards(tree, !!cardKey) : tree;
 }

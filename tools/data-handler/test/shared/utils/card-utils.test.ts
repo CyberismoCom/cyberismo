@@ -9,9 +9,10 @@ import {
   buildCardHierarchy,
   isExternalItemKey,
   moduleNameFromCardKey,
+  omitHiddenCards,
   sortCards,
 } from '../../../src/shared/utils/card-utils.js';
-import type { Card } from '@cyberismo/model';
+import type { Card, QueryResult } from '@cyberismo/model';
 
 describe('card utils', () => {
   const moduleCard: Card = {
@@ -150,5 +151,38 @@ describe('card utils', () => {
     expect(isExternalItemKey('test_1')).to.equal(false);
     expect(isExternalItemKey('prefix_abc123')).to.equal(false);
     expect(isExternalItemKey('')).to.equal(false);
+  });
+});
+
+describe('omitHiddenCards', () => {
+  const node = (
+    key: string,
+    isHidden: boolean,
+    children?: QueryResult<'tree'>[],
+  ) => ({ key, isHidden, children }) as unknown as QueryResult<'tree'>;
+  const keys = (nodes: QueryResult<'tree'>[]): string[] =>
+    nodes.flatMap((n) => [n.key, ...keys(n.children ?? [])]);
+
+  // Shapes the tree query produces: descendants of a hidden card are hidden too.
+  it('drops hidden cards with their descendants', () => {
+    const tree = [
+      node('root', false, [
+        node('a', false),
+        node('b', true, [node('c', true)]),
+      ]),
+    ];
+
+    expect(keys(omitHiddenCards(tree))).toEqual(['root', 'a']);
+  });
+
+  it.each([
+    [false, []],
+    [true, ['root']],
+  ])('with keepRoots %s on a hidden start card', (keepRoots, expected) => {
+    const tree = [node('root', true, [node('a', true)])];
+
+    const result = omitHiddenCards(tree, keepRoots);
+    expect(keys(result)).toEqual(expected);
+    if (keepRoots) expect(result[0].isHidden).toBe(false);
   });
 });

@@ -33,7 +33,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { TreeMenu } from '../TreeMenu';
 import { useDispatch } from 'react-redux';
 import { addNotification } from '@/lib/slices/notifications';
-import { useTree } from '@/lib/api/tree';
+import { useVisibleTree } from '@/lib/api/tree';
 import {
   TEMPLATE_PREFIX,
   buildProjectDestinationsTree,
@@ -59,7 +59,7 @@ export function MoveCardModal({ open, onClose, cardKey }: MoveCardModalProps) {
 
   const [search, setSearch] = useState('');
   const [selected, setSelected] = useState<string | null>(null);
-  const { tree, isLoading: isLoadingTree } = useTree();
+  const { tree, isLoading: isLoadingTree } = useVisibleTree();
   const { resourceTree, isLoading: isLoadingResourceTree } = useResourceTree();
 
   const { moveCard, isUpdating } = useCard(cardKey);

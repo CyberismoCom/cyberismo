@@ -14,7 +14,7 @@ import {
   useDocumentTitle,
 } from '../../lib/hooks';
 import { findParentCard } from '../../lib/utils';
-import { useTree } from '../../lib/api/tree';
+import { useVisibleTree } from '../../lib/api/tree';
 import { useCard } from '../../lib/api/card';
 import { CardTreeMenu } from '@/components/CardTreeMenu';
 import type { AppLayoutOutletContext } from '../layout';
@@ -28,7 +28,7 @@ export default function AppLayout() {
   // Last URL parameter after /cards base is the card key
   const key = useOptionalKeyParam();
   const { project, error, isLoading, updateCard } = useProject();
-  const { tree, isLoading: isLoadingTree, error: treeError } = useTree();
+  const { tree, isLoading: isLoadingTree, error: treeError } = useVisibleTree();
   const { card } = useCard(key);
   const canEdit = useHasMinRole(UserRole.Editor);
   const router = useAppRouter();

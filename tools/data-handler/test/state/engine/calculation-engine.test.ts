@@ -18,11 +18,13 @@ const expectedTree: QueryResult<'tree'>[] = [
     key: 'decision_5',
     cardType: 'decision/cardTypes/simplepage',
     rank: '0|a',
+    isHidden: false,
     children: [
       {
         key: 'decision_6',
         cardType: 'decision/cardTypes/decision',
         rank: '0|a',
+        isHidden: false,
         title: 'Document Decisions with Decision Records',
       },
     ],
