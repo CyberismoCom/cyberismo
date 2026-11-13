@@ -175,6 +175,7 @@ function CreateLinksDialog({
   const create = async () => {
     setCreating(true);
     const failed = new Set<string>();
+    let firstError: string | undefined;
     for (const { key } of picks) {
       try {
         await createLink(
@@ -185,8 +186,9 @@ function CreateLinksDialog({
             : undefined,
           linkType.direction,
         );
-      } catch {
+      } catch (e) {
         failed.add(key);
+        firstError ??= e instanceof Error ? e.message : undefined;
       }
     }
     setCreating(false);
@@ -195,7 +197,9 @@ function CreateLinksDialog({
       notify(t('createLink.success', { count: succeeded }), 'success');
     }
     if (failed.size > 0) {
-      notify(t('createLink.partialFailure', { count: failed.size }), 'error');
+      const summary = t('createLink.partialFailure', { count: failed.size });
+      // The first reason only; the rest are often the same
+      notify(firstError ? `${summary}: ${firstError}` : summary, 'error');
       setSelected(failed);
     } else {
       onClose();
