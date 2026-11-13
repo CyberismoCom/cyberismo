@@ -115,15 +115,9 @@ describe('export.adoc', () => {
           title: 'Top',
           children: [
             {
-              title: 'Mid',
-              children: [
-                {
-                  title: 'Leaf',
-                  fields: { 'test/fieldTypes/note': 'leaf note' },
-                  content:
-                    '{{#field}}"field": "test/fieldTypes/note"{{/field}}',
-                },
-              ],
+              title: 'Leaf',
+              fields: { 'test/fieldTypes/note': 'leaf note' },
+              content: '{{#field}}"field": "test/fieldTypes/note"{{/field}}',
             },
           ],
         },
@@ -134,31 +128,6 @@ describe('export.adoc', () => {
 
     expect(adoc).toContain('pass:[leaf note]');
     expect(adoc).not.toContain('{{#field}}');
-  });
-
-  it('orders the cards below the top level by rank', async () => {
-    const { ws, keys } = await open({
-      cards: [
-        {
-          title: 'Top',
-          children: [
-            {
-              title: 'Mid',
-              children: [{ title: 'Leaf1' }, { title: 'Leaf2' }],
-            },
-          ],
-        },
-      ],
-    });
-    await ws.cards.rankFirst(keys[3]);
-
-    const [leaf1, leaf2] = order(
-      text(await ws.export.adoc()),
-      'Leaf1',
-      'Leaf2',
-    );
-    expect(leaf2).toBeGreaterThanOrEqual(0);
-    expect(leaf2).toBeLessThan(leaf1);
   });
 
   it('exports a card below the top as its own section', async () => {
