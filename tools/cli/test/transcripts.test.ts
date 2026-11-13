@@ -405,7 +405,7 @@ describe('CLI transcripts', { timeout: 30000 }, () => {
     const read = (path: string) => readFile(join(project.path, path), 'utf-8');
 
     // A stub asciidoctor-pdf that echoes its AsciiDoc source as the "PDF".
-    it.runIf(process.platform === 'linux')(
+    it.skipIf(process.platform === 'win32')(
       'export pdf holds the descendants with -r, and the hidden ones with --include-hidden',
       async () => {
         const binDir = await mkdtemp(join(tmpdir(), 'cyberismo-pdf-stub-'));
