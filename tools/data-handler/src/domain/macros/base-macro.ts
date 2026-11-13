@@ -10,7 +10,7 @@ import type { MacroMetadata } from '@cyberismo/model';
 import { generateRandomString } from '../../shared/utils/random.js';
 import { MacroError } from '../../shared/exceptions/index.js';
 import type TaskQueue from './task-queue.js';
-import { ClingoError } from '@cyberismo/node-clingo';
+import { isUnavailable, LogicError } from '../../infra/logic/logic-backend.js';
 import { getChildLogger } from '../../shared/utils/log-utils.js';
 
 abstract class BaseMacro {
@@ -141,7 +141,9 @@ abstract class BaseMacro {
         for (const dependency of dependencies) {
           if (dependency.error) {
             const task = this.findTask(this.globalId, localId);
-            if (task) {
+            if (isUnavailable(dependency.error)) {
+              if (task) task.error = dependency.error;
+            } else if (task) {
               // There could be a better way, but multi-nested macros are rare
               task.error = new MacroError(
                 dependency.error.message,
@@ -211,11 +213,9 @@ abstract class BaseMacro {
           err = new Error('Unknown error');
         }
         const message =
-          err instanceof ClingoError
-            ? err.details.errors.join('\n')
-            : err.message;
+          err instanceof LogicError ? err.errors.join('\n') : err.message;
         const error =
-          err instanceof MacroError
+          err instanceof MacroError || isUnavailable(err)
             ? err
             : new MacroError(
                 message,

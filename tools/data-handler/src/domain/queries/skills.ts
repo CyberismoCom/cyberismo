@@ -143,7 +143,11 @@ export async function getSkill(
 export async function renderSkillTemplates(
   checkout: Checkout,
   content: SkillContent,
-  options: { cardKey?: string; skillContent?: string; skillQuery?: string },
+  options: {
+    cardKey?: string;
+    skillContent?: string;
+    skillQuery?: string;
+  },
   context: Context,
 ): Promise<string> {
   return generateReportContent({
@@ -152,5 +156,7 @@ export async function renderSkillTemplates(
     queryTemplate: options.skillQuery ?? content.skillQuery,
     options: { cardKey: options.cardKey },
     context,
+    requested: options.skillQuery !== undefined,
+    contentRequested: options.skillContent !== undefined,
   });
 }

@@ -59,3 +59,16 @@ export { errorFunction } from './shared/utils/error-utils.js';
 export type { WorkspaceOptions } from './api/workspace.js';
 export { SYSTEM_ACTOR, type CommitIdentity } from './infra/tx/tx-record.js';
 export { createGit } from './infra/git/git-config.js';
+export {
+  LogicError,
+  type CommitOptions,
+  type Diagnostic,
+  type LogicBackend,
+  type LogicBackendFactory,
+  type LogicBackendOwner,
+  type LogicErrorKind,
+  type LogicTransaction,
+  type Program,
+  type QueryResult as LogicQueryResult,
+} from './infra/logic/logic-backend.js';
+export { clingoLogicBackend } from './infra/logic/clingo-backend.js';

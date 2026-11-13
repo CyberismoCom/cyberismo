@@ -44,7 +44,15 @@ export class RWLock {
   private releaseHooks: ((tx: TxRecord) => void)[] = [];
   private readonly logger;
 
-  constructor(private readonly name: string = 'RWLock') {
+  /**
+   * @param name Name in the logs.
+   * @param admit Called when an outermost read or write has the lock,
+   *   before it runs; throwing refuses it.
+   */
+  constructor(
+    private readonly name: string = 'RWLock',
+    private readonly admit: () => void = () => {},
+  ) {
     this.logger = getChildLogger({ module: 'RWLock', name });
   }
 
@@ -90,6 +98,12 @@ export class RWLock {
     }
 
     await this.acquireRead();
+    try {
+      this.admit();
+    } catch (error) {
+      this.releaseRead();
+      throw error;
+    }
     const ctx: LockContext = { mode: 'read', active: true };
     try {
       return await this.context.run(ctx, fn);
@@ -129,6 +143,12 @@ export class RWLock {
     }
 
     await this.acquireWrite();
+    try {
+      this.admit();
+    } catch (error) {
+      this.releaseWrite();
+      throw error;
+    }
     const tx = createTxRecord(frame, getCommitContext().message);
     const ctx: LockContext = { mode: 'write', active: true, tx };
     try {
@@ -161,6 +181,21 @@ export class RWLock {
           }
         }
       });
+    }
+  }
+
+  /**
+   * Executes `fn` with exclusive access once the running reads and writes
+   * have ended, as no write: no record, no hooks, no admission check. For
+   * work on the guarded object itself that takes no lock. Never awaited
+   * inside a read or write, which would wait for itself.
+   */
+  async exclusive<T>(fn: () => Promise<T>): Promise<T> {
+    await this.acquireWrite();
+    try {
+      return await fn();
+    } finally {
+      this.releaseWrite();
     }
   }
 

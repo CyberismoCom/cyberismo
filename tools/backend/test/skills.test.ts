@@ -180,6 +180,16 @@ test('preview returns 400 with the error when the query is broken', async () => 
 
   const result = await previewBody(response);
   expect(result.error).toBeTruthy();
+  expect(result).toMatchObject({ code: 'logic', details: { kind: 'invalid' } });
+});
+
+test('preview returns 400 with the error when the template is broken', async () => {
+  await createSkill();
+  const response = await preview({ skillContent: '{{#each results}}unclosed' });
+  expect(response.status).toBe(400);
+
+  const result = await previewBody(response);
+  expect(result.error).toBeTruthy();
   expect(result).toMatchObject({ code: 'validation' });
 });
 

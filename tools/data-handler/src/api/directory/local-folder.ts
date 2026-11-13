@@ -117,7 +117,8 @@ function isDuplicate(
   console.warn(
     `Skipping project '${path}': duplicate prefix '${project.prefix}' (already registered from '${existing}')`,
   );
-  project.checkout?.dispose();
+  // Nothing uses the checkout yet, and dispose never rejects.
+  void project.checkout?.dispose();
   return true;
 }
 
@@ -251,7 +252,7 @@ class LocalFolder implements ProjectDirectory {
           continue;
         }
         if (this.holds(project.prefix)) {
-          project.checkout?.dispose();
+          await project.checkout?.dispose();
           skippedDuplicates.push(project.prefix);
           continue;
         }
@@ -291,7 +292,7 @@ class LocalFolder implements ProjectDirectory {
   async replace(prefix: string): Promise<void> {
     const old = this.checkout(prefix);
     const checkout = await Checkout.open(old.basePath, this.options);
-    old.dispose();
     this.hold(prefix, checkout);
+    await old.dispose();
   }
 }

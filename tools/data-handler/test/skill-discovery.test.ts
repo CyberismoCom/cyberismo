@@ -10,6 +10,7 @@ import { type Workspace } from '../src/api/workspace.js';
 import { copyDir } from '../src/shared/utils/file-utils.js';
 import { openTestWorkspace } from './helpers/open-test-workspace.js';
 import { checkoutOf } from '../src/state/checkout/internal.js';
+import { DHValidationError } from '../src/shared/exceptions/index.js';
 
 const baseDir = import.meta.dirname;
 const testDir = join(baseDir, 'tmp-skill-discovery-tests');
@@ -301,12 +302,43 @@ describe('skill discovery', () => {
       ).rejects.toThrow();
     });
 
-    it('surfaces an error from a broken query', async () => {
+    it('types a template that does not render as a validation error', async () => {
+      const error = await ws.resources
+        .skillPreview('decision/skills/globalSkill', {
+          skillContent: '{{#each results}}unclosed',
+        })
+        .catch((error: unknown) => error);
+
+      expect(error).toBeInstanceOf(DHValidationError);
+      expect(error).toMatchObject({ code: 'validation' });
+    });
+
+    it('fails a broken unsaved query as invalid', async () => {
       await expect(
         ws.resources.skillPreview('decision/skills/globalSkill', {
           skillQuery: 'this is not a logic program',
         }),
-      ).rejects.toThrow();
+      ).rejects.toMatchObject({ code: 'logic', kind: 'invalid' });
+    });
+
+    it('fails an unsaved query with no answer as without a total answer', async () => {
+      await expect(
+        ws.resources.skillPreview('decision/skills/globalSkill', {
+          skillQuery: 'a :- not a.',
+        }),
+      ).rejects.toMatchObject({ code: 'logic', kind: 'nonTotal' });
+    });
+
+    it('fails an unsaved query that reports an error as invalid', async () => {
+      await expect(
+        ws.resources.skillPreview('decision/skills/globalSkill', {
+          skillQuery: 'result(decision_5).\norderBy("title").',
+        }),
+      ).rejects.toMatchObject({
+        code: 'logic',
+        kind: 'invalid',
+        message: expect.stringContaining('Ordering direction missing'),
+      });
     });
   });
 });

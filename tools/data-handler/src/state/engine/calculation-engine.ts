@@ -42,19 +42,32 @@ import {
   createTemplateFacts,
   createWorkflowFacts,
 } from './clingo-facts.js';
-import { ClingoContext } from '@cyberismo/node-clingo';
+import {
+  LogicError,
+  type LogicBackend,
+  type LogicTransaction,
+  type Program,
+} from '../../infra/logic/logic-backend.js';
 import { generateReportContent } from '../../domain/queries/report.js';
 import { lpFiles, graphvizReport } from '@cyberismo/assets';
 import { resourceNameToString } from '../../shared/utils/resource-utils.js';
 
-// Define the all category that will be used for all programs
-const ALL_CATEGORY = 'all';
+// Builds a program that describes the project.
+const knowledge = (key: string, text: string): Program => ({
+  key,
+  role: 'knowledge',
+  text,
+});
 
 export class CalculationEngine {
-  /** @internal */
-  constructor(private checkout: Checkout) {}
+  // The write's transaction, opened by its first change of a program.
+  private tx?: Promise<LogicTransaction>;
 
-  private clingo = new ClingoContext();
+  /** @internal */
+  constructor(
+    private checkout: Checkout,
+    private backend: LogicBackend,
+  ) {}
 
   private get logger() {
     return getChildLogger({
@@ -73,14 +86,20 @@ export class CalculationEngine {
   }
 
   /**
-   * Builds a logic program.
-   * @param programs Programs or categories to include
+   * The project's whole logic program.
    * @param query Query to put first, if any
    */
-  public logicProgram(programs: string[], query?: QueryName): string {
-    let logicProgram = query ? this.queryContent(query) : '';
-    logicProgram += this.clingo.buildProgram('', programs);
-    return logicProgram;
+  public async logicProgram(query?: QueryName): Promise<string> {
+    const program = await this.backend.exportText();
+    return query ? this.queryContent(query) + program : program;
+  }
+
+  /**
+   * Checks logic programs, each on its own, without keeping them.
+   * @returns the problems found; one with severity error refuses a program.
+   */
+  public async check(programs: Program[]) {
+    return this.backend.check(programs);
   }
 
   /**
@@ -102,21 +121,18 @@ export class CalculationEngine {
     });
   }
 
-  // Generate card tree content
-  private async setCardTreeContent() {
-    const cards = this.getCards(undefined);
-    for (const card of cards) {
-      await this.setCardContent(card);
-    }
+  private transaction(): Promise<LogicTransaction> {
+    this.tx ??= this.backend.begin();
+    return this.tx;
   }
 
-  private async setCardContent(card: CardNode) {
-    const cardContent = await createCardFacts(
+  private async cardProgram(card: CardNode): Promise<Program> {
+    const text = await createCardFacts(
       card,
       this.checkout,
       this.checkout.treeOf(card.key).factContext,
     );
-    this.clingo.setProgram(card.key, cardContent, [ALL_CATEGORY]);
+    return knowledge(card.key, text);
   }
 
   // Generates logic programs related to modules (and project itself).
@@ -135,104 +151,15 @@ export class CalculationEngine {
     return content;
   }
 
-  // Sets individual CardType programs, plus the calculated field rules that are
-  // derived from all of them together.
-  private async setCardTypesPrograms() {
-    const cardTypes = this.checkout.resources
-      .cardTypes()
-      .map((cardType) => cardType.show());
-    for (const cardType of cardTypes) {
-      const cardTypeContent = createCardTypeFacts(cardType);
-      this.clingo.setProgram(cardType.name, cardTypeContent, [ALL_CATEGORY]);
-    }
-    this.clingo.setProgram(
-      'calculatedFields',
-      createCalculatedFieldRules(cardTypes),
-      [ALL_CATEGORY],
-    );
-  }
-
-  // Sets individual FieldType programs
-  private async setFieldTypesPrograms() {
-    const fieldTypes = this.checkout.resources.fieldTypes();
-    for (const fieldType of fieldTypes) {
-      const ft = fieldType.show();
-      const fieldTypeContent = createFieldTypeFacts(ft);
-      this.clingo.setProgram(ft.name, fieldTypeContent, [ALL_CATEGORY]);
-    }
-  }
-
-  // Sets individual LinkType programs
-  private async setLinkTypesPrograms() {
-    const linkTypes = this.checkout.resources.linkTypes();
-    for (const linkType of linkTypes) {
-      const lt = linkType.show();
-      const linkTypeContent = createLinkTypeFacts(lt);
-      this.clingo.setProgram(lt.name, linkTypeContent, [ALL_CATEGORY]);
-    }
-  }
-
-  // Sets individual Workflow programs
-  private async setWorkflowsPrograms() {
-    const workflows = this.checkout.resources.workflows();
-    for (const workflow of workflows) {
-      const wf = workflow.show();
-      const workflowContent = createWorkflowFacts(wf);
-      this.clingo.setProgram(wf.name, workflowContent, [ALL_CATEGORY]);
-    }
-  }
-
-  // Sets individual Report programs
-  private async setReportsPrograms() {
-    const reports = this.checkout.resources.reports();
-    for (const report of reports) {
-      const rep = report.show();
-      const reportContent = createReportFacts(rep);
-      this.clingo.setProgram(rep.name, reportContent, [ALL_CATEGORY]);
-    }
-  }
-
-  // Sets individual Skill programs
-  private async setSkillsPrograms() {
-    const skills = this.checkout.resources.skills();
-    for (const skill of skills) {
-      const skl = skill.show();
-      const skillContent = createSkillFacts(skl);
-      this.clingo.setProgram(skl.name, skillContent, [ALL_CATEGORY]);
-    }
-  }
-
-  // Sets individual Template programs
-  private async setTemplatesPrograms() {
-    const templates = this.checkout.resources.templates();
-    for (const template of templates) {
-      const tem = template.show();
-      const templateContent = createTemplateFacts(tem);
-      for (const card of this.getCards(tem.name)) {
-        await this.setCardContent(card);
-      }
-      this.clingo.setProgram(tem.name, templateContent, [ALL_CATEGORY]);
-    }
-  }
-
-  // Sets individual Calculation programs
-  private async setCalculationsPrograms() {
-    const calculations = this.checkout.resources.calculations();
-    for (const calculation of calculations) {
+  // The calculations that are valid on their own; the others are skipped.
+  private async calculationPrograms(): Promise<Program[]> {
+    const programs: Program[] = [];
+    for (const calculation of this.checkout.resources.calculations()) {
       try {
-        const content = calculation.contentData();
-        const calc = calculation.show();
-        const validation = calculation.validateLogicProgram(
-          content.calculation,
+        const name = calculation.show().name;
+        programs.push(
+          knowledge(name, calculation.contentData().calculation ?? ''),
         );
-        if (!validation.valid) {
-          this.logger.warn(
-            { errors: validation.errors },
-            `Skipping invalid calculation ${calc.name}`,
-          );
-          continue;
-        }
-        this.clingo.setProgram(calc.name, content.calculation, [ALL_CATEGORY]);
       } catch (error) {
         this.logger.warn(
           error,
@@ -240,13 +167,65 @@ export class CalculationEngine {
         );
       }
     }
+    const diagnostics = await this.backend.check(programs);
+    const invalid = new Set(
+      diagnostics.filter((d) => d.severity === 'error').map((d) => d.key),
+    );
+    for (const key of invalid) {
+      this.logger.warn(
+        { errors: diagnostics.filter((d) => d.key === key) },
+        `Skipping invalid calculation ${key}`,
+      );
+    }
+    return programs.filter((program) => !invalid.has(program.key));
   }
 
-  // Gets either all the cards (no parent), or a subtree.
-  private getCards(templateName?: string): CardNode[] {
-    return templateName
-      ? this.checkout.templateTree(templateName).nodes()
-      : this.checkout.cardTree.nodes();
+  // Every program, built from the checkout's current state.
+  private async allPrograms(): Promise<Program[]> {
+    const programs: Program[] = [
+      knowledge('base', lpFiles.common.base),
+      {
+        key: 'queryLanguage',
+        role: 'query',
+        text: lpFiles.common.queryLanguage,
+      },
+      { key: 'utils', role: 'query', text: lpFiles.common.utils },
+      knowledge('modules', await this.generateModules()),
+    ];
+    for (const card of this.checkout.cardTree.nodes()) {
+      programs.push(await this.cardProgram(card));
+    }
+    const resources = this.checkout.resources;
+    const cardTypes = resources.cardTypes().map((cardType) => cardType.show());
+    for (const cardType of cardTypes) {
+      programs.push(knowledge(cardType.name, createCardTypeFacts(cardType)));
+    }
+    programs.push(
+      knowledge('calculatedFields', createCalculatedFieldRules(cardTypes)),
+    );
+    for (const fieldType of resources.fieldTypes().map((r) => r.show())) {
+      programs.push(knowledge(fieldType.name, createFieldTypeFacts(fieldType)));
+    }
+    for (const linkType of resources.linkTypes().map((r) => r.show())) {
+      programs.push(knowledge(linkType.name, createLinkTypeFacts(linkType)));
+    }
+    for (const workflow of resources.workflows().map((r) => r.show())) {
+      programs.push(knowledge(workflow.name, createWorkflowFacts(workflow)));
+    }
+    for (const report of resources.reports().map((r) => r.show())) {
+      programs.push(knowledge(report.name, createReportFacts(report)));
+    }
+    for (const skill of resources.skills().map((r) => r.show())) {
+      programs.push(knowledge(skill.name, createSkillFacts(skill)));
+    }
+    for (const template of resources.templates().map((r) => r.show())) {
+      for (const card of this.checkout.templateTree(template.name).nodes()) {
+        programs.push(await this.cardProgram(card));
+      }
+      programs.push(knowledge(template.name, createTemplateFacts(template)));
+    }
+    programs.push(...(await this.calculationPrograms()));
+    return programs;
   }
 
   // Checks that Clingo successfully returned result.
@@ -265,86 +244,102 @@ export class CalculationEngine {
     return compiled(options || {});
   }
 
-  //
-  private async run(query: string, context: Context): Promise<string[]> {
+  // Solves the query with the write's changes when a write has made any.
+  // A failure of a query the request supplied keeps its kind; the
+  // diagnostics name a stored program if one is at fault. A project query
+  // that fails to parse or ground is internal.
+  private async run(
+    query: string,
+    context: Context,
+    requested = false,
+  ): Promise<string[]> {
     try {
-      // Use the main category to include all programs
-      const basePrograms = [ALL_CATEGORY];
-
-      this.logger.trace(
-        {
-          clingo: true,
-        },
-        'Solving',
-      );
-
+      this.logger.trace({ clingo: true }, 'Solving');
       // Inline context facts into the query string to avoid race conditions
       // (concurrent reads could overwrite each other's 'context' program key)
-      const contextFacts = createContextFacts(context);
-      const result = await this.clingo.solve(
-        contextFacts + '\n' + query,
-        basePrograms,
-      );
-      this.logger.trace(
-        { stats: result.stats, clingo: true },
-        'Solve completed',
-      );
-
-      if (result && result.answers && result.answers.length > 0) {
+      const text = createContextFacts(context) + '\n' + query;
+      const result = this.tx
+        ? await (await this.tx).query(text)
+        : await this.backend.query(text);
+      if (result.answers.length > 0) {
         return result.answers;
       }
-      throw new Error('Failed to run Clingo solve. No answers returned.');
+      const message = 'Failed to run Clingo solve. No answers returned.';
+      throw requested
+        ? new LogicError('nonTotal', message)
+        : new Error(message);
     } catch (error) {
-      this.logger.error(
-        {
-          error,
-          query,
-        },
-        'Clingo solve failed',
-      );
-      throw error;
+      const failure =
+        !requested && error instanceof LogicError && error.kind === 'invalid'
+          ? new LogicError('internal', error.message, error.diagnostics, {
+              cause: error,
+            })
+          : error;
+      // The request's own mistake is no failure of the server.
+      if (
+        requested &&
+        failure instanceof LogicError &&
+        (failure.kind === 'invalid' || failure.kind === 'nonTotal')
+      ) {
+        this.logger.debug({ error: failure, query }, 'Requested query failed');
+      } else {
+        this.logger.error({ error: failure, query }, 'Clingo solve failed');
+      }
+      throw failure;
     }
   }
 
   /**
-   * Generates a logic program.
+   * Rebuilds every program from the checkout's current state and commits
+   * them, also when they leave the project without a total answer.
    */
   public async generate() {
-    this.logger.trace(
-      {
-        clingo: true,
-      },
-      'Generating logic program',
-    );
-    this.clingo.removeAllPrograms();
+    await this.replaceAll(true);
+  }
 
-    // Set base common programs with main category
-    this.clingo.setProgram('base', lpFiles.common.base, [ALL_CATEGORY]);
-    this.clingo.setProgram('queryLanguage', lpFiles.common.queryLanguage, [
-      ALL_CATEGORY,
-    ]);
-    this.clingo.setProgram('utils', lpFiles.common.utils, [ALL_CATEGORY]);
-    this.clingo.setProgram('modules', await this.generateModules(), [
-      ALL_CATEGORY,
-    ]);
+  /**
+   * Ends the running write: commits its programs, rebuilt from the checkout's
+   * current state, unless the backend refuses the result.
+   */
+  public async commitWrite() {
+    await this.replaceAll(false);
+  }
 
-    // Set individual resource type programs
-    await this.setCardTreeContent();
-    await this.setCardTypesPrograms();
-    await this.setFieldTypesPrograms();
-    await this.setLinkTypesPrograms();
-    await this.setWorkflowsPrograms();
-    await this.setReportsPrograms();
-    await this.setSkillsPrograms();
-    await this.setTemplatesPrograms();
-    await this.setCalculationsPrograms();
+  private async replaceAll(keepNonTotal: boolean) {
+    this.logger.trace({ clingo: true }, 'Generating logic program');
+    const tx = this.transaction();
+    try {
+      (await tx).replaceAll(await this.allPrograms());
+    } catch (error) {
+      await this.abortWrite();
+      throw error;
+    }
+    this.tx = undefined;
+    await (await tx).commit({ keepNonTotal });
+    this.logger.trace({ clingo: true }, 'Logic program set');
+  }
 
-    this.logger.trace(
-      {
-        clingo: true,
-      },
-      'Logic program set',
-    );
+  /**
+   * Ends the running write's transaction uncommitted, which leaves the
+   * committed programs as they were. Never rejects.
+   */
+  public async abortWrite() {
+    const tx = this.tx;
+    if (!tx) {
+      return;
+    }
+    this.tx = undefined;
+    try {
+      await (await tx).abort();
+    } catch (error) {
+      this.logger.error({ error }, 'Aborting the logic transaction failed');
+    }
+  }
+
+  /** Releases the logic backend. */
+  public async close() {
+    await this.abortWrite();
+    await this.backend.close();
   }
 
   /**
@@ -352,7 +347,7 @@ export class CalculationEngine {
    * @param changedCard Card that was changed.
    */
   public async handleCardChanged(changedCard: CardNode) {
-    await this.setCardContent(changedCard);
+    await this.refreshCardFacts([changedCard]);
   }
 
   /**
@@ -361,8 +356,7 @@ export class CalculationEngine {
    * the complete card tree facts to ensure consistency.
    */
   public async handleCardMoved() {
-    // Rebuild entire tree structure from scratch to ensure all relationships are correct
-    await this.setCardTreeContent();
+    await this.refreshCardFacts(this.checkout.cardTree.nodes());
   }
 
   /**
@@ -373,18 +367,7 @@ export class CalculationEngine {
     if (!deletedCard) {
       return;
     }
-    try {
-      if (!this.clingo.removeProgram(deletedCard.key)) {
-        this.logger.warn(
-          {
-            cardKey: deletedCard.key,
-          },
-          'Tried to remove card program that does not exist',
-        );
-      }
-    } catch {
-      this.logger.warn('Removing program failed');
-    }
+    (await this.transaction()).remove([deletedCard.key]);
   }
 
   /**
@@ -396,9 +379,10 @@ export class CalculationEngine {
     if (!cards) {
       return;
     }
-    for (const card of cards) {
-      await this.setCardContent(card);
-    }
+    const programs = await Promise.all(
+      cards.map((card) => this.cardProgram(card)),
+    );
+    (await this.transaction()).set(programs);
   }
 
   /**
@@ -483,10 +467,18 @@ export class CalculationEngine {
    * Runs a logic program using clingo.
    * @param query Logic program to be run
    * @param context In which type of context the query is run.
+   * @param requested Whether the query comes with the request rather than
+   *   from the project; only then does a failure keep its kind (invalid, or
+   *   nonTotal when there is no answer) with the diagnostics, which name a
+   *   stored program if one is at fault. Otherwise invalid is internal.
    * @returns parsed program output
    */
-  public async runLogicProgram(query: string, context: Context = 'localApp') {
-    const clingoOutput = await this.run(query, context);
+  public async runLogicProgram(
+    query: string,
+    context: Context = 'localApp',
+    requested = false,
+  ) {
+    const clingoOutput = await this.run(query, context, requested);
     return this.parseClingoResult(clingoOutput);
   }
 
