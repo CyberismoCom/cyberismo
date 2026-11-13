@@ -546,6 +546,7 @@
     "browseProjects": "Browse projects"
   },
   "recents": "Recents",
+  "refreshFailed": "Couldn't refresh. Showing the last loaded data.",
   "relatedTool": "Related tool",
   "relatedToolAdded": "Related tool added",
   "relatedToolDeleted": "Related tool deleted",

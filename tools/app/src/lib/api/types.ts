@@ -87,6 +87,8 @@ export type AdditionalState = {
 };
 
 export type AdditionalProperties = {
+  /** `error` when there is nothing to show in its place; see loadError. */
+  loadError: SWRResponse['error'];
   callUpdate: <T>(fn: () => Promise<T>, key2?: string) => Promise<T>;
   isUpdating: (key2?: string) => boolean;
 };

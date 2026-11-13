@@ -6,6 +6,7 @@ import useSWR from 'swr';
 
 import type { Resources, ResourceName, SwrResult } from './types';
 import { useUpdating } from '../hooks';
+import { loadError } from '../swr';
 
 export function useSWRHook<T extends ResourceName, InitialData = null>(
   swrKey: string | null,
@@ -13,11 +14,13 @@ export function useSWRHook<T extends ResourceName, InitialData = null>(
   initialData?: InitialData,
   options?: SWRConfiguration,
 ) {
-  const { data, ...rest } = useSWR<Resources[T]>(swrKey, options);
+  const { data, error, ...rest } = useSWR<Resources[T]>(swrKey, options);
   const { isUpdating, call } = useUpdating(swrKey);
 
   return {
     ...rest,
+    error,
+    loadError: loadError(error, data !== undefined),
     [name]: data || initialData,
     isUpdating,
     callUpdate: <T>(fn: () => Promise<T>, key2?: string): Promise<T> =>
