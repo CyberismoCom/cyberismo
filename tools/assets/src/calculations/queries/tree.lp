@@ -13,7 +13,10 @@ result(Card) :- projectCard(Card), not parent(Card, _).
 childResult(Parent, Card, "children") :- card(Card), parent(Card, Parent).
 {{/if}}
 
+% Children by rank, and cards of the same rank by key
 order(Level, "children", 1, "rank", "ASC") :-
+    level(Level).
+order(Level, "children", 2, "key", "ASC") :-
     level(Level).
 
 % The tree returns every card, hidden ones included. isHidden is true when the

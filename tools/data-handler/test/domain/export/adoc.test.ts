@@ -59,6 +59,33 @@ describe('export.adoc', () => {
     expect(adoc.startsWith(':imagesdir: ./a/\n')).toBe(true);
   });
 
+  it('orders children with the same rank by key', async () => {
+    // Top(S1(C1), ..., S6(C6)), the children all of one rank.
+    const subs = ['S1', 'S2', 'S3', 'S4', 'S5', 'S6'];
+    const { ws, keys } = await open({
+      cards: [
+        {
+          title: 'Top',
+          children: subs.map((title) => ({
+            title,
+            fields: { rank: '0|a' },
+            children: [{ title: `C${title}` }],
+          })),
+        },
+      ],
+    });
+    const byKey = subs
+      .map((title, index) => ({ title, key: keys[1 + 2 * index] }))
+      .sort((a, b) => a.key.localeCompare(b.key))
+      .flatMap(({ title }) => [title, `C${title}`]);
+
+    const adoc = text(await ws.export.adoc());
+
+    const positions = order(adoc, ...byKey);
+    expect(positions.every((at) => at >= 0)).toBe(true);
+    expect(positions).toEqual([...positions].sort((a, b) => a - b));
+  });
+
   it('follows a rank change', async () => {
     const { ws, keys } = await open(spec);
     await ws.cards.rankFirst(keys[2]);

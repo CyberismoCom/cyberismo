@@ -268,6 +268,34 @@ describe('export.pdf cards', () => {
     },
   );
 
+  it('orders children with the same rank by key, each before its own children', async () => {
+    // Top(S1(C1), ..., S6(C6)), the children all of one rank.
+    const subs = ['S1', 'S2', 'S3', 'S4', 'S5', 'S6'];
+    const { ws, keys } = await open({
+      cards: [
+        {
+          title: 'Top',
+          children: subs.map((title) => ({
+            title,
+            fields: { rank: '0|a' },
+            children: [{ title: `C${title}` }],
+          })),
+        },
+      ],
+    });
+    const byKey = subs
+      .map((_, index) => [keys[1 + 2 * index], keys[2 + 2 * index]])
+      .sort(([a], [b]) => (a < b ? -1 : 1))
+      .flat();
+
+    const source = await sourceOf(() => ws.export.pdf({}));
+
+    // Each card starts at its anchor.
+    expect(
+      [...source.matchAll(/^\[\[(\S+)\]\]$/gm)].map((match) => match[1]),
+    ).toEqual([keys[0], ...byKey]);
+  });
+
   it('makes a card below the top a chapter, its descendants sections below it', async () => {
     const { ws, keys } = await open(hiddenCaseSpec([]));
 
