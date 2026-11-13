@@ -56,12 +56,12 @@ async function exportPdf(
   return `Content exported as PDF to ${destination}${warningSummary(warnings.length)}`;
 }
 
-// ' with N rendering warnings', or nothing when there are none.
-function warningSummary(count: number): string {
+// ' with N rendering warnings' (or another kind), or nothing when there are none.
+function warningSummary(count: number, kind = 'rendering warning'): string {
   return count === 1
-    ? ' with 1 rendering warning'
+    ? ` with 1 ${kind}`
     : count > 1
-      ? ` with ${count} rendering warnings`
+      ? ` with ${count} ${kind}s`
       : '';
 }
 
@@ -221,7 +221,7 @@ export function registerExport(program: Command) {
               0,
             );
             console.log(
-              `Exported site to ${output}${warningSummary(warningCount)}`,
+              `Exported site to ${output}${warningSummary(warningCount, 'warning')}`,
             );
             console.log(`Run 'cyberismo preview ${output}' to view the site`);
             return;

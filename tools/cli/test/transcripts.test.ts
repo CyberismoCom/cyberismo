@@ -467,9 +467,7 @@ describe('CLI transcripts', { timeout: 30000 }, () => {
       );
 
       expect(code).toBe(0);
-      expect(stdout).toContain(
-        'Exported site to site with 2 rendering warnings',
-      );
+      expect(stdout).toContain('Exported site to site with 2 warnings');
       expect(stderr).toContain(
         [
           '1 project has warnings:',
