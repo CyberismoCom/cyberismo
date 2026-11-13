@@ -39,37 +39,40 @@ describe('useAdocHtml', () => {
     cache.clear();
   });
 
+  const a = (adoc: string) => ({ adoc, cardKey: 'a' });
+
+  // Each row shows the cached `seen` versions in turn, then `next` converts.
   const rows: {
     name: string;
-    cached: boolean;
+    seen: Props[];
     next: Props;
     whilePending: string;
   }[] = [
     {
       name: 'same card, new content keeps the previous html',
-      cached: false,
-      next: { adoc: 'two', cardKey: 'a' },
+      seen: [a('one')],
+      next: a('two'),
       whilePending: html('a', 'one'),
     },
     {
-      name: 'same card opened from cache, new content keeps the cached html',
-      cached: true,
-      next: { adoc: 'two', cardKey: 'a' },
-      whilePending: html('a', 'one'),
+      name: 'same card keeps the latest of several versions',
+      seen: [a('one'), a('two')],
+      next: a('three'),
+      whilePending: html('a', 'two'),
     },
     {
       name: 'different card is blank until it resolves',
-      cached: false,
+      seen: [a('one')],
       next: { adoc: 'two', cardKey: 'b' },
       whilePending: '',
     },
   ];
 
-  it.each(rows)('$name', async ({ cached, next, whilePending }) => {
-    if (cached) cache.set(id('a', 'one'), html('a', 'one'));
-    const hook = render({ adoc: 'one', cardKey: 'a' });
-    if (!cached) await resolve('a', 'one');
-    expect(hook.result.current).toBe(html('a', 'one'));
+  it.each(rows)('$name', async ({ seen, next, whilePending }) => {
+    for (const p of seen)
+      cache.set(id(p.cardKey, p.adoc), html(p.cardKey, p.adoc));
+    const hook = render(seen[0]);
+    for (const p of seen.slice(1)) hook.rerender(p);
 
     hook.rerender(next);
     expect(hook.result.current).toBe(whilePending);
