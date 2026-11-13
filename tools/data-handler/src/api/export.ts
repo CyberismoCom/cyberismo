@@ -16,10 +16,7 @@ import type {
   QueryResult,
 } from '@cyberismo/model';
 import { evaluateMacros } from '../domain/macros/index.js';
-import {
-  renderReportContent,
-  runReportQuery,
-} from '../domain/queries/index.js';
+import { generateReportContent } from '../domain/queries/index.js';
 import { preprocessMermaidBlocksForPdf } from '../shared/utils/mermaid-renderer.js';
 import { rewriteAsciidocCardXrefs } from '../domain/macros/index.js';
 import { getStaticDirectoryPath, pdfReport } from '@cyberismo/assets';
@@ -281,32 +278,29 @@ export class Export {
   private async evaluateExportContent(
     options: PdfDocument,
   ): Promise<{ content: string; exported: Set<string> }> {
-    const reportOptions = {
-      ...options,
-      date: options.date?.toISOString().split('T')[0],
-      recursive: options.recursive ?? false,
-    };
-    const result = await runReportQuery({
+    const result = await generateReportContent({
       calculate: this.checkout.calculationEngine,
+      contentTemplate: pdfReport.content,
       queryTemplate: pdfReport.query,
       context: 'exportedDocument',
-      options: reportOptions,
-    });
-    const evaluated = await evaluateMacros(
-      renderReportContent(pdfReport.content, reportOptions, result),
-      {
-        context: 'exportedDocument',
-        mode: 'static',
-        checkout: this.checkout,
-        cardKey: '', // top level report does not contain any macros that use cardKey
+      options: {
+        ...options,
+        date: options.date?.toISOString().split('T')[0],
+        recursive: options.recursive ?? false,
       },
+    });
+    const evaluated = await evaluateMacros(result, {
+      context: 'exportedDocument',
+      mode: 'static',
+      checkout: this.checkout,
+      cardKey: '', // top level report does not contain any macros that use cardKey
+    });
+    // Every card the document holds has its anchor: the report's cards from
+    // their title include, and any card an include brought in. An xref
+    // resolves wherever the document has the card's anchor.
+    const exported = new Set(
+      [...evaluated.matchAll(CARD_ANCHOR)].map(([, key]) => key),
     );
-    // The query's cards, and any card an include brought in with its anchor:
-    // an xref resolves wherever the document has the card's anchor.
-    const exported = new Set(result.results.map((card) => card.key));
-    for (const [, key] of evaluated.matchAll(CARD_ANCHOR)) {
-      exported.add(key);
-    }
     return { content: evaluated, exported };
   }
 

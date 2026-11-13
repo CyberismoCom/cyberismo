@@ -5,9 +5,5 @@
 
 export { registerClingoHelpers } from './handlebars-helpers.js';
 export { toLinkCandidates } from './link-candidates.js';
-export {
-  generateReportContent,
-  renderReportContent,
-  runReportQuery,
-} from './report.js';
+export { generateReportContent } from './report.js';
 export { getSkill, listSkills, renderSkillTemplates } from './skills.js';
