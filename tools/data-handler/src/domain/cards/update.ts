@@ -18,6 +18,7 @@ import {
 } from '../../shared/utils/constants.js';
 import { getChildLogger } from '../../shared/utils/log-utils.js';
 import { findCard } from './read.js';
+import { DHValidationError } from '../../shared/exceptions/index.js';
 
 const logger = getChildLogger({ module: 'edit' });
 
@@ -124,7 +125,7 @@ export async function updateCardMetadataKey(
       ? await validateCard(checkout, card)
       : '';
   if (invalidCard.length !== 0) {
-    throw new Error(invalidCard);
+    throw new DHValidationError(invalidCard);
   }
 
   // A metadata write cannot relocate a card, so there is nothing structural
@@ -180,7 +181,7 @@ export async function editCardMetadata(
   newValue: MetadataContent,
 ) {
   if (!changedKey) {
-    throw new Error(`Changed key cannot be empty`);
+    throw new DHValidationError(`Changed key cannot be empty`);
   }
 
   const card = findCard(checkout, cardKey);
@@ -234,7 +235,7 @@ function assertFieldIsEditable(
     return;
   }
   if (customField?.isCalculated && !customField.enableOverride) {
-    throw new Error(
+    throw new DHValidationError(
       `Cannot edit calculated field '${fieldName}'; the card type does not enable override for it`,
     );
   }
@@ -251,14 +252,14 @@ export async function addLabel(
   label: string,
 ) {
   if (!Validate.isValidLabelName(label)) {
-    throw new Error(`Not a valid label name'`);
+    throw new DHValidationError(`Not a valid label name'`);
   }
 
   const card = findCard(checkout, cardKey);
   const labels = structuredClone(card.metadata?.labels) ?? [];
 
   if (labels.includes(label)) {
-    throw new Error('Label already exists');
+    throw new DHValidationError('Label already exists');
   }
 
   labels.push(label);
@@ -275,13 +276,15 @@ export async function removeLabel(
   let labels = card.metadata?.labels ?? [];
 
   if (!label && labels.length !== 1) {
-    throw new Error(
+    throw new DHValidationError(
       `No label given and ${labels.length === 0 ? 'there are no labels' : 'there are multiple labels'}`,
     );
   }
 
   if (labels.length !== 1 && !labels.includes(label)) {
-    throw new Error(`Label '${label}' does not exist in card ${cardKey}`);
+    throw new DHValidationError(
+      `Label '${label}' does not exist in card ${cardKey}`,
+    );
   }
   // remove all labels if there is only 1, otherwise remove all given labels
   labels =
@@ -309,14 +312,14 @@ export async function addLink(
   direction?: 'outbound' | 'inbound',
 ) {
   if (source === destination) {
-    throw new Error('Cannot link card to itself');
+    throw new DHValidationError('Cannot link card to itself');
   }
 
   const isExternalSource = isExternalItemKey(source);
   const isExternalDestination = isExternalItemKey(destination);
 
   if (isExternalSource && isExternalDestination) {
-    throw new Error(
+    throw new DHValidationError(
       'Cannot create link between two external items. One must be a card.',
     );
   }
@@ -388,7 +391,7 @@ async function createLocalLink(
       l.linkDescription === linkDescription,
   );
   if (existingLink) {
-    throw new Error(
+    throw new DHValidationError(
       `Link from card '${source}' to card '${destination}' already exists`,
     );
   }
@@ -416,7 +419,9 @@ export function getLinkTypeWithValidation(
     .show();
 
   if (!linkTypeObject.enableLinkDescription && linkDescription !== undefined) {
-    throw new Error(`Link type '${linkType}' does not allow link description`);
+    throw new DHValidationError(
+      `Link type '${linkType}' does not allow link description`,
+    );
   }
 
   return linkTypeObject;
@@ -441,7 +446,7 @@ export function validateCardTypeForLink(
       : linkTypeObject.destinationCardTypes;
 
   if (allowedTypes.length > 0 && !allowedTypes.includes(cardType)) {
-    throw new Error(
+    throw new DHValidationError(
       `Card type '${cardType}' cannot be used as ${role} with link type '${linkType}'`,
     );
   }
@@ -468,7 +473,7 @@ async function createExternalLink(
   const externalItemKey = rest.join(':');
 
   if (!connector || !externalItemKey) {
-    throw new Error(
+    throw new DHValidationError(
       `Invalid external item format: '${externalItem}'. Expected 'connector:itemKey'.`,
     );
   }
@@ -496,7 +501,7 @@ async function createExternalLink(
     linkTypeObject.destinationConnectors.length > 0 &&
     !linkTypeObject.destinationConnectors.includes(connector)
   ) {
-    throw new Error(
+    throw new DHValidationError(
       `Link type '${linkType}' does not support links to connector '${connector}'`,
     );
   }
@@ -511,7 +516,7 @@ async function createExternalLink(
       l.linkDescription === linkDescription,
   );
   if (existingLink) {
-    throw new Error(
+    throw new DHValidationError(
       `External link from card '${cardKey}' to '${connector}:${externalItemKey}' already exists`,
     );
   }
@@ -547,7 +552,7 @@ export async function removeLink(
   const isExternalDestination = isExternalItemKey(destination);
 
   if (isExternalSource && isExternalDestination) {
-    throw new Error(
+    throw new DHValidationError(
       'Cannot remove link between two external items. One must be a card.',
     );
   }
@@ -601,7 +606,7 @@ async function removeLocalLink(
           l.linkType === (linkType ?? '') &&
           l.linkDescription,
       );
-    throw new Error(
+    throw new DHValidationError(
       (linkType
         ? `Link from '${source}' to '${destination}' with link type '${linkType}'`
         : `Link from '${source}' to '${destination}'`) +
@@ -637,7 +642,7 @@ async function removeExternalLink(
   const externalItemKey = rest.join(':');
 
   if (!connector || !externalItemKey) {
-    throw new Error(
+    throw new DHValidationError(
       `Invalid external item format: '${externalItem}'. Expected 'connector:itemKey'.`,
     );
   }
@@ -654,7 +659,7 @@ async function removeExternalLink(
   const extLink = card.metadata?.externalLinks?.find(matches);
 
   if (!extLink) {
-    throw new Error(
+    throw new DHValidationError(
       `External link from '${cardKey}' to '${connector}:${externalItemKey}' ${linkType ? `with link type '${linkType}' ` : ''}not found`,
     );
   }

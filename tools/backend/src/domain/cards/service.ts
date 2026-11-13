@@ -213,19 +213,11 @@ export async function uploadAttachments(
   };
 }
 
-function validateAttachmentFileName(filename: string): void {
-  const decoded = decodeURIComponent(filename);
-  if (/(^|[/\\])\.\.([/\\]|$)/.test(decoded)) {
-    throw new Error('Invalid attachment filename');
-  }
-}
-
 export async function removeAttachment(
   ws: Workspace,
   key: string,
   filename: string,
 ) {
-  validateAttachmentFileName(filename);
   await ws.cards.removeAttachment(key, filename);
   return { message: 'Attachment removed successfully' };
 }
@@ -309,7 +301,6 @@ export async function getAttachment(
   key: string,
   filename: string,
 ): Promise<AttachmentContent> {
-  validateAttachmentFileName(filename);
   return ws.cards.attachment(key, filename);
 }
 

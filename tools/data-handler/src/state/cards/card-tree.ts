@@ -2,7 +2,15 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 // node
-import { basename, dirname, join, resolve, sep } from 'node:path';
+import {
+  basename,
+  dirname,
+  isAbsolute,
+  join,
+  relative,
+  resolve,
+  sep,
+} from 'node:path';
 import {
   copyFile,
   mkdir,
@@ -23,8 +31,10 @@ import type {
   Link,
 } from '@cyberismo/model';
 import {
+  AttachmentNotFoundError,
   CardNotFoundError,
   CycleError,
+  DHValidationError,
   ReadOnlyContainerError,
 } from '../../shared/exceptions/index.js';
 import {
@@ -529,6 +539,28 @@ export class CardTree {
   }
 
   /**
+   * The path an attachment name resolves to in a card's attachment folder.
+   * @param cardKey Card key to locate.
+   * @param fileName Attachment file name.
+   * @throws CardNotFoundError if the tree does not hold the card;
+   *   DHValidationError if the name resolves outside the attachment folder.
+   */
+  public attachmentPathOf(cardKey: string, fileName: string): string {
+    const folder = resolve(this.attachmentFolderOf(cardKey));
+    const path = resolve(folder, fileName);
+    const inside = relative(folder, path);
+    if (
+      inside === '' ||
+      inside === '..' ||
+      inside.startsWith(`..${sep}`) ||
+      isAbsolute(inside)
+    ) {
+      throw new DHValidationError(`Invalid attachment filename: ${fileName}`);
+    }
+    return path;
+  }
+
+  /**
    * The keys of a card's siblings, in rank order. The card itself is one of
    * them.
    * @param cardKey Card key whose sibling set to return.
@@ -598,7 +630,7 @@ export class CardTree {
    */
   public async reorderAfter(cardKey: string, afterKey: string): Promise<void> {
     if (this.stored(cardKey).parent !== this.stored(afterKey).parent) {
-      throw new Error(`Cards must be from the same parent`);
+      throw new DHValidationError(`Cards must be from the same parent`);
     }
     await this.applyRanks(
       planAfter(this.rankedSiblingsOf(afterKey), cardKey, afterKey),
@@ -1003,8 +1035,9 @@ export class CardTree {
    * @param cardKey Card to attach to.
    * @param attachmentName Name for the attachment file.
    * @param attachmentData Bytes to write.
-   * @throws CardNotFoundError if the tree does not hold the card; if the
-   *   card already has the file.
+   * @throws CardNotFoundError if the tree does not hold the card;
+   *   DHValidationError if the name's base name resolves outside the card's
+   *   attachment folder; if the card already has the file.
    */
   public async addAttachment(
     cardKey: string,
@@ -1012,11 +1045,9 @@ export class CardTree {
     attachmentData: Buffer,
   ): Promise<void> {
     this.assertWritable();
-    const attachmentFolder = this.attachmentFolderOf(cardKey);
-    await mkdir(attachmentFolder, { recursive: true });
-
     const fileName = basename(attachmentName);
-    const attachmentPath = join(attachmentFolder, fileName);
+    const attachmentPath = this.attachmentPathOf(cardKey, fileName);
+    await mkdir(this.attachmentFolderOf(cardKey), { recursive: true });
 
     await writeFile(attachmentPath, attachmentData, { flag: 'wx' });
 
@@ -1052,19 +1083,13 @@ export class CardTree {
     fileName: string,
   ): Promise<void> {
     this.assertWritable();
-    const attachmentFolder = this.attachmentFolderOf(cardKey);
-    const attachmentPath = resolve(attachmentFolder, fileName);
-
-    // Prevent path traversal
-    if (!attachmentPath.startsWith(resolve(attachmentFolder) + sep)) {
-      throw new Error(`Invalid attachment filename: ${fileName}`);
-    }
+    const attachmentPath = this.attachmentPathOf(cardKey, fileName);
 
     try {
       await unlink(attachmentPath);
     } catch (error) {
       CardTree.logger.error({ error }, 'Removing card attachment');
-      throw new Error(`Attachment not found: ${fileName}`, { cause: error });
+      throw new AttachmentNotFoundError(cardKey, fileName, { cause: error });
     }
 
     const card = this.stored(cardKey);
@@ -1095,7 +1120,7 @@ export class CardTree {
       (item) => item.fileName === fileName,
     );
     if (!attachment) {
-      throw new Error(`Attachment not found: ${fileName}`);
+      throw new AttachmentNotFoundError(cardKey, fileName);
     }
     if (fileName === newFileName) {
       return;
@@ -1109,12 +1134,14 @@ export class CardTree {
       basename(newFileName) !== newFileName ||
       !target.startsWith(resolve(folder) + sep)
     ) {
-      throw new Error(`Invalid attachment filename: ${newFileName}`);
+      throw new DHValidationError(
+        `Invalid attachment filename: ${newFileName}`,
+      );
     }
     // rename() replaces its destination silently; a plain check is enough
     // because attachment writes hold the project's write lock.
     if (pathExists(target)) {
-      throw new Error(`Attachment already exists: ${newFileName}`);
+      throw new DHValidationError(`Attachment already exists: ${newFileName}`);
     }
     await rename(join(folder, fileName), target);
 

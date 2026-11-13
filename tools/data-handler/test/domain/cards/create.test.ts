@@ -5,7 +5,10 @@ import { describe, expect, it } from 'vitest';
 
 import { CardLocation } from '@cyberismo/model';
 import type { Workspace } from '../../../src/api/workspace.js';
-import { CardNotFoundError } from '../../../src/shared/exceptions/index.js';
+import {
+  CardNotFoundError,
+  ResourceNotFoundError,
+} from '../../../src/shared/exceptions/index.js';
 import {
   childKeys,
   expectRefused,
@@ -117,7 +120,7 @@ describe('cards.create', () => {
     [
       'an unknown template',
       (c: Workspace['cards']) => c.create('test/templates/nope'),
-      /Invalid content JSON/,
+      ResourceNotFoundError,
     ],
     [
       'a template without cards',

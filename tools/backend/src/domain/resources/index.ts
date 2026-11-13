@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { Hono } from 'hono';
+import { DomainError } from '@cyberismo/data-handler';
 import { ssgParams } from 'hono/ssg';
 import * as resourceService from './service.js';
 import type { AppContext, ResourceValidationResponse } from '../../types.js';
@@ -16,6 +17,7 @@ import {
   workflowGraphQuerySchema,
 } from './schema.js';
 import { requireRole } from '../../middleware/auth.js';
+import { errorBody } from '../../common/errors.js';
 
 const router = new Hono();
 
@@ -34,17 +36,8 @@ const router = new Hono();
 router.get('/tree', requireRole(UserRole.Reader), async (c) => {
   const ws = c.get('ws');
 
-  try {
-    const tree = await resourceService.buildResourceTree(ws);
-    return c.json(tree);
-  } catch (error) {
-    return c.json(
-      {
-        error: `Failed to build resource tree: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      },
-      500,
-    );
-  }
+  const tree = await resourceService.buildResourceTree(ws);
+  return c.json(tree);
 });
 
 /**
@@ -99,16 +92,9 @@ router.get(
     const ws = c.get('ws');
     const resourceParams = c.req.valid('param');
 
-    try {
-      const response: ResourceValidationResponse =
-        await resourceService.validateResource(ws, resourceParams);
-      return c.json(response);
-    } catch (error) {
-      if (error instanceof Error && error.message.includes('not found')) {
-        return c.json({ error: error.message }, 404);
-      }
-      throw error;
-    }
+    const response: ResourceValidationResponse =
+      await resourceService.validateResource(ws, resourceParams);
+    return c.json(response);
   },
 );
 
@@ -186,19 +172,8 @@ router.get(
     const { prefix, identifier } = c.req.valid('param');
     const { card } = c.req.valid('query');
     const workflowName = `${prefix}/workflows/${identifier}`;
-    try {
-      const svg = await resourceService.getWorkflowGraph(
-        ws,
-        workflowName,
-        card,
-      );
-      return c.json({ svg });
-    } catch (error) {
-      if (error instanceof Error && error.message.includes('not found')) {
-        return c.json({ error: error.message }, 404);
-      }
-      throw error;
-    }
+    const svg = await resourceService.getWorkflowGraph(ws, workflowName, card);
+    return c.json({ svg });
   },
 );
 
@@ -275,11 +250,12 @@ router.post(
       );
       return c.json({ instructions });
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Unknown error';
-      if (message.includes('not found')) {
-        return c.json({ error: message }, 404);
+      // Typed errors (a missing skill or card) take the central status; an
+      // untyped one is the query or template failing to render: a 400.
+      if (error instanceof DomainError || !(error instanceof Error)) {
+        throw error;
       }
-      return c.json({ error: message }, 400);
+      return c.json(errorBody('validation', error.message), 400);
     }
   },
 );

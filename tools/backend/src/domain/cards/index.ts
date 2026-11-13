@@ -38,15 +38,8 @@ const router = new Hono();
 router.get('/', requireRole(UserRole.Reader), async (c) => {
   const ws = c.get('ws');
 
-  try {
-    const response = await cardService.getProjectInfo(ws);
-    return c.json(response);
-  } catch (error) {
-    return c.text(
-      `${error instanceof Error ? error.message : 'Unknown error'} from path ${c.get('projectPath')}`,
-      500,
-    );
-  }
+  const response = await cardService.getProjectInfo(ws);
+  return c.json(response);
 });
 
 /**
@@ -93,30 +86,20 @@ router.post(
   async (c) => {
     const ws = c.get('ws');
     const body = (await c.req.json()) as ExportCardPdfRequestBody;
-    try {
-      const result = await cardService.exportCard(ws, {
-        cardKey: body.cardKey,
-        title: body.title,
-        name: body.name,
-        recursive: body.exportChildCards,
-        version: body.version,
-      });
-      return new Response(result, {
-        status: 200,
-        headers: {
-          'Content-Type': 'application/pdf',
-          'Cache-Control': 'no-store',
-        },
-      });
-    } catch (error) {
-      return c.json(
-        {
-          error:
-            error instanceof Error ? error.message : 'Failed to export card',
-        },
-        500,
-      );
-    }
+    const result = await cardService.exportCard(ws, {
+      cardKey: body.cardKey,
+      title: body.title,
+      name: body.name,
+      recursive: body.exportChildCards,
+      version: body.version,
+    });
+    return new Response(result, {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/pdf',
+        'Cache-Control': 'no-store',
+      },
+    });
   },
 );
 
@@ -297,15 +280,8 @@ router.patch(
 
     const body = await c.req.json();
 
-    try {
-      await cardService.updateCard(ws, key, body);
-      return c.json(await cardService.getCardData(ws, key, isSSGContext(c)));
-    } catch (error) {
-      return c.text(
-        error instanceof Error ? error.message : 'Unknown error',
-        400,
-      );
-    }
+    await cardService.updateCard(ws, key, body);
+    return c.json(await cardService.getCardData(ws, key, isSSGContext(c)));
   },
 );
 
@@ -336,17 +312,8 @@ router.delete('/:key', requireRole(UserRole.Editor), async (c) => {
     return c.text('No search key', 400);
   }
 
-  try {
-    await cardService.deleteCard(ws, key);
-    return new Response(null, { status: 204 });
-  } catch (error) {
-    return c.json(
-      {
-        error: error instanceof Error ? error.message : 'Unknown error',
-      },
-      400,
-    );
-  }
+  await cardService.deleteCard(ws, key);
+  return new Response(null, { status: 204 });
 });
 
 /**
@@ -383,19 +350,8 @@ router.post('/:key', requireRole(UserRole.Editor), async (c) => {
     return c.text('template is required', 400);
   }
 
-  try {
-    const result = await cardService.createCard(
-      c.get('ws'),
-      body.template,
-      key,
-    );
-    return c.json(result);
-  } catch (error) {
-    if (error instanceof Error) {
-      return c.json({ error: error.message }, 400);
-    }
-    return c.json({ error: 'Unknown error occurred' }, 500);
-  }
+  const result = await cardService.createCard(c.get('ws'), body.template, key);
+  return c.json(result);
 });
 
 /**
@@ -432,30 +388,14 @@ router.post('/:key/attachments', requireRole(UserRole.Editor), async (c) => {
   const ws = c.get('ws');
   const key = c.req.param('key');
 
-  try {
-    const formData = await c.req.formData();
-    const files = formData.getAll('files');
-    if (!files || files.length === 0) {
-      return c.json({ error: 'No files uploaded' }, 400);
-    }
-
-    const result = await cardService.uploadAttachments(
-      ws,
-      key,
-      files as File[],
-    );
-    return c.json(result);
-  } catch (error) {
-    return c.json(
-      {
-        error:
-          error instanceof Error
-            ? error.message
-            : 'Failed to upload attachments',
-      },
-      500,
-    );
+  const formData = await c.req.formData();
+  const files = formData.getAll('files');
+  if (!files || files.length === 0) {
+    return c.json({ error: 'No files uploaded' }, 400);
   }
+
+  const result = await cardService.uploadAttachments(ws, key, files as File[]);
+  return c.json(result);
 });
 
 /**
@@ -489,20 +429,8 @@ router.delete(
     const ws = c.get('ws');
     const { key, filename } = c.req.param();
 
-    try {
-      const result = await cardService.removeAttachment(ws, key, filename);
-      return c.json(result);
-    } catch (error) {
-      return c.json(
-        {
-          error:
-            error instanceof Error
-              ? error.message
-              : 'Failed to remove attachment',
-        },
-        500,
-      );
-    }
+    const result = await cardService.removeAttachment(ws, key, filename);
+    return c.json(result);
   },
 );
 
@@ -542,18 +470,8 @@ router.post('/:key/parse', requireRole(UserRole.Reader), async (c) => {
     return c.json({ error: 'Content is required' }, 400);
   }
 
-  try {
-    const result = await cardService.parseContent(ws, key, content);
-    return c.json(result);
-  } catch (error) {
-    return c.json(
-      {
-        error:
-          error instanceof Error ? error.message : 'Failed to parse content',
-      },
-      500,
-    );
-  }
+  const result = await cardService.parseContent(ws, key, content);
+  return c.json(result);
 });
 
 /**
@@ -596,25 +514,15 @@ router.post(
     const key = c.req.param('key');
     const { toCard, linkType, description, direction } = c.req.valid('json');
 
-    try {
-      const result = await cardService.createLink(
-        ws,
-        key,
-        toCard,
-        linkType,
-        direction,
-        description,
-      );
-      return c.json(result);
-    } catch (error) {
-      return c.json(
-        {
-          error:
-            error instanceof Error ? error.message : 'Failed to create link',
-        },
-        500,
-      );
-    }
+    const result = await cardService.createLink(
+      ws,
+      key,
+      toCard,
+      linkType,
+      direction,
+      description,
+    );
+    return c.json(result);
   },
 );
 
@@ -658,25 +566,15 @@ router.delete(
     const key = c.req.param('key');
     const { toCard, linkType, description, direction } = c.req.valid('json');
 
-    try {
-      const result = await cardService.removeLink(
-        ws,
-        key,
-        toCard,
-        linkType,
-        direction,
-        description,
-      );
-      return c.json(result);
-    } catch (error) {
-      return c.json(
-        {
-          error:
-            error instanceof Error ? error.message : 'Failed to remove link',
-        },
-        500,
-      );
-    }
+    const result = await cardService.removeLink(
+      ws,
+      key,
+      toCard,
+      linkType,
+      direction,
+      description,
+    );
+    return c.json(result);
   },
 );
 
@@ -740,29 +638,19 @@ router.put(
       previousDescription,
     } = c.req.valid('json');
 
-    try {
-      const result = await cardService.updateLink(
-        ws,
-        key,
-        toCard,
-        linkType,
-        direction,
-        previousToCard,
-        previousLinkType,
-        previousDirection,
-        description,
-        previousDescription,
-      );
-      return c.json(result);
-    } catch (error) {
-      return c.json(
-        {
-          error:
-            error instanceof Error ? error.message : 'Failed to update link',
-        },
-        500,
-      );
-    }
+    const result = await cardService.updateLink(
+      ws,
+      key,
+      toCard,
+      linkType,
+      direction,
+      previousToCard,
+      previousLinkType,
+      previousDirection,
+      description,
+      previousDescription,
+    );
+    return c.json(result);
   },
 );
 
@@ -799,30 +687,18 @@ router.get(
     const { key, attachment } = c.req.valid('param');
     const filename = decodeURI(attachment);
 
-    try {
-      const attachmentResponse = await cardService.getAttachment(
-        ws,
-        key,
-        filename,
-      );
-      return new Response(attachmentResponse.fileBuffer, {
-        headers: {
-          'Content-Type': attachmentResponse.mimeType,
-          'Content-Disposition': `attachment; filename="${filename}"`,
-          'Cache-Control': 'no-store',
-        },
-      });
-    } catch (error) {
-      return c.json(
-        {
-          error:
-            error instanceof Error
-              ? error.message
-              : `No attachment found from card ${key} and filename ${filename}`,
-        },
-        404,
-      );
-    }
+    const attachmentResponse = await cardService.getAttachment(
+      ws,
+      key,
+      filename,
+    );
+    return new Response(attachmentResponse.fileBuffer, {
+      headers: {
+        'Content-Type': attachmentResponse.mimeType,
+        'Content-Disposition': `attachment; filename="${filename}"`,
+        'Cache-Control': 'no-store',
+      },
+    });
   },
 );
 export default router;

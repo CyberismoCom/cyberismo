@@ -245,8 +245,11 @@ test.runIf(process.platform === 'linux')(
         exportPdf,
       );
       expect(response.status).toBe(500);
+      const message = 'Asciidoctor-pdf failed with code 1';
       expect(await response.json()).toEqual({
-        error: 'Asciidoctor-pdf failed with code 1',
+        error: message,
+        code: 'internal',
+        message,
       });
       expect(errorSpy.mock.calls.flat().join(' ')).toContain(
         '/srv/secret/path',
@@ -304,7 +307,34 @@ test('non-existing attachment file returns an error', async () => {
   );
   expect(response).not.toBe(null);
   expect(response.status).toBe(404);
+  expect(await response.json()).toMatchObject({
+    code: 'not-found',
+    message: "Attachment 'bogus.gif' not found for card decision_1",
+  });
 });
+
+test.each([
+  [
+    'reading',
+    'GET',
+    '/api/projects/decision/cards/decision_1/a/..%2Findex.adoc',
+  ],
+  [
+    'removing',
+    'DELETE',
+    '/api/projects/decision/cards/decision_1/attachments/..%2Findex.adoc',
+  ],
+])(
+  '%s an attachment named outside the attachment folder is a bad request',
+  async (_name, method, path) => {
+    const response = await app.request(path, { method });
+    expect(response.status).toBe(400);
+    expect(await response.json()).toMatchObject({
+      code: 'validation',
+      message: 'Invalid attachment filename: ../index.adoc',
+    });
+  },
+);
 
 test('fieldTypes endpoint returns proper data', async () => {
   const response = await app.request('/api/projects/decision/fieldTypes');
@@ -722,7 +752,7 @@ test('PATCH /api/projects/:prefix/cards/:key updates labels and returns updated 
   }
 });
 
-test('PATCH /api/projects/:prefix/cards/:key returns 400 for unknown card key', async () => {
+test('PATCH /api/projects/:prefix/cards/:key returns 404 for unknown card key', async () => {
   const response = await app.request('/api/projects/decision/cards/bogus_999', {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
@@ -730,7 +760,34 @@ test('PATCH /api/projects/:prefix/cards/:key returns 400 for unknown card key', 
       metadata: { title: 'Should Fail' },
     }),
   });
+  expect(response.status).toBe(404);
+  expect(await response.json()).toMatchObject({ code: 'not-found' });
+});
+
+test('PATCH /api/projects/:prefix/cards/:key returns 400 for an invalid index', async () => {
+  const response = await app.request(
+    '/api/projects/decision/cards/decision_5',
+    {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ index: -1 }),
+    },
+  );
   expect(response.status).toBe(400);
+  expect(await response.json()).toMatchObject({
+    code: 'validation',
+    message: 'Index must be greater than 0',
+  });
+});
+
+test('POST /api/projects/:prefix/cards/:key returns 404 for an unknown template', async () => {
+  const response = await app.request('/api/projects/decision/cards/root', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ template: 'decision/templates/nope' }),
+  });
+  expect(response.status).toBe(404);
+  expect(await response.json()).toMatchObject({ code: 'not-found' });
 });
 
 test('PATCH /api/projects/:prefix/cards/:key does not override other metadata fields', async () => {

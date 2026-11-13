@@ -9,12 +9,10 @@ import type {
 } from '@cyberismo/model';
 import {
   type Workspace,
-  CardNotFoundError,
   isResourceFolderType,
   moduleNameFromCardKey,
   resourceName,
   resourceNameToString,
-  ResourceNotFoundError,
 } from '@cyberismo/data-handler';
 import type { ResourceParams } from '../../common/validationSchemas.js';
 import type {
@@ -465,8 +463,8 @@ export async function listWorkflowGraphParams(
  * highlighted state matches the diagram even if the card is being
  * transitioned concurrently.
  * @returns base64-encoded sanitized SVG.
- * @throws Error with 'not found' in the message when the workflow or
- *   card cannot be resolved.
+ * @throws ResourceNotFoundError or CardNotFoundError when the workflow or
+ *   card is not in the project.
  */
 export async function getWorkflowGraph(
   ws: Workspace,
@@ -474,28 +472,11 @@ export async function getWorkflowGraph(
   cardKey?: string,
 ): Promise<string> {
   return ws.consistent(async () => {
-    try {
-      await ws.resources.show(workflowName, 'workflows');
-    } catch (error) {
-      if (error instanceof ResourceNotFoundError) {
-        throw new Error(`Workflow '${workflowName}' not found`, {
-          cause: error,
-        });
-      }
-      throw error;
-    }
+    await ws.resources.show(workflowName, 'workflows');
     let currentState: string | undefined;
     if (cardKey) {
-      let card;
-      try {
-        card = await ws.cards.details(cardKey);
-      } catch (error) {
-        throw new Error(`Card '${cardKey}' not found`, { cause: error });
-      }
-      if (!card?.metadata) {
-        throw new Error(`Card '${cardKey}' not found`);
-      }
-      currentState = card.metadata.workflowState;
+      const card = await ws.cards.details(cardKey);
+      currentState = card.metadata?.workflowState;
     }
     return ws.queries.runWorkflowGraph(workflowName, {
       currentState,
@@ -508,11 +489,11 @@ export async function getWorkflowGraph(
  * Unlike the MCP `get_skill` tool, this does not require the skill to be
  * enabled by the logic programs — the author is still working on it. When
  * `skillContent` or `skillQuery` is given, that unsaved editor content is
- * rendered instead of what is stored on disk. The lookups and the rendering
- * share one consistency window so the preview matches a single project state.
+ * rendered instead of what is stored on disk.
  * @returns the rendered instructions as markdown.
- * @throws Error with 'not found' in the message when the skill or card cannot
- *   be resolved; any other error means the template or query failed to render.
+ * @throws ResourceNotFoundError or CardNotFoundError when the skill or card
+ *   is not in the project; any other error means the template or query
+ *   failed to render.
  */
 export async function previewSkill(
   ws: Workspace,
@@ -520,30 +501,10 @@ export async function previewSkill(
   body: SkillPreviewBody,
 ): Promise<string> {
   const { cardKey, skillContent, skillQuery } = body;
-  return ws.consistent(async () => {
-    try {
-      await ws.resources.show(skillName, 'skills');
-    } catch (error) {
-      if (error instanceof ResourceNotFoundError) {
-        throw new Error(`Skill '${skillName}' not found`, { cause: error });
-      }
-      throw error;
-    }
-    if (cardKey) {
-      try {
-        await ws.cards.details(cardKey);
-      } catch (error) {
-        if (error instanceof CardNotFoundError) {
-          throw new Error(`Card '${cardKey}' not found`, { cause: error });
-        }
-        throw error;
-      }
-    }
-    return ws.resources.skillPreview(skillName, {
-      cardKey,
-      skillContent,
-      skillQuery,
-    });
+  return ws.resources.skillPreview(skillName, {
+    cardKey,
+    skillContent,
+    skillQuery,
   });
 }
 
