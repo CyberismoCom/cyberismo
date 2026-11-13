@@ -1,0 +1,93 @@
+The `createLinks` macro shows a button that opens a dialog for linking a card to existing cards or external items. A query that you write in the macro decides which items the user can choose from. You can insert the macro from the **+** (Insert macro) menu in the toolbar of the card editor by choosing **Create links**.
+
+== Parameters
+
+The `createLinks` macro supports the following parameters:
+
+* `"linkType"`: The name of the link type to create (required). The macro shows an error if the link type does not allow the card's card type in the given direction. See {{#xref}}"cardKey":"docs_qp3vhh4t"{{/xref}}.
+* `"query"`: The query that selects the items the user can link (required). See {{#xref}}"cardKey":"docs_33"{{/xref}} and <<Writing the query>>.
+* `"direction"`: The direction of the link (optional). The value `outbound` (default) links from the card to the chosen item, and `inbound` from the chosen item to the card.
+* `"linkDescription"`: A description that the dialog fills in for each link (optional). It is allowed only for link types that enable link descriptions. An empty string means no description.
+* `"buttonLabel"`: The label on the button (optional). The default is "Create links".
+* `"cardKey"`: The card that gets the links (optional). If not specified, the card containing this macro is used. The macro shows an error if the card does not exist. See <<Using the macro in a report>>.
+
+If the parameters are not valid, the macro shows a macro error that explains the problem.
+
+== Example
+
+To let the user link the current card to risks with the link type `myModule/linkTypes/mitigates`:
+
+```
+{{#raw}}
+
+{{#createLinks}}
+  "linkType": "myModule/linkTypes/mitigates",
+  "buttonLabel": "Link risks",
+  "query": {{#quoted}}
+result(X) :- projectCard(X), field(X, "cardType", "myModule/cardTypes/risk").
+select(1, "results", "title").
+select(1, "results", "cardType").
+{{/quoted}}
+{{/createLinks}}
+
+{{/raw}}
+```
+
+The button is available to users with the Editor role or higher. When the user clicks it, a dialog opens:
+
+* It lists the items that the query returns, in the order of the query, ten at a time. The user can search the list by title or key.
+* The user ticks the items to link and clicks **Create**, or closes the dialog with **Cancel**.
+* If the link type allows link descriptions, each item has a description field, filled in with `"linkDescription"` if given.
+* Items that cannot be linked are left out: the card itself, cards of a card type that the link type does not allow, and items that are already linked. If the link type allows link descriptions, already linked items stay in the list, because another description makes a new link.
+* If creating some links fails, the others are still created and the user is told how many failed. The failed items stay ticked, so the user can try again.
+
+== Writing the query
+
+Each top-level `result` of the query is one row in the dialog. A card row needs `cardType`; rows without it are dropped. Also select `title` to show a readable label; without it the dialog shows the key.
+
+* Inside `quoted`, write interpolations with three braces, as in {{#raw}}`{{{x}}}`{{/raw}}. With two braces, special characters in the value are changed.
+* Apart from interpolations, the query must not contain two opening braces in a row; they start a Handlebars expression.
+
+A result is an external item when it has the fields `connector` and `itemKey`. They are not fields of the item, so give them with `resultField` instead of `select`. The link points to the item as `connector:itemKey`, and the link type must allow items of that connector:
+
+```
+{{#raw}}
+
+result((C, K)) :- externalItem((C, K)).
+resultField((C, K), "connector", C) :- externalItem((C, K)).
+resultField((C, K), "itemKey", K) :- externalItem((C, K)).
+resultField((C, K), "title", T) :- externalItem((C, K)), field((C, K), "title", T).
+
+{{/raw}}
+```
+
+See {{#xref}}"cardKey":"docs_15sd1cq8"{{/xref}} for connectors and {{#xref}}"cardKey":"docs_hexqs5z7"{{/xref}} for external items.
+
+== Using the macro in a report
+
+A report can show a button for each of its rows. In the content template, use `"cardKey"` to give the card that gets the links:
+
+```
+{{#raw}}
+
+{{#each results}}
+* {{this.title}}
+{{#createLinks}}
+  "cardKey": "{{this.key}}",
+  "linkType": "myModule/linkTypes/mitigates",
+  "query": {{#quoted}}
+result(X) :- projectCard(X), field(X, "cardType", "myModule/cardTypes/risk").
+select(1, "results", "title").
+select(1, "results", "cardType").
+{{/quoted}}
+{{/createLinks}}
+{{/each}}
+
+{{/raw}}
+```
+
+Here each row is a card and the button links that row to a risk. The key of the card that contains the report is {{#raw}}`{{@root.cardKey}}`{{/raw}}, which you can use in the same way; plain {{#raw}}`{{cardKey}}`{{/raw}} does not work inside the loop. For more about reports, see {{#xref}}"cardKey":"docs_j1ldnk0s"{{/xref}}.
+
+== Static site and exports
+
+In the static site and in exports such as PDF, the macro does not produce anything. Take this into account when writing instructions next to it.

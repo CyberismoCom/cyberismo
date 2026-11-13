@@ -346,6 +346,7 @@ export const CardBody = forwardRef<CardBodyHandle, CardBodyProps>(
                 <IconButton
                   className="edit-icon-button"
                   data-cy="editBodyButton"
+                  aria-label={t('editContent')}
                   size="sm"
                   variant="soft"
                   color="primary"

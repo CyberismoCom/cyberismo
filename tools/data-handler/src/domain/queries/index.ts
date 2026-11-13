@@ -4,5 +4,6 @@
 /** The door of this domain: api/ imports it only through here. */
 
 export { registerClingoHelpers } from './handlebars-helpers.js';
+export { toLinkCandidates } from './link-candidates.js';
 export { generateReportContent } from './report.js';
 export { getSkill, listSkills, renderSkillTemplates } from './skills.js';

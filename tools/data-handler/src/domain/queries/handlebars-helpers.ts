@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import type Handlebars from 'handlebars';
+import type { HelperOptions } from 'handlebars';
 import { escapeJsonString } from '../../shared/utils/json.js';
 import { escapeCsvField } from '../../shared/utils/csv.js';
 import { resourceName } from '../../shared/utils/resource-utils.js';
@@ -86,6 +87,28 @@ export function registerComparisonHelpers(instance: typeof Handlebars) {
 export function registerClingoHelpers(instance: typeof Handlebars) {
   instance.registerHelper('clingoEscape', (value: unknown) =>
     typeof value === 'string' ? encodeClingoValue(value) : '',
+  );
+}
+
+/**
+ * Registers the block helper `quoted`, which renders its body as one quoted
+ * string valid both as a Clingo string and as a JSON string (so it can hold a
+ * query inside a macro body). Only `\n`, `\\` and `\"` are emitted; tabs become
+ * two spaces and CRLF becomes LF. Other control characters are unsupported.
+ * Interpolations inside the body need `{{{x}}}`, `{{x}}` HTML-escapes.
+ * @param instance handlebars instance
+ */
+export function registerQuotedHelper(instance: typeof Handlebars) {
+  instance.registerHelper(
+    'quoted',
+    function (this: unknown, options: HelperOptions) {
+      const body = options
+        .fn(this)
+        .replace(/\r\n?/g, '\n')
+        .replace(/\t/g, '  ')
+        .trim();
+      return `"${encodeClingoValue(body)}"`;
+    },
   );
 }
 

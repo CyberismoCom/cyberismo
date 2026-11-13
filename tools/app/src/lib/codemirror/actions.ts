@@ -4,7 +4,11 @@
 import { EditorSelection } from '@codemirror/state';
 import type { EditorView } from '@codemirror/view';
 import { redo, undo } from '@codemirror/commands';
-import type { AnyMacroOption, MacroName } from '@cyberismo/model';
+import type {
+  AnyMacroOption,
+  CreateLinksOptions,
+  MacroName,
+} from '@cyberismo/model';
 import i18n from 'i18next';
 
 const listItemPlaceholder = (index: number) =>
@@ -218,6 +222,19 @@ const insertTable = (view: EditorView) => {
 };
 
 /**
+ * Serializes a createLinks macro. The query goes into a quoted block
+ * instead of a JSON string so that it stays readable in the editor.
+ */
+export const serializeCreateLinks = ({
+  query,
+  ...rest
+}: CreateLinksOptions) => {
+  const options = JSON.stringify(rest, null, 2).slice(1, -1).trimEnd();
+  const prefix = options.trim() ? `${options},` : '';
+  return `{{#createLinks}}${prefix}\n  "query": {{#quoted}}\n${query.trim()}\n{{/quoted}}\n{{/createLinks}}`;
+};
+
+/**
  * Inserts a macro to codemirror
  * @param view The codemirror view that the macro will be inserted to
  * @param macroName Name of the macro
@@ -233,6 +250,15 @@ const insertMacro = (
     ...DEFAULT_MACRO_INSERT_OPTIONS,
     ...opts,
   };
+  if (macroName === 'createLinks') {
+    view.dispatch({
+      changes: {
+        from: view.state.selection.main.from,
+        insert: serializeCreateLinks(options as CreateLinksOptions),
+      },
+    });
+    return;
+  }
   const macroInternalString = newLine
     ? JSON.stringify(options, null, 2)
     : JSON.stringify(options);

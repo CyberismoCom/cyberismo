@@ -1,0 +1,11 @@
+{
+    "title": "Create links macro",
+    "cardType": "base/cardTypes/page",
+    "workflowState": "Ready",
+    "rank": "0|ab",
+    "lastUpdated": "2026-11-12T22:30:00.000Z",
+    "links": [],
+    "base/fieldTypes/owner": null,
+    "base/fieldTypes/informationClassification": null,
+    "lastTransitioned": "2026-11-11T12:00:00.000Z"
+}

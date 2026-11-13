@@ -3,10 +3,14 @@
 
 import type { Project } from '@/lib/definitions';
 
-import type { QueryResult, CalculationLink } from '@cyberismo/model';
+import type {
+  QueryResult,
+  CalculationLink,
+  LinkCandidate,
+} from '@cyberismo/model';
 import type { ExpandedLinkType } from '@/lib/definitions';
 
-import { expect, test, describe } from 'vitest';
+import { expect, test, describe, it } from 'vitest';
 
 import {
   appRoutePath,
@@ -24,6 +28,7 @@ import {
   isCardTypePermittedForLinkType,
   isAlreadyLinked,
   canCreateLinkToCard,
+  eligibleCandidates,
   parseNestedDataAttributes,
   parseDataAttributes,
   getInitials,
@@ -884,5 +889,104 @@ describe('appRoutePath', () => {
 
   test('returns null for a missing href', () => {
     expect(appRoutePath(undefined)).toBeNull();
+  });
+});
+
+describe('eligibleCandidates', () => {
+  const lt = (over: Partial<ExpandedLinkType> = {}): ExpandedLinkType =>
+    ({
+      name: 'm/linkTypes/l',
+      direction: 'outbound',
+      sourceCardTypes: [],
+      destinationCardTypes: [],
+      enableLinkDescription: false,
+      ...over,
+    }) as ExpandedLinkType;
+  const cardC = (key: string): LinkCandidate => ({
+    key,
+    kind: 'card',
+    title: `Title ${key.replace('_', '-')}`,
+    cardType: 'm/cardTypes/t',
+  });
+  const ext = (key: string): LinkCandidate => ({
+    key,
+    kind: 'external',
+    title: key,
+    connector: key.slice(0, key.indexOf(':')),
+    itemKey: key.slice(key.indexOf(':') + 1),
+  });
+  const lnk = (over: Partial<CalculationLink>): CalculationLink => ({
+    displayName: '',
+    key: '',
+    linkType: 'm/linkTypes/l',
+    title: '',
+    direction: 'outbound',
+    linkSource: 'user',
+    ...over,
+  });
+  const linkedJira = lnk({ key: 'J-1', connector: 'jira' });
+
+  it.each([
+    ['an already linked card', [cardC('m_2')], lt(), [lnk({ key: 'm_2' })], []],
+    [
+      'an external item of a connector the link type does not allow',
+      [ext('jira:J-1')],
+      lt({ destinationConnectors: ['other'] }),
+      [],
+      [],
+    ],
+    [
+      'an already linked external item',
+      [ext('jira:J-1')],
+      lt({ destinationConnectors: ['jira'] }),
+      [linkedJira],
+      [],
+    ],
+    [
+      'another item of the same connector',
+      [ext('jira:J-2')],
+      lt(),
+      [linkedJira],
+      ['jira:J-2'],
+    ],
+    [
+      'the same itemKey of a different connector',
+      [ext('jira:J-1')],
+      lt(),
+      [lnk({ key: 'J-1', connector: 'other' })],
+      ['jira:J-1'],
+    ],
+    [
+      'an external item linked with a different link type',
+      [ext('jira:J-1')],
+      lt(),
+      [{ ...linkedJira, linkType: 'm/linkTypes/other' }],
+      ['jira:J-1'],
+    ],
+    [
+      'an external item linked in a different direction',
+      [ext('jira:J-1')],
+      lt(),
+      [{ ...linkedJira, direction: 'inbound' as const }],
+      ['jira:J-1'],
+    ],
+    [
+      'an already linked external item when descriptions are enabled',
+      [ext('jira:J-1')],
+      lt({ enableLinkDescription: true }),
+      [linkedJira],
+      ['jira:J-1'],
+    ],
+    [
+      'an allowed, unlinked external item',
+      [ext('jira:J-1')],
+      lt({ destinationConnectors: ['jira'] }),
+      [],
+      ['jira:J-1'],
+    ],
+  ])('%s', (_, input, linkType, links, expected) => {
+    expect(
+      eligibleCandidates('m_1', input, linkType, links).map((c) => c.key),
+    ).toEqual(expected);
   });
 });

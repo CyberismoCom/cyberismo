@@ -7,6 +7,7 @@ import cardBaseSchema from './schema/cardBaseSchema.json' with { type: 'json' };
 import cardsConfigSchema from './schema/cardsConfigSchema.json' with { type: 'json' };
 import cardTypeSchema from './schema/resources/cardTypeSchema.json' with { type: 'json' };
 import createCardsMacroSchema from './schema/macros/createCardsMacroSchema.json' with { type: 'json' };
+import createLinksMacroSchema from './schema/macros/createLinksMacroSchema.json' with { type: 'json' };
 import csvSchema from './schema/csvSchema.json' with { type: 'json' };
 import dotSchema from './schema/dotSchema.json' with { type: 'json' };
 import fieldMacroSchema from './schema/macros/fieldMacroSchema.json' with { type: 'json' };
@@ -38,6 +39,7 @@ export const schemas = [
   cardsConfigSchema,
   cardTypeSchema,
   createCardsMacroSchema,
+  createLinksMacroSchema,
   csvSchema,
   dotSchema,
   fieldMacroSchema,

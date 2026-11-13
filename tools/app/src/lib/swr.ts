@@ -48,6 +48,7 @@ export function projectApiPaths(projectPrefix?: string) {
     fieldTypes: () => `${base}/fieldTypes`,
     graphModels: () => `${base}/graphModels`,
     graphViews: () => `${base}/graphViews`,
+    linkCandidates: () => `${base}/linkCandidates`,
     logicPrograms: (resourceName: string) =>
       `${base}/logicPrograms/${resourceName}`,
     cardType: (cardType: string) => `${base}/cardTypes?name=${cardType}`,

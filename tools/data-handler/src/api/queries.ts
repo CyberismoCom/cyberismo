@@ -7,6 +7,7 @@ import { workflowGraph } from '@cyberismo/assets';
 import { queries } from '@cyberismo/model';
 import type {
   Context,
+  LinkCandidate,
   QueryName,
   QueryResult,
   ReportParameters,
@@ -17,7 +18,10 @@ import { DHValidationError } from '../shared/exceptions/index.js';
 import { ReportMacro } from '../domain/macros/index.js';
 import { TaskQueue } from '../domain/macros/index.js';
 import { evaluateMacros } from '../domain/macros/index.js';
-import { registerClingoHelpers } from '../domain/queries/index.js';
+import {
+  registerClingoHelpers,
+  toLinkCandidates,
+} from '../domain/queries/index.js';
 import { read } from '../infra/tx/rw-lock.js';
 
 const workflowGraphHandlebars = Handlebars.create();
@@ -92,6 +96,20 @@ export class Queries {
   @read
   public async runLogicProgram(query: string, context: Context = 'localApp') {
     return this.checkout.calculationEngine.runLogicProgram(query, context);
+  }
+
+  /**
+   * Runs a logic program and lists the card and connector rows it returns.
+   * @param query Logic program to be run
+   * @throws DHValidationError if the query language rejects the program.
+   */
+  @read
+  public async linkCandidates(query: string): Promise<LinkCandidate[]> {
+    const { results, error } = await this.runLogicProgram(query);
+    if (error) {
+      throw new DHValidationError(error);
+    }
+    return toLinkCandidates(results);
   }
 
   /**

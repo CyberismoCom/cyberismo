@@ -13,6 +13,7 @@ import {
   Stack,
 } from '@mui/joy';
 import type { ReactNode } from 'react';
+import type { SxProps } from '@mui/joy/styles/types';
 
 export interface BaseMacroModalProps {
   /**
@@ -44,6 +45,10 @@ export interface BaseMacroModalProps {
    * Called when modal is submitted
    */
   onSubmit: () => void;
+  /**
+   * Style overrides for the dialog, e.g. a wider dialog for code input
+   */
+  dialogSx?: SxProps;
 }
 
 export function BaseMacroModal({
@@ -54,12 +59,13 @@ export function BaseMacroModal({
   title,
   onClose,
   onSubmit,
+  dialogSx,
 }: BaseMacroModalProps) {
   const { t } = useTranslation();
 
   return (
     <Modal open={open} onClose={onClose}>
-      <ModalDialog>
+      <ModalDialog sx={dialogSx}>
         <DialogTitle>{title}</DialogTitle>
         <Divider />
         <DialogContent

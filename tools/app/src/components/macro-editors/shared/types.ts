@@ -10,6 +10,7 @@ import type {
   IncludeMacroOptions,
   XrefMacroOptions,
   CreateCardsOptions,
+  CreateLinksOptions,
   FieldMacroOptions,
   ReportOptions,
   GraphOptions,
@@ -43,6 +44,20 @@ export const DEFAULT_CREATE_CARDS_FORM_VALUES = {
   template: '',
 };
 
+export const DEFAULT_CREATE_LINKS_FORM_VALUES: {
+  linkType: string;
+  direction: 'inbound' | 'outbound';
+  linkDescription: string;
+  buttonLabel: string;
+  query: string;
+} = {
+  linkType: '',
+  direction: 'outbound',
+  linkDescription: '',
+  buttonLabel: '',
+  query: '',
+};
+
 export const DEFAULT_REPORT_FORM_VALUES = {
   name: '',
 };
@@ -72,6 +87,7 @@ export type OnInsert<T> = (options: T) => void;
 
 export type AnyOnInsert =
   | OnInsert<CreateCardsOptions>
+  | OnInsert<CreateLinksOptions>
   | OnInsert<FieldMacroOptions>
   | OnInsert<GraphOptions>
   | OnInsert<IncludeMacroOptions>

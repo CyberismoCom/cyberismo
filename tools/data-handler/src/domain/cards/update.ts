@@ -406,7 +406,7 @@ async function createLocalLink(
 /**
  * Gets the link type object and validates link description is allowed.
  */
-function getLinkTypeWithValidation(
+export function getLinkTypeWithValidation(
   checkout: Checkout,
   linkType: string,
   linkDescription?: string,
@@ -425,7 +425,7 @@ function getLinkTypeWithValidation(
 /**
  * Validates that a card type is allowed as source or destination for a link type.
  */
-function validateCardTypeForLink(
+export function validateCardTypeForLink(
   checkout: Checkout,
   cardType: string,
   linkTypeObject: {

@@ -6,6 +6,7 @@ import Handlebars from 'handlebars';
 import {
   registerClingoHelpers,
   registerMathHelpers,
+  registerQuotedHelper,
 } from '../../../src/domain/queries/handlebars-helpers.js';
 
 describe('registerClingoHelpers', () => {
@@ -183,5 +184,21 @@ describe('registerMathHelpers', () => {
     it('throws when a variadic helper gets fewer than two operands', () => {
       expect(() => render('{{add 1}}')).toThrow();
     });
+  });
+});
+
+describe('registerQuotedHelper', () => {
+  const handlebars = Handlebars.create();
+  registerQuotedHelper(handlebars);
+  const render = (template: string, context: unknown = {}) =>
+    handlebars.compile(template)(context);
+
+  it.each([
+    ['CRLF', 'a\r\nb', 'a\nb'],
+    ['tab', 'a\tb', 'a  b'],
+    ['surrounding whitespace', '\n  a  \n', 'a'],
+  ])('renders %s as a string valid in Clingo and JSON', (_, body, expected) => {
+    const out = render('{{#quoted}}{{{x}}}{{/quoted}}', { x: body });
+    expect(JSON.parse(out)).toBe(expected);
   });
 });
