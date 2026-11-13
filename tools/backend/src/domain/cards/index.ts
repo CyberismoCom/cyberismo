@@ -99,6 +99,8 @@ router.post(
         title: body.title,
         name: body.name,
         recursive: body.exportChildCards,
+        showMetadata: body.showMetadata,
+        tocLevels: body.tocLevels,
         version: body.version,
       });
       return new Response(result, {

@@ -40,6 +40,9 @@ async function exportPdf(
       revremark: options.revremark,
       cardKey,
       date: options.date,
+      showMetadata: options.metadata,
+      tocLevels:
+        options.tocLevels !== undefined ? Number(options.tocLevels) : undefined,
     });
   } catch (error) {
     if (error instanceof AsciidoctorPdfError) {
@@ -124,6 +127,14 @@ export function registerExport(program: Command) {
     .option(
       '-m, --revremark [revremark]',
       'Revision remark of the exported document(pdf export only)',
+    )
+    .option(
+      '--no-metadata',
+      'Leave out the metadata table of each card(pdf export only)',
+    )
+    .option(
+      '--toc-levels <levels>',
+      'Section levels in the table of contents, 1 to 5 (pdf export only)',
     )
     .option(
       '--default-project <prefix>',

@@ -123,6 +123,8 @@ export type DotSchemaContent = DotSchemaItem[];
  * @param cardKey - Key of the card to be exported.
  * @param recursive - Whether to export recursively ie. export all cards below the given card.
  * @param revremark - Revision remark of the exported document.
+ * @param showMetadata - Whether each card's metadata table is shown; defaults to true.
+ * @param tocLevels - Section levels listed in the table of contents, 1 to 5; defaults to 5.
  */
 export interface ExportPdfOptions {
   name?: string;
@@ -131,6 +133,8 @@ export interface ExportPdfOptions {
   cardKey?: string;
   recursive?: boolean;
   revremark?: string;
+  showMetadata?: boolean;
+  tocLevels?: number;
   version?: string;
 }
 

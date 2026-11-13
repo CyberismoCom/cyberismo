@@ -14,6 +14,8 @@ import {
   FormLabel,
   FormHelperText,
   Input,
+  Option,
+  Select,
 } from '@mui/joy';
 import { useTranslation } from 'react-i18next';
 import { useCard, useCardExport } from '@/lib/api/card';
@@ -28,6 +30,9 @@ interface ModalProps {
   defaultTitle?: string;
   forceChildExport?: boolean;
 }
+
+const TOC_LEVELS = [1, 2, 3, 4, 5];
+const DEFAULT_TOC_LEVELS = 5;
 
 type ExportModalProps = Omit<
   ModalProps,
@@ -47,6 +52,8 @@ const ExportModal = ({
   const { card } = useCard(cardKey);
   const { exportCard } = useCardExport();
   const [exportChildCards, setExportChildCards] = useState(forceChildExport);
+  const [showMetadata, setShowMetadata] = useState(true);
+  const [tocLevels, setTocLevels] = useState(DEFAULT_TOC_LEVELS);
   const [title, setTitle] = useState(card?.title ?? defaultTitle);
   const [name, setName] = useState(defaultFileName);
   const [version, setVersion] = useState('');
@@ -60,6 +67,8 @@ const ExportModal = ({
 
   const handleClose = () => {
     setExportChildCards(forceChildExport);
+    setShowMetadata(true);
+    setTocLevels(DEFAULT_TOC_LEVELS);
     setTitle(card?.title ?? defaultTitle);
     setName(defaultFileName);
     setVersion('');
@@ -107,6 +116,21 @@ const ExportModal = ({
             <FormHelperText>{t('exportCardVersionDescription')}</FormHelperText>
           </FormControl>
 
+          <FormControl>
+            <FormLabel>{t('exportTocLevels')}</FormLabel>
+            <Select
+              value={tocLevels}
+              onChange={(_, value) => value !== null && setTocLevels(value)}
+            >
+              {TOC_LEVELS.map((level) => (
+                <Option key={level} value={level}>
+                  {level}
+                </Option>
+              ))}
+            </Select>
+            <FormHelperText>{t('exportTocLevelsDescription')}</FormHelperText>
+          </FormControl>
+
           {!forceChildExport && (
             <Checkbox
               checked={exportChildCards}
@@ -114,6 +138,11 @@ const ExportModal = ({
               label={t('exportChildCards')}
             />
           )}
+          <Checkbox
+            checked={showMetadata}
+            onChange={(e) => setShowMetadata(e.target.checked)}
+            label={t('exportShowMetadata')}
+          />
         </DialogContent>
         <DialogActions>
           <Button
@@ -123,6 +152,8 @@ const ExportModal = ({
                 title,
                 name,
                 exportChildCards,
+                showMetadata,
+                tocLevels,
                 ...(version && { version }),
               });
               handleClose();

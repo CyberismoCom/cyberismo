@@ -9,15 +9,21 @@
 {{/if}}{{#if revremark}}:revremark: {{revremark}}
 {{/if}}:!chapter-signifier:
 :source-highlighter: rouge
-:toclevels: 5
+:toclevels: {{tocLevels}}
 
 toc::[]
 {{#each results}}
+{{!-- An exported card is the document, titled by it, so only its anchor is kept --}}
+{{#if (eq this.key @root.cardKey)}}
+[[{{this.key}}]]
+{{else}}
   {{#include}}
      "cardKey": "{{this.key}}",
      "levelOffset": "{{this.levelOffset}}",
      "title": "only"
   {{/include}}
+{{/if}}
+{{#if @root.showMetadata}}
 [cols="1,4",frame=none,grid=none]
 |===
 | Workflow state | {{this.workflowState}}
@@ -35,6 +41,7 @@ toc::[]
 {{/each}}
 |===
 {empty} +
+{{/if}}
 {{#if this.links}}
 [discrete]  
 ==== Linked cards
@@ -90,6 +97,6 @@ toc::[]
     "cardKey": "{{this.key}}",
     "levelOffset": "{{this.levelOffset}}",
     "title": "exclude",
-    "pageTitles": "discrete"
+    "headingLevels": "nest"
 {{/include}}
 {{/each}}

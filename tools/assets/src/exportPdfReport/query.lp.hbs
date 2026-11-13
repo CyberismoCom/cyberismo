@@ -9,8 +9,9 @@ result(Card) :- parent(Card, Parent), result(Parent).
 result(Card) :- projectCard(Card), not hiddenInTreeView(Card).
 {{/if}}
 
-% Calculate depth levels
-cardLevel(Card, 1) :- result(Card), not parent(Card, _).
+% Calculate depth levels; the exported cards whose parent is not exported are at the top
+resultParent(Card) :- result(Card), parent(Card, Parent), result(Parent).
+cardLevel(Card, 1) :- result(Card), not resultParent(Card).
 cardLevel(Card, Level + 1) :- 
     cardLevel(Parent, Level), 
     parent(Card, Parent), 
@@ -40,8 +41,13 @@ treePath(Card, FullPath) :-
 % Sort by tree path (lexicographic ordering will give us depth-first)
 order(1, "results", 1, "treePath", "ASC").
 
-% Map level to levelOffset and add tree path for sorting; report-only columns, so shortText
+% Map level to levelOffset and add tree path for sorting; report-only columns, so shortText.
+% An exported card is the document itself, so its children are its chapters.
+{{#if cardKey}}
+resultField(Card, "levelOffset", Level - 1, "shortText") :- cardLevel(Card, Level), result(Card).
+{{else}}
 resultField(Card, "levelOffset", Level, "shortText") :- cardLevel(Card, Level), result(Card).
+{{/if}}
 resultField(Card, "treePath", Path, "shortText") :- treePath(Card, Path), result(Card).
 
 % Add fields structure similar to card query

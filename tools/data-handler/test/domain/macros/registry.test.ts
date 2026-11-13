@@ -519,6 +519,39 @@ Some content here`;
         expect(result).toContain('\n#TODO# Add content');
         expect(result).toContain('----\n# comment\n----');
       });
+      it('includeMacro nests the headings a level below the card title, then applies the level offset', async () => {
+        const nested = structuredClone(
+          cardDetailsByIdStub('test-card') as Card,
+        );
+        nested.key = 'testCardTopHeadings';
+        nested.content =
+          '= Background\n\n== Detail\n\n----\n= not a heading\n----\n\n= Scope';
+        cardDetailsByIdStub.withArgs('testCardTopHeadings').returns(nested);
+        const include = (options: string) =>
+          evaluateMacros(
+            `{{#include}}"cardKey": "testCardTopHeadings", ${options}{{/include}}`,
+            { mode: 'static', checkout, cardKey: '', context: 'localApp' },
+          );
+
+        const kept = await include('"title": "exclude", "levelOffset": "+1"');
+        const result = await include(
+          '"levelOffset": "+1", "headingLevels": "nest"',
+        );
+
+        expect(kept).toContain('== Background\n\n=== Detail');
+        expect(result).toContain('== Test Card Title');
+        expect(result).toContain('=== Background\n\n==== Detail');
+        expect(result).toContain('----\n= not a heading\n----');
+        expect(result).toContain('=== Scope');
+      });
+      it('includeMacro leaves headings that already start a level below the title where they are', async () => {
+        const result = await evaluateMacros(
+          `{{#include}}"cardKey": "test-card", "headingLevels": "nest"{{/include}}`,
+          { mode: 'static', checkout, cardKey: '', context: 'localApp' },
+        );
+        expect(result).toContain('= Test Card Title');
+        expect(result).toContain('\n== Test subtitle');
+      });
       it('includeMacro closes a block the included card leaves open', async () => {
         const macro = `{{#include}}"cardKey": "testCardOpenTable", "title": "exclude"{{/include}}\n\nAfter`;
         const result = await evaluateMacros(macro, {
