@@ -438,7 +438,7 @@ describe('Card tree', () => {
       expect(tree.attachmentsOf('test_1')).toEqual([]);
     });
 
-    it('records entries in folders below the attachment folder', async () => {
+    it('lists only the files directly in the attachment folder', async () => {
       const cardPath = createTestCard(
         'test_1',
         testCardsPath,
@@ -454,11 +454,7 @@ describe('Card tree', () => {
           .attachmentsOf('test_1')
           .map((item) => [item.fileName, item.path])
           .sort(),
-      ).toEqual([
-        ['deep', join(cardPath, 'a')],
-        ['flat.png', join(cardPath, 'a')],
-        ['nested.png', join(cardPath, 'a', 'deep')],
-      ]);
+      ).toEqual([['flat.png', join(cardPath, 'a')]]);
     });
 
     it('gives a nested card its own attachments', async () => {

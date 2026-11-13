@@ -253,7 +253,7 @@ export class CardTree {
   ): CardAttachment {
     return {
       card: cardKey,
-      path: join(cardPath, ATTACHMENT_FOLDER, attachment.dir),
+      path: join(cardPath, ATTACHMENT_FOLDER),
       fileName: attachment.fileName,
       mimeType: mime.lookup(attachment.fileName) || null,
     };
@@ -724,7 +724,6 @@ export class CardTree {
         content: card.content,
         attachments: card.attachments.map((attachment) => ({
           fileName: attachment.fileName,
-          dir: '',
         })),
       });
     }
@@ -1029,7 +1028,7 @@ export class CardTree {
   private recordAttachment(cardKey: string, fileName: string) {
     const card = this.stored(cardKey);
     const isDuplicate = card.attachments.some(
-      (existing) => existing.dir === '' && existing.fileName === fileName,
+      (existing) => existing.fileName === fileName,
     );
     if (isDuplicate) {
       CardTree.logger.warn(
@@ -1037,7 +1036,7 @@ export class CardTree {
       );
       return;
     }
-    card.attachments.push({ fileName, dir: '' });
+    card.attachments.push({ fileName });
   }
 
   /**
@@ -1102,11 +1101,7 @@ export class CardTree {
       return;
     }
 
-    const folder = join(
-      this.pathOfStored(card),
-      ATTACHMENT_FOLDER,
-      attachment.dir,
-    );
+    const folder = join(this.pathOfStored(card), ATTACHMENT_FOLDER);
     const target = resolve(folder, newFileName);
     // A name that is not a plain file name renames the file out of the folder
     // the card owns, while the store keeps reporting it as an attachment here.
