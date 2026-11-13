@@ -539,6 +539,58 @@ describe('export.pdf links outside the document', () => {
     );
     expect(warnings).toEqual([]);
   });
+
+  it.each([
+    { includeHidden: true, kept: true },
+    { includeHidden: false, kept: false },
+  ])(
+    'with includeHidden $includeHidden, keeps links to a hidden child only when the document holds it',
+    async ({ includeHidden, kept }) => {
+      // Top(Hidden) links to Hidden.
+      const { ws, keys } = await open({
+        linkTypes: [{ name: 'rel' }],
+        cards: [
+          {
+            title: 'Top',
+            links: [{ linkType: 'rel', to: 1 }],
+            children: [{ title: 'Hidden' }],
+          },
+        ],
+        calculations: {
+          hide: 'hiddenInTreeView(C) :- field(C, "title", "Hidden").\n',
+        },
+      });
+      const hidden = keys[1];
+      await ws.cards.edit(keys[0], `See xref:${hidden}.adoc[that].`);
+      const run = vi
+        .spyOn(
+          Export.prototype as unknown as {
+            runAsciidoctorPdf: (content: string) => Promise<unknown>;
+          },
+          'runAsciidoctorPdf',
+        )
+        .mockResolvedValue({ pdf: Buffer.from(''), warnings: [] });
+
+      const { warnings } = await ws.export.pdf({
+        cardKey: keys[0],
+        recursive: true,
+        includeHidden,
+      });
+
+      const source: string = run.mock.calls[0][0];
+      if (kept) {
+        expect(source).toContain(`See <<${hidden},that>>.`);
+        expect(source).toMatch(
+          new RegExp(`^\\| rel out \\| <<${hidden},Hidden>>$`, 'm'),
+        );
+        expect(warnings).toEqual([]);
+      } else {
+        expect(source).toContain('See that.');
+        expect(source).toMatch(/^\| rel out \| Hidden$/m);
+        expect(warnings).toEqual([notExportedWarning(hidden)]);
+      }
+    },
+  );
 });
 
 // A stand-in for asciidoctor-pdf found first on the PATH.

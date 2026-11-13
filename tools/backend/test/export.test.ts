@@ -425,6 +425,78 @@ describe('export module', () => {
       },
     );
 
+    test.each([
+      { includeHidden: true, warnings: [] },
+      {
+        includeHidden: false,
+        warnings: [
+          { prefix: 'decision', warnings: [notExportedWarning('decision_6')] },
+        ],
+      },
+    ])(
+      'with includeHidden $includeHidden, keeps an xref and a link to the hidden child as links only when it is exported',
+      async ({ includeHidden, warnings: expected }) => {
+        const project = join(folder, 'decision-records');
+        await writeFile(
+          join(
+            project,
+            '.cards',
+            'local',
+            'calculations',
+            'test',
+            'calculation.lp',
+          ),
+          'hiddenInTreeView(decision_6).\n',
+          { flag: 'a' },
+        );
+        const card = join(project, 'cardRoot', 'decision_5');
+        await writeFile(
+          join(card, 'index.adoc'),
+          'See xref:decision_6.adoc[the child].\n',
+        );
+        const metadata = JSON.parse(
+          await readFile(join(card, 'index.json'), 'utf8'),
+        );
+        await writeFile(
+          join(card, 'index.json'),
+          JSON.stringify({
+            ...metadata,
+            links: [
+              { linkType: 'decision/linkTypes/test', cardKey: 'decision_6' },
+            ],
+          }),
+        );
+        const { directory: registry } = await localFolder(folder);
+
+        const { warnings } = await exportSite(registry, tempDir, {
+          cardKey: 'decision_5',
+          recursive: true,
+          includeHidden,
+        });
+
+        const content = JSON.parse(
+          await readFile(
+            join(
+              tempDir,
+              'api',
+              'projects',
+              'decision',
+              'cards',
+              'decision_5',
+              'content.json',
+            ),
+            'utf8',
+          ),
+        );
+        if (includeHidden) {
+          expect(content.adocContent).toContain('link:');
+        } else {
+          expect(content.adocContent).toContain('See the child.');
+        }
+        expect(warnings).toEqual(expected);
+      },
+    );
+
     test('exports a field macro as its value text', async () => {
       const card = join(
         folder,
