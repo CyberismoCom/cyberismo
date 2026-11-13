@@ -24,8 +24,16 @@ export function isAssetPath(requestPath: string): boolean {
 /**
  * Serves the built frontend from `root`, with cache headers that keep a
  * browser from pairing an old index.html with a newer build.
+ * @param root - Directory to serve
+ * @param options - Extra serveStatic options, such as path rewriting
  */
-export function serveFrontend(root: string): MiddlewareHandler {
+export function serveFrontend(
+  root: string,
+  options: Pick<
+    NonNullable<Parameters<typeof serveStatic>[0]>,
+    'allowPercentInPath' | 'rewriteRequestPath'
+  > = {},
+): MiddlewareHandler {
   // Only files served from disk get these headers, not the responses of
   // later handlers that serveStatic falls through to.
   const servedFromDisk = new WeakSet<Context>();
@@ -39,7 +47,11 @@ export function serveFrontend(root: string): MiddlewareHandler {
         c.res.headers.set('Cache-Control', ASSET_CACHE_CONTROL);
       }
     },
-    serveStatic({ root, onFound: (_path, c) => void servedFromDisk.add(c) }),
+    serveStatic({
+      ...options,
+      root,
+      onFound: (_path, c) => void servedFromDisk.add(c),
+    }),
   );
 }
 

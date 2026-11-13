@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: Cyberismo Ltd and contributors
 // SPDX-License-Identifier: AGPL-3.0-only
 
-import type { Env, Schema } from 'hono';
+import type { Context, Env, Schema } from 'hono';
 import { Hono } from 'hono';
 import path from 'node:path';
 import { frontendFallback, serveFrontend } from './frontend.js';
@@ -18,21 +18,56 @@ export { exportSite, type ExportSiteOptions } from './export.js';
 const DEFAULT_PORT = 3000;
 const MAX_PORT_ATTEMPTS = 100;
 
+// Node's fs refuses a NUL in a path, so the lookup misses and serveStatic
+// falls through; a decoded %00 misses the same way.
+const MISS = '\0';
+
+// serveStatic only decodeURI's the path, leaving %23, %26 etc. encoded, and
+// checks for traversal before the rewrite. Decode the raw URL once, as nginx
+// and Express's send do, and serve it only if it lands inside the root.
+function staticPathWithin(root: string, c: Context): string {
+  let decoded: string;
+  try {
+    decoded = decodeURIComponent(new URL(c.req.url).pathname);
+  } catch {
+    return MISS;
+  }
+  const rel = path.relative(root, path.join(root, decoded));
+  const inside =
+    rel !== '..' && !rel.startsWith(`..${path.sep}`) && !path.isAbsolute(rel);
+  return inside ? rel : MISS;
+}
+
 /**
- * Preview the exported site
- * @param dir - Directory to preview
- * @param findPort - If true, find a free port
+ * Build the app that serves an exported site
+ * @param dir - Directory to serve
  */
-export async function previewSite(dir: string, findPort: boolean = true) {
+export function createPreviewApp(dir: string) {
   const app = new Hono();
-  app.use(serveFrontend(dir));
+  app.use(
+    serveFrontend(dir, {
+      // staticPathWithin decodes once and keeps the path inside the root, and
+      // no route middleware runs before this, so encoded names are safe here.
+      allowPercentInPath: true,
+      rewriteRequestPath: (_, c) => staticPathWithin(dir, c),
+    }),
+  );
   app.get('*', async (c) => {
     if (c.req.path.startsWith('/api/')) {
       return c.json({ error: 'Resource not found' }, 404);
     }
     return frontendFallback(c, path.join(dir, 'index.html'));
   });
+  return app;
+}
 
+/**
+ * Preview the exported site
+ * @param dir - Directory to preview
+ * @param findPort - If true, find a free port
+ */
+export async function previewSite(dir: string, findPort: boolean = true) {
+  const app = createPreviewApp(dir);
   const port = parseInt(process.env.PORT || DEFAULT_PORT.toString(), 10);
   await startApp(app, port, findPort);
 }
