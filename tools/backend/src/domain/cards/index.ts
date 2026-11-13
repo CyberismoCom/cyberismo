@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: Cyberismo Ltd and contributors
 // SPDX-License-Identifier: AGPL-3.0-only
 
-import { type Context, Hono } from 'hono';
+import { Hono } from 'hono';
 import * as cardService from './service.js';
 import { isSSGContext, ssgParams } from 'hono/ssg';
 import type { AppContext } from '../../types.js';
@@ -9,6 +9,7 @@ import { UserRole } from '../../types.js';
 import { requireRole } from '../../middleware/auth.js';
 import { zValidator } from '../../middleware/zvalidator.js';
 import {
+  attachmentParamSchema,
   cardKeyParamSchema,
   createLinkSchema,
   removeLinkSchema,
@@ -792,18 +793,11 @@ router.put(
 router.get(
   '/:key/a/:attachment',
   requireRole(UserRole.Reader),
-  ssgParams(async (c: Context) => {
-    const ws = c.get('ws');
-    return await cardService.findRelevantAttachments(ws, c.get('tree'));
-  }),
+  zValidator('param', attachmentParamSchema),
   async (c) => {
     const ws = c.get('ws');
-    const { key, attachment } = c.req.param();
+    const { key, attachment } = c.req.valid('param');
     const filename = decodeURI(attachment);
-
-    if (!filename || !key) {
-      return c.text('Missing cardKey or filename', 400);
-    }
 
     try {
       const attachmentResponse = await cardService.getAttachment(
@@ -811,12 +805,9 @@ router.get(
         key,
         filename,
       );
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const payload = attachmentResponse as any;
-
-      return new Response(payload.fileBuffer, {
+      return new Response(attachmentResponse.fileBuffer, {
         headers: {
-          'Content-Type': payload.mimeType,
+          'Content-Type': attachmentResponse.mimeType,
           'Content-Disposition': `attachment; filename="${filename}"`,
           'Cache-Control': 'no-store',
         },
