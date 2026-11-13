@@ -110,7 +110,7 @@ export function registerExport(program: Command) {
     )
     .option(
       '--include-hidden',
-      'Export the cards hidden from the tree view too, left out of the navigation and the table of contents. From a card, a pdf or site export needs -r to hold its descendants',
+      'Export the cards hidden from the tree view too; a pdf leaves them out of its table of contents and a site out of its navigation. From a card, a pdf or site export needs -r to hold its descendants',
     )
     .option(
       '-t, --title [title]',
