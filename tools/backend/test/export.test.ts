@@ -5,7 +5,12 @@ import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
 import { mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { getCardQueryResult, reset, exportSite } from '../src/export.js';
+import {
+  getCardQueryResult,
+  reset,
+  exportSite,
+  formatExportWarnings,
+} from '../src/export.js';
 import {
   localFolder,
   notExportedWarning,
@@ -150,6 +155,20 @@ describe('export module', () => {
       await expect(getCardQueryResult(commandsB, 'alpha_1')).rejects.toThrow(
         'Card alpha_1 not found',
       );
+    });
+  });
+
+  describe('formatExportWarnings', () => {
+    test('gives nothing without warnings', () => {
+      expect(formatExportWarnings([])).toBeUndefined();
+    });
+
+    test('groups the warnings by project', () => {
+      expect(
+        formatExportWarnings([
+          { prefix: 'decision', warnings: ['one', 'two'] },
+        ]),
+      ).toBe('1 project has warnings:\n\ndecision (2):\n  one\n  two');
     });
   });
 

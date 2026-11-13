@@ -7,7 +7,7 @@ import { dirname, join, resolve } from 'node:path';
 import cliProgress from 'cli-progress';
 import { Argument, type Command } from 'commander';
 
-import { exportSite } from '@cyberismo/backend';
+import { exportSite, formatExportWarnings } from '@cyberismo/backend';
 import { formatProjectErrors } from '@cyberismo/model';
 import {
   AsciidoctorPdfError,
@@ -196,17 +196,9 @@ export function registerExport(program: Command) {
               },
             );
             progress.stop();
-            if (warnings.length > 0) {
-              console.warn(
-                formatProjectErrors(
-                  warnings.map(({ prefix, warnings }) => ({
-                    prefix,
-                    errors: warnings,
-                  })),
-                  10,
-                  'warnings',
-                ),
-              );
+            const warningText = formatExportWarnings(warnings);
+            if (warningText) {
+              console.warn(warningText);
             }
             const errors = [...failed, ...exportErrors];
             if (errors.length > 0) {

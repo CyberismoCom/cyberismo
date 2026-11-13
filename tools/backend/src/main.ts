@@ -3,7 +3,7 @@
 
 import { localFolder } from '@cyberismo/data-handler';
 import { startServer } from './index.js';
-import { exportSite } from './export.js';
+import { exportSite, formatExportWarnings } from './export.js';
 import { MockAuthProvider } from './auth/mock.js';
 import { KeycloakAuthProvider } from './auth/keycloak.js';
 import type { AuthProvider } from './auth/types.js';
@@ -92,9 +92,16 @@ if (args.export) {
     console.error(formatProjectErrors(failed));
     process.exit(1);
   }
-  const { errors: exportErrors } = await exportSite(directory, undefined, {
-    defaultProject,
-  });
+  const { errors: exportErrors, warnings } = await exportSite(
+    directory,
+    undefined,
+    { defaultProject },
+  );
+  // Warnings are reported, but do not fail the export.
+  const warningText = formatExportWarnings(warnings);
+  if (warningText) {
+    console.warn(warningText);
+  }
   const errors = [...failed, ...exportErrors];
   if (errors.length > 0) {
     console.error(formatProjectErrors(errors));

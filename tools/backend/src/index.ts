@@ -15,6 +15,7 @@ export type { MockUserConfig } from './auth/mock.js';
 export type { AuthProvider } from './auth/types.js';
 export {
   exportSite,
+  formatExportWarnings,
   type ExportSiteOptions,
   type ProjectWarnings,
 } from './export.js';

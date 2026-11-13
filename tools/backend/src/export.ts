@@ -14,7 +14,11 @@ import { createApp } from './app.js';
 import { MockAuthProvider } from './auth/mock.js';
 import { cp } from 'node:fs/promises';
 import { staticFrontendDirRelative } from './utils.js';
-import type { QueryResult, ProjectErrors } from '@cyberismo/model';
+import {
+  formatProjectErrors,
+  type QueryResult,
+  type ProjectErrors,
+} from '@cyberismo/model';
 import { toSSG } from 'hono/ssg';
 import type { TreeOptions } from './types.js';
 import {
@@ -32,6 +36,18 @@ export interface ExportSiteOptions extends TreeOptions {
 export interface ProjectWarnings {
   prefix: string;
   warnings: string[];
+}
+
+/** The warnings of a site export by project, for printing; none without warnings. */
+export function formatExportWarnings(
+  warnings: ProjectWarnings[],
+): string | undefined {
+  if (warnings.length === 0) return undefined;
+  return formatProjectErrors(
+    warnings.map(({ prefix, warnings }) => ({ prefix, errors: warnings })),
+    10,
+    'warnings',
+  );
 }
 
 const _cardQueryCache = new Map<string, Promise<QueryResult<'card'>[]>>();
