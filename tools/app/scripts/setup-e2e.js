@@ -94,8 +94,8 @@ execSync(`${cli} add card bat/templates/checks test/cardTypes/page`, {
 writeFileSync(graphModelPath, graphModelContent);
 writeFileSync(graphViewPath, graphViewContent);
 writeFileSync(reportPath, reportContent);
-// Cards titled 'Hidden note' are hidden from the tree view; the hidden card
-// export tests create them.
+// Cards titled 'Hidden note' are hidden from the tree view; createExportCards
+// in the e2e helpers adds one.
 appendFileSync(
   hiddenCalculationPath,
   '\nhiddenInTreeView(Card) :- field(Card, "title", "Hidden note").\n',

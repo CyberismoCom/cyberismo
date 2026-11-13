@@ -3,8 +3,15 @@
 
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import type { Page } from '@playwright/test';
 import { test, expect } from '../fixtures.js';
-import { editPage, dismissSaveToast, typeIntoCodeMirror } from '../helpers.js';
+import {
+  createExportCards,
+  editPage,
+  dismissSaveToast,
+  typeIntoCodeMirror,
+  type ExportCards,
+} from '../helpers.js';
 import t from '../../src/locales/en/translation.json' with { type: 'json' };
 
 test.describe.configure({ mode: 'serial' });
@@ -962,5 +969,65 @@ test.describe('Navigation', () => {
       await expect(page.getByRole('dialog')).toHaveCount(0);
       expect(page.url()).toContain('/projects/bat/cards');
     });
+  });
+});
+
+test.describe('Hidden cards', () => {
+  let keys: ExportCards;
+
+  test.beforeAll(async ({ backend, resetProject }) => {
+    await resetProject();
+    keys = await createExportCards(backend.baseURL);
+  });
+
+  const treeNode = (page: Page, title: string) =>
+    page.locator('.treenode').filter({ hasText: title });
+
+  test('a hidden card is left out of the sidebar but has breadcrumbs', async ({
+    page,
+  }) => {
+    // The sidebar opens the selected card, so a visible child would show.
+    await page.goto(`/projects/bat/cards/${keys.exportStartKey}`);
+    await expect(
+      page.getByRole('heading', { level: 1, name: 'Export start' }),
+    ).toBeVisible();
+    await expect(treeNode(page, 'Export start')).toBeVisible();
+    await expect(treeNode(page, 'Hidden note')).toHaveCount(0);
+
+    await page.goto(`/projects/bat/cards/${keys.hiddenNoteKey}`);
+    await expect(
+      page.getByRole('heading', { level: 1, name: 'Hidden note' }),
+    ).toBeVisible();
+    const breadcrumbs = page.locator('.breadcrumbs');
+    for (const name of [
+      'Untitled page content',
+      'Export start',
+      `Hidden note - ${keys.hiddenNoteKey}`,
+    ]) {
+      await expect(
+        breadcrumbs.getByRole('link', { name, exact: true }),
+      ).toBeVisible();
+    }
+    await expect(treeNode(page, 'Hidden note')).toHaveCount(0);
+  });
+
+  test('the link editor offers a hidden card as a target', async ({ page }) => {
+    await page.goto(`/projects/bat/cards/${keys.rootCardKey}`);
+    await expect(
+      page.getByRole('heading', { level: 1, name: 'Untitled page content' }),
+    ).toBeVisible();
+
+    await page.getByTestId('linkIconButton').click();
+    await page
+      .locator('.MuiSelect-button', { hasText: t.linkForm.selectLinkType })
+      .click();
+    await page
+      .getByRole('listbox')
+      .getByRole('option', { name: 'Outbound', exact: true })
+      .click();
+    await page.locator('[placeholder="Search card"]').fill('Hidden note');
+    await expect(
+      page.locator('.MuiAutocomplete-option', { hasText: 'Hidden note' }),
+    ).toBeVisible();
   });
 });
