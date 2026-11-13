@@ -1008,6 +1008,8 @@ test.describe('Hidden cards', () => {
         breadcrumbs.getByRole('link', { name, exact: true }),
       ).toBeVisible();
     }
+    // The tree has rendered; its root is always shown
+    await expect(treeNode(page, 'Untitled page content')).toBeVisible();
     await expect(treeNode(page, 'Hidden note')).toHaveCount(0);
   });
 

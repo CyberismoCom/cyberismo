@@ -1,13 +1,16 @@
 // SPDX-FileCopyrightText: Cyberismo Ltd and contributors
 // SPDX-License-Identifier: AGPL-3.0-only
 
-import { execFile } from 'node:child_process';
-import { readFile, rm, stat } from 'node:fs/promises';
-import { createServer, type Server } from 'node:http';
-import { extname, join, normalize, sep } from 'node:path';
+import { execFile, spawn, type ChildProcess } from 'node:child_process';
+import { rm } from 'node:fs/promises';
+import { join } from 'node:path';
 import { promisify } from 'node:util';
 import type { Download, Page } from '@playwright/test';
-import { test, expect } from '../fixtures.js';
+import {
+  asciidoctorPdfInstalled,
+  holdsCard,
+} from '../../../data-handler/test/helpers/pdf.js';
+import { test, expect, waitForListening } from '../fixtures.js';
 import { createExportCards, type ExportCards } from '../helpers.js';
 import t from '../../src/locales/en/translation.json' with { type: 'json' };
 
@@ -20,28 +23,36 @@ const treeNode = (page: Page, title: string) =>
 const heading = (page: Page, title: string) =>
   page.getByRole('heading', { level: 1, name: title, exact: true });
 
-// Clicks the dialog's export button; returns the request body and the download.
+// Clicks the dialog's export button; returns the request body and the PDF.
 async function exportPdf(page: Page) {
-  const request = page.waitForRequest(
-    (req) =>
-      req.method() === 'POST' &&
-      new URL(req.url()).pathname.endsWith('/cards/export-pdf'),
+  const response = page.waitForResponse(
+    (res) =>
+      res.request().method() === 'POST' &&
+      new URL(res.url()).pathname.endsWith('/cards/export-pdf'),
   );
-  const download = page.waitForEvent('download', { timeout: 60_000 });
+  const download = page.waitForEvent('download');
   await page
     .getByRole('dialog')
     .getByRole('button', { name: t.export, exact: true })
     .click();
+  const res = await response;
+  expect(res.ok(), await res.text()).toBe(true);
   return {
-    body: (await request).postDataJSON() as Record<string, unknown>,
+    body: res.request().postDataJSON() as Record<string, unknown>,
     download: await download,
   };
 }
 
-async function expectPdf(download: Download, name: string) {
+async function readPdf(download: Download, name: string) {
   expect(download.suggestedFilename()).toBe(name);
-  const pdf = await readFile(await download.path());
+  // A stream, unlike path(), also works with a remote browser
+  const chunks: Buffer[] = [];
+  for await (const chunk of await download.createReadStream()) {
+    chunks.push(chunk as Buffer);
+  }
+  const pdf = Buffer.concat(chunks);
   expect(pdf.subarray(0, 5).toString('latin1')).toBe('%PDF-');
+  return pdf;
 }
 
 let keys: ExportCards;
@@ -51,7 +62,16 @@ test.beforeAll(async ({ backend, resetProject }) => {
   keys = await createExportCards(backend.baseURL);
 });
 
+// CI installs asciidoctor-pdf on every OS, so a missing binary there is a
+// failure, not a skip.
 test.describe('PDF export', () => {
+  test.skip(
+    !asciidoctorPdfInstalled && !process.env.CI,
+    'asciidoctor-pdf is not installed',
+  );
+  // asciidoctor-pdf is slow to start, the more so when workers run together.
+  test.slow();
+
   test('exports a card with its child cards, hidden ones included', async ({
     page,
   }) => {
@@ -80,7 +100,9 @@ test.describe('PDF export', () => {
       exportChildCards: true,
       includeHidden: true,
     });
-    await expectPdf(download, 'card-export.pdf');
+    const pdf = await readPdf(download, 'card-export.pdf');
+    // The hidden child card is in the document
+    expect(holdsCard(pdf, keys.hiddenNoteKey)).toBe(true);
   });
 
   test('exports the project', async ({ page }) => {
@@ -104,69 +126,33 @@ test.describe('PDF export', () => {
       exportChildCards: true,
       includeHidden: false,
     });
-    await expectPdf(download, 'project-export.pdf');
+    const pdf = await readPdf(download, 'project-export.pdf');
+    expect(holdsCard(pdf, keys.exportStartKey)).toBe(true);
+    expect(holdsCard(pdf, keys.hiddenNoteKey)).toBe(false);
   });
 });
 
-const CONTENT_TYPES: Record<string, string> = {
-  '.html': 'text/html',
-  '.js': 'text/javascript',
-  '.css': 'text/css',
-  '.json': 'application/json',
-  '.svg': 'image/svg+xml',
-  '.png': 'image/png',
-  '.woff2': 'font/woff2',
-};
-
-// Serves an exported site as a static host would: a file if there is one,
-// else index.html, so that the app routes the page. A missing API file is a
-// 404, as the app expects in static mode.
-async function serveSite(root: string): Promise<{
-  server: Server;
+// Serves an exported site with `cyberismo preview` on a port the OS picks.
+async function previewSite(dir: string): Promise<{
+  proc: ChildProcess;
   url: string;
 }> {
-  const server = createServer(async (req, res) => {
-    const pathname = decodeURIComponent(
-      new URL(req.url ?? '/', 'http://localhost').pathname,
-    );
-    const file = normalize(join(root, pathname));
-    let body: Buffer | undefined;
-    if (file.startsWith(root + sep)) {
-      try {
-        if ((await stat(file)).isFile()) body = await readFile(file);
-      } catch {
-        // not a file of the site
-      }
-    }
-    if (body) {
-      res.writeHead(200, {
-        'content-type':
-          CONTENT_TYPES[extname(file)] ?? 'application/octet-stream',
-        connection: 'close',
-      });
-      res.end(body);
-    } else if (pathname.startsWith('/api/')) {
-      res.writeHead(404, { connection: 'close' });
-      res.end();
-    } else {
-      res.writeHead(200, { 'content-type': 'text/html', connection: 'close' });
-      res.end(await readFile(join(root, 'index.html')));
-    }
+  const proc = spawn(process.execPath, [CLI, 'preview', dir], {
+    env: { ...process.env, HOST: '127.0.0.1', PORT: '0' },
+    stdio: ['ignore', 'ignore', 'inherit', 'ipc'],
   });
-  await new Promise<void>((resolve, reject) => {
-    server.once('error', reject);
-    server.listen(0, '127.0.0.1', resolve);
-  });
-  const address = server.address();
-  if (address === null || typeof address === 'string') {
-    throw new Error('Site server did not report a port');
+  try {
+    const port = await waitForListening(proc);
+    return { proc, url: `http://127.0.0.1:${port}` };
+  } catch (error) {
+    proc.kill();
+    throw error;
   }
-  return { server, url: `http://127.0.0.1:${address.port}` };
 }
 
 test.describe('Static site export', () => {
   let siteDir: string;
-  let site: { server: Server; url: string } | undefined;
+  let site: { proc: ChildProcess; url: string } | undefined;
 
   test.beforeEach(async ({ backend }, testInfo) => {
     testInfo.setTimeout(180_000);
@@ -179,7 +165,11 @@ test.describe('Static site export', () => {
   });
 
   test.afterEach(async () => {
-    site?.server.close();
+    if (site && site.proc.exitCode === null) {
+      const exited = new Promise((resolve) => site!.proc.once('exit', resolve));
+      site.proc.kill();
+      await exited;
+    }
     site = undefined;
     await rm(siteDir, { recursive: true, force: true, maxRetries: 5 });
   });
@@ -191,7 +181,7 @@ test.describe('Static site export', () => {
       [CLI, 'export', 'site', siteDir, ...args, '-p', projectPath],
       { encoding: 'utf8' },
     );
-    site = await serveSite(siteDir);
+    site = await previewSite(siteDir);
     return output;
   }
 
@@ -236,7 +226,7 @@ test.describe('Static site export', () => {
       '-r',
       '--include-hidden',
     );
-    expect(stdout).toContain(`Exported site to ${siteDir} with 1 warning`);
+    expect(stdout).toContain(`Exported site to ${siteDir} with 1 warning\n`);
     expect(stderr).toContain(keys.outsideCardKey);
 
     await page.goto(cardUrl(keys.exportStartKey));
@@ -260,6 +250,7 @@ test.describe('Static site export', () => {
     // The included hidden card has a page, though not in the sidebar
     await page.goto(cardUrl(keys.hiddenNoteKey));
     await expect(heading(page, 'Hidden note')).toBeVisible();
+    await expect(treeNode(page, 'Export start')).toBeVisible();
     await expect(treeNode(page, 'Hidden note')).toHaveCount(0);
   });
 });
