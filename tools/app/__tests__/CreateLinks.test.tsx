@@ -104,13 +104,18 @@ beforeEach(() => {
 
 describe('CreateLinks', () => {
   it.each([
-    ['some fail', ['m_2'], ['createLink.success', 'createLink.partialFailure']],
-    ['all fail', ['m_1', 'm_2'], ['createLink.partialFailure']],
+    [
+      'some fail',
+      ['m_2'],
+      ['createLink.success', 'createLink.partialFailure: m_2 failed'],
+    ],
+    // Only the first reason is shown
+    ['all fail', ['m_1', 'm_2'], ['createLink.partialFailure: m_1 failed']],
   ])(
     'reports failures and keeps the failed rows selected when %s',
     async (_, failing, expected) => {
       createLink.mockImplementation(async (target: string) => {
-        if (failing.includes(target)) throw new Error('nope');
+        if (failing.includes(target)) throw new Error(`${target} failed`);
       });
       renderMacro();
       open();
