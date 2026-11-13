@@ -10,7 +10,8 @@ export { localFolder, openProjectAt } from './api/directory/local-folder.js';
 export { renameProject } from './api/directory/rename-project.js';
 export { migrateProject } from './api/directory/migrate-project.js';
 export type { ProjectDirectory } from './api/directory/project-directory.js';
-import { macroErrorText, notExportedWarning } from './api/render.js';
+import { macroErrorText } from './api/render.js';
+import { notExportedWarning } from './domain/macros/index.js';
 import { validBumps } from './api/versions.js';
 import {
   isResourceFolderType,

@@ -8,7 +8,7 @@ import { delimiter, join } from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { AsciidoctorPdfError, Export } from '../../../src/api/export.js';
-import { notExportedWarning } from '../../../src/api/render.js';
+import { notExportedWarning } from '../../../src/domain/macros/index.js';
 import { projects } from '../cards/fixture.js';
 import {
   hiddenCaseSpec,

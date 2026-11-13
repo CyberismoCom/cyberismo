@@ -3,14 +3,9 @@
 
 import type { RenderedContent, RenderOptions } from '@cyberismo/model';
 import type { Checkout } from '../state/checkout/checkout.js';
-import {
-  notExportedWarning,
-  rewriteAsciidocCardXrefs,
-} from '../domain/macros/index.js';
+import { rewriteAsciidocCardXrefs } from '../domain/macros/index.js';
 import { read } from '../infra/tx/rw-lock.js';
 import { evaluateMacros } from '../domain/macros/index.js';
-
-export { notExportedWarning };
 
 /** The text that stands for content whose macros failed. */
 export function macroErrorText(error: unknown, fallback: string): string {
