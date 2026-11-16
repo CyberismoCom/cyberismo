@@ -19,8 +19,6 @@ export default class XrefMacro extends BaseMacro {
     this.validate(input);
   };
 
-  // In static mode an internal reference to the card's anchor; the PDF export
-  // turns it into text when the card is not in the document.
   handleStatic = async (
     context: MacroGenerationContext,
     input: unknown,
@@ -30,8 +28,6 @@ export default class XrefMacro extends BaseMacro {
     return `<<${options.cardKey}>>`;
   };
 
-  // On the static site a native card xref, which the xref rewriter turns into
-  // a card link, or into text when the card is not part of the export.
   handleStaticSite = async (
     context: MacroGenerationContext,
     input: unknown,
