@@ -262,6 +262,33 @@ test.describe('Attachments', () => {
     });
   }
 
+  // The panel moves between the sidebar and the main column at the breakpoint;
+  // files picked in its add dialog must survive the move.
+  test('crossing the breakpoint keeps the add dialog and its files', async ({
+    page,
+  }) => {
+    await page.setViewportSize(WIDE);
+    await openRootCard(page);
+    await editPage(page);
+    await expect(page.locator('.cm-editor')).toBeVisible();
+
+    await page.getByRole('button', { name: t.addAttachment }).click();
+    const dialog = page.getByRole('dialog');
+    await page
+      .getByTestId('fileUploadButton')
+      .locator('input[type="file"]')
+      .setInputFiles('./e2e/assets/cyberismo.png');
+    await expect(dialog).toContainText('cyberismo.png');
+
+    await page.setViewportSize(NARROW);
+    await expect(page.getByTestId('cardSidebar')).toHaveCount(0);
+    await expect(dialog).toContainText('cyberismo.png');
+
+    await page.setViewportSize(WIDE);
+    await expect(page.getByTestId('cardSidebar')).toBeVisible();
+    await expect(dialog).toContainText('cyberismo.png');
+  });
+
   test('returning from edit to view collapses the panel again', async ({
     page,
   }) => {
