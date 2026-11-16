@@ -80,7 +80,10 @@ test('a failed refresh keeps the unsaved draft and says so', async ({
     }).toPass({ timeout: 20_000 });
   const notice = page.getByText(t.refreshFailed);
 
-  await page.route(isCardFetch, (route) =>
+  // An outage fails every read: any read that succeeds ends the notice, and a
+  // focus refetches the card's other reads alongside these.
+  const isApiFetch = (url: URL) => url.pathname.startsWith('/api/');
+  await page.route(isApiFetch, (route) =>
     route.request().method() === 'GET'
       ? route.fulfill({ status: 500, body: 'unavailable' })
       : route.continue(),
@@ -88,7 +91,7 @@ test('a failed refresh keeps the unsaved draft and says so', async ({
   await refreshCard(500);
   await expect(notice).toBeVisible();
 
-  await page.unroute(isCardFetch);
+  await page.unroute(isApiFetch);
   await refreshCard(200);
   await expect(notice).toBeHidden();
 
