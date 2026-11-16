@@ -6,10 +6,10 @@
 // report query) each implement the rule, so all run this one table. The adoc
 // export always holds the descendants, so it skips the rows that leave them out.
 
-import type { ProjectSpec } from '../../helpers/project-builder.js';
+import type { CardSpec, ProjectSpec } from '../../helpers/project-builder.js';
 
 // Top(Kid, Gone(GoneLeaf)), Hid(HidMid(HidLeaf)), Other.
-const tree = [
+const tree: CardSpec[] = [
   {
     title: 'Top',
     children: [
@@ -25,16 +25,9 @@ const tree = [
 ];
 
 // The titles of the cards, in the depth-first order of the project keys.
-const titles = [
-  'Top',
-  'Kid',
-  'Gone',
-  'GoneLeaf',
-  'Hid',
-  'HidMid',
-  'HidLeaf',
-  'Other',
-];
+const flatten = (cards: CardSpec[]): string[] =>
+  cards.flatMap((card) => [card.title!, ...flatten(card.children ?? [])]);
+const titles = flatten(tree);
 
 export interface HiddenCase {
   name: string;
