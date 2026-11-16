@@ -21,7 +21,6 @@ vi.mock('@/lib/swr', () => ({
     attachment: (key: string, name: string) => `/a/${key}/${name}`,
   }),
 }));
-vi.mock('@/components/modals', () => ({ AddAttachmentModal: () => null }));
 
 import { AttachmentPanel } from '@/components/card/AttachmentPanel';
 
@@ -50,6 +49,7 @@ describe('AttachmentPanel', () => {
       <AttachmentPanel
         variant="inline"
         cardKey="c_1"
+        onAdd={vi.fn()}
         attachments={[file]}
         onInsert={insert ? vi.fn() : undefined}
       />,
@@ -72,6 +72,7 @@ describe('AttachmentPanel', () => {
         <AttachmentPanel
           variant={variant}
           cardKey="c_1"
+          onAdd={vi.fn()}
           attachments={[file]}
         />,
       );
@@ -89,7 +90,12 @@ describe('AttachmentPanel', () => {
     ({ editor, rendered }) => {
       isEditor = editor;
       render(
-        <AttachmentPanel variant="inline" cardKey="c_1" attachments={[]} />,
+        <AttachmentPanel
+          variant="inline"
+          cardKey="c_1"
+          onAdd={vi.fn()}
+          attachments={[]}
+        />,
       );
       expect(!!screen.queryByText('attachments')).toBe(rendered);
     },

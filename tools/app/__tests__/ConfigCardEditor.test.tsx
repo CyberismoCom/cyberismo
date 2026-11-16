@@ -24,6 +24,9 @@ vi.mock('@uiw/react-codemirror', () => ({ default: () => null }));
 vi.mock('@/components/AsciiDocToolbar', () => ({ default: () => null }));
 vi.mock('@/components/LabelEditor', () => ({ default: () => null }));
 vi.mock('@/components/toolbar/CardToolbar', () => ({ default: () => null }));
+vi.mock('@/components/card/useAddAttachmentDialog', () => ({
+  useAddAttachmentDialog: () => ({ open: () => {}, dialog: null }),
+}));
 vi.mock('@/components/card/AttachmentPanel', () => ({
   AttachmentPanel: () => null,
 }));

@@ -33,6 +33,7 @@ import { TableOfContents } from './TableOfContents';
 import { CardBody, type CardBodyHandle } from './CardBody';
 import { CardTitle } from './CardTitle';
 import { AttachmentPanel } from './AttachmentPanel';
+import { useAddAttachmentDialog } from './useAddAttachmentDialog';
 import { SidebarPanelAccordion } from './SidebarPanelAccordion';
 
 type CardLayoutProps = {
@@ -169,6 +170,7 @@ export const CardLayout = forwardRef<CardLayoutHandle, CardLayoutProps>(
     const notificationsBadgeCount =
       card.notifications.length + card.policyChecks.failures.length;
 
+    const addAttachment = useAddAttachmentDialog(card.key);
     const attachmentPanel = (variant: 'sidebar' | 'inline') => (
       <AttachmentPanel
         // Fresh expanded state per card and per view/edit mode.
@@ -177,6 +179,7 @@ export const CardLayout = forwardRef<CardLayoutHandle, CardLayoutProps>(
         cardKey={card.key}
         attachments={card.attachments ?? []}
         initialExpanded={editingBody && !isNarrow}
+        onAdd={addAttachment.open}
         onInsert={
           editingBody
             ? (attachment) => bodyRef.current?.insertAttachment(attachment)
@@ -340,6 +343,7 @@ export const CardLayout = forwardRef<CardLayoutHandle, CardLayoutProps>(
             {editingBody ? attachmentPanel('sidebar') : viewSidebarContent}
           </Stack>
         )}
+        {addAttachment.dialog}
       </Stack>
     );
   },
