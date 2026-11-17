@@ -24,6 +24,7 @@ import type {
   ResourceName,
 } from '@cyberismo/model';
 import ClingoParser from '../../infra/engine/clingo-parser.js';
+import { parseQueryOptions, type QueryOptions } from './query-options.js';
 
 import Handlebars from 'handlebars';
 import type { Checkout } from '../checkout/checkout.js';
@@ -510,15 +511,19 @@ export class CalculationEngine {
    * Runs a pre-defined query.
    * @param queryName Name of the query file without extension
    * @param context In which type of context the query is run.
-   * @param options Any object that contains state for handlebars
+   * @param options The query's inputs (see queryOptions)
    * @returns parsed program output
+   * @throws DHValidationError if the options do not fit the query.
    */
   public async runQuery<T extends QueryName>(
     queryName: T,
     context: Context = 'localApp',
-    options?: unknown,
+    options?: QueryOptions<T>,
   ): Promise<QueryResult<T>[]> {
-    const content = this.queryContent(queryName, options);
+    const content = this.queryContent(
+      queryName,
+      parseQueryOptions(queryName, options),
+    );
 
     this.logger.trace({ queryName }, 'Running query');
     const clingoOutput = await this.run(content, context);

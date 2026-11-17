@@ -31,9 +31,7 @@ import {
   toLinkCandidates,
 } from '../domain/queries/index.js';
 import { read } from '../infra/tx/rw-lock.js';
-
-// A card key as the project makes them: prefix, separator, base-36 suffix.
-const CARD_KEY = /^[a-z]+_[a-z0-9]+$/;
+import type { QueryOptions } from '../state/engine/query-options.js';
 
 /** A graph to render from graph model and graph view resources. */
 export interface GraphRequest {
@@ -95,7 +93,7 @@ export class Queries {
   ): Promise<string> {
     const { model, view, cardKey, parameters } = request;
     if (cardKey !== undefined) {
-      this.assertCardsExist([cardKey]);
+      this.assertCardExists(cardKey);
     }
     const options = validateGraphOptions(this.checkout, {
       ...parameters,
@@ -158,22 +156,18 @@ export class Queries {
   /**
    * Runs a pre-defined query.
    * @param queryName Name of the query file without extension
-   * @param options Any object that contains state for handlebars. Card keys
-   *   in `cardKey` and `cardKeys` must be well formed, but are not checked
+   * @param options The query's inputs; see queryOptions for what each
+   *   query takes. Card keys must be well formed but are not checked
    *   against the project: callers check `cards.has` where it matters.
-   *   `onTransition` needs `cardKey` and `transition`, `onCreation` needs
-   *   `cardKeys`.
    * @returns parsed program output
-   * @throws DHValidationError if a required option is missing or a card key
-   *   is malformed.
+   * @throws DHValidationError if the options do not fit the query.
    */
   @read
   public async runQuery<T extends QueryName>(
     queryName: T,
     context: Context = 'localApp',
-    options?: unknown,
+    options?: QueryOptions<T>,
   ): Promise<QueryResult<T>[]> {
-    this.validateQueryOptions(queryName, options);
     return this.checkout.calculationEngine.runQuery(
       queryName,
       context,
@@ -245,45 +239,11 @@ export class Queries {
     return result ?? '';
   }
 
-  // Card keys are pasted into the logic program unquoted, so only keys the
-  // project holds may reach it.
-  private assertCardsExist(cardKeys: string[]) {
-    for (const cardKey of cardKeys) {
-      if (!hasCard(this.checkout, cardKey)) {
-        throw new CardNotFoundError(cardKey);
-      }
-    }
-  }
-
-  private validateQueryOptions(queryName: QueryName, options: unknown) {
-    const { cardKey, cardKeys, transition } = (options ?? {}) as {
-      cardKey?: unknown;
-      cardKeys?: unknown;
-      transition?: unknown;
-    };
-    if (queryName === 'onTransition' && (!cardKey || !transition)) {
-      throw new DHValidationError(
-        "Query 'onTransition' needs a 'cardKey' and a 'transition'",
-      );
-    }
-    if (
-      queryName === 'onCreation' &&
-      (!Array.isArray(cardKeys) || cardKeys.length === 0)
-    ) {
-      throw new DHValidationError("Query 'onCreation' needs 'cardKeys'");
-    }
-    if (cardKeys !== undefined && !Array.isArray(cardKeys)) {
-      throw new DHValidationError("'cardKeys' must be a list of card keys");
-    }
-    // Card keys are pasted into the logic program unquoted; a well-formed
-    // key is a plain constant there and cannot change the program.
-    for (const key of [
-      ...(cardKey === undefined ? [] : [cardKey]),
-      ...((cardKeys as unknown[] | undefined) ?? []),
-    ]) {
-      if (typeof key !== 'string' || !CARD_KEY.test(key)) {
-        throw new DHValidationError(`'${key}' is not a valid card key`);
-      }
+  // The card key is pasted into the logic program unquoted, so only a key
+  // the project holds may reach it.
+  private assertCardExists(cardKey: string) {
+    if (!hasCard(this.checkout, cardKey)) {
+      throw new CardNotFoundError(cardKey);
     }
   }
 }

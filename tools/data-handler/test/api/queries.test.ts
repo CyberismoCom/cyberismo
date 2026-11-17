@@ -132,17 +132,23 @@ describe('queries.runQuery options', () => {
   });
 
   it.each([
-    ['onTransition', {}, /needs a 'cardKey' and a 'transition'/],
-    ['onTransition', { cardKey: 'K' }, /needs a 'cardKey' and a 'transition'/],
-    ['onCreation', {}, /needs 'cardKeys'/],
-    ['onCreation', { cardKeys: [] }, /needs 'cardKeys'/],
+    ['onTransition', {}, /Invalid options for query 'onTransition'/],
+    [
+      'onTransition',
+      { cardKey: 'test_1' },
+      /Invalid options for query 'onTransition'.*\n.*transition/,
+    ],
+    ['onCreation', {}, /Invalid options for query 'onCreation'/],
+    ['onCreation', { cardKeys: [] }, /Invalid options for query 'onCreation'/],
+    ['card', { title: 'x' }, /Unrecognized key/],
   ] as const)(
     'refuses %s with options %j',
     async (queryName, options, message) => {
       const { ws } = await open(spec);
 
       await expect(
-        ws.queries.runQuery(queryName, 'localApp', options),
+        // Deliberately wrong options, as an untyped caller could send.
+        ws.queries.runQuery(queryName, 'localApp', options as never),
       ).rejects.toThrow(message);
     },
   );
@@ -159,7 +165,7 @@ describe('queries.runQuery options', () => {
       const { ws } = await open(spec);
 
       await expect(
-        ws.queries.runQuery(queryName, 'localApp', options),
+        ws.queries.runQuery(queryName, 'localApp', options as never),
       ).rejects.toThrow(DHValidationError);
     },
   );

@@ -98,8 +98,8 @@ describe('run_query', () => {
   });
 
   test.each([
-    [{ queryName: 'onTransition' }, /needs a 'cardKey' and a/],
-    [{ queryName: 'onCreation' }, /needs 'cardKeys'/],
+    [{ queryName: 'onTransition' }, /Invalid options for query 'onTransition'/],
+    [{ queryName: 'onCreation' }, /Invalid options for query 'onCreation'/],
     [{ queryName: 'card', cardKey: 'test_missing' }, /does not exist/],
   ])('refuses %j', async (args, message) => {
     const { isError, text } = await callTool('run_query', args);
