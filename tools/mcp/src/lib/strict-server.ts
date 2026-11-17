@@ -13,8 +13,6 @@ import type {
 import type { ToolAnnotations } from '@modelcontextprotocol/sdk/types.js';
 import { z } from 'zod';
 
-type InputSchema = undefined | ZodRawShapeCompat | AnySchema;
-
 /**
  * An MCP server whose tools reject arguments they do not declare.
  *
@@ -28,7 +26,7 @@ type InputSchema = undefined | ZodRawShapeCompat | AnySchema;
 export class StrictMcpServer extends McpServer {
   override registerTool<
     OutputArgs extends ZodRawShapeCompat | AnySchema,
-    InputArgs extends InputSchema = undefined,
+    InputArgs extends undefined | ZodRawShapeCompat | AnySchema = undefined,
   >(
     name: string,
     config: {
@@ -41,40 +39,34 @@ export class StrictMcpServer extends McpServer {
     },
     cb: ToolCallback<InputArgs>,
   ): RegisteredTool {
+    const input = config.inputSchema;
+    const strictInput =
+      input === undefined
+        ? undefined // No arguments; the SDK ignores any given.
+        : input instanceof z.core.$ZodType
+          ? strict(input)
+          : // The SDK also accepts zod 3; this package uses only zod 4.
+            z.strictObject(input as z.core.$ZodShape);
     return super.registerTool(
       name,
-      {
-        ...config,
-        // Same arguments and parsed types; only unknown keys are refused.
-        inputSchema: rejectUnknownKeys(config.inputSchema) as InputArgs,
-      },
+      // The strict copy parses to the same type, but TypeScript cannot tie
+      // a new schema back to the type parameter.
+      { ...config, inputSchema: strictInput as InputArgs },
       cb,
     );
   }
 }
 
 /**
- * Makes the top level of a tool input schema strict. A raw shape or an
- * object becomes a strict object, a union gets strict options. Nested
+ * An object becomes a strict object and a union gets strict options. Nested
  * objects are made strict where they are defined.
  */
-function rejectUnknownKeys(schema: InputSchema): InputSchema {
-  if (schema === undefined) {
-    // No schema: the tool takes no arguments and the SDK ignores any given.
-    return undefined;
-  }
+function strict(schema: z.core.$ZodType): z.core.$ZodType {
   if (schema instanceof z.ZodObject) {
     return schema.strict();
   }
   if (schema instanceof z.ZodUnion) {
-    return z.union(
-      schema.options.map((option) =>
-        rejectUnknownKeys(option as AnySchema),
-      ) as [z.ZodType, ...z.ZodType[]],
-    );
-  }
-  if (!('_zod' in schema) && !('_def' in schema)) {
-    return z.strictObject(schema as z.ZodRawShape);
+    return z.union(schema.options.map(strict));
   }
   return schema;
 }
