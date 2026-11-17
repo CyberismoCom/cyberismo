@@ -20,15 +20,15 @@ import {
 } from '../shared/exceptions/index.js';
 import {
   evaluateMacros,
-  renderGraph,
   ReportMacro,
   TaskQueue,
-  validateGraphOptions,
 } from '../domain/macros/index.js';
 import { hasCard } from '../domain/cards/index.js';
 import {
   registerClingoHelpers,
+  renderGraph,
   toLinkCandidates,
+  validateGraphOptions,
 } from '../domain/queries/index.js';
 import { read } from '../infra/tx/rw-lock.js';
 import type { QueryOptions } from '../state/engine/query-options.js';

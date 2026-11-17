@@ -2,32 +2,53 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import Handlebars from 'handlebars';
-import macroMetadata from '@cyberismo/model/macros/graph/metadata';
-
 import type { Context, GraphOptions } from '@cyberismo/model';
-import type { Checkout } from '../../../state/checkout/checkout.js';
-import { ResourceNotFoundError } from '../../../shared/exceptions/index.js';
-import { validateMacroContent } from '../registry.js';
+import type { Checkout } from '../../state/checkout/checkout.js';
 import {
   LogicError,
   LogicUnavailableError,
-} from '../../../infra/logic/logic-backend.js';
-import { registerComparisonHelpers } from '../../queries/handlebars-helpers.js';
+} from '../../infra/logic/logic-backend.js';
+import {
+  DHValidationError,
+  ResourceNotFoundError,
+} from '../../shared/exceptions/index.js';
+import { validateJson } from '../../shared/utils/validate.js';
+import { registerComparisonHelpers } from './handlebars-helpers.js';
 
 /**
- * Checks graph options against the graph macro schema and, if the view
- * has one, the view's own schema.
- * @param input Graph options: model and view names and any view parameters.
+ * The parameter schema of a graph view, if it has one.
+ * @throws if the view does not exist.
+ */
+export function graphViewSchema(checkout: Checkout, view: string) {
+  return graphView(checkout, view).contentData().schema;
+}
+
+/**
+ * Checks graph options: model and view names, and the view's parameters
+ * against the view's schema if it has one.
  * @throws if the view does not exist or the options do not validate.
  */
 export function validateGraphOptions(
   checkout: Checkout,
   input: unknown,
 ): GraphOptions {
-  const options = validateMacroContent<GraphOptions>(macroMetadata, input);
-  const schema = graphView(checkout, options.view).contentData().schema;
+  const check = (schema: Parameters<typeof validateJson>[1]) => {
+    try {
+      validateJson(input, schema);
+    } catch (error) {
+      if (!(error instanceof DHValidationError)) throw error;
+      const reasons = error.errors?.map((e) => e.message).join(', ');
+      throw new DHValidationError(
+        `Invalid graph options: ${reasons}`,
+        error.errors,
+      );
+    }
+  };
+  check({ schemaId: 'graphMacroBaseSchema' });
+  const options = input as GraphOptions;
+  const schema = graphViewSchema(checkout, options.view);
   if (schema) {
-    validateMacroContent(macroMetadata, input, schema);
+    check({ schema });
   }
   return options;
 }

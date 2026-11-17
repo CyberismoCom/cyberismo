@@ -243,7 +243,7 @@ describe('queries.runGraph', () => {
     [
       'parameters the view schema rejects',
       { model: 'test/graphModels/children', view: 'test/graphViews/coloured' },
-      /validation error/,
+      /Invalid graph options: must have required property 'colour'/,
     ],
     [
       'a card the project does not hold',
