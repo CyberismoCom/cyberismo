@@ -1,12 +1,14 @@
 // SPDX-FileCopyrightText: Cyberismo Ltd and contributors
 // SPDX-License-Identifier: AGPL-3.0-only
 
-import { describe, expect, it } from 'vitest';
+import { readFile, writeFile } from 'node:fs/promises';
+import { afterEach, describe, expect, it } from 'vitest';
 
 import { ResourceNotFoundError } from '../../../src/shared/exceptions/index.js';
 import {
   edit,
   expectRefused,
+  local,
   projects,
   remove,
   rename,
@@ -14,6 +16,8 @@ import {
 } from './fixture.js';
 import { Validate } from '../../../src/domain/validation/validate.js';
 import { checkoutOf } from '../../../src/state/checkout/internal.js';
+import { buildProject } from '../../helpers/project-builder.js';
+import { openTestWorkspace } from '../../helpers/open-test-workspace.js';
 
 const open = projects();
 
@@ -209,6 +213,49 @@ describe('card types', () => {
       expect(
         await Validate.getInstance().validate(path, () => checkoutOf(ws)),
       ).toContain('ghost');
+    });
+  });
+
+  describe('creating', () => {
+    const cleanups: (() => Promise<void>)[] = [];
+    afterEach(async () => {
+      for (const cleanup of cleanups.splice(0)) await cleanup();
+    });
+
+    // A module installed under .cards/modules that cardsConfig does not
+    // declare, as when it is a dependency of a declared module.
+    async function openWithTransitiveModule() {
+      const project = await buildProject({
+        modules: [{ prefix: 'deep', workflows: [{ name: 'flow' }] }],
+      });
+      cleanups.push(project.cleanup);
+      const configPath = local(project.path, 'cardsConfig.json');
+      const config = JSON.parse(await readFile(configPath, 'utf-8'));
+      config.modules = [];
+      await writeFile(configPath, JSON.stringify(config, null, 2));
+      return openTestWorkspace(project.path, {});
+    }
+
+    it('accepts a workflow from a transitive module', async () => {
+      const ws = await openWithTransitiveModule();
+
+      await ws.resources.create('test/cardTypes/fresh', 'cardTypes', {
+        workflow: 'deep/workflows/flow',
+      });
+
+      expect(await ws.resources.show('test/cardTypes/fresh')).toMatchObject({
+        workflow: 'deep/workflows/flow',
+      });
+    });
+
+    it('refuses a workflow from a prefix the project does not have', async () => {
+      const ws = await openWithTransitiveModule();
+
+      await expect(
+        ws.resources.create('test/cardTypes/fresh', 'cardTypes', {
+          workflow: 'nowhere/workflows/flow',
+        }),
+      ).rejects.toThrow(/Prefix 'nowhere' is not included/);
     });
   });
 
