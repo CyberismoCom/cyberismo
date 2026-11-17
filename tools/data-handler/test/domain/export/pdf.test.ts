@@ -7,8 +7,14 @@ import { tmpdir } from 'node:os';
 import { delimiter, join } from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { AsciidoctorPdfError } from '../../../src/api/export.js';
+import { AsciidoctorPdfError, Export } from '../../../src/api/export.js';
 import { projects } from '../cards/fixture.js';
+import {
+  hiddenCaseSpec,
+  hiddenCases,
+  keyOf,
+  titlesOf,
+} from './hidden-cases.js';
 
 const open = projects();
 
@@ -222,6 +228,86 @@ describe.skipIf(!installed && !process.env.CI)('export.pdf', () => {
       },
       SPAWN_TIMEOUT,
     );
+  });
+});
+
+// The cards the report query puts in the document, read from the AsciiDoc
+// source; asciidoctor-pdf itself is not run.
+describe('export.pdf cards', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  // The AsciiDoc source the PDF would be rendered from.
+  const sourceOf = async (render: () => Promise<unknown>) => {
+    const run = vi
+      .spyOn(
+        Export.prototype as unknown as {
+          runAsciidoctorPdf: (content: string) => Promise<unknown>;
+        },
+        'runAsciidoctorPdf',
+      )
+      .mockResolvedValue({ pdf: Buffer.from(''), warnings: [] });
+    await render();
+    return run.mock.calls[0][0];
+  };
+
+  it.each(hiddenCases)(
+    '$name',
+    async ({ hidden, start, recursive = true, exported }) => {
+      const { ws, keys } = await open(hiddenCaseSpec(hidden));
+
+      const source = await sourceOf(() =>
+        ws.export.pdf(start ? { cardKey: keyOf(keys, start), recursive } : {}),
+      );
+      // Each card starts at its anchor.
+      const cardKeys = [...source.matchAll(/^\[\[(\S+)\]\]$/gm)].map(
+        (match) => match[1],
+      );
+      expect(titlesOf(keys, cardKeys)).toEqual([...exported].sort());
+    },
+  );
+
+  it('orders children with the same rank by key, each before its own children', async () => {
+    // Top(S1(C1), ..., S6(C6)), the children all of one rank.
+    const subs = ['S1', 'S2', 'S3', 'S4', 'S5', 'S6'];
+    const { ws, keys } = await open({
+      cards: [
+        {
+          title: 'Top',
+          children: subs.map((title) => ({
+            title,
+            fields: { rank: '0|a' },
+            children: [{ title: `C${title}` }],
+          })),
+        },
+      ],
+    });
+    const byKey = subs
+      .map((_, index) => [keys[1 + 2 * index], keys[2 + 2 * index]])
+      .sort(([a], [b]) => (a < b ? -1 : 1))
+      .flat();
+
+    const source = await sourceOf(() => ws.export.pdf({}));
+
+    // Each card starts at its anchor.
+    expect(
+      [...source.matchAll(/^\[\[(\S+)\]\]$/gm)].map((match) => match[1]),
+    ).toEqual([keys[0], ...byKey]);
+  });
+
+  it('makes a card below the top a chapter, its descendants sections below it', async () => {
+    const { ws, keys } = await open(hiddenCaseSpec([]));
+
+    const source = await sourceOf(() =>
+      ws.export.pdf({ cardKey: keyOf(keys, 'Gone'), recursive: true }),
+    );
+
+    // The card titles, at their levels in the document, in document order.
+    expect(source.match(/^=+ (Gone|GoneLeaf)$/gm)).toEqual([
+      '== Gone',
+      '=== GoneLeaf',
+    ]);
   });
 });
 

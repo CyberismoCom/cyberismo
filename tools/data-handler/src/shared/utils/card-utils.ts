@@ -160,21 +160,45 @@ export const isExternalItemKey = (value: string) => value.includes(':');
 /**
  * Drops hidden cards, and with them their descendants, from a tree query result.
  * @param tree tree query result
- * @param keepRoots keep the top level nodes even when hidden (a query started from a given card),
- *        and mark them as not hidden. Their descendants inherit hiddenness, so a hidden
- *        start card is kept without its subtree.
  */
 export function omitHiddenCards(
   tree: QueryResult<'tree'>[],
-  keepRoots = false,
 ): QueryResult<'tree'>[] {
-  return tree
-    .filter((node) => keepRoots || !node.isHidden)
+  return keepShown(tree, (node) => node.isHidden);
+}
+
+/**
+ * The cards an export holds, from the tree query run with the same options.
+ * A project export leaves out hidden cards. An export from a card holds the card
+ * and, as far as the query went, its subtree: when the card is visible, its hidden
+ * descendants are left out; when it is hidden (itself or through an ancestor), its
+ * whole subtree is exported. A card under a hidden start card that content hid
+ * separately is exported as well, since the tree query cannot tell it apart.
+ * Every card returned is shown, so it is marked as not hidden.
+ * @param tree tree query result; when exporting from a card, the query started
+ *        from it, so the card is the only top level node
+ * @param options.cardKey the card the export starts from, if any
+ */
+export function exportedTree(
+  tree: QueryResult<'tree'>[],
+  options: { cardKey?: string } = {},
+): QueryResult<'tree'>[] {
+  if (!options.cardKey) return omitHiddenCards(tree);
+  const [start] = tree;
+  // From a hidden start card nothing in its subtree counts as hidden.
+  return start?.isHidden ? keepShown(tree, () => false) : omitHiddenCards(tree);
+}
+
+// The nodes that are not hidden, with their descendants that are not, marked as shown.
+function keepShown(
+  nodes: QueryResult<'tree'>[],
+  hidden: (node: QueryResult<'tree'>) => boolean,
+): QueryResult<'tree'>[] {
+  return nodes
+    .filter((node) => !hidden(node))
     .map((node) => ({
       ...node,
-      // Every node left is shown, so a hidden root kept by keepRoots is no longer
-      // hidden for consumers that drop hidden nodes themselves (useVisibleTree).
       isHidden: false,
-      ...(node.children ? { children: omitHiddenCards(node.children) } : {}),
+      ...(node.children ? { children: keepShown(node.children, hidden) } : {}),
     }));
 }

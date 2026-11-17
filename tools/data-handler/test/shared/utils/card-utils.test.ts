@@ -9,6 +9,7 @@ import {
   buildCardHierarchy,
   isExternalItemKey,
   moduleNameFromCardKey,
+  exportedTree,
   omitHiddenCards,
   sortCards,
 } from '../../../src/shared/utils/card-utils.js';
@@ -154,12 +155,13 @@ describe('card utils', () => {
   });
 });
 
+const node = (
+  key: string,
+  isHidden: boolean,
+  children?: QueryResult<'tree'>[],
+) => ({ key, isHidden, children }) as unknown as QueryResult<'tree'>;
+
 describe('omitHiddenCards', () => {
-  const node = (
-    key: string,
-    isHidden: boolean,
-    children?: QueryResult<'tree'>[],
-  ) => ({ key, isHidden, children }) as unknown as QueryResult<'tree'>;
   const keys = (nodes: QueryResult<'tree'>[]): string[] =>
     nodes.flatMap((n) => [n.key, ...keys(n.children ?? [])]);
 
@@ -174,15 +176,23 @@ describe('omitHiddenCards', () => {
 
     expect(keys(omitHiddenCards(tree))).toEqual(['root', 'a']);
   });
+});
 
-  it.each([
-    [false, []],
-    [true, ['root']],
-  ])('with keepRoots %s on a hidden start card', (keepRoots, expected) => {
+// Which cards an export holds is tested on real exports in test/domain/export.
+describe('exportedTree', () => {
+  const hiddenFlags = (nodes: QueryResult<'tree'>[]): boolean[] =>
+    nodes.flatMap((n) => [n.isHidden, ...hiddenFlags(n.children ?? [])]);
+
+  it('gives an empty tree for an empty tree', () => {
+    expect(exportedTree([], { cardKey: 'root' })).toEqual([]);
+  });
+
+  it('marks every card it keeps as shown', () => {
     const tree = [node('root', true, [node('a', true)])];
 
-    const result = omitHiddenCards(tree, keepRoots);
-    expect(keys(result)).toEqual(expected);
-    if (keepRoots) expect(result[0].isHidden).toBe(false);
+    expect(hiddenFlags(exportedTree(tree, { cardKey: 'root' }))).toEqual([
+      false,
+      false,
+    ]);
   });
 });

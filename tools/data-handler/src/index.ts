@@ -18,6 +18,7 @@ import {
   resourceNameToString,
 } from './shared/utils/resource-utils.js';
 import {
+  exportedTree,
   moduleNameFromCardKey,
   omitHiddenCards,
 } from './shared/utils/card-utils.js';
@@ -25,6 +26,7 @@ import {
 export {
   Workspace,
   ExportFormats,
+  exportedTree,
   isResourceFolderType,
   moduleNameFromCardKey,
   omitHiddenCards,

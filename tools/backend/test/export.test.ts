@@ -276,6 +276,42 @@ describe('export module', () => {
       ]);
     });
 
+    test('exports a hidden card with its whole subtree', async () => {
+      const calculation = join(
+        folder,
+        'decision-records',
+        '.cards',
+        'local',
+        'calculations',
+        'test',
+        'calculation.lp',
+      );
+      await writeFile(calculation, 'hiddenInTreeView(decision_5).\n', {
+        flag: 'a',
+      });
+      const { directory: registry } = await localFolder(folder);
+
+      await exportSite(registry, tempDir, {
+        cardKey: 'decision_5',
+        recursive: true,
+      });
+
+      const project = join(tempDir, 'api', 'projects', 'decision');
+      const tree = JSON.parse(
+        await readFile(join(project, 'tree.json'), 'utf8'),
+      );
+      expect(tree).toMatchObject([
+        {
+          key: 'decision_5',
+          isHidden: false,
+          children: [{ key: 'decision_6', isHidden: false }],
+        },
+      ]);
+      await expect(
+        readFile(join(project, 'cards', 'decision_6.json'), 'utf8'),
+      ).resolves.toContain('decision_6');
+    });
+
     test('exports a field macro as its value text', async () => {
       const card = join(
         folder,

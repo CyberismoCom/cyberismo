@@ -10,6 +10,7 @@ import type {
   AdocFiles,
   Card,
   CardType,
+  CardWithChildrenCards,
   ExportedPdf,
   ExportPdfOptions,
   QueryResult,
@@ -23,8 +24,8 @@ import { Checkout } from '../state/checkout/checkout.js';
 import { ROOT } from '../shared/utils/constants.js';
 import { read } from '../infra/tx/rw-lock.js';
 import { sortItems } from '../shared/utils/lexorank.js';
-import { omitHiddenCards } from '../shared/utils/card-utils.js';
-import { findCard, cardsByKeys } from '../domain/cards/index.js';
+import { exportedTree } from '../shared/utils/card-utils.js';
+import { findCard } from '../domain/cards/index.js';
 
 // The document the PDF is rendered from.
 type PdfDocument = Omit<ExportPdfOptions, 'date'> & { date?: Date };
@@ -67,7 +68,7 @@ export class Export {
   }
 
   // This file should set the top level items to the adoc.
-  private async toAdocFile(files: AdocFiles, cards: Card[]) {
+  private async toAdocFile(files: AdocFiles, cards: CardWithChildrenCards[]) {
     const content = [`:imagesdir: ./${attachmentFolder}/\n`];
     await this.toAdocFileAsContent(files, content, cards);
     files[Checkout.cardContentFile] = Buffer.from(content.join(''));
@@ -224,7 +225,7 @@ export class Export {
   private async toAdocFileAsContent(
     files: AdocFiles,
     content: string[],
-    cards: Card[],
+    cards: CardWithChildrenCards[],
   ) {
     for (const card of cards) {
       let fileContent = '';
@@ -266,16 +267,8 @@ export class Export {
         content.push(fileContent);
       }
 
-      if (card.children) {
-        await this.toAdocFileAsContent(
-          files,
-          content,
-          sortItems(
-            cardsByKeys(this.checkout, card.children),
-            (child) => child.metadata?.rank || '1|z',
-          ),
-        );
-      }
+      // The tree query already orders the children by rank.
+      await this.toAdocFileAsContent(files, content, card.childrenCards);
     }
   }
 
@@ -301,43 +294,20 @@ export class Export {
   }
 
   /**
-   * Recursively searches for a card with the specified key in the tree hierarchy.
-   * @param treeItems Array of tree query results to search through
-   * @param targetKey The key of the card to find
-   * @returns The found tree item or null if not found
-   */
-  protected findCardInTree(
-    treeItems: QueryResult<'tree'>[],
-    targetKey: string,
-  ): QueryResult<'tree'> | null {
-    for (const item of treeItems) {
-      if (item.key === targetKey) {
-        return item;
-      }
-      if (item.children && item.children.length > 0) {
-        const foundInChildren = this.findCardInTree(item.children, targetKey);
-        if (foundInChildren) {
-          return foundInChildren;
-        }
-      }
-    }
-    return null;
-  }
-
-  /**
    * Convert treeQueryResult object into a Card object and add content, metadata & attachments
-   * Handles card children recursively
+   * Handles card children recursively; only the children in the tree are exported.
    * @param treeQueryResult tree query result object
-   * @returns Tree query result as a Card.
+   * @returns Tree query result as a Card, with its exported children.
    */
   protected async treeQueryResultToCard(
     treeQueryResult: QueryResult<'tree'>,
-  ): Promise<Card> {
-    const card: Card = {
+  ): Promise<CardWithChildrenCards> {
+    const card: CardWithChildrenCards = {
       key: treeQueryResult.key,
       path: '',
       parent: ROOT,
       children: [],
+      childrenCards: [],
       attachments: [],
     };
     const cardDetailsResponse = findCard(this.checkout, card.key);
@@ -365,7 +335,9 @@ export class Export {
     card.attachments = cardDetailsResponse.attachments;
 
     for (const result of treeQueryResult.children ?? []) {
-      card.children!.push((await this.treeQueryResultToCard(result)).key);
+      const child = await this.treeQueryResultToCard(result);
+      card.children!.push(child.key);
+      card.childrenCards.push(child);
     }
 
     return card;
@@ -427,37 +399,20 @@ export class Export {
    */
   @read
   public async adoc(cardKey?: string): Promise<AdocFiles> {
-    const sourcePath: string = this.checkout.paths.cardRootFolder;
-    let cards: Card[] = [];
+    // An unknown key is refused before it reaches the logic program.
+    if (cardKey) findCard(this.checkout, cardKey);
 
-    // If doing a partial tree export, put the parent information as it would have already been gathered.
-    if (cardKey && findCard(this.checkout, cardKey)) {
-      cards.push({
-        key: cardKey,
-        path: sourcePath,
-        parent: ROOT,
-        children: [],
-        attachments: [],
-      });
-    }
-
-    const tree = omitHiddenCards(
+    const tree = exportedTree(
       await this.checkout.calculationEngine.runQuery(
         'tree',
         'exportedDocument',
+        cardKey ? { cardKey, recursive: true } : {},
       ),
+      { cardKey },
     );
-
-    if (cardKey) {
-      const targetCard = this.findCardInTree(tree, cardKey);
-      if (!targetCard) {
-        throw new Error(`Cannot find card '${cardKey}' in the tree hierarchy`);
-      }
-      cards = [await this.treeQueryResultToCard(targetCard)];
-    } else {
-      for (const treeQueryResult of tree) {
-        cards.push(await this.treeQueryResultToCard(treeQueryResult));
-      }
+    let cards: CardWithChildrenCards[] = [];
+    for (const treeQueryResult of tree) {
+      cards.push(await this.treeQueryResultToCard(treeQueryResult));
     }
 
     // Sort the cards by rank

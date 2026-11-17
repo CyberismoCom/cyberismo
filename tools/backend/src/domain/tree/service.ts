@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: Cyberismo Ltd and contributors
 // SPDX-License-Identifier: AGPL-3.0-only
 
-import { omitHiddenCards, type Workspace } from '@cyberismo/data-handler';
+import { exportedTree, type Workspace } from '@cyberismo/data-handler';
 
 /**
  * Returns the card tree of the project
@@ -22,6 +22,7 @@ export async function getCardTree(
     isSsg ? 'exportedSite' : 'localApp',
     { cardKey, recursive },
   );
-  // The app filters hidden cards from its navigation tree; a static site never contains them.
-  return isSsg ? omitHiddenCards(tree, !!cardKey) : tree;
+  // The app filters hidden cards from its navigation tree; a static site holds
+  // only the exported cards.
+  return isSsg ? exportedTree(tree, { cardKey }) : tree;
 }
