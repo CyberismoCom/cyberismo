@@ -30,7 +30,6 @@ import { projectApiPaths } from '@/lib/swr';
 import { UserRole, useHasMinRole } from '@/lib/auth';
 import { LeadingSlot } from '@/components/CountBadge';
 import { SidebarPanelAccordion } from './SidebarPanelAccordion';
-import { AddAttachmentModal } from '@/components/modals';
 import type { CardAttachment } from '@cyberismo/model';
 
 const ADD_ATTACHMENT_PATH =
@@ -141,6 +140,8 @@ type AttachmentPanelProps = {
   /** Offered only while a content editor is open. */
   onInsert?: (attachment: CardAttachment) => void;
   initialExpanded?: boolean;
+  /** Opens the add dialog, which the page holds so it survives the panel moving. */
+  onAdd: () => void;
   /** `sidebar` matches the borderless sections beside it; `inline` is the narrow-screen accordion. */
   variant: 'sidebar' | 'inline';
 };
@@ -150,10 +151,10 @@ export const AttachmentPanel: React.FC<AttachmentPanelProps> = ({
   attachments,
   onInsert,
   initialExpanded = false,
+  onAdd,
   variant,
 }) => {
   const { t } = useTranslation();
-  const [modalOpen, setModalOpen] = useState(false);
   const [expanded, setExpanded] = useState(initialExpanded);
   const canEdit = useHasMinRole(UserRole.Editor);
   const apiPaths = projectApiPaths();
@@ -184,7 +185,7 @@ export const AttachmentPanel: React.FC<AttachmentPanelProps> = ({
               <path d={ADD_ATTACHMENT_PATH} />
             </SvgIcon>
           }
-          onClick={() => setModalOpen(true)}
+          onClick={onAdd}
         >
           {t('addAttachment')}
         </Button>
@@ -256,46 +257,31 @@ export const AttachmentPanel: React.FC<AttachmentPanelProps> = ({
     </Stack>
   );
 
-  return (
-    <>
-      {variant === 'sidebar' ? (
-        <Box sx={{ marginTop: 2 }} data-cy="cardAttachmentsPanel">
-          <Accordion expanded={expanded}>
-            <AccordionSummary
-              indicator={<ExpandMore />}
-              onClick={() => setExpanded(!expanded)}
-              sx={{ borderRadius: '4px', marginTop: 1, marginBottom: 1 }}
-            >
-              {badge}
-              <Typography
-                level="title-sm"
-                fontWeight="bold"
-                sx={{ flexGrow: 1 }}
-              >
-                {t('attachments')}
-              </Typography>
-            </AccordionSummary>
-            <AccordionDetails>{content}</AccordionDetails>
-          </Accordion>
-        </Box>
-      ) : (
-        <SidebarPanelAccordion
-          expanded={expanded}
-          onToggle={() => setExpanded(!expanded)}
-          leading={badge}
-          title={t('attachments')}
-          dataCy="cardAttachmentsPanel"
+  return variant === 'sidebar' ? (
+    <Box sx={{ marginTop: 2 }} data-cy="cardAttachmentsPanel">
+      <Accordion expanded={expanded}>
+        <AccordionSummary
+          indicator={<ExpandMore />}
+          onClick={() => setExpanded(!expanded)}
+          sx={{ borderRadius: '4px', marginTop: 1, marginBottom: 1 }}
         >
-          {content}
-        </SidebarPanelAccordion>
-      )}
-      {canEdit && (
-        <AddAttachmentModal
-          open={modalOpen}
-          onClose={() => setModalOpen(false)}
-          cardKey={cardKey}
-        />
-      )}
-    </>
+          {badge}
+          <Typography level="title-sm" fontWeight="bold" sx={{ flexGrow: 1 }}>
+            {t('attachments')}
+          </Typography>
+        </AccordionSummary>
+        <AccordionDetails>{content}</AccordionDetails>
+      </Accordion>
+    </Box>
+  ) : (
+    <SidebarPanelAccordion
+      expanded={expanded}
+      onToggle={() => setExpanded(!expanded)}
+      leading={badge}
+      title={t('attachments')}
+      dataCy="cardAttachmentsPanel"
+    >
+      {content}
+    </SidebarPanelAccordion>
   );
 };

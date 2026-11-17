@@ -10,6 +10,7 @@ import { useTranslation } from 'react-i18next';
 import { useCardMutations, useResourceTree } from '@/lib/api';
 import CardToolbar from '@/components/toolbar/CardToolbar';
 import { AttachmentPanel } from '@/components/card/AttachmentPanel';
+import { useAddAttachmentDialog } from '@/components/card/useAddAttachmentDialog';
 import { CardLayout } from '@/components/card/CardLayout';
 import type { AnyNode, CardView } from '@/lib/api/types';
 import type { MetadataValue } from '@/lib/definitions';
@@ -54,6 +55,7 @@ export function TemplateCardEditor({
   const isAdmin = useHasMinRole(UserRole.Admin);
   const editable = !node?.readOnly && isAdmin;
   const [isPreview, setIsPreview] = useState(false);
+  const addAttachment = useAddAttachmentDialog(card.key);
 
   const savedDraft = useMemo(() => buildDraft(card), [card]);
   const savedContent = card.rawContent ?? '';
@@ -243,6 +245,7 @@ export function TemplateCardEditor({
                     variant="inline"
                     cardKey={card.key}
                     attachments={card.attachments ?? []}
+                    onAdd={addAttachment.open}
                     onInsert={(attachment) =>
                       contentRef.current?.insertAttachment(attachment)
                     }
@@ -279,6 +282,7 @@ export function TemplateCardEditor({
                   cardKey={card.key}
                   attachments={card.attachments ?? []}
                   initialExpanded
+                  onAdd={addAttachment.open}
                   onInsert={(attachment) =>
                     contentRef.current?.insertAttachment(attachment)
                   }
@@ -288,6 +292,7 @@ export function TemplateCardEditor({
           </Stack>
         )}
       </Box>
+      {editable && addAttachment.dialog}
     </Stack>
   );
 }

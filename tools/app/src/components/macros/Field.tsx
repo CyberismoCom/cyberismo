@@ -74,7 +74,7 @@ export default function Field({
   preview,
 }: FieldProps) {
   const { t } = useTranslation();
-  const { card, error } = useCard(cardKey);
+  const { card, loadError: error } = useCard(cardKey);
 
   if (error) {
     return (

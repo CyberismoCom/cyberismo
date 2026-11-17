@@ -27,7 +27,7 @@ import { UserRole, useHasMinRole } from '@/lib/auth';
 export default function AppLayout() {
   // Last URL parameter after /cards base is the card key
   const key = useOptionalKeyParam();
-  const { project, error, isLoading, updateCard } = useProject();
+  const { project, loadError: error, isLoading, updateCard } = useProject();
   const { tree, isLoading: isLoadingTree, error: treeError } = useTree();
   const { card } = useCard(key);
   const canEdit = useHasMinRole(UserRole.Editor);
