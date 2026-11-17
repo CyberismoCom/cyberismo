@@ -1093,7 +1093,7 @@ test.describe('Create links macro', () => {
     await expect(page.getByText(t.saveCard.success)).toBeVisible();
 
     // Pick one target directly and another through the search
-    const dialog = page.getByRole('dialog', { name: t.createLinks.title });
+    const dialog = page.getByRole('dialog', { name: 'Link pages' });
     const candidate = (title: string) =>
       dialog.getByRole('checkbox', { name: `${title} (${keys[title]})` });
     await page.getByRole('button', { name: 'Link pages' }).click();

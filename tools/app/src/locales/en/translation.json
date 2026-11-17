@@ -193,7 +193,6 @@
   },
   "createLinks": {
     "buttonLabel": "Create links",
-    "title": "Create links",
     "search": "Search by title or key",
     "noResults": "Nothing to link",
     "description": "Description",

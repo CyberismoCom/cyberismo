@@ -285,10 +285,19 @@ describe('CreateLinks', () => {
     expect(!!screen.queryByRole('dialog')).toBe(!blocked);
   });
 
+  it.each([
+    ['the button label', 'Link decisions', 'Link decisions'],
+    ['the default label', undefined, 'createLinks.buttonLabel'],
+  ])('titles the dialog with %s', (_, buttonLabel, expected) => {
+    renderMacro({ buttonLabel });
+    fireEvent.click(screen.getByRole('button', { name: expected }));
+    expect(screen.getByRole('dialog', { name: expected })).toBeInTheDocument();
+  });
+
   it('only notifies in preview mode', () => {
     renderMacro({ preview: true });
     open();
-    expect(screen.queryByText('createLinks.title')).not.toBeInTheDocument();
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     expect(dispatch.mock.calls[0][0].payload.message).toBe(
       'createLinks.preview',
     );
