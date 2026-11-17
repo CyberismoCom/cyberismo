@@ -48,6 +48,7 @@ export const exportCardPdfSchema = z.object({
   name: headerValue,
   cardKey: z.string(),
   exportChildCards: z.boolean(),
+  includeHidden: z.boolean().optional(),
   version: headerValue.optional(),
 });
 

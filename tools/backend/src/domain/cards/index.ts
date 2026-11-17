@@ -68,6 +68,9 @@ router.get('/', requireRole(UserRole.Reader), async (c) => {
  *       exportChildCards:
  *         type: boolean
  *       description: Whether to export child cards
+ *       includeHidden:
+ *         type: boolean
+ *       description: Whether to export hidden cards too, left out of the table of contents (optional)
  *       version:
  *         type: string
  *       description: Version of the exported PDF (optional)
@@ -91,6 +94,7 @@ router.post(
       title: body.title,
       name: body.name,
       recursive: body.exportChildCards,
+      includeHidden: body.includeHidden,
       version: body.version,
     });
     return new Response(result, {

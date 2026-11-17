@@ -13,6 +13,20 @@
 
 toc::[]
 {{#each results}}
+{{#if @root.includeHidden}}
+{{!-- A hidden card is unnumbered and left out of the table of contents and the
+bookmarks, and so are its descendants, which are hidden too; numbering resumes
+at the next visible card. The lines start at column 0 after a blank line, as the
+content before may not end with a newline. --}}
+
+
+{{#if this.isHidden}}
+:sectnums!:
+[toclevels=0,outlinelevels=0]
+{{else}}
+:sectnums:
+{{/if}}
+{{/if}}
   {{#include}}
      "cardKey": "{{this.key}}",
      "levelOffset": "{{this.levelOffset}}",

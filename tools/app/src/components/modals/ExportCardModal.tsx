@@ -47,6 +47,7 @@ const ExportModal = ({
   const { card } = useCard(cardKey);
   const { exportCard } = useCardExport();
   const [exportChildCards, setExportChildCards] = useState(forceChildExport);
+  const [includeHidden, setIncludeHidden] = useState(false);
   const [title, setTitle] = useState(card?.title ?? defaultTitle);
   const [name, setName] = useState(defaultFileName);
   const [version, setVersion] = useState('');
@@ -60,6 +61,7 @@ const ExportModal = ({
 
   const handleClose = () => {
     setExportChildCards(forceChildExport);
+    setIncludeHidden(false);
     setTitle(card?.title ?? defaultTitle);
     setName(defaultFileName);
     setVersion('');
@@ -114,6 +116,18 @@ const ExportModal = ({
               label={t('exportChildCards')}
             />
           )}
+          <FormControl>
+            <Checkbox
+              // Hidden cards are descendants of the card, so only exported with them
+              disabled={!exportChildCards}
+              checked={includeHidden && exportChildCards}
+              onChange={(e) => setIncludeHidden(e.target.checked)}
+              label={t('exportIncludeHidden')}
+            />
+            <FormHelperText>
+              {t('exportIncludeHiddenDescription')}
+            </FormHelperText>
+          </FormControl>
         </DialogContent>
         <DialogActions>
           <Button
@@ -123,6 +137,7 @@ const ExportModal = ({
                 title,
                 name,
                 exportChildCards,
+                includeHidden: includeHidden && exportChildCards,
                 ...(version && { version }),
               });
               handleClose();

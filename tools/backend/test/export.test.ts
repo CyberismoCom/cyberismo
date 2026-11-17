@@ -312,6 +312,55 @@ describe('export module', () => {
       ).resolves.toContain('decision_6');
     });
 
+    test.each([
+      { includeHidden: false, children: [] },
+      {
+        includeHidden: true,
+        children: [{ key: 'decision_6', isHidden: true }],
+      },
+    ])(
+      'with includeHidden $includeHidden, exports the hidden child of a card as such',
+      async ({ includeHidden, children }) => {
+        const calculation = join(
+          folder,
+          'decision-records',
+          '.cards',
+          'local',
+          'calculations',
+          'test',
+          'calculation.lp',
+        );
+        await writeFile(calculation, 'hiddenInTreeView(decision_6).\n', {
+          flag: 'a',
+        });
+        const { directory: registry } = await localFolder(folder);
+
+        await exportSite(registry, tempDir, {
+          cardKey: 'decision_5',
+          recursive: true,
+          includeHidden,
+        });
+
+        const project = join(tempDir, 'api', 'projects', 'decision');
+        const tree = JSON.parse(
+          await readFile(join(project, 'tree.json'), 'utf8'),
+        );
+        expect(tree).toMatchObject([
+          { key: 'decision_5', isHidden: false, children },
+        ]);
+        expect(tree[0].children ?? []).toHaveLength(children.length);
+        const written = readFile(
+          join(project, 'cards', 'decision_6.json'),
+          'utf8',
+        );
+        if (includeHidden) {
+          await expect(written).resolves.toContain('decision_6');
+        } else {
+          await expect(written).rejects.toThrow('ENOENT');
+        }
+      },
+    );
+
     test('exports a field macro as its value text', async () => {
       const card = join(
         folder,

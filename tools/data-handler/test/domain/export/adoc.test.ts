@@ -186,11 +186,13 @@ describe('export.adoc', () => {
 
   it.each(hiddenCases.filter((row) => row.recursive !== false))(
     '$name',
-    async ({ hidden, start, exported }) => {
+    async ({ hidden, start, includeHidden, exported }) => {
       const { ws, keys } = await open(hiddenCaseSpec(hidden));
 
       const adoc = text(
-        await ws.export.adoc(start ? keyOf(keys, start) : undefined),
+        await ws.export.adoc(start ? keyOf(keys, start) : undefined, {
+          includeHidden,
+        }),
       );
 
       const cardKeys = [...adoc.matchAll(/^\|Card key\|(\S+)$/gm)].map(
@@ -224,7 +226,14 @@ describe('export.adoc', () => {
 describe('exportedTree on the site tree query', () => {
   it.each(hiddenCases)(
     '$name',
-    async ({ hidden, start, recursive = true, exported }) => {
+    async ({
+      hidden,
+      start,
+      recursive = true,
+      includeHidden,
+      exported,
+      markedHidden = [],
+    }) => {
       const { ws, keys } = await open(hiddenCaseSpec(hidden));
       const cardKey = start ? keyOf(keys, start) : undefined;
 
@@ -234,12 +243,24 @@ describe('exportedTree on the site tree query', () => {
           'exportedSite',
           cardKey ? { cardKey, recursive } : {},
         ),
-        { cardKey },
+        { cardKey, includeHidden },
       );
 
-      const flat = (nodes: QueryResult<'tree'>[]): string[] =>
-        nodes.flatMap((node) => [node.key, ...flat(node.children ?? [])]);
-      expect(titlesOf(keys, flat(tree))).toEqual([...exported].sort());
+      const flat = (nodes: QueryResult<'tree'>[]): QueryResult<'tree'>[] =>
+        nodes.flatMap((node) => [node, ...flat(node.children ?? [])]);
+      const nodes = flat(tree);
+      expect(
+        titlesOf(
+          keys,
+          nodes.map((node) => node.key),
+        ),
+      ).toEqual([...exported].sort());
+      expect(
+        titlesOf(
+          keys,
+          nodes.filter((node) => node.isHidden).map((node) => node.key),
+        ),
+      ).toEqual([...markedHidden].sort());
     },
   );
 });

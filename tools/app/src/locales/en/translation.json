@@ -284,6 +284,8 @@
   "exportCardTitleDescription": "Title of the exported document",
   "exportCardVersionDescription": "Version number to display in the exported pdf (optional)",
   "exportChildCards": "Export child cards",
+  "exportIncludeHidden": "Include hidden cards",
+  "exportIncludeHiddenDescription": "Exported, but left out of the table of contents and navigation",
   "exportProject": "Export Project",
   "failedPolicyChecks": "Failed policy checks",
   "failedToLoad": "Failed to load",

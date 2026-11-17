@@ -36,6 +36,7 @@ export type EditCommandOptions = BaseCommandOptions;
 // Options for the 'export' command
 export interface ExportCommandOptions extends BaseCommandOptions {
   recursive?: boolean;
+  includeHidden?: boolean;
   title?: string;
   name?: string;
   version?: string;

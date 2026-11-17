@@ -382,4 +382,93 @@ describe('CLI transcripts', { timeout: 30000 }, () => {
       );
     });
   });
+
+  // Alpha(Shown, Gone), Beta; Gone is hidden from the tree view.
+  describe('exports with a hidden card', () => {
+    let alpha: string, shown: string, gone: string;
+    beforeEach(async () => {
+      project = await buildProject({
+        cards: [
+          { title: 'Alpha', children: [{ title: 'Shown' }, { title: 'Gone' }] },
+          { title: 'Beta' },
+        ],
+        calculations: {
+          hide: 'hiddenInTreeView(C) :- field(C, "title", "Gone").\n',
+        },
+      });
+      paths = longestFirst(project.path, realpathSync.native(project.path));
+      keys = new Map(project.keys.map((key, i) => [key, `<card${i + 1}>`]));
+      [alpha, shown, gone] = project.keys;
+    });
+    afterEach(() => project.cleanup());
+
+    const read = (path: string) => readFile(join(project.path, path), 'utf-8');
+
+    // A stub asciidoctor-pdf that echoes its AsciiDoc source as the "PDF".
+    it.skipIf(process.platform === 'win32')(
+      'export pdf holds the descendants with -r, and the hidden ones with --include-hidden',
+      async () => {
+        const binDir = await mkdtemp(join(tmpdir(), 'cyberismo-pdf-stub-'));
+        await writeFile(join(binDir, 'asciidoctor-pdf'), '#!/bin/sh\ncat\n', {
+          mode: 0o755,
+        });
+        const originalPath = process.env.PATH;
+        process.env.PATH = `${binDir}:${originalPath}`;
+        try {
+          const anchors = async (...options: string[]) => {
+            expect(
+              await cli('export', 'pdf', 'out.pdf', '<card1>', ...options),
+            ).toEqual(ok('Content exported as PDF to out.pdf\n'));
+            const source = await read('out.pdf');
+            return [alpha, shown, gone].filter((key) =>
+              source.includes(`[[${key}]]`),
+            );
+          };
+
+          expect(await anchors()).toEqual([alpha]);
+          expect(await anchors('-r')).toEqual([alpha, shown]);
+          expect(await anchors('-r', '--include-hidden')).toEqual([
+            alpha,
+            shown,
+            gone,
+          ]);
+        } finally {
+          process.env.PATH = originalPath;
+          await rm(binDir, { recursive: true, force: true });
+        }
+      },
+    );
+
+    it('export adoc holds the hidden cards with --include-hidden', async () => {
+      const exported = async (...options: string[]) => {
+        await cli('export', 'adoc', 'out', '<card1>', ...options);
+        const document = await read(join('out', 'index.adoc'));
+        return [alpha, shown, gone].filter((key) =>
+          document.includes(`|Card key|${key}\n`),
+        );
+      };
+
+      expect(await exported()).toEqual([alpha, shown]);
+      expect(await exported('--include-hidden')).toEqual([alpha, shown, gone]);
+    });
+
+    it('export site holds the hidden cards with --include-hidden, marked', async () => {
+      const tree = async (...options: string[]) => {
+        const out = `site${options.length}`;
+        await cli('export', 'site', out, '<card1>', '-r', ...options);
+        return JSON.parse(
+          await read(join(out, 'api', 'projects', 'test', 'tree.json')),
+        )[0].children.map((child: { key: string; isHidden: boolean }) => [
+          child.key,
+          child.isHidden,
+        ]);
+      };
+
+      expect(await tree()).toEqual([[shown, false]]);
+      expect(await tree('--include-hidden')).toEqual([
+        [shown, false],
+        [gone, true],
+      ]);
+    });
+  });
 });

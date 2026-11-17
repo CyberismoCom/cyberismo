@@ -9,6 +9,7 @@ import { exportedTree, type Workspace } from '@cyberismo/data-handler';
  * @param isSsg whether the context is static site generation
  * @param cardKey optional card key to start the tree from
  * @param recursive if false, includes only the given card. Otherwise, includes all child cards recursively.
+ * @param includeHidden in a static site, keep the hidden cards, marked as hidden
  * @returns
  */
 export async function getCardTree(
@@ -16,6 +17,7 @@ export async function getCardTree(
   isSsg: boolean,
   cardKey?: string,
   recursive?: boolean,
+  includeHidden?: boolean,
 ): ReturnType<typeof ws.queries.runQuery> {
   const tree = await ws.queries.runQuery(
     'tree',
@@ -23,6 +25,6 @@ export async function getCardTree(
     { cardKey, recursive },
   );
   // The app filters hidden cards from its navigation tree; a static site holds
-  // only the exported cards.
-  return isSsg ? exportedTree(tree, { cardKey }) : tree;
+  // only the exported cards, so the hidden ones only when they are included.
+  return isSsg ? exportedTree(tree, { cardKey, includeHidden }) : tree;
 }

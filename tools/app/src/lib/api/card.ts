@@ -312,10 +312,18 @@ type ExportCardParams = {
   title: string;
   name: string;
   exportChildCards: boolean;
+  includeHidden: boolean;
   version?: string;
 };
 async function exportCard(
-  { cardKey, title, exportChildCards, name, version }: ExportCardParams,
+  {
+    cardKey,
+    title,
+    exportChildCards,
+    includeHidden,
+    name,
+    version,
+  }: ExportCardParams,
   dispatch: ReturnType<typeof useAppDispatch>,
   projectPrefix?: string,
 ) {
@@ -335,6 +343,7 @@ async function exportCard(
         cardKey,
         title,
         exportChildCards,
+        includeHidden,
         name,
         ...(version && { version }),
       },

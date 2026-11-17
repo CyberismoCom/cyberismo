@@ -31,14 +31,16 @@ async function exportPdf(
 ): Promise<string> {
   let rendered;
   try {
-    // 'recursive' is not passed, and 'version' is read rather than
-    // '--doc-version'; both kept as they were under the dispatcher.
+    // 'version' is read rather than '--doc-version', kept as it was under
+    // the dispatcher.
     rendered = await ws.export.pdf({
       title: options.title,
       name: options.name,
       version: options.version,
       revremark: options.revremark,
       cardKey,
+      recursive: options.recursive,
+      includeHidden: options.includeHidden,
       date: options.date,
     });
   } catch (error) {
@@ -65,8 +67,9 @@ async function exportAdoc(
   ws: Workspace,
   destination: string,
   cardKey: string | undefined,
+  includeHidden: boolean | undefined,
 ): Promise<string> {
-  const files: AdocFiles = await ws.export.adoc(cardKey);
+  const files: AdocFiles = await ws.export.adoc(cardKey, { includeHidden });
   // The document's imagesdir exists even when no card has attachments.
   await mkdir(join(destination, 'a'), { recursive: true });
   const document = join(destination, 'index.adoc');
@@ -104,6 +107,10 @@ export function registerExport(program: Command) {
     .option(
       '-r, --recursive',
       'Export cards under the specified card recursively',
+    )
+    .option(
+      '--include-hidden',
+      'Export the cards hidden from the tree view too; a pdf leaves them out of its table of contents and a site out of its navigation. From a card, a pdf or site export needs -r to hold its descendants',
     )
     .option(
       '-t, --title [title]',
@@ -170,6 +177,7 @@ export function registerExport(program: Command) {
               {
                 recursive: options.recursive,
                 cardKey: cardKey,
+                includeHidden: options.includeHidden,
                 defaultProject: options.defaultProject,
               },
               (current?: number, total?: number) => {
@@ -210,7 +218,7 @@ export function registerExport(program: Command) {
           await onProject(merged, (ws) =>
             format === 'pdf'
               ? exportPdf(ws, output, cardKey, merged)
-              : exportAdoc(ws, output, cardKey),
+              : exportAdoc(ws, output, cardKey, merged.includeHidden),
           ),
         );
       },

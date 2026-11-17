@@ -164,41 +164,50 @@ export const isExternalItemKey = (value: string) => value.includes(':');
 export function omitHiddenCards(
   tree: QueryResult<'tree'>[],
 ): QueryResult<'tree'>[] {
-  return keepShown(tree, (node) => node.isHidden);
+  return markHidden(tree, (node) => node.isHidden);
 }
 
 /**
  * The cards an export holds, from the tree query run with the same options.
- * A project export leaves out hidden cards. An export from a card holds the card
- * and, as far as the query went, its subtree: when the card is visible, its hidden
- * descendants are left out; when it is hidden (itself or through an ancestor), its
- * whole subtree is exported. A card under a hidden start card that content hid
- * separately is exported as well, since the tree query cannot tell it apart.
- * Every card returned is shown, so it is marked as not hidden.
+ * A card is hidden in a project export when it is hidden from the tree view. In
+ * an export from a card it is hidden the same way when the card is visible; when
+ * the card is hidden (itself or through an ancestor), nothing in its subtree is,
+ * so the whole subtree is exported. A card under a hidden start card that content
+ * hid separately is not hidden either, since the tree query cannot tell it apart.
+ * Hidden cards, and with them their descendants, are left out, unless
+ * includeHidden is set: then they are kept and marked as hidden, and every
+ * other card is marked as not hidden.
  * @param tree tree query result; when exporting from a card, the query started
  *        from it, so the card is the only top level node
  * @param options.cardKey the card the export starts from, if any
+ * @param options.includeHidden keep the hidden cards, marked as hidden
  */
 export function exportedTree(
   tree: QueryResult<'tree'>[],
-  options: { cardKey?: string } = {},
+  options: { cardKey?: string; includeHidden?: boolean } = {},
 ): QueryResult<'tree'>[] {
-  if (!options.cardKey) return omitHiddenCards(tree);
-  const [start] = tree;
   // From a hidden start card nothing in its subtree counts as hidden.
-  return start?.isHidden ? keepShown(tree, () => false) : omitHiddenCards(tree);
+  const hidden =
+    options.cardKey && tree[0]?.isHidden
+      ? () => false
+      : (node: QueryResult<'tree'>) => node.isHidden;
+  return markHidden(tree, hidden, !!options.includeHidden);
 }
 
-// The nodes that are not hidden, with their descendants that are not, marked as shown.
-function keepShown(
+// The nodes, with their descendants, marked as hidden or not; the hidden ones
+// are left out unless they are kept.
+function markHidden(
   nodes: QueryResult<'tree'>[],
   hidden: (node: QueryResult<'tree'>) => boolean,
+  keepHidden = false,
 ): QueryResult<'tree'>[] {
   return nodes
-    .filter((node) => !hidden(node))
+    .filter((node) => keepHidden || !hidden(node))
     .map((node) => ({
       ...node,
-      isHidden: false,
-      ...(node.children ? { children: keepShown(node.children, hidden) } : {}),
+      isHidden: hidden(node),
+      ...(node.children
+        ? { children: markHidden(node.children, hidden, keepHidden) }
+        : {}),
     }));
 }
