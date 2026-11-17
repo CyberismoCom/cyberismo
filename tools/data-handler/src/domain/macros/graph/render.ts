@@ -60,9 +60,8 @@ export async function renderGraph(
   registerComparisonHelpers(handlebars);
   const view = handlebars.compile(viewTemplate)({ cardKey, ...options });
 
-  let result: string;
   try {
-    result = await checkout.calculationEngine.runGraph(
+    return await checkout.calculationEngine.runGraph(
       model ?? '',
       view,
       context,
@@ -81,13 +80,6 @@ export async function renderGraph(
       { cause: error },
     );
   }
-
-  if (typeof result !== 'string') {
-    throw new Error(
-      'Graph macro expected a string from clingo, but received an object',
-    );
-  }
-  return result;
 }
 
 // The resource cache hands out an empty resource for an unknown name, so
