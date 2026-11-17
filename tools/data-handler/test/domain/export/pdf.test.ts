@@ -1,7 +1,6 @@
 // SPDX-FileCopyrightText: Cyberismo Ltd and contributors
 // SPDX-License-Identifier: AGPL-3.0-only
 
-import { spawnSync } from 'node:child_process';
 import { chmodSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { delimiter, join } from 'node:path';
@@ -9,6 +8,11 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { AsciidoctorPdfError, Export } from '../../../src/api/export.js';
 import { notExportedWarning } from '../../../src/domain/macros/index.js';
+import {
+  asciidoctorPdfInstalled as installed,
+  holdsCard,
+  outline,
+} from '../../helpers/pdf.js';
 import { projects } from '../cards/fixture.js';
 import {
   hiddenCaseSpec,
@@ -21,12 +25,6 @@ const open = projects();
 
 // Each case spawns the asciidoctor-pdf CLI, which is slow when files run together.
 const SPAWN_TIMEOUT = 60000;
-// CI installs the gem on every OS, so a missing binary there is a failure, not a skip.
-const installed =
-  spawnSync('asciidoctor-pdf', ['--version'], {
-    shell: process.platform === 'win32',
-  }).status === 0;
-
 // Top(Sub), Other.
 const spec = {
   cards: [
@@ -34,17 +32,6 @@ const spec = {
     { title: 'Other', content: 'Other body.' },
   ],
 };
-
-// The section headings of the document as its outline numbers them.
-const outline = (pdf: Uint8Array) =>
-  [
-    ...Buffer.from(pdf)
-      .toString('latin1')
-      .matchAll(/\/Title <feff([0-9a-f]+)>/g),
-  ]
-    .map((match) => Buffer.from(match[1], 'hex').swap16().toString('utf16le'))
-    .slice(1) // the document title
-    .filter((heading) => heading !== 'Table of Contents');
 
 // The section headings of the document, without their numbers.
 const headings = (pdf: Uint8Array) =>
@@ -144,7 +131,7 @@ describe.skipIf(!installed && !process.env.CI)('export.pdf', () => {
       const bytes = Buffer.from(pdf).toString('latin1');
       const links = (id: string) => bytes.split(`/Dest (${id})`).length - 1;
       for (const id of [early, gone, goneLeaf]) {
-        expect(bytes).toMatch(new RegExp(`\\(${id}\\) \\d+ 0 R`));
+        expect(holdsCard(pdf, id)).toBe(true);
         expect(links(id)).toBe(0);
       }
       expect(links(kid)).toBe(2);

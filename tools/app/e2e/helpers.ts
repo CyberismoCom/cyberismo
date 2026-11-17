@@ -62,3 +62,53 @@ export async function typeIntoCodeMirror(
     }
   }
 }
+
+/** Keys of the cards {@link createExportCards} adds. */
+export type ExportCards = {
+  rootCardKey: string;
+  exportStartKey: string;
+  hiddenNoteKey: string;
+  outsideCardKey: string;
+};
+
+/**
+ * Adds these cards under the project's only card through the API. The setup
+ * script's calculation hides cards titled 'Hidden note' from the tree view.
+ *   Untitled page content
+ *     Export start: links to Outside card, in its content and links
+ *       Hidden note
+ *     Outside card
+ */
+export async function createExportCards(baseURL: string): Promise<ExportCards> {
+  const api = async (path: string, method = 'GET', body?: unknown) => {
+    const res = await fetch(`${baseURL}/api/projects/bat${path}`, {
+      method,
+      headers: { 'content-type': 'application/json' },
+      body: body === undefined ? undefined : JSON.stringify(body),
+    });
+    if (!res.ok) {
+      throw new Error(`${method} ${path}: ${res.status} ${await res.text()}`);
+    }
+    return res.json();
+  };
+  const create = async (parent: string, title: string, content = '') => {
+    const [card] = (await api(`/cards/${parent}`, 'POST', {
+      template: 'test/templates/page',
+    })) as { key: string }[];
+    await api(`/cards/${card.key}`, 'PATCH', { metadata: { title }, content });
+    return card.key;
+  };
+  const [{ key: rootCardKey }] = (await api('/tree')) as { key: string }[];
+  const outsideCardKey = await create(rootCardKey, 'Outside card');
+  const exportStartKey = await create(
+    rootCardKey,
+    'Export start',
+    `See xref:${outsideCardKey}.adoc[the outside card].`,
+  );
+  const hiddenNoteKey = await create(exportStartKey, 'Hidden note');
+  await api(`/cards/${exportStartKey}/links`, 'POST', {
+    toCard: outsideCardKey,
+    linkType: 'test/linkTypes/test',
+  });
+  return { rootCardKey, exportStartKey, hiddenNoteKey, outsideCardKey };
+}

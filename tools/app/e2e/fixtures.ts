@@ -32,7 +32,7 @@ type WorkerFixtures = {
   resetProject: () => Promise<void>;
 };
 
-async function waitForListening(
+export async function waitForListening(
   proc: ChildProcess,
   timeoutMs = 60_000,
 ): Promise<number> {

@@ -16,7 +16,12 @@ export const CardTreeMenu = () => {
   return (
     <>
       <Dropdown>
-        <MenuButton variant="plain" size="sm" endDecorator={<MoreHoriz />} />
+        <MenuButton
+          data-cy="projectMenuButton"
+          variant="plain"
+          size="sm"
+          endDecorator={<MoreHoriz />}
+        />
         <Menu
           placement="bottom-end"
           sx={{ zIndex: 'calc(var(--joy-zIndex-modal) + 1)' }}
