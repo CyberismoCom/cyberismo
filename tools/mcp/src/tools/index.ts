@@ -1154,13 +1154,13 @@ export function registerTools(
       inputSchema: {
         projectPrefix: projectPrefixParam,
         query: z.union([
-          z.object({
+          z.strictObject({
             key: z
               .enum(BASE_PROPERTY_KEYS)
               .describe('Available property keys to update'),
             operation: changeOperationSchema,
           }),
-          z.object({
+          z.strictObject({
             key: z.literal('content'),
             subKey: z
               .enum(SUB_PROPERTY_KEYS)
