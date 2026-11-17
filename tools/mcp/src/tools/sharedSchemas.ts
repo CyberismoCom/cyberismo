@@ -22,6 +22,48 @@ export const SUB_PROPERTY_KEYS = [
   'schema',
 ] as const;
 
+// Scalar keys of the file based resources (card types, field types, link
+// types, workflows); dataType is separate as its value is an enum.
+export const FILE_RESOURCE_SCALAR_KEYS = [
+  ...BASE_PROPERTY_KEYS,
+  'workflow',
+  'enableLinkDescription',
+  'inboundDisplayName',
+  'outboundDisplayName',
+] as const;
+
+export const FILE_RESOURCE_ARRAY_KEYS = [
+  'alwaysVisibleFields',
+  'optionallyVisibleFields',
+  'customFields',
+  'enumValues',
+  'destinationCardTypes',
+  'sourceCardTypes',
+  'states',
+  'transitions',
+] as const;
+
+// Which keys update_file_resource accepts per resource type.
+export const FILE_RESOURCE_KEYS: Record<string, readonly string[]> = {
+  cardTypes: [
+    ...BASE_PROPERTY_KEYS,
+    'workflow',
+    'alwaysVisibleFields',
+    'optionallyVisibleFields',
+    'customFields',
+  ],
+  fieldTypes: [...BASE_PROPERTY_KEYS, 'dataType', 'enumValues'],
+  linkTypes: [
+    ...BASE_PROPERTY_KEYS,
+    'enableLinkDescription',
+    'inboundDisplayName',
+    'outboundDisplayName',
+    'destinationCardTypes',
+    'sourceCardTypes',
+  ],
+  workflows: [...BASE_PROPERTY_KEYS, 'states', 'transitions'],
+};
+
 export const DATA_TYPES = [
   'boolean',
   'date',
@@ -41,8 +83,12 @@ export const changeOperationSchema = z.strictObject({
     .describe(
       'Set or update a scalar property, or replace an item in an array',
     ),
-  target: z.unknown().describe('Target value for the operation'),
-  to: z.unknown().describe('New value for the item being changed'),
+  target: z
+    .unknown()
+    .describe(
+      'For array properties, the existing item to replace. Unused for scalar properties',
+    ),
+  to: z.unknown().describe('New value for the property or replaced item'),
   mappingTable: z
     .strictObject({
       stateMapping: z.record(z.string(), z.string()),
@@ -69,3 +115,22 @@ export const arrayUpdateOperationSchema = z.union([
   rankOperationSchema,
   removeOperationSchema,
 ]);
+
+// 'change' on a folder resource content file. The file is replaced as a
+// whole; target is only an optional check of the current content.
+export const contentChangeOperationSchema = z.strictObject({
+  name: z
+    .literal('change')
+    .describe('Replace the ENTIRE content of the file with `to`'),
+  to: z
+    .unknown()
+    .describe(
+      'Complete new content of the file (a string; for schema also a JSON object). It replaces the whole file: partial edits are not supported, so include every line that should remain',
+    ),
+  target: z
+    .unknown()
+    .optional()
+    .describe(
+      'Optional safety check: the complete current content of the file. If given and it differs from the file, nothing is written. It does not select a part of the file to replace',
+    ),
+});

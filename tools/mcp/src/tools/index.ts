@@ -1,11 +1,13 @@
 // SPDX-FileCopyrightText: Cyberismo Ltd and contributors
 // SPDX-License-Identifier: AGPL-3.0-only
 
+import { isDeepStrictEqual } from 'node:util';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import {
   queryOptions,
   resourceName,
   type ProjectDirectory,
+  type Workspace,
 } from '@cyberismo/data-handler';
 import { z } from 'zod';
 import { toolResult, toolError } from '../lib/mcp-helpers.js';
@@ -19,6 +21,10 @@ import {
   changeOperationSchema,
   arrayUpdateOperationSchema,
   SUB_PROPERTY_KEYS,
+  FILE_RESOURCE_ARRAY_KEYS,
+  FILE_RESOURCE_KEYS,
+  FILE_RESOURCE_SCALAR_KEYS,
+  contentChangeOperationSchema,
 } from './sharedSchemas.js';
 
 // The predefined queries run_query offers.
@@ -27,6 +33,50 @@ const QUERY_NAMES = ['card', 'onCreation', 'onTransition', 'tree'] as const;
 const projectPrefixParam = z
   .string()
   .describe('Project prefix. Call list_projects to see available projects.');
+
+/**
+ * Rejects a content 'change' whose target is given but is not the file's
+ * complete current content. Agents have sent a snippet as target expecting
+ * it to be replaced, which would truncate the file to `to`.
+ */
+async function checkCurrentContent(
+  ws: Workspace,
+  resource: string,
+  subKey: string,
+  target: unknown,
+) {
+  if (target === undefined) {
+    return;
+  }
+  const { content } = (await ws.resources.show(resource)) as {
+    content?: Record<string, unknown>;
+  };
+  const current = content?.[subKey] ?? '';
+  if (!sameContent(current, target)) {
+    throw new Error(
+      `'target' does not match the current '${subKey}' content, so nothing was written. ` +
+        `A 'change' replaces the whole file with 'to': send the complete new content in 'to', ` +
+        `and either omit 'target' or send the complete current content in it.`,
+    );
+  }
+}
+
+// Text files compare as strings; JSON files (such as the parameter schema)
+// compare as parsed values, so formatting does not matter.
+function sameContent(current: unknown, target: unknown): boolean {
+  if (typeof current === 'string') {
+    return target === current;
+  }
+  let parsed = target;
+  if (typeof target === 'string') {
+    try {
+      parsed = JSON.parse(target);
+    } catch {
+      return false;
+    }
+  }
+  return isDeepStrictEqual(current, parsed);
+}
 
 /**
  * Register all MCP tools for Cyberismo operations
@@ -1004,131 +1054,57 @@ export function registerTools(
     {
       description:
         'Update a file based resource (card types, field types, workflows, link types)',
-      inputSchema: z.union([
-        z.object({
-          projectPrefix: projectPrefixParam,
-          key: z
-            .enum([...BASE_PROPERTY_KEYS, 'workflow'])
-            .describe('Available property keys to update'),
-          operation: changeOperationSchema,
-          resource: z
-            .string()
-            .regex(resourceNameRegex('cardTypes'))
-            .describe(
-              'Full resource name (e.g., "prefix/cardTypes/myResourceName")',
-            ),
-        }),
-        z.object({
-          projectPrefix: projectPrefixParam,
-          key: z
-            .enum([
-              'alwaysVisibleFields',
-              'optionallyVisibleFields',
-              'customFields',
-            ])
-            .describe('Available property keys to update'),
-          operation: arrayUpdateOperationSchema,
-          resource: z
-            .string()
-            .regex(resourceNameRegex('cardTypes'))
-            .describe(
-              'Full resource name (e.g., "prefix/cardTypes/myResourceName")',
-            ),
-        }),
-        z.object({
-          projectPrefix: projectPrefixParam,
-          key: z
-            .enum(BASE_PROPERTY_KEYS)
-            .describe('Available property keys to update'),
-          operation: changeOperationSchema,
-          resource: z
-            .string()
-            .regex(resourceNameRegex('fieldTypes'))
-            .describe(
-              'Full resource name (e.g., "prefix/fieldTypes/myResourceName")',
-            ),
-        }),
-        z.object({
-          projectPrefix: projectPrefixParam,
-          key: z.literal('dataType'),
-          operation: changeOperationSchema.extend({
-            to: z.enum(DATA_TYPES).describe('New data type for the field'),
+      inputSchema: {
+        projectPrefix: projectPrefixParam,
+        query: z.union([
+          z.strictObject({
+            key: z
+              .enum(FILE_RESOURCE_SCALAR_KEYS)
+              .describe(
+                'Scalar property to update. workflow: card types only; enableLinkDescription, inboundDisplayName, outboundDisplayName: link types only',
+              ),
+            operation: changeOperationSchema,
           }),
-          resource: z
-            .string()
-            .regex(resourceNameRegex('fieldTypes'))
-            .describe(
-              'Full resource name (e.g., "prefix/fieldTypes/myResourceName")',
+          z.strictObject({
+            key: z.literal('dataType').describe('Field types only'),
+            operation: changeOperationSchema.extend({
+              to: z.enum(DATA_TYPES).describe('New data type for the field'),
+            }),
+          }),
+          z.strictObject({
+            key: z
+              .enum(FILE_RESOURCE_ARRAY_KEYS)
+              .describe(
+                'Array property to update. alwaysVisibleFields, optionallyVisibleFields, customFields: card types; enumValues: field types; destinationCardTypes, sourceCardTypes: link types; states, transitions: workflows',
+              ),
+            operation: arrayUpdateOperationSchema,
+          }),
+        ]),
+        resource: z
+          .string()
+          .regex(
+            resourceNameRegex(
+              'cardTypes',
+              'fieldTypes',
+              'linkTypes',
+              'workflows',
             ),
-        }),
-        z.object({
-          projectPrefix: projectPrefixParam,
-          key: z.literal('enumValues'),
-          operation: arrayUpdateOperationSchema,
-          resource: z
-            .string()
-            .regex(resourceNameRegex('fieldTypes'))
-            .describe(
-              'Full resource name (e.g., "prefix/fieldTypes/myResourceName")',
-            ),
-        }),
-        z.object({
-          projectPrefix: projectPrefixParam,
-          key: z
-            .enum([
-              ...BASE_PROPERTY_KEYS,
-              'enableLinkDescription',
-              'inboundDisplayName',
-              'outboundDisplayName',
-            ])
-            .describe('Base metadata field to update'),
-          operation: changeOperationSchema,
-          resource: z
-            .string()
-            .regex(resourceNameRegex('linkTypes'))
-            .describe(
-              'Full resource name (e.g., "prefix/linkTypes/myResourceName")',
-            ),
-        }),
-        z.object({
-          projectPrefix: projectPrefixParam,
-          key: z.enum(['destinationCardTypes', 'sourceCardTypes']),
-          operation: arrayUpdateOperationSchema,
-          resource: z
-            .string()
-            .regex(resourceNameRegex('linkTypes'))
-            .describe(
-              'Full resource name (e.g., "prefix/linkTypes/myResourceName")',
-            ),
-        }),
-        z.object({
-          projectPrefix: projectPrefixParam,
-          key: z
-            .enum(BASE_PROPERTY_KEYS)
-            .describe('Available property keys to update'),
-          operation: changeOperationSchema,
-          resource: z
-            .string()
-            .regex(resourceNameRegex('workflows'))
-            .describe(
-              'Full resource name (e.g., "prefix/workflows/myResourceName")',
-            ),
-        }),
-        z.object({
-          projectPrefix: projectPrefixParam,
-          key: z.enum(['states', 'transitions']),
-          operation: arrayUpdateOperationSchema,
-          resource: z
-            .string()
-            .regex(resourceNameRegex('workflows'))
-            .describe(
-              'Full resource name (e.g., "prefix/workflows/myResourceName")',
-            ),
-        }),
-      ]),
+          )
+          .describe(
+            'Full resource name (e.g., "prefix/{cardTypes|fieldTypes|linkTypes|workflows}/myResourceName")',
+          ),
+      },
     },
-    async ({ projectPrefix, resource, operation, key }, extra) => {
+    async ({ projectPrefix, resource, query }, extra) => {
+      const { key, operation } = query;
       try {
+        const target = resourceName(resource);
+        const allowedKeys = FILE_RESOURCE_KEYS[target.type];
+        if (!allowedKeys?.includes(key)) {
+          throw new Error(
+            `Key '${key}' cannot be updated on ${target.type}. Allowed keys: ${allowedKeys?.join(', ')}`,
+          );
+        }
         const ws = await resolveWorkspace(
           directory,
           projectPrefix,
@@ -1137,7 +1113,7 @@ export function registerTools(
         );
         await ws.changes.apply({
           kind: 'edit',
-          target: resourceName(resource),
+          target,
           updateKey: { key },
           operation,
         });
@@ -1157,7 +1133,7 @@ export function registerTools(
     'update_folder_resource',
     {
       description:
-        'Update folder based resource (calculations, graphModels, graphViews, reports, templates)',
+        'Update folder based resource (calculations, graphModels, graphViews, reports, templates). With key "content", a change replaces the whole content file with `to`.',
       inputSchema: {
         projectPrefix: projectPrefixParam,
         query: z.union([
@@ -1172,7 +1148,7 @@ export function registerTools(
             subKey: z
               .enum(SUB_PROPERTY_KEYS)
               .describe('Content sub-key to update'),
-            operation: changeOperationSchema,
+            operation: contentChangeOperationSchema,
           }),
         ]),
         resource: z
@@ -1199,6 +1175,14 @@ export function registerTools(
           extra,
           server,
         );
+        if (query.key === 'content') {
+          await checkCurrentContent(
+            ws,
+            resource,
+            query.subKey,
+            query.operation.target,
+          );
+        }
         const updateKey =
           query.key === 'content'
             ? ({ key: 'content', subKey: query.subKey } as const)

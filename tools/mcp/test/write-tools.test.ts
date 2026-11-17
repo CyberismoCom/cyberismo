@@ -184,6 +184,23 @@ describe('MCP card write tools', () => {
     expect(await rootKeys()).toContain(created[0].key);
   });
 
+  test('create_card returns the title a creation side effect set', async () => {
+    await ws.changes.apply({
+      kind: 'edit',
+      target: resourceName('test/calculations/extra'),
+      updateKey: { key: 'content', subKey: 'calculation' },
+      operation: {
+        name: 'change',
+        to: 'onTransitionSetField(X, "Create", X, "title", "Renamed") :- field(X, "title", "Template page").\n',
+      },
+    });
+    const { created } = await write('create_card', {
+      template: 'test/templates/page',
+    });
+    expect(created[0].title).toBe('Renamed');
+    expect((await card(created[0].key)).metadata.title).toBe('Renamed');
+  });
+
   test('edit_card_content', async () => {
     await write('edit_card_content', { cardKey: beta, content: 'Edited' });
     expect((await card(beta)).content).toBe('Edited');
@@ -411,11 +428,121 @@ describe('MCP resource write tools', () => {
   test('update_file_resource', async () => {
     await write('update_file_resource', {
       resource: 'test/workflows/default',
-      key: 'displayName',
-      operation: { name: 'change', target: 'default', to: 'Default flow' },
+      query: {
+        key: 'displayName',
+        operation: { name: 'change', target: 'default', to: 'Default flow' },
+      },
     });
     expect(await resource('test/workflows/default')).toMatchObject({
       displayName: 'Default flow',
+    });
+  });
+
+  // A top-level union input schema is listed without properties, so
+  // clients send no arguments; every tool must list an object schema.
+  test('every tool lists its parameters', async () => {
+    const { tools } = await client.listTools();
+    for (const tool of tools) {
+      expect(tool.inputSchema.type, tool.name).toBe('object');
+      if (tool.name !== 'list_projects') {
+        expect(
+          Object.keys(tool.inputSchema.properties ?? {}),
+          tool.name,
+        ).toContain('projectPrefix');
+      }
+    }
+  });
+
+  test('update_file_resource lists its parameters', async () => {
+    const { tools } = await client.listTools();
+    const schema = tools.find(
+      (tool) => tool.name === 'update_file_resource',
+    )!.inputSchema;
+    expect(Object.keys(schema.properties ?? {}).sort()).toEqual([
+      'projectPrefix',
+      'query',
+      'resource',
+    ]);
+    expect(schema.required).toEqual(
+      expect.arrayContaining(['projectPrefix', 'query', 'resource']),
+    );
+  });
+
+  test('update_file_resource edits an array property', async () => {
+    await write('update_file_resource', {
+      resource: 'test/workflows/default',
+      query: {
+        key: 'states',
+        operation: {
+          name: 'add',
+          target: { name: 'Parked', category: 'active' },
+        },
+      },
+    });
+    const { states } = (await resource('test/workflows/default')) as {
+      states: { name: string }[];
+    };
+    expect(states.map((state) => state.name)).toContain('Parked');
+  });
+
+  test('update_file_resource refuses a key the resource type lacks', async () => {
+    const result = await callTool('update_file_resource', {
+      resource: 'test/workflows/default',
+      query: {
+        key: 'dataType',
+        operation: { name: 'change', target: 'x', to: 'integer' },
+      },
+    });
+    expect(result.isError).toBe(true);
+    expect((result.content as { text: string }[])[0].text).toMatch(
+      /Key 'dataType' cannot be updated on workflows. Allowed keys: .*states/,
+    );
+  });
+
+  describe('update_folder_resource content', () => {
+    const calculation = 'test/calculations/extra';
+    const original = 'a(1).\nb(2).\nc(3).\n';
+    const current = async () =>
+      ((await resource(calculation)) as { content: { calculation: string } })
+        .content.calculation;
+    const change = (operation: Record<string, unknown>) => ({
+      resource: calculation,
+      query: {
+        key: 'content',
+        subKey: 'calculation',
+        operation: { name: 'change', ...operation },
+      },
+    });
+
+    beforeEach(async () => {
+      await write('update_folder_resource', change({ to: original }));
+    });
+
+    test('replaces the whole file when target is omitted', async () => {
+      await write('update_folder_resource', change({ to: 'd(4).\n' }));
+      expect(await current()).toBe('d(4).\n');
+    });
+
+    test('replaces the whole file when target is the current content', async () => {
+      await write(
+        'update_folder_resource',
+        change({ target: original, to: 'd(4).\n' }),
+      );
+      expect(await current()).toBe('d(4).\n');
+    });
+
+    test('refuses a target that is only part of the file', async () => {
+      const before = await commitCount();
+      const result = await callTool(
+        'update_folder_resource',
+        change({ target: 'b(2).', to: 'b(20).' }),
+      );
+      expect(result.isError).toBe(true);
+      expect((result.content as { text: string }[])[0].text).toMatch(
+        /'target' does not match the current 'calculation' content/,
+      );
+      expect(await current()).toBe(original);
+      expect(await commitCount()).toBe(before);
     });
   });
 
