@@ -10,3 +10,4 @@ export {
 export { evaluateMacros } from './registry.js';
 export { default as ReportMacro } from './report/index.js';
 export { default as TaskQueue } from './task-queue.js';
+export { renderGraph, validateGraphOptions } from './graph/render.js';

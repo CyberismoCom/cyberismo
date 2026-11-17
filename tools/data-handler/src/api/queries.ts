@@ -14,15 +14,38 @@ import type {
   ResourceName,
 } from '@cyberismo/model';
 import type { Checkout } from '../state/checkout/checkout.js';
-import { DHValidationError } from '../shared/exceptions/index.js';
-import { ReportMacro } from '../domain/macros/index.js';
-import { TaskQueue } from '../domain/macros/index.js';
-import { evaluateMacros } from '../domain/macros/index.js';
+import {
+  CardNotFoundError,
+  DHValidationError,
+} from '../shared/exceptions/index.js';
+import {
+  evaluateMacros,
+  renderGraph,
+  ReportMacro,
+  TaskQueue,
+  validateGraphOptions,
+} from '../domain/macros/index.js';
+import { hasCard } from '../domain/cards/index.js';
 import {
   registerClingoHelpers,
   toLinkCandidates,
 } from '../domain/queries/index.js';
 import { read } from '../infra/tx/rw-lock.js';
+
+// A card key as the project makes them: prefix, separator, base-36 suffix.
+const CARD_KEY = /^[a-z]+_[a-z0-9]+$/;
+
+/** A graph to render from graph model and graph view resources. */
+export interface GraphRequest {
+  /** Graph model resource name. */
+  model: string;
+  /** Graph view resource name. */
+  view: string;
+  /** Card the graph is drawn for; must exist. */
+  cardKey?: string;
+  /** Parameters of the view, checked against the view's schema. */
+  parameters?: Record<string, unknown>;
+}
 
 const workflowGraphHandlebars = Handlebars.create();
 registerClingoHelpers(workflowGraphHandlebars);
@@ -55,14 +78,31 @@ export class Queries {
   }
 
   /**
-   * Runs given logic program and creates a graph using clingraph
-   * @param data Provide a query or/and a file which can be given to clingraph
-   * @param timeout Maximum amount of milliseconds clingraph is allowed to run
-   * @returns a base64 encoded image as a string
+   * Renders a graph from a graph model and a graph view resource, the way
+   * the graph macro does in card content.
+   * @param request Model and view resource names, the card the graph is
+   *   drawn for (filled into the view's `{{cardKey}}`), and the view's
+   *   parameters, checked against the view's schema.
+   * @param context In which type of context the graph is rendered.
+   * @returns base64-encoded sanitized SVG.
+   * @throws if a resource or the card does not exist, the parameters do not
+   *   validate or the logic program fails.
    */
   @read
-  public async runGraph(model: string, view: string, context: Context) {
-    return this.checkout.calculationEngine.runGraph(model, view, context);
+  public async runGraph(
+    request: GraphRequest,
+    context: Context = 'localApp',
+  ): Promise<string> {
+    const { model, view, cardKey, parameters } = request;
+    if (cardKey !== undefined) {
+      this.assertCardsExist([cardKey]);
+    }
+    const options = validateGraphOptions(this.checkout, {
+      ...parameters,
+      model,
+      view,
+    });
+    return renderGraph(this.checkout, options, cardKey, context);
   }
 
   /**
@@ -118,8 +158,14 @@ export class Queries {
   /**
    * Runs a pre-defined query.
    * @param queryName Name of the query file without extension
-   * @param options Any object that contains state for handlebars
+   * @param options Any object that contains state for handlebars. Card keys
+   *   in `cardKey` and `cardKeys` must be well formed, but are not checked
+   *   against the project: callers check `cards.has` where it matters.
+   *   `onTransition` needs `cardKey` and `transition`, `onCreation` needs
+   *   `cardKeys`.
    * @returns parsed program output
+   * @throws DHValidationError if a required option is missing or a card key
+   *   is malformed.
    */
   @read
   public async runQuery<T extends QueryName>(
@@ -127,6 +173,7 @@ export class Queries {
     context: Context = 'localApp',
     options?: unknown,
   ): Promise<QueryResult<T>[]> {
+    this.validateQueryOptions(queryName, options);
     return this.checkout.calculationEngine.runQuery(
       queryName,
       context,
@@ -196,5 +243,47 @@ export class Queries {
     });
 
     return result ?? '';
+  }
+
+  // Card keys are pasted into the logic program unquoted, so only keys the
+  // project holds may reach it.
+  private assertCardsExist(cardKeys: string[]) {
+    for (const cardKey of cardKeys) {
+      if (!hasCard(this.checkout, cardKey)) {
+        throw new CardNotFoundError(cardKey);
+      }
+    }
+  }
+
+  private validateQueryOptions(queryName: QueryName, options: unknown) {
+    const { cardKey, cardKeys, transition } = (options ?? {}) as {
+      cardKey?: unknown;
+      cardKeys?: unknown;
+      transition?: unknown;
+    };
+    if (queryName === 'onTransition' && (!cardKey || !transition)) {
+      throw new DHValidationError(
+        "Query 'onTransition' needs a 'cardKey' and a 'transition'",
+      );
+    }
+    if (
+      queryName === 'onCreation' &&
+      (!Array.isArray(cardKeys) || cardKeys.length === 0)
+    ) {
+      throw new DHValidationError("Query 'onCreation' needs 'cardKeys'");
+    }
+    if (cardKeys !== undefined && !Array.isArray(cardKeys)) {
+      throw new DHValidationError("'cardKeys' must be a list of card keys");
+    }
+    // Card keys are pasted into the logic program unquoted; a well-formed
+    // key is a plain constant there and cannot change the program.
+    for (const key of [
+      ...(cardKey === undefined ? [] : [cardKey]),
+      ...((cardKeys as unknown[] | undefined) ?? []),
+    ]) {
+      if (typeof key !== 'string' || !CARD_KEY.test(key)) {
+        throw new DHValidationError(`'${key}' is not a valid card key`);
+      }
+    }
   }
 }

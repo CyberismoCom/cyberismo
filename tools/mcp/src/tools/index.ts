@@ -2,7 +2,11 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { resourceName, type ProjectDirectory } from '@cyberismo/data-handler';
+import {
+  CardNotFoundError,
+  resourceName,
+  type ProjectDirectory,
+} from '@cyberismo/data-handler';
 import { z } from 'zod';
 import { toolResult, toolError } from '../lib/mcp-helpers.js';
 import { renderCard, getCardTree } from '../lib/render.js';
@@ -1245,15 +1249,26 @@ export function registerTools(
   server.registerTool(
     'run_query',
     {
-      description: 'Run a predefined query against the project',
+      description:
+        "Run a predefined query against the project. 'card': card details with fields, links and allowed operations (one card with cardKey, else all cards). 'tree': the card tree (the subtree of cardKey, else the whole project). 'onCreation': fields and transitions that creating cardKey would set off. 'onTransition': fields and transitions that making transition on cardKey would set off.",
       inputSchema: {
         projectPrefix: projectPrefixParam,
         queryName: z
           .enum(['card', 'onCreation', 'onTransition', 'tree'])
           .describe('Query type to run'),
+        cardKey: z
+          .string()
+          .optional()
+          .describe(
+            "Card to run the query for; required for 'onCreation' and 'onTransition'",
+          ),
+        transition: z
+          .string()
+          .optional()
+          .describe("Transition name; required for 'onTransition'"),
       },
     },
-    async ({ projectPrefix, queryName }, extra) => {
+    async ({ projectPrefix, queryName, cardKey, transition }, extra) => {
       try {
         const ws = await resolveWorkspace(
           directory,
@@ -1261,7 +1276,23 @@ export function registerTools(
           extra,
           server,
         );
-        const results = await ws.queries.runQuery(queryName);
+        // The query does not check that the card exists.
+        if (cardKey !== undefined && !ws.cards.has(cardKey)) {
+          throw new CardNotFoundError(cardKey);
+        }
+        const options =
+          queryName === 'onCreation'
+            ? { cardKeys: cardKey === undefined ? [] : [cardKey] }
+            : queryName === 'onTransition'
+              ? { cardKey, transition }
+              : cardKey === undefined
+                ? {}
+                : { cardKey };
+        const results = await ws.queries.runQuery(
+          queryName,
+          'localApp',
+          options,
+        );
         return toolResult({ results });
       } catch (error) {
         return toolError('running query', error);
@@ -1408,14 +1439,27 @@ export function registerTools(
   server.registerTool(
     'run_graph',
     {
-      description: 'Generate a graph visualization',
+      description:
+        'Render a graph from a graph model and a graph view, as the graph macro does in card content. Returns the graph as SVG markup.',
       inputSchema: {
         projectPrefix: projectPrefixParam,
-        model: z.string().describe('Graph model name'),
-        view: z.string().describe('Graph view name'),
+        model: z.string().describe('Graph model resource name'),
+        view: z.string().describe('Graph view resource name'),
+        cardKey: z
+          .string()
+          .optional()
+          .describe(
+            'Card the graph is drawn for; most views need it ({{cardKey}} in the view)',
+          ),
+        parameters: z
+          .record(z.string(), z.unknown())
+          .optional()
+          .describe(
+            "Additional view parameters, checked against the view's schema",
+          ),
       },
     },
-    async ({ projectPrefix, model, view }, extra) => {
+    async ({ projectPrefix, model, view, cardKey, parameters }, extra) => {
       try {
         const ws = await resolveWorkspace(
           directory,
@@ -1423,13 +1467,15 @@ export function registerTools(
           extra,
           server,
         );
-        const base64 = await ws.queries.runGraph(model, view, 'localApp');
+        const base64 = await ws.queries.runGraph(
+          { model, view, cardKey, parameters },
+          'localApp',
+        );
         return {
           content: [
             {
-              type: 'image' as const,
-              data: base64,
-              mimeType: 'image/png',
+              type: 'text' as const,
+              text: Buffer.from(base64, 'base64').toString('utf-8'),
             },
           ],
         };
