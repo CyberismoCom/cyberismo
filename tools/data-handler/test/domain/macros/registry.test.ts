@@ -1096,7 +1096,7 @@ Some content here`;
         },
         {
           mode: 'staticSite',
-          expected: 'link:/cards/xref-test-card[Test Card for Cross Reference]',
+          expected: 'xref:xref-test-card.adoc[]',
         },
       ].forEach(({ mode, expected }) => {
         it(`xrefMacro ${mode} (success)`, async () => {
@@ -1115,23 +1115,26 @@ Some content here`;
         });
       });
 
-      it('xrefMacro with non-existent card should return warning message', async () => {
-        const macro = `{{#xref}}"cardKey": "non-existent-card"{{/xref}}`;
-        const result = await evaluateMacros(macro, {
-          mode: 'static',
-          checkout,
-          cardKey: '',
-          context: 'localApp',
-        });
+      it.each(['static', 'staticSite'] as const)(
+        'xrefMacro %s with non-existent card should return warning message',
+        async (mode) => {
+          const macro = `{{#xref}}"cardKey": "non-existent-card"{{/xref}}`;
+          const result = await evaluateMacros(macro, {
+            mode,
+            checkout,
+            cardKey: '',
+            context: 'localApp',
+          });
 
-        expect(result).toContain('.Macro Error');
-        expect(result).toContain('Card key non-existent-card not found');
+          expect(result).toContain('.Macro Error');
+          expect(result).toContain('Card key non-existent-card not found');
 
-        // Should have attempted to fetch the non-existent card
-        expect(cardDetailsByIdStub.calledWith('non-existent-card')).toEqual(
-          true,
-        );
-      });
+          // Should have attempted to fetch the non-existent card
+          expect(cardDetailsByIdStub.calledWith('non-existent-card')).toEqual(
+            true,
+          );
+        },
+      );
 
       it('xrefMacro error in the middle of text renders warning as its own block', async () => {
         const content = `tekstiä {{#xref}}"cardKey": "non-existent-card"{{/xref}} lisää tekstiä`;

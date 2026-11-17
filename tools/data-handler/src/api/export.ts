@@ -33,6 +33,8 @@ type PdfDocument = Omit<ExportPdfOptions, 'date'> & { date?: Date };
 const attachmentFolder: string = 'a';
 const ASCIIDOCTOR_DIAGNOSTIC = /^asciidoctor: (WARNING|ERROR):/;
 const FAILURE_DIAGNOSTIC_LINES = 20;
+// An anchor as the include macro gives each card.
+const CARD_ANCHOR = /^\[\[([\w-]+)\]\]$/gm;
 
 // To what format the content can be exported to.
 export enum ExportFormats {
@@ -272,7 +274,10 @@ export class Export {
     }
   }
 
-  private async evaluateExportContent(options: PdfDocument): Promise<string> {
+  // The document's content, with the keys of the cards it holds.
+  private async evaluateExportContent(
+    options: PdfDocument,
+  ): Promise<{ content: string; exported: Set<string> }> {
     const result = await generateReportContent({
       calculate: this.checkout.calculationEngine,
       contentTemplate: pdfReport.content,
@@ -290,7 +295,13 @@ export class Export {
       checkout: this.checkout,
       cardKey: '', // top level report does not contain any macros that use cardKey
     });
-    return evaluated;
+    // Every card the document holds has its anchor: the report's cards from
+    // their title include, and any card an include brought in. An xref
+    // resolves wherever the document has the card's anchor.
+    const exported = new Set(
+      [...evaluated.matchAll(CARD_ANCHOR)].map(([, key]) => key),
+    );
+    return { content: evaluated, exported };
   }
 
   /**
@@ -346,19 +357,21 @@ export class Export {
   /**
    * Assembles the AsciiDoc source that will be handed to asciidoctor-pdf.
    * Runs macro evaluation, mermaid preprocessing, and native-xref rewriting in
-   * the order Asciidoctor expects.
+   * the order Asciidoctor expects. Xrefs and links to cards the document does
+   * not hold become plain text.
    */
   protected async buildPdfAsciidocSource(
     options: PdfDocument,
     onWarning?: (message: string) => void,
   ): Promise<string> {
-    const evaluated = await this.evaluateExportContent(options);
-    const withMermaid = await preprocessMermaidBlocksForPdf(evaluated);
+    const { content, exported } = await this.evaluateExportContent(options);
+    const withMermaid = await preprocessMermaidBlocksForPdf(content);
     return rewriteAsciidocCardXrefs(
       withMermaid,
       this.checkout,
       'static',
       onWarning,
+      exported,
     );
   }
 

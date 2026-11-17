@@ -24,15 +24,25 @@ export default class XrefMacro extends BaseMacro {
     input: unknown,
   ): Promise<string> => {
     const options = this.validate(input);
-    const card = this.getCard(options.cardKey, context);
-
-    if (!card || !card.metadata) {
-      throw new Error(`Card key ${options.cardKey} not found`);
-    }
-
-    // in static mode we need to use internal references
+    this.checkCard(options.cardKey, context);
     return `<<${options.cardKey}>>`;
   };
+
+  handleStaticSite = async (
+    context: MacroGenerationContext,
+    input: unknown,
+  ): Promise<string> => {
+    const options = this.validate(input);
+    this.checkCard(options.cardKey, context);
+    return `xref:${options.cardKey}.adoc[]`;
+  };
+
+  private checkCard(cardKey: string, context: MacroGenerationContext) {
+    const card = this.getCard(cardKey, context);
+    if (!card || !card.metadata) {
+      throw new Error(`Card key ${cardKey} not found`);
+    }
+  }
 
   handleInject = async (context: MacroGenerationContext, input: unknown) => {
     const options = this.validate(input);

@@ -29,4 +29,10 @@ describe('formatProjectErrors', () => {
       /^1 project has errors:/,
     );
   });
+
+  test('names warnings in the heading when asked', () => {
+    expect(
+      formatProjectErrors([{ prefix: 'ABC', errors: ['x'] }], 10, 'warnings'),
+    ).toBe('1 project has warnings:\n\nABC (1):\n  x');
+  });
 });

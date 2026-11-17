@@ -208,7 +208,12 @@ router.get(
   async (c) => {
     const { key } = c.req.valid('param');
     return c.json(
-      await cardService.getCardContent(c.get('ws'), key, isSSGContext(c)),
+      await cardService.getCardContent(
+        c.get('ws'),
+        key,
+        isSSGContext(c),
+        c.get('tree'),
+      ),
     );
   },
 );

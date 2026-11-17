@@ -10,10 +10,26 @@ import type { CalculationLink } from '@cyberismo/model';
 type LinkRowProps = {
   link: CalculationLink;
   locked?: boolean;
+  /** False when the linked card is not part of a static export: no link then. */
+  exported?: boolean;
 };
 
-export function LinkRow({ link, locked = false }: LinkRowProps) {
+export function LinkRow({
+  link,
+  locked = false,
+  exported = true,
+}: LinkRowProps) {
   const { t } = useTranslation();
+  const keyText = (
+    <Typography
+      data-cy="cardLink"
+      level="body-xs"
+      component="span"
+      sx={{ fontFamily: 'inherit' }}
+    >
+      {link.key}
+    </Typography>
+  );
   return (
     <Stack
       direction={{ xs: 'column', md: 'row' }}
@@ -66,15 +82,10 @@ export function LinkRow({ link, locked = false }: LinkRowProps) {
                 {link.key}
               </Link>
             ) : (
-              <Typography
-                data-cy="cardLink"
-                level="body-xs"
-                component="span"
-                sx={{ fontFamily: 'inherit' }}
-              >
-                {link.key}
-              </Typography>
+              keyText
             )
+          ) : !exported ? (
+            keyText
           ) : (
             <RouterLink data-cy="cardLink" to={`/cards/${link.key}`}>
               <Link

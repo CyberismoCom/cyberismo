@@ -7,7 +7,7 @@ import { dirname, join, resolve } from 'node:path';
 import cliProgress from 'cli-progress';
 import { Argument, type Command } from 'commander';
 
-import { exportSite } from '@cyberismo/backend';
+import { exportSite, formatExportWarnings } from '@cyberismo/backend';
 import { formatProjectErrors } from '@cyberismo/model';
 import {
   AsciidoctorPdfError,
@@ -53,13 +53,16 @@ async function exportPdf(
   }
   const { pdf, warnings } = rendered;
   await writeFile(destination, pdf);
-  const summary =
-    warnings.length === 1
-      ? ' with 1 rendering warning'
-      : warnings.length > 1
-        ? ` with ${warnings.length} rendering warnings`
-        : '';
-  return `Content exported as PDF to ${destination}${summary}`;
+  return `Content exported as PDF to ${destination}${warningSummary(warnings.length)}`;
+}
+
+// ' with N rendering warnings' (or another kind), or nothing when there are none.
+function warningSummary(count: number, kind = 'rendering warning'): string {
+  return count === 1
+    ? ` with 1 ${kind}`
+    : count > 1
+      ? ` with ${count} ${kind}s`
+      : '';
 }
 
 // Writes the AsciiDoc export of a card (or the project) into 'destination'.
@@ -171,7 +174,7 @@ export function registerExport(program: Command) {
               });
               return;
             }
-            const { errors: exportErrors } = await exportSite(
+            const { errors: exportErrors, warnings } = await exportSite(
               directory,
               output,
               {
@@ -193,6 +196,10 @@ export function registerExport(program: Command) {
               },
             );
             progress.stop();
+            const warningText = formatExportWarnings(warnings);
+            if (warningText) {
+              console.warn(warningText);
+            }
             const errors = [...failed, ...exportErrors];
             if (errors.length > 0) {
               handleResponse({
@@ -201,7 +208,13 @@ export function registerExport(program: Command) {
               });
               return;
             }
-            console.log('Exported site to', output);
+            const warningCount = warnings.reduce(
+              (count, project) => count + project.warnings.length,
+              0,
+            );
+            console.log(
+              `Exported site to ${output}${warningSummary(warningCount, 'warning')}`,
+            );
             console.log(`Run 'cyberismo preview ${output}' to view the site`);
             return;
           } catch (e) {

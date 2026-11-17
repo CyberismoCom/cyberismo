@@ -5,6 +5,7 @@ import fs from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 
 import {
+  notExportedWarning,
   SYSTEM_ACTOR,
   type ProjectDirectory,
   type Workspace,
@@ -13,7 +14,11 @@ import { createApp } from './app.js';
 import { MockAuthProvider } from './auth/mock.js';
 import { cp } from 'node:fs/promises';
 import { staticFrontendDirRelative } from './utils.js';
-import type { QueryResult, ProjectErrors } from '@cyberismo/model';
+import {
+  formatProjectErrors,
+  type QueryResult,
+  type ProjectErrors,
+} from '@cyberismo/model';
 import { toSSG } from 'hono/ssg';
 import type { TreeOptions } from './types.js';
 import {
@@ -21,13 +26,33 @@ import {
   findRelevantAttachments,
   getAttachment,
 } from './domain/cards/service.js';
-import { CARD_ROUTES_PER_KEY } from './domain/cards/lib.js';
+import { allCards, CARD_ROUTES_PER_KEY } from './domain/cards/lib.js';
 
 export interface ExportSiteOptions extends TreeOptions {
   defaultProject?: string;
 }
 
+/** Warnings of a site export, for one project. */
+export interface ProjectWarnings {
+  prefix: string;
+  warnings: string[];
+}
+
+/** The warnings of a site export by project, for printing; none without warnings. */
+export function formatExportWarnings(
+  warnings: ProjectWarnings[],
+): string | undefined {
+  if (warnings.length === 0) return undefined;
+  return formatProjectErrors(
+    warnings.map(({ prefix, warnings }) => ({ prefix, errors: warnings })),
+    10,
+    'warnings',
+  );
+}
+
 const _cardQueryCache = new Map<string, Promise<QueryResult<'card'>[]>>();
+const _exportedKeysCache = new Map<string, Promise<Set<string>>>();
+const _warnings = new Map<string, Set<string>>();
 /** Label for errors from routes that belong to no project. */
 const SHARED_ROUTES = '(shared)';
 const OVERHEAD_CALLS = 6; // estimated number of overhead calls during export in addition to card exports
@@ -38,6 +63,58 @@ const OVERHEAD_CALLS = 6; // estimated number of overhead calls during export in
  */
 export function reset() {
   _cardQueryCache.clear();
+  _exportedKeysCache.clear();
+  _warnings.clear();
+}
+
+/**
+ * The keys of the cards a site export holds in a project. Should only be
+ * called during static site generation.
+ * @param ws - Handle of the project.
+ * @param options - The export's tree options.
+ */
+export async function exportedKeys(
+  ws: Workspace,
+  options?: TreeOptions,
+): Promise<Set<string>> {
+  const prefix = ws.settings.prefix;
+  if (!_exportedKeysCache.has(prefix)) {
+    _exportedKeysCache.set(
+      prefix,
+      allCards(ws, options).then(
+        (cards) => new Set(cards.map((card) => card.key)),
+      ),
+    );
+  }
+  return _exportedKeysCache.get(prefix)!;
+}
+
+/** Keeps a warning of the running site export; each one is kept once. */
+export function addExportWarning(prefix: string, message: string) {
+  const warnings = _warnings.get(prefix) ?? new Set<string>();
+  warnings.add(message);
+  _warnings.set(prefix, warnings);
+}
+
+// The links section of an exported card shows a link to a card the site does
+// not hold as text.
+async function warnLinksOutsideExport(ws: Workspace, options: TreeOptions) {
+  let exported: Set<string>;
+  let cards: QueryResult<'card'>[];
+  try {
+    exported = await exportedKeys(ws, options);
+    cards = await getCardQueryResult(ws);
+  } catch {
+    return; // the project's routes have reported the failure
+  }
+  for (const card of cards) {
+    if (!exported.has(card.key)) continue;
+    for (const link of card.links) {
+      if (!link.connector && !exported.has(link.key)) {
+        addExportWarning(ws.settings.prefix, notExportedWarning(link.key));
+      }
+    }
+  }
 }
 
 /**
@@ -81,14 +158,15 @@ export async function getCardQueryResult(
  * @param options.includeHidden - Whether to export the hidden cards too; they are marked as hidden, so the site leaves them out of its navigation.
  * @param options.defaultProject - Default project prefix to write into config.json.
  * @param onProgress - Optional progress callback function.
- * @returns Errors that occurred during export, grouped by project.
+ * @returns Errors that occurred during export, and warnings, such as links to
+ * cards the site does not hold, which it shows as text; both grouped by project.
  */
 export async function exportSite(
   directory: ProjectDirectory,
   exportDir?: string,
   options?: ExportSiteOptions,
   onProgress?: (current: number, total: number) => void,
-): Promise<{ errors: ProjectErrors[] }> {
+): Promise<{ errors: ProjectErrors[]; warnings: ProjectWarnings[] }> {
   exportDir = exportDir || 'static';
   const { defaultProject, ...treeOpts } = options ?? {};
   const opts: TreeOptions = {
@@ -219,7 +297,17 @@ export async function exportSite(
       errors.push({ prefix: scope ?? SHARED_ROUTES, errors: scopeErrors });
     }
   }
+  for (const prefix of prefixes) {
+    await warnLinksOutsideExport(
+      await directory.open(prefix, SYSTEM_ACTOR),
+      opts,
+    );
+  }
+  const warnings = prefixes
+    .filter((prefix) => _warnings.has(prefix))
+    .map((prefix) => ({ prefix, warnings: [..._warnings.get(prefix)!] }));
   return {
     errors,
+    warnings,
   };
 }

@@ -44,12 +44,27 @@ export class Render {
     }
   }
 
-  /** Rewrites the native xrefs to other cards in `content` into links. */
+  /**
+   * Rewrites the native xrefs to other cards in `content` into links. In a
+   * static export, an xref to a card that is not in `options.exported` becomes
+   * plain text; an undefined set means the whole project.
+   * @param options.onWarning Receives the warnings; console.warn by default.
+   */
   @read
   public async xrefs(
     content: string,
     mode: RenderOptions['mode'],
+    options: {
+      exported?: ReadonlySet<string>;
+      onWarning?: (message: string) => void;
+    } = {},
   ): Promise<string> {
-    return rewriteAsciidocCardXrefs(content, this.checkout, mode);
+    return rewriteAsciidocCardXrefs(
+      content,
+      this.checkout,
+      mode,
+      options.onWarning,
+      options.exported,
+    );
   }
 }

@@ -13,7 +13,12 @@ import type { ProjectDirectory } from '@cyberismo/data-handler';
 export { MockAuthProvider } from './auth/mock.js';
 export type { MockUserConfig } from './auth/mock.js';
 export type { AuthProvider } from './auth/types.js';
-export { exportSite, type ExportSiteOptions } from './export.js';
+export {
+  exportSite,
+  formatExportWarnings,
+  type ExportSiteOptions,
+  type ProjectWarnings,
+} from './export.js';
 
 const DEFAULT_PORT = 3000;
 const MAX_PORT_ATTEMPTS = 100;
