@@ -5,13 +5,13 @@ import { Typography } from '@mui/joy';
 import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
-import { useTree } from '../../lib/api';
+import { useVisibleTree } from '../../lib/api';
 
 export const dynamic = 'force-dynamic';
 
 export default function CardsPage() {
   const { t } = useTranslation();
-  const { tree, isValidating } = useTree();
+  const { tree, isValidating } = useVisibleTree();
   const navigate = useNavigate();
 
   useEffect(() => {

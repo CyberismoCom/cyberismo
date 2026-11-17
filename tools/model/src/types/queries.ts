@@ -136,6 +136,8 @@ interface TreeQueryResult extends BaseResult {
   title: string;
   cardType: string;
   statusIndicator?: StatusIndicator;
+  /** True when the card or an ancestor is hiddenInTreeView; hidden cards are still returned. */
+  isHidden: boolean;
   children?: TreeQueryResult[];
 }
 

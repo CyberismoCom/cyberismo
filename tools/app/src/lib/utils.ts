@@ -409,6 +409,23 @@ export function filterCards(
 }
 
 /**
+ * Drops hidden cards, and with them their descendants, from a card tree
+ * @param tree: array of Cards with possible children Card arrays
+ * @returns the tree as shown in navigation
+ */
+export function withoutHiddenCards(
+  tree: QueryResult<'tree'>[],
+): QueryResult<'tree'>[] {
+  return tree
+    .filter((node) => !node.isHidden)
+    .map((node) =>
+      node.children
+        ? { ...node, children: withoutHiddenCards(node.children) }
+        : node,
+    );
+}
+
+/**
  * Flattens the Card tree into a single array of Cards
  * @param tree: array of Cards with possible children Card arrays
  * @returns array of all cards

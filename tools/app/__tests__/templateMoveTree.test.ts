@@ -143,6 +143,7 @@ describe('buildTemplateMoveTree', () => {
         rank: '0|a',
         title: 'Card A',
         cardType: 'test/cardTypes/page',
+        isHidden: false,
         children: [],
       },
       {
@@ -150,6 +151,7 @@ describe('buildTemplateMoveTree', () => {
         rank: '0|b',
         title: 'Card B',
         cardType: 'test/cardTypes/page',
+        isHidden: false,
         children: [],
       },
     ]);
@@ -236,6 +238,7 @@ describe('buildProjectDestinationsTree', () => {
       rank: '0|a',
       title: 'Project Card 1',
       cardType: 'test/cardTypes/page',
+      isHidden: false,
       children: [],
     },
     {
@@ -243,6 +246,7 @@ describe('buildProjectDestinationsTree', () => {
       rank: '0|b',
       title: 'Project Card 2',
       cardType: 'test/cardTypes/page',
+      isHidden: false,
       children: [],
     },
   ];
@@ -264,6 +268,7 @@ describe('buildProjectDestinationsTree', () => {
         rank: '',
         title: PROJECT_ROOT_KEY,
         cardType: '',
+        isHidden: false,
         children: [],
       },
     ]);
@@ -273,6 +278,7 @@ describe('buildProjectDestinationsTree', () => {
         rank: '',
         title: PROJECT_ROOT_KEY,
         cardType: '',
+        isHidden: false,
         children: [],
       },
     ]);

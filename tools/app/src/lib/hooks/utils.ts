@@ -3,7 +3,7 @@
 
 import { useMemo, useEffect, useState, useCallback, useRef } from 'react';
 import { findParentCard } from '../utils';
-import { useTree } from '../api';
+import { useVisibleTree } from '../api';
 import { useLocation, useMatch, useParams } from 'react-router';
 import { useResourceTree } from '../api/resources';
 import type { AnyNode } from '../api/types';
@@ -25,7 +25,7 @@ export function useOptionalKeyParam() {
 }
 
 export function useParentCard(key: string | null) {
-  const { tree } = useTree();
+  const { tree } = useVisibleTree();
 
   return useMemo(
     () => (tree && key ? findParentCard(tree, key) : null),
