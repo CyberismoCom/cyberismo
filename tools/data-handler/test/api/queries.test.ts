@@ -112,6 +112,16 @@ describe('queries.runQuery options', () => {
     expect(cards.map((card) => card.key)).toEqual([keys[1]]);
   });
 
+  it('refuses a card the project does not hold', async () => {
+    const { ws, keys } = await open(spec);
+
+    await expect(
+      ws.queries.runQuery('card', 'localApp', {
+        cardKeys: [keys[0], 'test_missing'],
+      }),
+    ).rejects.toThrow(/test_missing/);
+  });
+
   it('gives the side effects a transition would set off', async () => {
     const { ws, keys } = await open({
       ...spec,

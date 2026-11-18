@@ -31,7 +31,10 @@ import {
   validateGraphOptions,
 } from '../domain/queries/index.js';
 import { read } from '../infra/tx/rw-lock.js';
-import type { QueryOptions } from '../state/engine/query-options.js';
+import {
+  parseQueryOptions,
+  type QueryOptions,
+} from '../state/engine/query-options.js';
 
 /** A graph to render from graph model and graph view resources. */
 export interface GraphRequest {
@@ -157,10 +160,10 @@ export class Queries {
    * Runs a pre-defined query.
    * @param queryName Name of the query file without extension
    * @param options The query's inputs; see queryOptions for what each
-   *   query takes. Card keys must be well formed but are not checked
-   *   against the project: callers check `cards.has` where it matters.
+   *   query takes.
    * @returns parsed program output
    * @throws DHValidationError if the options do not fit the query.
+   * @throws CardNotFoundError if a card in the options does not exist.
    */
   @read
   public async runQuery<T extends QueryName>(
@@ -168,11 +171,15 @@ export class Queries {
     context: Context = 'localApp',
     options?: QueryOptions<T>,
   ): Promise<QueryResult<T>[]> {
-    return this.checkout.calculationEngine.runQuery(
-      queryName,
-      context,
-      options,
-    );
+    const parsed = parseQueryOptions(queryName, options);
+    const { cardKey, cardKeys = [] } = parsed as {
+      cardKey?: string;
+      cardKeys?: string[];
+    };
+    for (const key of [cardKey ?? [], cardKeys].flat()) {
+      this.assertCardExists(key);
+    }
+    return this.checkout.calculationEngine.runQuery(queryName, context, parsed);
   }
 
   /** The logic program of a resource. */

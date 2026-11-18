@@ -3,7 +3,6 @@
 
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import {
-  CardNotFoundError,
   queryOptions,
   resourceName,
   type ProjectDirectory,
@@ -1272,17 +1271,6 @@ export function registerTools(
           extra,
           server,
         );
-        // The query does not check that the cards exist.
-        const { cardKey, cardKeys = [] } = (options ?? {}) as {
-          cardKey?: string;
-          cardKeys?: string[];
-        };
-        const missing = [cardKey ?? [], cardKeys]
-          .flat()
-          .find((key) => !ws.cards.has(key));
-        if (missing) {
-          throw new CardNotFoundError(missing);
-        }
         const results = await ws.queries.runQuery(
           queryName,
           'localApp',
