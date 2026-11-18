@@ -4,7 +4,6 @@
 import { isDeepStrictEqual } from 'node:util';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import {
-  editableKeys,
   queryOptions,
   resourceName,
   type ProjectDirectory,
@@ -18,27 +17,11 @@ import { callerOf, resolveWorkspace } from '../lib/resolve-project.js';
 import {
   resourceNameRegex,
   BASE_PROPERTY_KEYS,
-  DATA_TYPES,
   changeOperationSchema,
   arrayUpdateOperationSchema,
   SUB_PROPERTY_KEYS,
   contentChangeOperationSchema,
 } from './sharedSchemas.js';
-
-// File based resource types and the keys an edit may change on them, as
-// data-handler routes edits. dataType has its own branch: its value is an enum.
-const FILE_RESOURCE_TYPES = [
-  'cardTypes',
-  'fieldTypes',
-  'linkTypes',
-  'workflows',
-] as const;
-const FILE_RESOURCE_KEYS = [
-  ...new Set(FILE_RESOURCE_TYPES.flatMap((type) => editableKeys(type))),
-].filter((key) => key !== 'dataType');
-const FILE_RESOURCE_KEYS_BY_TYPE = FILE_RESOURCE_TYPES.map(
-  (type) => `${type}: ${editableKeys(type).join(', ')}`,
-).join('; ');
 
 // The predefined queries run_query offers.
 const QUERY_NAMES = ['card', 'onCreation', 'onTransition', 'tree'] as const;
@@ -1069,20 +1052,14 @@ export function registerTools(
         'Update a file based resource (card types, field types, workflows, link types)',
       inputSchema: {
         projectPrefix: projectPrefixParam,
-        query: z.union([
-          z.strictObject({
-            key: z
-              .enum(FILE_RESOURCE_KEYS)
-              .describe(`Property to update. ${FILE_RESOURCE_KEYS_BY_TYPE}`),
-            operation: arrayUpdateOperationSchema,
-          }),
-          z.strictObject({
-            key: z.literal('dataType').describe('Field types only'),
-            operation: changeOperationSchema.extend({
-              to: z.enum(DATA_TYPES).describe('New data type for the field'),
-            }),
-          }),
-        ]),
+        query: z.strictObject({
+          key: z
+            .string()
+            .describe(
+              "Property to update, e.g. displayName, workflow, customFields, dataType, states. An unknown key's error lists the keys the resource type takes",
+            ),
+          operation: arrayUpdateOperationSchema,
+        }),
         resource: z
           .string()
           .regex(

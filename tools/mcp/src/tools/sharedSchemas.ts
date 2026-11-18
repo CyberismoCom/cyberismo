@@ -22,19 +22,6 @@ export const SUB_PROPERTY_KEYS = [
   'schema',
 ] as const;
 
-export const DATA_TYPES = [
-  'boolean',
-  'date',
-  'dateTime',
-  'enum',
-  'integer',
-  'list',
-  'longText',
-  'number',
-  'person',
-  'shortText',
-] as const;
-
 export const changeOperationSchema = z.strictObject({
   name: z
     .literal('change')
