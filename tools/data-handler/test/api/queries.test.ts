@@ -198,20 +198,15 @@ describe('queries.runGraph', () => {
       empty: {},
     },
   };
-  const svgOf = (base64: string) =>
-    Buffer.from(base64, 'base64').toString('utf-8');
-
   it('draws the view of the card it is given', async () => {
     const { ws, keys } = await open(graphSpec);
     const [top, childA, childB, other] = keys;
 
-    const svg = svgOf(
-      await ws.queries.runGraph({
-        model: 'test/graphModels/children',
-        view: 'test/graphViews/children',
-        cardKey: top,
-      }),
-    );
+    const svg = await ws.queries.runGraph({
+      model: 'test/graphModels/children',
+      view: 'test/graphViews/children',
+      cardKey: top,
+    });
 
     expect(svg).toContain('<svg');
     expect(svg).toContain(childA);
@@ -222,14 +217,12 @@ describe('queries.runGraph', () => {
   it("passes the view's parameters to its template", async () => {
     const { ws, keys } = await open(graphSpec);
 
-    const svg = svgOf(
-      await ws.queries.runGraph({
-        model: 'test/graphModels/children',
-        view: 'test/graphViews/coloured',
-        cardKey: keys[0],
-        parameters: { colour: 'red' },
-      }),
-    );
+    const svg = await ws.queries.runGraph({
+      model: 'test/graphModels/children',
+      view: 'test/graphViews/coloured',
+      cardKey: keys[0],
+      parameters: { colour: 'red' },
+    });
 
     expect(svg).toContain('stroke="red"');
   });

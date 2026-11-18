@@ -85,7 +85,7 @@ export class Queries {
    *   drawn for (filled into the view's `{{cardKey}}`), and the view's
    *   parameters, checked against the view's schema.
    * @param context In which type of context the graph is rendered.
-   * @returns base64-encoded sanitized SVG.
+   * @returns sanitized SVG.
    * @throws if a resource or the card does not exist, the parameters do not
    *   validate or the logic program fails.
    */
@@ -103,7 +103,9 @@ export class Queries {
       model,
       view,
     });
-    return renderGraph(this.checkout, options, cardKey, context);
+    // Rendered for embedding in content as a base64 image.
+    const base64 = await renderGraph(this.checkout, options, cardKey, context);
+    return Buffer.from(base64, 'base64').toString('utf-8');
   }
 
   /**

@@ -1450,18 +1450,11 @@ export function registerTools(
           extra,
           server,
         );
-        const base64 = await ws.queries.runGraph(
+        const svg = await ws.queries.runGraph(
           { model, view, cardKey, parameters },
           'localApp',
         );
-        return {
-          content: [
-            {
-              type: 'text' as const,
-              text: Buffer.from(base64, 'base64').toString('utf-8'),
-            },
-          ],
-        };
+        return { content: [{ type: 'text' as const, text: svg }] };
       } catch (error) {
         return toolError('running graph', error);
       }
