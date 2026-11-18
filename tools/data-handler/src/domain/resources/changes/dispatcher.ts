@@ -4,7 +4,8 @@
 import type { Handler, MutationContext } from './handler.js';
 import type { MutationInput } from '@cyberismo/model';
 import type { ChangeClassification } from './registry.js';
-import { ROUTES } from './registry.js';
+import { editableKeys, ROUTES } from './registry.js';
+import { DHValidationError } from '../../../shared/exceptions/index.js';
 import type { RouteKey } from './route.js';
 import { route, routeKeyString } from './route.js';
 
@@ -43,6 +44,15 @@ export function dispatch(ctx: MutationContext): {
 } {
   const found = resolve(ctx.input);
   if (found) return found;
+  const { input } = ctx;
+  if (input.kind === 'edit') {
+    const keys = editableKeys(input.target.type);
+    if (!keys.includes(input.updateKey.key)) {
+      throw new DHValidationError(
+        `'${input.updateKey.key}' cannot be edited on ${input.target.type}. Editable keys: ${keys.join(', ')}`,
+      );
+    }
+  }
   throw new Error(
     `No mutation handler for input: ${JSON.stringify(ctx.input)}`,
   );

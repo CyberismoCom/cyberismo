@@ -43,27 +43,6 @@ export const FILE_RESOURCE_ARRAY_KEYS = [
   'transitions',
 ] as const;
 
-// Which keys update_file_resource accepts per resource type.
-export const FILE_RESOURCE_KEYS: Record<string, readonly string[]> = {
-  cardTypes: [
-    ...BASE_PROPERTY_KEYS,
-    'workflow',
-    'alwaysVisibleFields',
-    'optionallyVisibleFields',
-    'customFields',
-  ],
-  fieldTypes: [...BASE_PROPERTY_KEYS, 'dataType', 'enumValues'],
-  linkTypes: [
-    ...BASE_PROPERTY_KEYS,
-    'enableLinkDescription',
-    'inboundDisplayName',
-    'outboundDisplayName',
-    'destinationCardTypes',
-    'sourceCardTypes',
-  ],
-  workflows: [...BASE_PROPERTY_KEYS, 'states', 'transitions'],
-};
-
 export const DATA_TYPES = [
   'boolean',
   'date',

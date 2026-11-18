@@ -495,7 +495,7 @@ describe('MCP resource write tools', () => {
     });
     expect(result.isError).toBe(true);
     expect((result.content as { text: string }[])[0].text).toMatch(
-      /Key 'dataType' cannot be updated on workflows. Allowed keys: .*states/,
+      /'dataType' cannot be edited on workflows. Editable keys: .*states/,
     );
   });
 

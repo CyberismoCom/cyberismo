@@ -22,7 +22,6 @@ import {
   arrayUpdateOperationSchema,
   SUB_PROPERTY_KEYS,
   FILE_RESOURCE_ARRAY_KEYS,
-  FILE_RESOURCE_KEYS,
   FILE_RESOURCE_SCALAR_KEYS,
   contentChangeOperationSchema,
 } from './sharedSchemas.js';
@@ -1098,13 +1097,6 @@ export function registerTools(
     async ({ projectPrefix, resource, query }, extra) => {
       const { key, operation } = query;
       try {
-        const target = resourceName(resource);
-        const allowedKeys = FILE_RESOURCE_KEYS[target.type];
-        if (!allowedKeys?.includes(key)) {
-          throw new Error(
-            `Key '${key}' cannot be updated on ${target.type}. Allowed keys: ${allowedKeys?.join(', ')}`,
-          );
-        }
         const ws = await resolveWorkspace(
           directory,
           projectPrefix,
@@ -1113,7 +1105,7 @@ export function registerTools(
         );
         await ws.changes.apply({
           kind: 'edit',
-          target,
+          target: resourceName(resource),
           updateKey: { key },
           operation,
         });

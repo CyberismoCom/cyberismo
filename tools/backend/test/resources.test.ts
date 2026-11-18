@@ -324,7 +324,7 @@ test('/api/projects/decision/resources/decision/cardTypes/decision/operation ret
   expect(response.status).toBe(400);
 });
 
-test('/api/projects/decision/resources/decision/cardTypes/decision/operation returns 500 for invalid key', async () => {
+test('/api/projects/decision/resources/decision/cardTypes/decision/operation returns 400 for invalid key', async () => {
   const response = await app.request(
     '/api/projects/decision/resources/decision/cardTypes/decision/operation',
     {
@@ -346,7 +346,7 @@ test('/api/projects/decision/resources/decision/cardTypes/decision/operation ret
   );
 
   expect(response).not.toBe(null);
-  expect(response.status).toBe(500);
+  expect(response.status).toBe(400);
 });
 
 test('POST /operation allows Connector role', async () => {
