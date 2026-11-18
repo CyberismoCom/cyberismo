@@ -17,31 +17,34 @@ const cardKey = z
 /** The inputs each predefined query takes, as its template uses them. */
 export const queryOptions = {
   card: z.strictObject({
-    /** Only this card; without cardKey and cardKeys, every card. */
-    cardKey: cardKey.optional(),
-    /** Only these cards. */
-    cardKeys: z.array(cardKey).optional(),
+    cardKey: cardKey
+      .optional()
+      .describe('Only this card; without cardKey and cardKeys, every card'),
+    cardKeys: z.array(cardKey).optional().describe('Only these cards'),
   }),
   connectors: z.strictObject({}),
   enabledSkills: z.strictObject({
-    /** Skills enabled for this card; without it, project-wide skills. */
-    cardKey: cardKey.optional(),
+    cardKey: cardKey
+      .optional()
+      .describe(
+        'Skills enabled for this card; without it, project-wide skills',
+      ),
   }),
   onCreation: z.strictObject({
-    /** Cards that were created. */
-    cardKeys: z.array(cardKey).min(1),
+    cardKeys: z.array(cardKey).min(1).describe('Cards that were created'),
   }),
   onTransition: z.strictObject({
-    /** Card that makes the transition. */
-    cardKey,
-    /** Name of the transition. */
-    transition: z.string().min(1),
+    cardKey: cardKey.describe('Card that makes the transition'),
+    transition: z.string().min(1).describe('Name of the transition'),
   }),
   tree: z.strictObject({
-    /** Only the tree under this card; without it, the whole project. */
-    cardKey: cardKey.optional(),
-    /** With cardKey: include the card's descendants. */
-    recursive: z.boolean().optional(),
+    cardKey: cardKey
+      .optional()
+      .describe('Only the tree under this card; without it, the whole project'),
+    recursive: z
+      .boolean()
+      .optional()
+      .describe("With cardKey: include the card's descendants"),
   }),
 } satisfies Record<QueryName, z.ZodType>;
 

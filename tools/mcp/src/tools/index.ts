@@ -4,6 +4,7 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import {
   CardNotFoundError,
+  queryOptions,
   resourceName,
   type ProjectDirectory,
 } from '@cyberismo/data-handler';
@@ -20,6 +21,9 @@ import {
   arrayUpdateOperationSchema,
   SUB_PROPERTY_KEYS,
 } from './sharedSchemas.js';
+
+// The predefined queries run_query offers.
+const QUERY_NAMES = ['card', 'onCreation', 'onTransition', 'tree'] as const;
 
 const projectPrefixParam = z
   .string()
@@ -1250,25 +1254,17 @@ export function registerTools(
     'run_query',
     {
       description:
-        "Run a predefined query against the project. 'card': card details with fields, links and allowed operations (one card with cardKey, else all cards). 'tree': the card tree (the subtree of cardKey, else the whole project). 'onCreation': fields and transitions that creating cardKey would set off. 'onTransition': fields and transitions that making transition on cardKey would set off.",
+        "Run a predefined query against the project, with its inputs in options. 'card': card details with fields, links and allowed operations ({ cardKey } or { cardKeys }; none for all cards). 'tree': the card tree ({ cardKey, recursive? } for a subtree; none for the whole project). 'onCreation': fields and transitions that creating cards would set off ({ cardKeys }). 'onTransition': fields and transitions that a transition would set off ({ cardKey, transition }).",
       inputSchema: {
         projectPrefix: projectPrefixParam,
-        queryName: z
-          .enum(['card', 'onCreation', 'onTransition', 'tree'])
-          .describe('Query type to run'),
-        cardKey: z
-          .string()
+        queryName: z.enum(QUERY_NAMES).describe('Query type to run'),
+        options: z
+          .union(QUERY_NAMES.map((name) => queryOptions[name]))
           .optional()
-          .describe(
-            "Card to run the query for; required for 'onCreation' and 'onTransition'",
-          ),
-        transition: z
-          .string()
-          .optional()
-          .describe("Transition name; required for 'onTransition'"),
+          .describe("The query's inputs, as the description lists them"),
       },
     },
-    async ({ projectPrefix, queryName, cardKey, transition }, extra) => {
+    async ({ projectPrefix, queryName, options }, extra) => {
       try {
         const ws = await resolveWorkspace(
           directory,
@@ -1276,18 +1272,17 @@ export function registerTools(
           extra,
           server,
         );
-        // The query does not check that the card exists.
-        if (cardKey !== undefined && !ws.cards.has(cardKey)) {
-          throw new CardNotFoundError(cardKey);
+        // The query does not check that the cards exist.
+        const { cardKey, cardKeys = [] } = (options ?? {}) as {
+          cardKey?: string;
+          cardKeys?: string[];
+        };
+        const missing = [cardKey ?? [], cardKeys]
+          .flat()
+          .find((key) => !ws.cards.has(key));
+        if (missing) {
+          throw new CardNotFoundError(missing);
         }
-        const options =
-          queryName === 'onCreation'
-            ? { cardKeys: cardKey === undefined ? [] : [cardKey] }
-            : queryName === 'onTransition'
-              ? { cardKey, transition }
-              : cardKey === undefined
-                ? {}
-                : { cardKey };
         const results = await ws.queries.runQuery(
           queryName,
           'localApp',

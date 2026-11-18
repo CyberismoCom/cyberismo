@@ -186,7 +186,7 @@ describe('MCP Tools via Client', () => {
       arguments: {
         projectPrefix: 'decision',
         queryName: 'card',
-        cardKey: 'decision_5',
+        options: { cardKey: 'decision_5' },
       },
     });
 

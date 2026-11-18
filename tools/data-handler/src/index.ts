@@ -66,7 +66,10 @@ export {
 export { errorFunction } from './shared/utils/error-utils.js';
 export type { WorkspaceOptions } from './api/workspace.js';
 export type { GraphRequest } from './api/queries.js';
-export type { QueryOptions } from './state/engine/query-options.js';
+export {
+  queryOptions,
+  type QueryOptions,
+} from './state/engine/query-options.js';
 export { SYSTEM_ACTOR, type CommitIdentity } from './infra/tx/tx-record.js';
 export { createGit } from './infra/git/git-config.js';
 export {
