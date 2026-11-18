@@ -31,6 +31,7 @@ import {
   validateGraphOptions,
 } from '../domain/queries/index.js';
 import { read } from '../infra/tx/rw-lock.js';
+import { svgBase64 } from '../shared/utils/sanitize-svg.js';
 import {
   parseQueryOptions,
   type QueryOptions,
@@ -103,9 +104,7 @@ export class Queries {
       model,
       view,
     });
-    // Rendered for embedding in content as a base64 image.
-    const base64 = await renderGraph(this.checkout, options, cardKey, context);
-    return Buffer.from(base64, 'base64').toString('utf-8');
+    return renderGraph(this.checkout, options, cardKey, context);
   }
 
   /**
@@ -123,11 +122,12 @@ export class Queries {
       workflow: workflowName,
       currentState: options.currentState,
     });
-    return this.checkout.calculationEngine.runGraph(
+    const svg = await this.checkout.calculationEngine.runGraph(
       workflowGraph.model,
       view,
       options.context ?? 'localApp',
     );
+    return svgBase64(svg);
   }
 
   /**

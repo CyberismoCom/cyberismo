@@ -3,7 +3,7 @@
 
 // node
 
-import { sanitizeSvgBase64 } from '../../shared/utils/sanitize-svg.js';
+import { sanitizeSvg } from '../../shared/utils/sanitize-svg.js';
 import { instance } from '@viz-js/viz';
 
 import type {
@@ -454,7 +454,7 @@ export class CalculationEngine {
    * @param model Graph model to use.
    * @param view Graph view to use.
    * @param context In which type of context the query is run.
-   * @returns a base64 encoded image as a string
+   * @returns sanitized SVG
    */
   public async runGraph(model: string, view: string, context: Context) {
     this.logger.trace(
@@ -484,7 +484,7 @@ export class CalculationEngine {
     if (context === 'exportedDocument') {
       graph = graph.replace(/xlink:title="[^"]*"/g, '');
     }
-    return sanitizeSvgBase64(graph);
+    return sanitizeSvg(graph);
   }
 
   /**

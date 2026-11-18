@@ -56,13 +56,13 @@ async function loadPurifiers() {
 }
 
 /**
- * Sanitize an SVG string and return a base64-encoded string
+ * Sanitize an SVG string
  * @param svg - SVG content as a string
  * @param options - Options for sanitization
  * @param options.removeSize - Whether to remove width/height from the SVG element (default: true)
- * @returns base64-encoded sanitized SVG string
+ * @returns sanitized SVG string
  */
-export async function sanitizeSvgBase64(
+export async function sanitizeSvg(
   svg: string,
   options?: { removeSize?: boolean },
 ): Promise<string> {
@@ -70,8 +70,23 @@ export async function sanitizeSvgBase64(
   purifiers ??= loadPurifiers();
   const { removeSize: purifyRemoveSize, keepSize: purifyKeepSize } =
     await purifiers;
-  const cleaned = (removeSize ? purifyRemoveSize : purifyKeepSize).sanitize(
-    svg,
-  );
-  return Buffer.from(cleaned, 'utf-8').toString('base64');
+  return (removeSize ? purifyRemoveSize : purifyKeepSize).sanitize(svg);
+}
+
+/** Base64 of an SVG string, for embedding it as an image. */
+export function svgBase64(svg: string): string {
+  return Buffer.from(svg, 'utf-8').toString('base64');
+}
+
+/**
+ * Sanitize an SVG string and return a base64-encoded string
+ * @param svg - SVG content as a string
+ * @param options - Options for sanitization (see sanitizeSvg)
+ * @returns base64-encoded sanitized SVG string
+ */
+export async function sanitizeSvgBase64(
+  svg: string,
+  options?: { removeSize?: boolean },
+): Promise<string> {
+  return svgBase64(await sanitizeSvg(svg, options));
 }

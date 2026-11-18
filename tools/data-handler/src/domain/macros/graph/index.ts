@@ -5,6 +5,7 @@ import BaseMacro from '../base-macro.js';
 import { createImage, validateMacroContent } from '../registry.js';
 import macroMetadata from '@cyberismo/model/macros/graph/metadata';
 import { graphViewSchema, renderGraph } from '../../queries/graph.js';
+import { svgBase64 } from '../../../shared/utils/sanitize-svg.js';
 
 import type { GraphOptions } from '@cyberismo/model';
 import type { MacroGenerationContext } from '../../../shared/interfaces/macros.js';
@@ -27,7 +28,7 @@ class GraphMacro extends BaseMacro {
       context.cardKey,
       context.context,
     );
-    return createImage(result, context.mode);
+    return createImage(svgBase64(result), context.mode);
   };
 
   // Checks the macro options, and the view's own parameters against the

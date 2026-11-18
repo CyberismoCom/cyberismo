@@ -60,7 +60,7 @@ export function validateGraphOptions(
  * @param options Validated graph options (see validateGraphOptions).
  * @param cardKey Card the graph is drawn for, if any. Reaches the logic
  *   program as is, so the caller must make sure the card exists.
- * @returns base64-encoded sanitized SVG.
+ * @returns sanitized SVG.
  * @throws if a resource is missing, the view has no template or the logic
  *   program fails.
  */
