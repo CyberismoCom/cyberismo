@@ -22,27 +22,6 @@ export const SUB_PROPERTY_KEYS = [
   'schema',
 ] as const;
 
-// Scalar keys of the file based resources (card types, field types, link
-// types, workflows); dataType is separate as its value is an enum.
-export const FILE_RESOURCE_SCALAR_KEYS = [
-  ...BASE_PROPERTY_KEYS,
-  'workflow',
-  'enableLinkDescription',
-  'inboundDisplayName',
-  'outboundDisplayName',
-] as const;
-
-export const FILE_RESOURCE_ARRAY_KEYS = [
-  'alwaysVisibleFields',
-  'optionallyVisibleFields',
-  'customFields',
-  'enumValues',
-  'destinationCardTypes',
-  'sourceCardTypes',
-  'states',
-  'transitions',
-] as const;
-
 export const DATA_TYPES = [
   'boolean',
   'date',

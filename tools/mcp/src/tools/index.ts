@@ -4,6 +4,7 @@
 import { isDeepStrictEqual } from 'node:util';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import {
+  editableKeys,
   queryOptions,
   resourceName,
   type ProjectDirectory,
@@ -21,10 +22,23 @@ import {
   changeOperationSchema,
   arrayUpdateOperationSchema,
   SUB_PROPERTY_KEYS,
-  FILE_RESOURCE_ARRAY_KEYS,
-  FILE_RESOURCE_SCALAR_KEYS,
   contentChangeOperationSchema,
 } from './sharedSchemas.js';
+
+// File based resource types and the keys an edit may change on them, as
+// data-handler routes edits. dataType has its own branch: its value is an enum.
+const FILE_RESOURCE_TYPES = [
+  'cardTypes',
+  'fieldTypes',
+  'linkTypes',
+  'workflows',
+] as const;
+const FILE_RESOURCE_KEYS = [
+  ...new Set(FILE_RESOURCE_TYPES.flatMap((type) => editableKeys(type))),
+].filter((key) => key !== 'dataType');
+const FILE_RESOURCE_KEYS_BY_TYPE = FILE_RESOURCE_TYPES.map(
+  (type) => `${type}: ${editableKeys(type).join(', ')}`,
+).join('; ');
 
 // The predefined queries run_query offers.
 const QUERY_NAMES = ['card', 'onCreation', 'onTransition', 'tree'] as const;
@@ -1058,25 +1072,15 @@ export function registerTools(
         query: z.union([
           z.strictObject({
             key: z
-              .enum(FILE_RESOURCE_SCALAR_KEYS)
-              .describe(
-                'Scalar property to update. workflow: card types only; enableLinkDescription, inboundDisplayName, outboundDisplayName: link types only',
-              ),
-            operation: changeOperationSchema,
+              .enum(FILE_RESOURCE_KEYS)
+              .describe(`Property to update. ${FILE_RESOURCE_KEYS_BY_TYPE}`),
+            operation: arrayUpdateOperationSchema,
           }),
           z.strictObject({
             key: z.literal('dataType').describe('Field types only'),
             operation: changeOperationSchema.extend({
               to: z.enum(DATA_TYPES).describe('New data type for the field'),
             }),
-          }),
-          z.strictObject({
-            key: z
-              .enum(FILE_RESOURCE_ARRAY_KEYS)
-              .describe(
-                'Array property to update. alwaysVisibleFields, optionallyVisibleFields, customFields: card types; enumValues: field types; destinationCardTypes, sourceCardTypes: link types; states, transitions: workflows',
-              ),
-            operation: arrayUpdateOperationSchema,
           }),
         ]),
         resource: z

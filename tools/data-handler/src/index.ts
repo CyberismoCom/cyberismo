@@ -63,6 +63,7 @@ export {
   ModuleReplayFailedError,
   ModuleValidationFailedError,
 } from './domain/resources/changes/replay/replay.js';
+export { editableKeys } from './domain/resources/changes/registry.js';
 export { errorFunction } from './shared/utils/error-utils.js';
 export type { WorkspaceOptions } from './api/workspace.js';
 export type { GraphRequest } from './api/queries.js';
