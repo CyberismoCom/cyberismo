@@ -45,7 +45,9 @@ export class StrictMcpServer extends McpServer {
         ? undefined // No arguments; the SDK ignores any given.
         : input instanceof z.core.$ZodType
           ? strict(input)
-          : // The SDK also accepts zod 3; this package uses only zod 4.
+          : // A raw shape. This package uses only zod 4; the cast is needed
+            // because the SDK's signature, which an override cannot narrow,
+            // also admits zod 3 shapes.
             z.strictObject(input as z.core.$ZodShape);
     return super.registerTool(
       name,

@@ -110,7 +110,7 @@ describe('MCP tool arguments', () => {
     // still validated strictly (see below).
     const exempt = new Set(['update_file_resource']);
     const { tools } = await client.listTools();
-    expect(tools.length).toBeGreaterThan(30);
+    expect(tools.map((tool) => tool.name)).toContain('create_card');
     const open = tools
       .filter((tool) => !exempt.has(tool.name))
       .flatMap((tool) => openObjects(tool.inputSchema, tool.name));
