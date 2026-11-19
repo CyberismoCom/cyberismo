@@ -5,7 +5,7 @@
 // MCP client such as Claude Code starts it.
 
 import { execFile, spawn } from 'node:child_process';
-import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, rm, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { promisify } from 'node:util';
@@ -99,6 +99,30 @@ describe('mcp', () => {
       env,
     });
     expect(stdout.trim()).toBe('Stdio Tester <stdio-tester@example.com>');
+  });
+
+  it('expands a tilde in the project path', async () => {
+    // An MCP client starts the command without a shell, so '~' arrives as it
+    // is. Run from another folder, so that only the path finds the project.
+    await symlink(project.path, join(configDir, 'project'));
+    const tildeClient = new Client({ name: 'test-client', version: '1.0.0' });
+    await tildeClient.connect(
+      new StdioClientTransport({
+        command: process.execPath,
+        args: [bin, 'mcp', '-p', '~/project'],
+        cwd: configDir,
+        env,
+      }),
+    );
+    try {
+      const result = await tildeClient.callTool({ name: 'list_projects' });
+      const [content] = result.content as { type: string; text: string }[];
+      expect(JSON.parse(content.text).projects).toEqual([
+        { prefix: 'test', name: 'test' },
+      ]);
+    } finally {
+      await tildeClient.close();
+    }
   });
 
   it('keeps stderr empty for a valid project', async () => {

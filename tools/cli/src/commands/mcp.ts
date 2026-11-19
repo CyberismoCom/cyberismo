@@ -5,6 +5,7 @@ import { type Command } from 'commander';
 
 import { formatProjectErrors } from '@cyberismo/model';
 import { localFolder } from '@cyberismo/data-handler';
+import { resolveTilde } from '@cyberismo/data-handler/utils/file-utils';
 import { serveStdio, type McpUser } from '@cyberismo/mcp';
 
 import { CommandWithPath } from '../lib/args.js';
@@ -41,7 +42,9 @@ export function registerMcp(program: Command) {
   program.addCommand(mcpCmd);
   mcpCmd.action(async (options: StartCommandOptions) => {
     keepStdoutForProtocol();
-    const basePath = options.projectPath || process.cwd();
+    // An MCP client starts the command without a shell, so a '~' in the path
+    // arrives as it is. Expand it once for all uses of the path.
+    const basePath = resolveTilde(options.projectPath || process.cwd());
     const mergedOptions = Object.assign({}, options, program.opts());
 
     let opened: Awaited<ReturnType<typeof localFolder>>;
