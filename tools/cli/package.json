@@ -33,6 +33,7 @@
     "@cyberismo/assets": "workspace:*",
     "@cyberismo/backend": "workspace:*",
     "@cyberismo/data-handler": "workspace:*",
+    "@cyberismo/mcp": "workspace:*",
     "@cyberismo/model": "workspace:*",
     "@inquirer/confirm": "^6.3.5",
     "@inquirer/prompts": "^8.7.5",
@@ -47,6 +48,7 @@
     ".": "./dist/index.js"
   },
   "devDependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.2",
     "@types/cli-progress": "^3.11.6"
   }
 }
