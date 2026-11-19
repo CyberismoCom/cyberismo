@@ -8,7 +8,7 @@ The `createLinks` macro supports the following parameters:
 * `"query"`: The query that selects the items the user can link (required). See {{#xref}}"cardKey":"docs_33"{{/xref}} and <<Writing the query>>.
 * `"direction"`: The direction of the link (optional). The value `outbound` (default) links from the card to the chosen item, and `inbound` from the chosen item to the card.
 * `"linkDescription"`: A description that the dialog fills in for each link (optional). It is allowed only for link types that enable link descriptions. An empty string means no description.
-* `"buttonLabel"`: The label on the button (optional). The default is "Create links".
+* `"buttonLabel"`: The label on the button and the title of the dialog it opens (optional). The default is "Create links".
 * `"cardKey"`: The card that gets the links (optional). If not specified, the card containing this macro is used. The macro shows an error if the card does not exist. See <<Using the macro in a report>>.
 
 If the parameters are not valid, the macro shows a macro error that explains the problem.

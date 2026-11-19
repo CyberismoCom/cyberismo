@@ -51,6 +51,7 @@ export default function CreateLinks({
   const { card, error: cardError, createLink } = useCard(key);
   const { linkTypes, error: linkTypesError } = useLinkTypes();
   const [open, setOpen] = useState(false);
+  const label = buttonLabel || t('createLinks.buttonLabel');
 
   const expanded =
     linkTypes && card
@@ -99,11 +100,12 @@ export default function CreateLinks({
             setOpen(true);
           }}
         >
-          {buttonLabel || t('createLinks.buttonLabel')}
+          {label}
         </Button>
       </Tooltip>
       {open && expanded && card && (
         <CreateLinksDialog
+          title={label}
           cardKey={key}
           links={card.links}
           linkType={expanded}
@@ -118,6 +120,7 @@ export default function CreateLinks({
 }
 
 type CreateLinksDialogProps = {
+  title: string;
   cardKey: string;
   links: CalculationLink[];
   linkType: ExpandedLinkType;
@@ -129,6 +132,7 @@ type CreateLinksDialogProps = {
 
 // Mounted only while open, so every opening starts fresh
 function CreateLinksDialog({
+  title,
   cardKey,
   links,
   linkType,
@@ -210,7 +214,7 @@ function CreateLinksDialog({
     <Modal open onClose={close}>
       <ModalDialog sx={{ width: { xs: '95vw', sm: '60%' } }}>
         <ModalClose disabled={creating} />
-        <DialogTitle>{t('createLinks.title')}</DialogTitle>
+        <DialogTitle>{title}</DialogTitle>
         <Input
           autoFocus
           value={search}
