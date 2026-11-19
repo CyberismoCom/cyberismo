@@ -65,8 +65,11 @@ export interface ProjectDirectory {
 
   /**
    * Reopens the project with `prefix` from its files; handles over the old
-   * checkout are refused from then on.
+   * checkout are refused from then on. The old checkout is let go of before
+   * the files are reopened, and an `open` of the project meanwhile waits for
+   * the reopen. If the reopen fails, `open` fails until a replace succeeds.
    * @throws ProjectNotFoundError if the directory has no such project.
+   * @throws the reopen's error if the project fails to reopen.
    */
   replace(prefix: string): Promise<void>;
 }

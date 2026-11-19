@@ -15,7 +15,9 @@ import { Checkout } from '../../state/checkout/checkout.js';
 import {
   ProjectExistsError,
   ProjectNotFoundError,
+  WorkspaceDisposedError,
 } from '../../shared/exceptions/index.js';
+import { getChildLogger } from '../../shared/utils/log-utils.js';
 import {
   configuredFolders,
   isProjectFolder,
@@ -122,6 +124,8 @@ function isDuplicate(
   return true;
 }
 
+const logger = getChildLogger({ module: 'localFolder' });
+
 // The directory reads settings as the system; it owns the checkout, not the handle.
 function systemSettings(checkout: Checkout) {
   return Workspace.over(checkout, SYSTEM_ACTOR).settings;
@@ -130,6 +134,10 @@ function systemSettings(checkout: Checkout) {
 // prefix -> Checkout of the projects under one folder.
 class LocalFolder implements ProjectDirectory {
   private readonly checkouts = new Map<string, Checkout>();
+  // Projects that a replace is reopening; a lookup waits for the reopen.
+  private readonly reopening = new Map<string, Promise<void>>();
+  // Projects whose reopen failed: their folder, and why.
+  private readonly failed = new Map<string, { path: string; error: unknown }>();
   private queue: Promise<unknown> = Promise.resolve();
 
   constructor(
@@ -166,6 +174,7 @@ class LocalFolder implements ProjectDirectory {
   private holds(prefix: string): boolean {
     return (
       this.checkouts.has(prefix) ||
+      this.failed.has(prefix) ||
       [...this.checkouts.values()].some(
         (checkout) => checkout.projectPrefix === prefix,
       )
@@ -195,6 +204,22 @@ class LocalFolder implements ProjectDirectory {
     return checkout;
   }
 
+  // The checkout of the project `prefix` once a reopen of it has ended.
+  private async lookup(prefix: string): Promise<Checkout> {
+    await this.reopening.get(prefix);
+    const failure = this.failed.get(prefix);
+    if (failure) {
+      const reason =
+        failure.error instanceof Error
+          ? failure.error.message
+          : String(failure.error);
+      throw new WorkspaceDisposedError(
+        `Project '${prefix}' failed to reopen: ${reason}`,
+      );
+    }
+    return this.checkout(prefix);
+  }
+
   async list(): Promise<ProjectSummary[]> {
     return Array.from(this.checkouts.entries()).map(([prefix, checkout]) => {
       const { name, category, description } = systemSettings(checkout);
@@ -212,7 +237,7 @@ class LocalFolder implements ProjectDirectory {
     actor: ActorRef,
     identity?: CommitIdentity,
   ): Promise<Workspace> {
-    return Workspace.over(this.checkout(prefix), actor, identity);
+    return Workspace.over(await this.lookup(prefix), actor, identity);
   }
 
   async create(
@@ -289,10 +314,35 @@ class LocalFolder implements ProjectDirectory {
     });
   }
 
+  // Reopens a project that failed to reopen, too.
   async replace(prefix: string): Promise<void> {
-    const old = this.checkout(prefix);
-    const checkout = await Checkout.open(old.basePath, this.options);
-    this.hold(prefix, checkout);
-    await old.dispose();
+    await this.serially(async () => {
+      const old = this.checkouts.get(prefix);
+      const path = old?.basePath ?? this.failed.get(prefix)?.path;
+      if (path === undefined) {
+        throw new ProjectNotFoundError(prefix);
+      }
+      let reopened!: () => void;
+      this.reopening.set(
+        prefix,
+        new Promise((resolve) => (reopened = resolve)),
+      );
+      try {
+        // The old checkout lets go of the files before the new one reads them.
+        await old?.dispose();
+        this.checkouts.delete(prefix);
+        try {
+          this.hold(prefix, await Checkout.open(path, this.options));
+          this.failed.delete(prefix);
+        } catch (error) {
+          this.failed.set(prefix, { path, error });
+          logger.error({ error, prefix }, 'Reopening the project failed');
+          throw error;
+        }
+      } finally {
+        this.reopening.delete(prefix);
+        reopened();
+      }
+    });
   }
 }

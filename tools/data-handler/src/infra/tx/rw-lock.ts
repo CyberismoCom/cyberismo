@@ -187,10 +187,15 @@ export class RWLock {
   /**
    * Executes `fn` with exclusive access once the running reads and writes
    * have ended, as no write: no record, no hooks, no admission check. For
-   * work on the guarded object itself that takes no lock. Never awaited
-   * inside a read or write, which would wait for itself.
+   * work on the guarded object itself that takes no lock.
+   * @throws inside a read or write, which it would wait for forever.
    */
   async exclusive<T>(fn: () => Promise<T>): Promise<T> {
+    if (this.context.getStore()?.active) {
+      throw new Error(
+        'Cannot wait for exclusive access while holding the lock',
+      );
+    }
     await this.acquireWrite();
     try {
       return await fn();

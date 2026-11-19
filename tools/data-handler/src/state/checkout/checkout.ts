@@ -70,7 +70,7 @@ export class Checkout {
 
   public basePath: string;
   // Nothing runs on a disposed checkout, also what was queued before the
-  // dispose: its files may belong to the checkout that replaced it.
+  // dispose: once the running ones end, its holder may reopen the files.
   public readonly lock = new RWLock('Checkout', () => {
     if (this.disposed) throw new WorkspaceDisposedError();
   });
@@ -182,9 +182,6 @@ export class Checkout {
 
       // Rollback on failed writes
       this.lock.onWriteError(async () => {
-        // The directory may already belong to the checkout that replaced
-        // this one; rolling back would undo its changes.
-        if (this.disposed) return;
         await this.gitManager.rollback();
         await this.repopulate();
       });
@@ -537,18 +534,16 @@ export class Checkout {
   }
 
   /**
-   * Lets go of the checkout: no read or write runs on it from now on. Waits
-   * for the running ones to end, then closes the logic backend and stops
-   * watching the files. Never rejects; a failure to close is logged.
+   * Lets go of the checkout: no read or write runs on it from now on. Stops
+   * watching the files, waits for the running reads and writes to end, then
+   * closes the logic backend. Never rejects; a failure to close is logged.
    */
   public dispose(): Promise<void> {
     this.disposed = true;
+    this.resourceWatcher?.close();
+    this.resourceWatcher = undefined;
     this.disposing ??= this.lock
-      .exclusive(async () => {
-        this.resourceWatcher?.close();
-        this.resourceWatcher = undefined;
-        await this.calculationEngine.close();
-      })
+      .exclusive(() => this.calculationEngine.close())
       .catch((error: unknown) => {
         this.logger.error({ error }, 'Closing the checkout failed');
       });
