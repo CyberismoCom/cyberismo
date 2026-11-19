@@ -28,7 +28,7 @@ exports[`POST /api/projects > with autocommit 1`] = `
     }
 ]",
     ".cards/local/cardsConfig.json": "{
-    "schemaVersion": 6,
+    "schemaVersion": 7,
     "cardKeyPrefix": "gold",
     "name": "Golden Project",
     "category": "Testing",
@@ -97,7 +97,7 @@ exports[`POST /api/projects > without autocommit 1`] = `
     }
 ]",
     ".cards/local/cardsConfig.json": "{
-    "schemaVersion": 6,
+    "schemaVersion": 7,
     "cardKeyPrefix": "gold",
     "name": "Golden Project",
     "category": "Testing",

@@ -3,12 +3,11 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { migration, SCHEMA_VERSION } from '../src/index.js';
+import { migration } from '../src/index.js';
 
 describe('migration v6 (field macro)', () => {
-  it('is registered and is the current schema version', () => {
+  it('is registered', () => {
     expect(migration(6)).toBeTypeOf('function');
-    expect(SCHEMA_VERSION).toBe(6);
   });
 
   it('runs without changing anything', async () => {
