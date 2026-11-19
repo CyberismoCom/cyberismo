@@ -56,7 +56,9 @@ describe('mcp', () => {
           !/^GIT_(AUTHOR|COMMITTER|CONFIG)_/.test(entry[0]),
       ),
     );
+    // os.homedir() reads HOME on macOS and Linux, and USERPROFILE on Windows.
     env.HOME = configDir;
+    env.USERPROFILE = configDir;
     env.XDG_CONFIG_HOME = configDir;
     env.GIT_CONFIG_NOSYSTEM = '1';
     transport = new StdioClientTransport({
@@ -104,7 +106,9 @@ describe('mcp', () => {
   it('expands a tilde in the project path', async () => {
     // An MCP client starts the command without a shell, so '~' arrives as it
     // is. Run from another folder, so that only the path finds the project.
-    await symlink(project.path, join(configDir, 'project'));
+    // A junction on Windows needs no extra privileges. Other systems ignore
+    // the type.
+    await symlink(project.path, join(configDir, 'project'), 'junction');
     const tildeClient = new Client({ name: 'test-client', version: '1.0.0' });
     await tildeClient.connect(
       new StdioClientTransport({
