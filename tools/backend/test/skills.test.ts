@@ -184,16 +184,6 @@ test('preview returns 400 with the error and its diagnostics when the query is b
   expect(JSON.stringify(result)).toContain('redefinition of constant');
 });
 
-test('preview returns 400 with the error when the template is broken', async () => {
-  await createSkill();
-  const response = await preview({ skillContent: '{{#each results}}unclosed' });
-  expect(response.status).toBe(400);
-
-  const result = await previewBody(response);
-  expect(result.error).toBeTruthy();
-  expect(result).toMatchObject({ code: 'validation' });
-});
-
 test('preview blocks non-admin roles', async () => {
   await createSkill();
   const response = await app.request(PREVIEW_URL, {

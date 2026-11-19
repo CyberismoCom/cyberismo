@@ -110,31 +110,24 @@ export function describeLogicBackendContract(
       expect(await show(logic)).toEqual(['p(3)', 'p(4)']);
     });
 
-    it('replaces every program with replaceAll, also after an abort', async () => {
-      const logic = await holding([knowledge('p', 'p(1).')]);
-      const aborted = await logic.begin();
-      aborted.set([knowledge('q', 'p(2).')]);
-      await aborted.abort();
-      const tx = await logic.begin();
-      // The next transaction starts from the committed programs.
-      expect(atoms(await tx.query('#show p/1.'))).toEqual(['p(1)']);
-      tx.replaceAll([knowledge('r', 'p(5).')]);
-      await tx.commit();
-      expect(await show(logic)).toEqual(['p(5)']);
-    });
-
-    it('leaves the committed programs as they were after an abort', async () => {
+    it('leaves the committed programs as they were after an abort, and replaces them all with replaceAll', async () => {
       const logic = await holding([
         knowledge('p', 'p(1).'),
         knowledge('q', 'p(2).'),
       ]);
-      const tx = await logic.begin();
-      tx.set([knowledge('p', 'p(3).'), knowledge('r', 'p(4).')]);
-      tx.remove(['q']);
-      expect(atoms(await tx.query('#show p/1.'))).toEqual(['p(3)', 'p(4)']);
-      tx.replaceAll([knowledge('s', 'p(5).')]);
-      await tx.abort();
+      const aborted = await logic.begin();
+      aborted.set([knowledge('p', 'p(3).'), knowledge('r', 'p(4).')]);
+      aborted.remove(['q']);
+      aborted.replaceAll([knowledge('s', 'p(5).')]);
+      await aborted.abort();
       expect(await show(logic)).toEqual(['p(1)', 'p(2)']);
+
+      const tx = await logic.begin();
+      // The next transaction starts from the committed programs.
+      expect(atoms(await tx.query('#show p/1.'))).toEqual(['p(1)', 'p(2)']);
+      tx.replaceAll([knowledge('r', 'p(5).')]);
+      await tx.commit();
+      expect(await show(logic)).toEqual(['p(5)']);
     });
 
     it('refuses a commit without a total answer, or keeps it, as the backend does', async () => {
@@ -166,8 +159,12 @@ export function describeLogicBackendContract(
       await (await logic.begin()).abort();
     });
 
-    it('keeps a transaction open after a failed query in it', async () => {
+    it('fails a query that does not parse as invalid, with diagnostics, keeping a transaction open', async () => {
       const logic = await holding([knowledge('p', 'p(1).')]);
+      const error = await failure(logic.query('result(X :- '));
+      expect(error).toMatchObject(logicFailure('logic-invalid'));
+      expect(errorsOf((error as LogicError).diagnostics)).not.toEqual([]);
+
       const tx = await logic.begin();
       tx.set([knowledge('q', 'p(2).')]);
       expect(await failure(tx.query('result(X :- '))).toMatchObject(
@@ -175,13 +172,6 @@ export function describeLogicBackendContract(
       );
       await tx.commit();
       expect(await show(logic)).toEqual(['p(1)', 'p(2)']);
-    });
-
-    it('fails a query that does not parse as invalid, with diagnostics', async () => {
-      const logic = await holding([knowledge('p', 'p(1).')]);
-      const error = await failure(logic.query('result(X :- '));
-      expect(error).toMatchObject(logicFailure('logic-invalid'));
-      expect(errorsOf((error as LogicError).diagnostics)).not.toEqual([]);
     });
 
     it('fails a query as non-total on programs kept without a total answer', async () => {
@@ -196,27 +186,20 @@ export function describeLogicBackendContract(
       await tx.abort();
     });
 
-    it('checks each program on its own, naming its key, without keeping it', async () => {
+    it('checks each program on its own, naming its key, without keeping it, also in a transaction', async () => {
       const logic = await holding([knowledge('p', 'p(1).')]);
+      const tx = await logic.begin();
+      tx.set([knowledge('q', 'p(2).')]);
       const found = errorsOf(
         await logic.check([
           knowledge('bad', 'result(X :- '),
-          knowledge('ok', 'p(2).'),
+          knowledge('ok', 'p(6).'),
         ]),
       );
       expect(found).not.toEqual([]);
       expect(found.every((diagnostic) => diagnostic.key === 'bad')).toBe(true);
-      expect(await show(logic)).toEqual(['p(1)']);
-    });
-
-    it('answers a check while a transaction is open', async () => {
-      const logic = await holding([knowledge('p', 'p(1).')]);
-      const tx = await logic.begin();
-      tx.set([knowledge('q', 'p(2).')]);
-      expect(errorsOf(await logic.check([knowledge('c', 'c(1).')]))).toEqual(
-        [],
-      );
       await tx.commit();
+      expect(await show(logic)).toEqual(['p(1)', 'p(2)']);
     });
 
     it('exports the committed programs as text, and only them', async () => {

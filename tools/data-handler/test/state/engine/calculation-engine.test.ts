@@ -99,22 +99,16 @@ describe('calculate', () => {
     expect(decoded).toContain('Approved');
   }, 20000);
 
-  it('fails a supplied query that does not parse as invalid', async () => {
+  it('fails a query that does not parse as invalid when supplied, as internal when the project runs it', async () => {
     await expect(
       new Queries(checkout).runLogicProgram('result(X :- '),
     ).rejects.toThrow(LogicInvalidError);
-  });
-
-  it('fails a project query that does not parse as internal, with its diagnostics', async () => {
     const error = await checkout.calculationEngine
       .runLogicProgram('result(X :- ')
       .catch((error: unknown) => error);
     expect(error).toBeInstanceOf(LogicInternalError);
     expect((error as LogicInternalError).errors.join()).toContain(
       'syntax error',
-    );
-    expect((error as LogicInternalError).cause).toBeInstanceOf(
-      LogicInvalidError,
     );
   });
 

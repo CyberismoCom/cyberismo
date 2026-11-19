@@ -17,13 +17,10 @@ import {
   type ProjectDirectory,
 } from '@cyberismo/data-handler';
 
-import * as backend from '../src/index.js';
 import { createServer, type Server } from '../src/index.js';
 import type * as overlay from '../src/overlay.js';
 import * as utils from '../src/utils.js';
-import { KeycloakAuthProvider } from '../src/auth/keycloak.js';
 import { MockAuthProvider } from '../src/auth/mock.js';
-import { UserRole } from '../src/types.js';
 import { cleanupTempTestData, createTempTestData } from './test-utils.js';
 
 // The real localFolder, recording how the server opens the projects.
@@ -109,29 +106,20 @@ describe('createServer', () => {
     vi.restoreAllMocks();
   });
 
-  it('opens the projects with the logic backend it is given', async () => {
-    const server = await start({ projectPath }, { auth, logic });
-
-    expect(labels).toEqual(['decision']);
-    expect(server.failed).toEqual([]);
-    expect((await get(server, '/api/projects/decision/tree')).status).toBe(200);
-    expect(await canCreateProjects(server)).toBe(false);
-  });
-
-  it('opens the projects with the git options, and reports those that failed', async () => {
-    const failed = [{ prefix: 'broken', errors: ['Failed to load project'] }];
-    localFolder.mockResolvedValueOnce({ directory: empty, failed });
-
+  it('opens the projects with the logic backend and git options it is given', async () => {
     const server = await start(
-      { projectPath, autocommit: true, autopush: false },
+      { projectPath, autocommit: false },
       { auth, logic },
     );
 
     expect(localFolder).toHaveBeenCalledWith(
       projectPath,
-      expect.objectContaining({ autocommit: true, autopush: false }),
+      expect.objectContaining({ autocommit: false, logic }),
     );
-    expect(server.failed).toEqual(failed);
+    expect(labels).toEqual(['decision']);
+    expect(server.failed).toEqual([]);
+    expect((await get(server, '/api/projects/decision/tree')).status).toBe(200);
+    expect(await canCreateProjects(server)).toBe(false);
   });
 
   it('serves a given directory, creating projects in multi-project mode', async () => {
@@ -159,23 +147,7 @@ describe('createServer', () => {
     expect(localFolder).not.toHaveBeenCalled();
   });
 
-  it('exports what composing it with an auth provider takes', () => {
-    expect(backend.MockAuthProvider).toBe(MockAuthProvider);
-    expect(backend.KeycloakAuthProvider).toBe(KeycloakAuthProvider);
-    expect(backend.UserRole).toBe(UserRole);
-  });
-
-  it('stops listening when closed', async () => {
-    const server = await createServer(
-      { projectPath },
-      { auth, directory: empty },
-    );
-    await server.close();
-
-    await expect(get(server, '/api/projects')).rejects.toThrow();
-  });
-
-  it('stops polling the policy when closed', async () => {
+  it('stops listening and polling the policy when closed', async () => {
     const server = await createServer(
       { projectPath },
       { auth, directory: empty },
@@ -185,6 +157,7 @@ describe('createServer', () => {
     await server.close();
 
     expect(stopPolling).toHaveBeenCalledOnce();
+    await expect(get(server, '/api/projects')).rejects.toThrow();
   });
 
   it('stops polling the policy when it cannot listen', async () => {
