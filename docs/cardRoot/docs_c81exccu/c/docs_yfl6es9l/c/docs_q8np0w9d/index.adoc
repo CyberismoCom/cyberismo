@@ -30,6 +30,26 @@ Add the following to `~/.claude/claude_desktop_config.json`:
 
 Restart Claude Code after saving. Ensure `cyberismo app` is running before starting Claude Code.
 
+=== Without the app (stdio)
+
+`cyberismo mcp` serves the same MCP server over stdio. Claude Code starts it as a child process at the start of each session, so the app does not need to run. Add the server to the `.mcp.json` of the project:
+
+[source,json]
+----
+{
+  "mcpServers": {
+    "cyberismo": {
+      "command": "cyberismo",
+      "args": ["mcp"]
+    }
+  }
+}
+----
+
+The server opens the projects in the folder where Claude Code runs, like `cyberismo app`. Use `-p <path>` to open another folder, `-w` to reload resources that change on disk, and `--autocommit` (before `mcp`) for git-backed writes. The tools act as the local user, with the name and email from the git configuration.
+
+Use stdio when an agent works without a person at the keyboard, or when several agents work in parallel, each in its own folder or git worktree. Use the app when you also want to look at the projects in a browser. Do not configure both under the same name.
+
 === Installing the skill discovery bootstrap
 
 Because skills are enabled dynamically, an AI assistant must be told to ask for them. The following command installs a bootstrap skill that does this and also writes the MCP server configuration:

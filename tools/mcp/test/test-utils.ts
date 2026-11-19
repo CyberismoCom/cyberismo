@@ -5,6 +5,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
 import type { McpUser } from '../src/lib/resolve-project.js';
+import { withUser } from '../src/stdio.js';
 
 const fileUrl = fileURLToPath(import.meta.url);
 const dirname = path.dirname(fileUrl);
@@ -30,20 +31,5 @@ export function authenticated(
   transport: InMemoryTransport,
   user: McpUser = TEST_USER,
 ): InMemoryTransport {
-  const authInfo = {
-    token: '',
-    clientId: user.id,
-    scopes: [],
-    extra: { user },
-  };
-  let handler: InMemoryTransport['onmessage'];
-  Object.defineProperty(transport, 'onmessage', {
-    get: () => handler,
-    set: (receive: InMemoryTransport['onmessage']) => {
-      handler =
-        receive &&
-        ((message, extra) => receive(message, { ...extra, authInfo }));
-    },
-  });
-  return transport;
+  return withUser(transport, user);
 }

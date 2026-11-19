@@ -4,3 +4,5 @@
 export { createMcpServer } from './server.js';
 export type { McpServerOptions } from './server.js';
 export type { McpUser } from './lib/resolve-project.js';
+export { serveStdio, withUser } from './stdio.js';
+export type { StdioServerOptions } from './stdio.js';
