@@ -1,0 +1,6 @@
+{
+    "name": "test/templates/actionDemo",
+    "displayName": "Action macro demo",
+    "description": "A card that shows the Action macro demo report, with child cards for its buttons to change",
+    "category": "Testing"
+}

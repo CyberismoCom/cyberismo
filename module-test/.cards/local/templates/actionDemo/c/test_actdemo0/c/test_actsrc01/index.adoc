@@ -1,0 +1,3 @@
+== Copied text
+
+The Copy content button copied this text from the card Source text.

@@ -1124,3 +1124,87 @@ test.describe('Create links macro', () => {
     await expect(candidate('Alpha target')).toHaveCount(0);
   });
 });
+
+test.describe('Action macro', () => {
+  let hostPath = '';
+
+  test.beforeAll(async ({ resetProject, browser, backend }) => {
+    await resetProject();
+    const context = await browser.newContext({ baseURL: backend.baseURL });
+    try {
+      const listed = await context.request.get('/api/projects');
+      const { prefix } = (
+        (await listed.json()) as { projects: { prefix: string }[] }
+      ).projects[0];
+      const created = await context.request.post(
+        `/api/projects/${prefix}/cards/root`,
+        { data: { template: 'test/templates/page' } },
+      );
+      expect(created.ok()).toBeTruthy();
+      const [card] = (await created.json()) as { key: string }[];
+      const patched = await context.request.patch(
+        `/api/projects/${prefix}/cards/${card.key}`,
+        {
+          data: {
+            metadata: { title: 'Action host' },
+            content: '{{#report}}"name": "test/reports/actionTest"{{/report}}',
+          },
+        },
+      );
+      expect(patched.ok()).toBeTruthy();
+      hostPath = `/projects/${prefix}/cards/${card.key}`;
+    } finally {
+      await context.close();
+    }
+  });
+
+  const openHost = async (page: Page) => {
+    await page.goto(hostPath);
+    await expect(
+      page.getByRole('heading', { level: 1, name: 'Action host' }),
+    ).toBeVisible();
+  };
+
+  test('clicking the button transitions the card and refreshes it', async ({
+    page,
+  }) => {
+    await openHost(page);
+    const state = page.getByTestId('stateSelectorButton');
+    await expect(state).toHaveText('Draft');
+
+    await page.locator('.doc').getByRole('button', { name: 'Approve' }).click();
+
+    await expect(page.getByText(t.action.ran)).toBeVisible();
+    await expect(state).toHaveText('Approved');
+  });
+
+  test('lists a created card as a link that opens it', async ({ page }) => {
+    await openHost(page);
+
+    await page
+      .locator('.doc')
+      .getByRole('button', { name: 'Add page' })
+      .click();
+
+    const toast = page.getByTestId('notification').filter({
+      hasText: t.action.created_one.replace('{{count}}', '1'),
+    });
+    // A full page load would drop this marker
+    await page.evaluate(() => {
+      (window as unknown as { noReload: boolean }).noReload = true;
+    });
+    await toast.getByRole('link', { name: 'Untitled page' }).click();
+    await expect(
+      page.getByRole('heading', { level: 1, name: 'Untitled page' }),
+    ).toBeVisible();
+    expect(
+      await page.evaluate(
+        () => (window as unknown as { noReload?: boolean }).noReload,
+      ),
+    ).toBe(true);
+    // The toast stays until it is closed
+    await expect(toast).toBeVisible();
+    await toast.getByTestId('notificationClose').click();
+    await expect(toast).toHaveCount(0);
+  });
+});
