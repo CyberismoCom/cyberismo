@@ -35,7 +35,7 @@ export const DATA_TYPES = [
   'shortText',
 ] as const;
 
-export const changeOperationSchema = z.object({
+export const changeOperationSchema = z.strictObject({
   name: z
     .literal('change')
     .describe(
@@ -44,21 +44,21 @@ export const changeOperationSchema = z.object({
   target: z.unknown().describe('Target value for the operation'),
   to: z.unknown().describe('New value for the item being changed'),
   mappingTable: z
-    .object({
+    .strictObject({
       stateMapping: z.record(z.string(), z.string()),
     })
     .optional(),
 });
-const addOperationSchema = z.object({
+const addOperationSchema = z.strictObject({
   name: z.literal('add').describe('Add a new item to an array'),
   target: z.unknown().describe('Target value for the operation'),
 });
-const rankOperationSchema = z.object({
+const rankOperationSchema = z.strictObject({
   name: z.literal('rank').describe('Reorder an item within an array property'),
   target: z.unknown().describe('Target value for the operation'),
   newIndex: z.number().describe('New index for the item being ranked'),
 });
-const removeOperationSchema = z.object({
+const removeOperationSchema = z.strictObject({
   name: z.literal('remove').describe('Remove an item from an array property'),
   target: z.unknown().describe('Target value for the operation'),
   replacementValue: z.unknown().optional(),

@@ -1,11 +1,12 @@
 // SPDX-FileCopyrightText: Cyberismo Ltd and contributors
 // SPDX-License-Identifier: AGPL-3.0-only
 
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { ProjectDirectory } from '@cyberismo/data-handler';
 import { registerResources } from './resources/index.js';
 import { registerTools } from './tools/index.js';
 import { registerPrompts } from './prompts/index.js';
+import { StrictMcpServer } from './lib/strict-server.js';
 import packageJson from '../package.json' with { type: 'json' };
 
 export interface McpServerOptions {
@@ -27,7 +28,7 @@ export function createMcpServer(
   const instructions =
     'Call list_projects to discover available projects. Pass projectPrefix to every tool call.';
 
-  const server = new McpServer(
+  const server = new StrictMcpServer(
     {
       name: options?.name ?? 'cyberismo',
       version: options?.version ?? packageJson.version,

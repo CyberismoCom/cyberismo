@@ -180,3 +180,62 @@ describe('MCP Tools via Client', () => {
     expect(parsed.results.length).toBeGreaterThan(0);
   });
 });
+
+describe('undeclared tool arguments', () => {
+  // Paths of object schemas under `schema` that declare properties but allow
+  // other keys.
+  const openObjects = (schema: unknown, path: string): string[] => {
+    if (typeof schema !== 'object' || schema === null) return [];
+    const node = schema as Record<string, unknown>;
+    const open =
+      Object.keys(node.properties ?? {}).length > 0 &&
+      node.additionalProperties !== false;
+    return [
+      ...(open ? [path] : []),
+      ...Object.entries(node).flatMap(([key, value]) =>
+        openObjects(value, `${path}.${key}`),
+      ),
+    ];
+  };
+
+  test('every listed input schema refuses them', async () => {
+    // Listed as an empty object until its union input is replaced.
+    const exempt = new Set(['update_file_resource']);
+    const { tools } = await client.listTools();
+    expect(tools.map((tool) => tool.name)).toContain('create_card');
+    const open = tools
+      .filter((tool) => !exempt.has(tool.name))
+      .flatMap((tool) => openObjects(tool.inputSchema, tool.name));
+    expect(open).toEqual([]);
+  });
+
+  test('a misnamed argument fails the call', async () => {
+    const result = await client.callTool({
+      name: 'create_card',
+      arguments: {
+        projectPrefix: 'decision',
+        template: 'decision/templates/simplepage',
+        parentCardKey: 'decision_5',
+      },
+    });
+    expect(result.isError).toBe(true);
+    expect(contentOf(result)[0].text).toContain(
+      'Unrecognized key: "parentCardKey"',
+    );
+  });
+
+  test('an undeclared key in a union-typed input fails the call', async () => {
+    const result = await client.callTool({
+      name: 'update_file_resource',
+      arguments: {
+        projectPrefix: 'decision',
+        resource: 'decision/workflows/simple',
+        key: 'displayName',
+        operation: { name: 'change', target: '', to: 'Renamed' },
+        extra: true,
+      },
+    });
+    expect(result.isError).toBe(true);
+    expect(contentOf(result)[0].text).toContain('Invalid arguments');
+  });
+});
