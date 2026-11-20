@@ -324,6 +324,17 @@ export const createCardFacts = async (
               : value.toString();
         }
 
+        // Card keys are constants, so they unify with parent/ancestor facts.
+        if (field === 'templateCardKey') {
+          builder.addCustomFact(factName, (b) =>
+            b
+              .addLiteralArgument(card.key)
+              .addArgument(field)
+              .addLiteralArgument(value.toString()),
+          );
+          continue;
+        }
+
         builder.addCustomFact(factName, (b) =>
           b.addLiteralArgument(card.key).addArguments(field, clingoValue),
         );
