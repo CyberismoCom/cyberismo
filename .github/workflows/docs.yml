@@ -1,5 +1,9 @@
 name: Docs
 
+# Builds docs.cyberismo.com. The site has the core `docs` project and the
+# projects of the open content modules, exported to one static site. Each
+# project is under /projects/<prefix>/, and `docs` is the default project.
+
 on:
   pull_request:
     paths:
@@ -17,6 +21,15 @@ on:
         type: boolean
         description: 'Deploy to Pages after building'
         default: true
+      modules:
+        type: string
+        description: 'Modules to include, space separated, as <repository>[@<tag or branch>]. Empty uses the list in the workflow. "none" includes no modules. For a preview, clear deploy.'
+        default: ''
+  # A module release can request a new build of the site. The module
+  # repository sends the event with a token that can write to this repository:
+  #   gh api repos/CyberismoCom/cyberismo/dispatches -f event_type=module-released
+  repository_dispatch:
+    types: [module-released]
   workflow_call:
     inputs:
       deploy:
@@ -27,7 +40,16 @@ permissions:
   contents: read
 
 env:
-  CLI_VERSION: 1.1.1
+  CLI_VERSION: 1.3.1
+  # The module repositories in the site, space separated, as
+  # <repository>[@<tag or branch>]. Without a tag or a branch, the build uses
+  # the latest version tag (v*) of the module, which is the version that users
+  # import.
+  # Add a module only when a release of it hides its test content in exports
+  # (the label `test-content`). Before that, the site shows its test fixtures.
+  # The open modules: module-base, module-isms-essentials,
+  # module-secure-development-essentials, and module-eu-cra.
+  MODULES: ''
 
 jobs:
   build:
@@ -42,16 +64,70 @@ jobs:
       - name: Install Cyberismo CLI
         run: npm install -g "@cyberismo/cli@${CLI_VERSION}"
 
-      - name: Validate docs project
-        run: cyberismo validate -p docs
+      - name: Collect the projects
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          INPUT_MODULES: ${{ inputs.modules }}
+        run: |
+          mkdir -p build/projects/docs
+          # A module release rebuilds the site with the `docs` project of the
+          # latest core release, so that the application documentation matches
+          # the released application. Only the project files come from that
+          # release. The workflow runs from the revision that triggered it.
+          # The other events use the `docs` project of that revision.
+          if [ "$EVENT_NAME" = repository_dispatch ]; then
+            release=$(git ls-remote --tags --refs --sort=-v:refname origin 'cyberismo-*' \
+              | head -n 1 | sed 's|.*refs/tags/||')
+            if ! [[ "$release" =~ ^cyberismo-[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+              echo "::error::No core release tag found"
+              exit 1
+            fi
+            echo "::notice::docs at ${release}"
+            git fetch --quiet --depth 1 origin "refs/tags/${release}:refs/tags/${release}"
+            git archive "$release" docs | tar -x --strip-components=1 -C build/projects/docs
+          else
+            cp -R docs/. build/projects/docs
+          fi
+          modules="${INPUT_MODULES:-$MODULES}"
+          if [ "$modules" = none ]; then
+            modules=''
+          fi
+          for entry in $modules; do
+            repository="${entry%%@*}"
+            ref="${entry#"$repository"}"
+            ref="${ref#@}"
+            url="https://github.com/CyberismoCom/${repository}.git"
+            if [ -z "$ref" ]; then
+              ref=$(git ls-remote --tags --refs --sort=-v:refname "$url" 'v*' \
+                | head -n 1 | sed 's|.*refs/tags/||')
+            fi
+            if [ -z "$ref" ]; then
+              echo "::error::${repository} has no version tag"
+              exit 1
+            fi
+            echo "::notice::${repository} at ${ref}"
+            git -c advice.detachedHead=false clone --quiet --depth 1 \
+              --branch "$ref" "$url" "build/projects/${repository}"
+            rm -rf "build/projects/${repository}/.git"
+          done
+
+      - name: Migrate and validate the projects
+        run: |
+          # The CLI opens only projects at its own schema version. A module
+          # release can be at an older version, so the build migrates its copy.
+          for project in build/projects/*/; do
+            cyberismo migrate -p "$project"
+            cyberismo validate -p "$project"
+          done
 
       - name: Build site
         run: |
-          cyberismo export site -p docs build/site
+          cyberismo export site build/site -p build/projects --default-project docs
           touch build/site/.nojekyll
           # GitHub Pages serves 404.html for any path it has no file for.
           # Making it the SPA shell lets the client router resolve deep links
-          # such as /projects/docs/cards/<key> instead of falling back to the home card.
+          # such as /projects/<prefix>/cards/<key> instead of falling back to
+          # the home card.
           cp build/site/index.html build/site/404.html
 
       - uses: actions/upload-artifact@v4
@@ -62,7 +138,7 @@ jobs:
 
   deploy:
     needs: build
-    if: inputs.deploy
+    if: inputs.deploy || github.event_name == 'repository_dispatch'
     runs-on: ubuntu-latest
     permissions:
       contents: read
