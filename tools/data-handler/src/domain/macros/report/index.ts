@@ -9,7 +9,10 @@ import BaseMacro from '../base-macro.js';
 import { validateJson } from '../../../shared/utils/validate.js';
 import type TaskQueue from '../task-queue.js';
 import { generateReportContent } from '../../queries/report.js';
-import { ClingoError } from '@cyberismo/node-clingo';
+import {
+  LogicError,
+  LogicUnavailableError,
+} from '../../../infra/logic/logic-backend.js';
 import type { ReportOptions } from '@cyberismo/model';
 
 class ReportMacro extends BaseMacro {
@@ -43,9 +46,13 @@ class ReportMacro extends BaseMacro {
         context: context.context,
       });
     } catch (error) {
-      if (error instanceof ClingoError) {
+      // A backend that cannot answer now fails the whole render.
+      if (
+        error instanceof LogicError &&
+        !(error instanceof LogicUnavailableError)
+      ) {
         throw new Error(
-          `Error running logic program in report '${options.name}':${error.details.errors.join('\n')}`,
+          `Error running logic program in report '${options.name}':${error.errors.join('\n')}`,
           { cause: error },
         );
       }

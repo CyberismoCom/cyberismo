@@ -15,7 +15,7 @@ import {
   type ProjectDirectory,
 } from '@cyberismo/data-handler';
 
-const POLL_INTERVAL_MS = 10_000;
+export const POLL_INTERVAL_MS = 10_000;
 const FETCH_TIMEOUT_MS = 2_000;
 
 const policySchema = z
@@ -83,11 +83,15 @@ async function reportProjects(
   }
 }
 
+/**
+ * Polls the policy from CYBERISMO_OVERLAY_URL, when it is set.
+ * @returns stops the polling.
+ */
 export function startPolicyPolling(
   projects: () => Promise<{ prefix: string }[]> = async () => [],
-): void {
+): () => void {
   const base = process.env.CYBERISMO_OVERLAY_URL;
-  if (!base) return;
+  if (!base) return () => {};
   const token = process.env.CYBERISMO_OVERLAY_TOKEN;
   const url = `${base.replace(/\/$/, '')}/tenant`;
 
@@ -149,7 +153,8 @@ export function startPolicyPolling(
   };
 
   void tick();
-  setInterval(() => void tick(), POLL_INTERVAL_MS).unref();
+  const timer = setInterval(() => void tick(), POLL_INTERVAL_MS).unref();
+  return () => clearInterval(timer);
 }
 
 /**

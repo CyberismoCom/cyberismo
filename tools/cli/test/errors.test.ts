@@ -24,7 +24,11 @@ const TABLE = [
   ['module-request', 500, 1],
   ['macro', 500, 1],
   ['replay-failed', 500, 1],
-  ['workspace-disposed', 500, 1],
+  ['workspace-disposed', 503, 1],
+  ['logic-invalid', 400, 1],
+  ['logic-non-total', 422, 1],
+  ['logic-unavailable', 503, 1],
+  ['logic-internal', 500, 1],
   ['internal', 500, 1],
 ] as const;
 

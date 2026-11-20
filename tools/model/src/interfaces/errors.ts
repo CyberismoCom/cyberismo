@@ -15,6 +15,10 @@ export const ERROR_CODES = [
   'macro',
   'replay-failed',
   'workspace-disposed',
+  'logic-invalid',
+  'logic-non-total',
+  'logic-unavailable',
+  'logic-internal',
   'internal',
 ] as const;
 
@@ -43,6 +47,22 @@ export const ERROR_HTTP_STATUS: Record<ErrorCode, number> = {
   'module-request': 500,
   macro: 500,
   'replay-failed': 500,
-  'workspace-disposed': 500,
+  // The project was reopened; a new handle over it answers.
+  'workspace-disposed': 503,
+  // A logic program or query is wrong.
+  'logic-invalid': 400,
+  // The logic programs have no single total answer.
+  'logic-non-total': 422,
+  // The logic backend cannot answer now; see ERROR_HTTP_HEADERS.
+  'logic-unavailable': 503,
+  'logic-internal': 500,
   internal: 500,
+};
+
+/** The HTTP headers an error code is served with, besides the usual ones. */
+export const ERROR_HTTP_HEADERS: Partial<
+  Record<ErrorCode, Record<string, string>>
+> = {
+  // Retry once the logic backend has rebuilt its programs.
+  'logic-unavailable': { 'Retry-After': '5' },
 };

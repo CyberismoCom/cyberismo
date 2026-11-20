@@ -50,7 +50,6 @@ export class Queries {
       );
     }
     return this.checkout.calculationEngine.logicProgram(
-      ['all'],
       query as QueryName | undefined,
     );
   }
@@ -90,12 +89,16 @@ export class Queries {
 
   /**
    * Runs a logic program using clingo.
-   * @param query Logic program to be run
+   * @param query Logic program to be run; a mistake in it is invalid.
    * @returns parsed program output
    */
   @read
   public async runLogicProgram(query: string, context: Context = 'localApp') {
-    return this.checkout.calculationEngine.runLogicProgram(query, context);
+    return this.checkout.calculationEngine.runLogicProgram(
+      query,
+      context,
+      true,
+    );
   }
 
   /**

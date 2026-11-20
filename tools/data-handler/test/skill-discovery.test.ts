@@ -10,6 +10,7 @@ import { type Workspace } from '../src/api/workspace.js';
 import { copyDir } from '../src/shared/utils/file-utils.js';
 import { openTestWorkspace } from './helpers/open-test-workspace.js';
 import { checkoutOf } from '../src/state/checkout/internal.js';
+import { DHValidationError } from '../src/shared/exceptions/index.js';
 
 const baseDir = import.meta.dirname;
 const testDir = join(baseDir, 'tmp-skill-discovery-tests');
@@ -80,6 +81,8 @@ describe('skill discovery', () => {
       category: 'compliance',
       content: '# Compliance skill\n',
     });
+    // Stored with a template that does not render; never enabled.
+    await seedSkill('brokenSkill', { content: '{{#each results}}unclosed' });
     await seedSkill('cardSkill', {
       query: 'result({{cardKey}}).\n',
       content: '# Card skill\nApplies to {{cardKey}}.\n',
@@ -301,12 +304,35 @@ describe('skill discovery', () => {
       ).rejects.toThrow();
     });
 
-    it('surfaces an error from a broken query', async () => {
-      await expect(
+    it("fails a supplied template that does not render as a validation error, a stored one as the project's fault", async () => {
+      const supplied = await ws.resources
+        .skillPreview('decision/skills/globalSkill', {
+          skillContent: '{{#each results}}unclosed',
+        })
+        .catch((error: unknown) => error);
+      const stored = await ws.resources
+        .skillPreview('decision/skills/brokenSkill')
+        .catch((error: unknown) => error);
+
+      expect(supplied).toBeInstanceOf(DHValidationError);
+      expect(stored).toBeInstanceOf(Error);
+      expect(stored).not.toBeInstanceOf(DHValidationError);
+    });
+
+    it('fails a supplied query by the kind of its logic failure', async () => {
+      const preview = (skillQuery: string) =>
         ws.resources.skillPreview('decision/skills/globalSkill', {
-          skillQuery: 'this is not a logic program',
-        }),
-      ).rejects.toThrow();
+          skillQuery,
+        });
+      await expect(preview('a :- not a.')).rejects.toMatchObject({
+        code: 'logic-non-total',
+      });
+      await expect(
+        preview('result(decision_5).\norderBy("title").'),
+      ).rejects.toMatchObject({
+        code: 'logic-invalid',
+        message: expect.stringContaining('Ordering direction missing'),
+      });
     });
   });
 });

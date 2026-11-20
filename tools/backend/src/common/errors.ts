@@ -3,6 +3,7 @@
 
 import { DomainError } from '@cyberismo/data-handler';
 import {
+  ERROR_HTTP_HEADERS,
   ERROR_HTTP_STATUS,
   type ErrorBody,
   type ErrorCode,
@@ -11,16 +12,20 @@ import type { ContentfulStatusCode } from 'hono/utils/http-status';
 
 /**
  * The HTTP response for an error that reached the edge. Only a DomainError's
- * domain 'code' picks the status; anything else is a 500.
+ * domain 'code' picks the status and any extra headers; anything else is a
+ * 500.
  */
 export function errorResponse(error: Error): {
   status: ContentfulStatusCode;
   body: ErrorBody;
+  headers?: Record<string, string>;
 } {
   const message = error.message || 'Internal Server Error';
   if (error instanceof DomainError) {
+    const headers = ERROR_HTTP_HEADERS[error.code];
     return {
       status: ERROR_HTTP_STATUS[error.code] as ContentfulStatusCode,
+      ...(headers && { headers }),
       body: {
         error: message,
         code: error.code,
