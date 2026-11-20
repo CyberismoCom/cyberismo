@@ -55,24 +55,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Select the core revision
-        id: core
-        env:
-          EVENT_NAME: ${{ github.event_name }}
-        run: |
-          # A module release rebuilds the site from the latest core release,
-          # so that the application documentation matches the released
-          # application. The other events use the revision that triggered them.
-          if [ "$EVENT_NAME" = repository_dispatch ]; then
-            ref=$(git ls-remote --tags --refs --sort=-v:refname \
-              "https://github.com/${GITHUB_REPOSITORY}.git" 'cyberismo-*' \
-              | head -n 1 | sed 's|.*refs/tags/||')
-            echo "ref=${ref}" >> "$GITHUB_OUTPUT"
-          fi
-
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ steps.core.outputs.ref }}
 
       - uses: actions/setup-node@v4
         with:
@@ -83,10 +66,28 @@ jobs:
 
       - name: Collect the projects
         env:
+          EVENT_NAME: ${{ github.event_name }}
           INPUT_MODULES: ${{ inputs.modules }}
         run: |
-          mkdir -p build/projects
-          cp -R docs build/projects/docs
+          mkdir -p build/projects/docs
+          # A module release rebuilds the site with the `docs` project of the
+          # latest core release, so that the application documentation matches
+          # the released application. Only the project files come from that
+          # release. The workflow runs from the revision that triggered it.
+          # The other events use the `docs` project of that revision.
+          if [ "$EVENT_NAME" = repository_dispatch ]; then
+            release=$(git ls-remote --tags --refs --sort=-v:refname origin 'cyberismo-*' \
+              | head -n 1 | sed 's|.*refs/tags/||')
+            if ! [[ "$release" =~ ^cyberismo-[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+              echo "::error::No core release tag found"
+              exit 1
+            fi
+            echo "::notice::docs at ${release}"
+            git fetch --quiet --depth 1 origin "refs/tags/${release}:refs/tags/${release}"
+            git archive "$release" docs | tar -x --strip-components=1 -C build/projects/docs
+          else
+            cp -R docs/. build/projects/docs
+          fi
           modules="${INPUT_MODULES:-$MODULES}"
           if [ "$modules" = none ]; then
             modules=''
