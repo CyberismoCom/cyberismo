@@ -88,16 +88,19 @@ export async function renderGraph(
       context,
     );
   } catch (error) {
-    // A backend that cannot answer now fails the whole render.
-    if (
-      !(error instanceof LogicError) ||
-      error instanceof LogicUnavailableError
-    ) {
+    // A backend that cannot answer now fails the whole render as is.
+    if (error instanceof LogicUnavailableError) {
       throw error;
     }
+    const reason =
+      error instanceof LogicError
+        ? error.errors.join('\n')
+        : error instanceof Error
+          ? error.message
+          : String(error);
     const hint = cardKey ? '' : ' (the view may need a cardKey)';
     throw new Error(
-      `Error running graph in view '${options.view}' in model '${options.model}'${hint}: ${error.errors.join('\n')}`,
+      `Error running graph in view '${options.view}' in model '${options.model}'${hint}: ${reason}`,
       { cause: error },
     );
   }
