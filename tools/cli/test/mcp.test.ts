@@ -61,47 +61,62 @@ describe('mcp', () => {
     env.USERPROFILE = configDir;
     env.XDG_CONFIG_HOME = configDir;
     env.GIT_CONFIG_NOSYSTEM = '1';
-    transport = new StdioClientTransport({
-      command: process.execPath,
-      args: [bin, 'mcp', '--autocommit'],
-      cwd: project.path,
-      env,
-      stderr: 'pipe',
-    });
-    stderr = '';
-    transport.stderr?.on('data', (chunk) => (stderr += String(chunk)));
-    client = new Client({ name: 'test-client', version: '1.0.0' });
-    await client.connect(transport);
   }, 60_000);
 
   afterEach(async () => {
-    await client.close();
     await project.cleanup();
     await rm(configDir, { recursive: true, force: true });
   });
 
-  it('lists the project of the folder', async () => {
-    const { data } = await call('list_projects');
-    expect(data.projects).toEqual([{ prefix: 'test', name: 'test' }]);
+  describe('with a client', () => {
+    beforeEach(async () => {
+      transport = new StdioClientTransport({
+        command: process.execPath,
+        args: [bin, 'mcp', '--autocommit'],
+        cwd: project.path,
+        env,
+        stderr: 'pipe',
+      });
+      stderr = '';
+      transport.stderr?.on('data', (chunk) => (stderr += String(chunk)));
+      client = new Client({ name: 'test-client', version: '1.0.0' });
+      await client.connect(transport);
+    }, 60_000);
+
+    afterEach(async () => {
+      await client.close();
+    });
+
+    it('lists the project of the folder', async () => {
+      const { data } = await call('list_projects');
+      expect(data.projects).toEqual([{ prefix: 'test', name: 'test' }]);
+    });
+
+    it('runs the tools as the local git user', async () => {
+      // A tool fails without an authenticated user, so a write proves that the
+      // stdio server names one. With --autocommit, the commit shows which user.
+      const { isError, data } = await call('create_card', {
+        projectPrefix: 'test',
+        template: 'test/templates/page',
+      });
+      expect(isError).toBeFalsy();
+      expect(data.created).toHaveLength(1);
+      const listed = await call('list_cards', { projectPrefix: 'test' });
+      expect(JSON.stringify(listed.data)).toContain(data.created[0].key);
+      const { stdout } = await run('git', ['log', '-1', '--format=%an <%ae>'], {
+        cwd: project.path,
+        env,
+      });
+      expect(stdout.trim()).toBe('Stdio Tester <stdio-tester@example.com>');
+    });
+
+    it('keeps stderr empty for a valid project', async () => {
+      await call('list_projects');
+      expect(stderr).toBe('');
+    });
   });
 
-  it('runs the tools as the local git user', async () => {
-    // A tool fails without an authenticated user, so a write proves that the
-    // stdio server names one. With --autocommit, the commit shows which user.
-    const { isError, data } = await call('create_card', {
-      projectPrefix: 'test',
-      template: 'test/templates/page',
-    });
-    expect(isError).toBeFalsy();
-    expect(data.created).toHaveLength(1);
-    const listed = await call('list_cards', { projectPrefix: 'test' });
-    expect(JSON.stringify(listed.data)).toContain(data.created[0].key);
-    const { stdout } = await run('git', ['log', '-1', '--format=%an <%ae>'], {
-      cwd: project.path,
-      env,
-    });
-    expect(stdout.trim()).toBe('Stdio Tester <stdio-tester@example.com>');
-  });
+  // The tests below start a server of their own.
 
   it('expands a tilde in the project path', async () => {
     // An MCP client starts the command without a shell, so '~' arrives as it
@@ -127,51 +142,52 @@ describe('mcp', () => {
     } finally {
       await tildeClient.close();
     }
-  });
+  }, 60_000);
 
-  it('keeps stderr empty for a valid project', async () => {
-    await call('list_projects');
-    expect(stderr).toBe('');
-  });
-
-  it('writes only protocol messages to stdout, and exits when stdin closes', async () => {
+  it('answers on stdout with one JSON message on each line, and exits when stdin closes', async () => {
     // Without the SDK client: it skips lines that are not JSON, and it also
-    // signals the process on close. -w keeps file watchers open.
+    // signals the process on close. -w keeps file watchers open. Nothing on
+    // this path writes to the console, so the test does not show that console
+    // output goes to stderr.
     const child = spawn(process.execPath, [bin, 'mcp', '-w'], {
       cwd: project.path,
       env,
     });
-    let stdout = '';
-    child.stdout.on('data', (chunk) => (stdout += String(chunk)));
-    const exited = new Promise<number | null>((resolve) =>
-      child.on('exit', (code) => resolve(code)),
-    );
-    const requests = [
-      {
-        jsonrpc: '2.0',
-        id: 0,
-        method: 'initialize',
-        params: {
-          protocolVersion: '2025-06-18',
-          capabilities: {},
-          clientInfo: { name: 'test-client', version: '1.0.0' },
+    try {
+      let stdout = '';
+      child.stdout.on('data', (chunk) => (stdout += String(chunk)));
+      const exited = new Promise<number | null>((resolve) =>
+        child.on('exit', (code) => resolve(code)),
+      );
+      const requests = [
+        {
+          jsonrpc: '2.0',
+          id: 0,
+          method: 'initialize',
+          params: {
+            protocolVersion: '2025-06-18',
+            capabilities: {},
+            clientInfo: { name: 'test-client', version: '1.0.0' },
+          },
         },
-      },
-      { jsonrpc: '2.0', method: 'notifications/initialized' },
-      {
-        jsonrpc: '2.0',
-        id: 1,
-        method: 'tools/call',
-        params: { name: 'list_projects', arguments: {} },
-      },
-    ];
-    child.stdin.write(requests.map((r) => JSON.stringify(r) + '\n').join(''));
-    await expect
-      .poll(() => stdout.includes('"id":1'), { timeout: 10_000 })
-      .toBe(true);
-    child.stdin.end();
-    expect(await exited).toBe(0);
-    const lines = stdout.trimEnd().split('\n');
-    expect(lines.map((line) => JSON.parse(line).id)).toEqual([0, 1]);
-  });
+        { jsonrpc: '2.0', method: 'notifications/initialized' },
+        {
+          jsonrpc: '2.0',
+          id: 1,
+          method: 'tools/call',
+          params: { name: 'list_projects', arguments: {} },
+        },
+      ];
+      child.stdin.write(requests.map((r) => JSON.stringify(r) + '\n').join(''));
+      await expect
+        .poll(() => stdout.includes('"id":1'), { timeout: 10_000 })
+        .toBe(true);
+      child.stdin.end();
+      expect(await exited).toBe(0);
+      const lines = stdout.trimEnd().split('\n');
+      expect(lines.map((line) => JSON.parse(line).id)).toEqual([0, 1]);
+    } finally {
+      child.kill();
+    }
+  }, 60_000);
 });
