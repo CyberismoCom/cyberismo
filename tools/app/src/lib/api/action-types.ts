@@ -9,7 +9,8 @@ export type CardAction =
   | 'createLink'
   | 'deleteLink'
   | 'editLink'
-  | 'move';
+  | 'move'
+  | 'action';
 
 export type AttachmentAction = 'add' | 'remove';
 

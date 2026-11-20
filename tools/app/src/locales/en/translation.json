@@ -1,4 +1,16 @@
 {
+  "action": {
+    "preview": "Running actions with this macro is not supported in the preview mode",
+    "ran": "The action ran",
+    "created_one": "The action created {{count}} card:",
+    "created_other": "The action created {{count}} cards:",
+    "more": "and {{count}} more",
+    "busy": "The server is busy. Try again in a moment.",
+    "busyIn_one": "The server is busy. Try again in {{count}} second.",
+    "busyIn_other": "The server is busy. Try again in {{count}} seconds.",
+    "lostRefreshed": "The request did not reach the server, or its answer was lost, so the action may or may not have run. The page was refreshed to show the current state. Check it before clicking again.",
+    "lostNotRefreshed": "The request did not reach the server, or its answer was lost, so the action may or may not have run. The page could not be refreshed either. Reload the page and check the cards before clicking again."
+  },
   "add": "Add",
   "addAttachment": "Add attachment",
   "addAttachmentModal": {
