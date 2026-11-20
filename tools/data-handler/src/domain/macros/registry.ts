@@ -3,6 +3,7 @@
 
 import Handlebars from 'handlebars';
 
+import action from './action/index.js';
 import createCards from './createCards/index.js';
 import createLinks from './createLinks/index.js';
 import field from './field/index.js';
@@ -137,6 +138,7 @@ export type MacroConstructor = SimpleMacroConstructor | ReportMacroConstructor;
 export const macros: {
   [K in MacroName]: MacroConstructor;
 } = {
+  action,
   createCards,
   createLinks,
   field,

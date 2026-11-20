@@ -1,0 +1,23 @@
+{
+  "$id": "actionMacroSchema",
+  "additionalProperties": false,
+  "properties": {
+    "buttonLabel": {
+      "type": "string",
+      "description": "The label of the button. For example, 'New controlled document'."
+    },
+    "actions": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 20,
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 65536
+      },
+      "description": "Logic programs run in order when the button is clicked. Each program's effects are applied before the next one is solved."
+    }
+  },
+  "required": ["buttonLabel", "actions"],
+  "type": "object"
+}

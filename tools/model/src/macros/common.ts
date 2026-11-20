@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 // important that this file imports only the metadata
+import action from './action/metadata.js';
 import createCards from './createCards/metadata.js';
 import createLinks from './createLinks/metadata.js';
 import field from './field/metadata.js';
@@ -17,6 +18,7 @@ import vega from './vega/metadata.js';
 import vegaLite from './vegalite/metadata.js';
 
 export const macroMetadata = {
+  action,
   createCards,
   createLinks,
   field,
