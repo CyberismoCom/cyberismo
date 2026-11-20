@@ -1,0 +1,11 @@
+{
+    "title": "Action macro",
+    "cardType": "base/cardTypes/page",
+    "workflowState": "Ready",
+    "rank": "0|ad",
+    "lastUpdated": "2026-11-20T12:00:00.000Z",
+    "links": [],
+    "base/fieldTypes/owner": null,
+    "base/fieldTypes/informationClassification": null,
+    "lastTransitioned": "2026-11-20T12:00:00.000Z"
+}

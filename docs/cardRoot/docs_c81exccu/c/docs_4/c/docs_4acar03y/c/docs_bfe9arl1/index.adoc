@@ -1,0 +1,345 @@
+The `action` macro shows a button that changes cards when the user clicks it. You write what the button does as one or more logic programs. A program can create cards, set fields, change content, add and remove labels and links, run workflow transitions, and move or rank cards.
+
+You can use the macro only in the content template of a report. Reports are the supported place for buttons, and admins edit reports. A button can make only the changes that the user who clicks it is allowed to make: every change is checked as that user, as if they made it themselves. In card content, the macro shows an error. To show a button on a card, put a report that contains the button on the card with the {{#xref}}"cardKey":"docs_r0brt7n1"{{/xref}}.
+
+== Parameters
+
+The `action` macro supports the following parameters:
+
+* `"buttonLabel"`: The label on the button (required).
+* `"actions"`: The logic programs that run when the user clicks the button (required). Give at least one. Write each program inside {{#raw}}`{{#quoted}}`{{/raw}} and separate the programs with commas. See <<Writing the programs>>.
+
+If the parameters are not valid, the report shows a macro error that explains the problem.
+
+== Example
+
+A report whose content template contains this macro shows a button that approves the card that shows the report:
+
+```
+{{#raw}}
+
+{{#action}}
+  "buttonLabel": "Approve",
+  "actions": [
+    {{#quoted}}
+    transition({{{cardKey}}}, "Approve").
+    {{/quoted}}
+  ]
+{{/action}}
+
+{{/raw}}
+```
+
+{{#raw}}`{{{cardKey}}}`{{/raw}} is the key of the card that shows the report.
+
+The button is available to users with the Editor role or higher. For other users it is disabled, and its tooltip says why. When the user clicks it:
+
+* The button is disabled until the programs have run.
+* When they succeed, a message lists the cards that the action created, as links, and the card view is refreshed. If no card was created, the message says that the action ran.
+* When they fail, an error message says why. See <<When something fails>>.
+
+In the preview of the card editor, the button only shows a message and changes nothing.
+
+== Writing the programs
+
+Each program is a logic program, written in the same language as queries. See {{#xref}}"cardKey":"docs_33"{{/xref}}. A program does not change anything by itself. Instead, it derives _effects_, such as `transition(Card, "Approve")`, and Cyberismo applies them to cards.
+
+=== Effects
+
+[cols="1,2"]
+|===
+|Effect |What it does
+
+|`create(Parent, Template)`
+|Creates the cards of a template under `Parent`. `Parent` is a card key, or `root` for the top level.
+
+|`create(Parent, Template, Id)`
+|The same, once for each different `Id`. Use it to create one set of cards per item, for example one per asset. See <<Creating cards>>.
+
+|`setField(Card, Field, Value)`
+|Sets a field of a card. See <<Setting fields>>.
+
+|`setContent(Card, Text)`
+|Replaces the content of a card with `Text`. See <<Setting content>>.
+
+|`copyContent(Card, Source)`
+|Replaces the content of `Card` with the content of the card `Source`.
+
+|`addLabel(Card, Label)`
+|Adds a label to a card.
+
+|`removeLabel(Card, Label)`
+|Removes a label from a card. Other labels are kept.
+
+|`transition(Card, Transition)`
+|Runs a workflow transition on a card, for example `"Approve"`.
+
+|`addLink(Card, Target, LinkType)`, `addLink(Card, Target, LinkType, Description)`
+|Adds a link from `Card` to the card `Target`.
+
+|`removeLink(Card, Target, LinkType)`, `removeLink(Card, Target, LinkType, Description)`
+|Removes the link from `Card` to `Target` that has the same link type and description. Without `Description`, only a link without a description is removed.
+
+|`move(Card, Parent)`
+|Moves a card under another card, or to the top level with `root`.
+
+|`rank(Card, After)`
+|Places a card right after the card `After`.
+
+|`rankFirst(Card)`
+|Places a card first among its siblings.
+|===
+
+* Cards are given by their key, for example {{#raw}}`{{{cardKey}}}`{{/raw}}, or by a variable that the program binds to a key. Field names, templates, link types, labels, transitions and text are strings, written in double quotes.
+* Write arguments as plain values: card keys, strings and numbers. Values reach the effect as text, so a number is accepted where text is expected, for example `setContent(C, 3)`.
+* Links connect cards only. Links to external items are not supported.
+* Cards in templates and modules cannot be changed. When a program selects cards, use `+projectCard(C)+`, so that cards in templates are not matched. `+card(C)+` and `field(C, "cardType", T)` also match template cards, and the action then fails.
+* An effect that changes nothing is skipped: a `setField` or `setContent` with the current value, a `copyContent` from a card with the same content, an `addLabel` or `addLink` that is already there, a `removeLabel` of a label the card does not have, a `removeLink` with no matching link, and a `move` to the current parent. `create`, `transition`, `rank` and `rankFirst` always run.
+* An atom with a misspelled name, such as `addLable`, is not an effect and is ignored, so check the names carefully. An effect name with the wrong number of arguments is ignored in the same way, and neither is reported.
+* Do not use the effect names for your own predicates in calculations. Every action would see them.
+* If the program has choice rules, the action uses one of its answers, and you cannot tell which one.
+
+For example, this program sets the step of every project card with the label `todo`. It does not touch cards in templates:
+
+```
+{{#raw}}
+
+{{#action}}
+  "buttonLabel": "Move to step 2",
+  "actions": [
+    {{#quoted}}
+    setField(C, "mymodule/fieldTypes/step", "2") :- projectCard(C), label(C, "todo").
+    {{/quoted}}
+  ]
+{{/action}}
+
+{{/raw}}
+```
+
+=== Values from the report
+
+Inside an action, write interpolations with three braces, as in {{#raw}}`{{{cardKey}}}`{{/raw}}. With two braces, special characters in the value are changed. Use {{#raw}}`{{{cardKey}}}`{{/raw}}, not {{#raw}}`{{@root.cardKey}}`{{/raw}}, for the card that shows the report. See <<Using the macro in a report>>.
+
+To put a text value into a string in the program, write {{#raw}}`"{{{clingoEscape value}}}"`{{/raw}}. `clingoEscape` escapes quotes and backslashes, so the value stays inside its string whatever it contains.
+
+Apart from interpolations, a program must not contain two opening braces in a row; they start a Handlebars expression.
+
+=== Several programs
+
+The programs run in order. Each program is solved and its effects are applied before the next program is solved. So a later program sees what the earlier ones changed.
+
+`+actionCard(C)+` is true in every program for the card that the button runs on, the same card as {{#raw}}`{{{cardKey}}}`{{/raw}}.
+
+In the second and later programs, `created(Card, Parent, Template, Id, TemplateCard)` is true for every card that the earlier programs created:
+
+* `Card` is the key of the new card and `Parent` is its parent, or `root`.
+* `Template` is the template that the card came from, and `Id` is the `Id` of the `create` effect, or `none` with `create(Parent, Template)`.
+* `TemplateCard` is the card in the template that the new card is a copy of.
+
+A template can have child cards. To pick the top-level cards of a template, add `parent(TemplateCard, Template)`.
+
+For example, this button creates a controlled document under the card that shows the report. The second program links the new document to that card and sets the owner of the document's review task:
+
+```
+{{#raw}}
+
+{{#action}}
+  "buttonLabel": "New controlled document",
+  "actions": [
+    {{#quoted}}
+    create({{{cardKey}}}, "mymodule/templates/controlledDocument").
+    {{/quoted}},
+    {{#quoted}}
+    addLink(D, {{{cardKey}}}, "mymodule/linkTypes/implements") :-
+      created(D, _, "mymodule/templates/controlledDocument", _, T),
+      parent(T, "mymodule/templates/controlledDocument").
+    setField(R, "mymodule/fieldTypes/owner", "{{{clingoEscape owner}}}") :-
+      created(R, _, _, _, _),
+      field(R, "cardType", "mymodule/cardTypes/reviewTask").
+    {{/quoted}}
+  ]
+{{/action}}
+
+{{/raw}}
+```
+
+Here `owner` is a parameter of the report, given in the `report` macro. Add it to the report's parameter schema. See {{#xref}}"cardKey":"docs_j1ldnk0s"{{/xref}}.
+
+=== Order of the effects
+
+Within one program, the effects are applied in this order:
+
+. `create`
+. `move`
+. `setField`, `setContent`, `copyContent`, `addLabel` and `removeLabel`
+. `removeLink`, then `addLink`
+. `transition`
+. `rank` and `rankFirst`
+
+So a transition sees the fields that the same program set, for example in a transition guard. A change of rank is seen only by the next program.
+
+Before anything in a program is applied, all its effects are checked. The check refuses, for example, a card or template that does not exist, a card in a template, a field that cannot be set, two different values for one field, a label or link that is both added and removed, or two transitions, moves or ranks of one card. To change a card twice, use two programs.
+
+A `create` or a `transition` also runs the hooks that the logic programs define for it with `onTransitionSetField` and `onTransitionExecuteTransition`. Hooks follow the same rules as the effects of a button, but a hook effect that breaks a rule is skipped and logged, and never fails the click. The hooks of an effect finish before the next effect is applied.
+
+=== Creating cards
+
+Cards created under the same parent in one program are created in the order of their `Id`:
+
+* When `Id` is a card key, in the order of those cards in their tree.
+* When `Id` is a number, in numeric order.
+* Otherwise, in alphabetical order.
+
+New top-level cards go after the existing ones.
+
+Use a card key or a number as `Id`. A string that looks like a name, such as `"abc"`, reaches later programs as the constant `abc`: `created(K, _, _, abc, _)` matches it, but `created(K, _, _, "abc", _)` does not. Numbers stay numbers, and strings with spaces or quotes stay strings.
+
+For example, this button creates a checklist with one item per asset, in the order of the assets in the tree. The third program names each item after its asset and links it to the asset:
+
+```
+{{#raw}}
+
+{{#action}}
+  "buttonLabel": "New asset checklist",
+  "actions": [
+    {{#quoted}}
+    create({{{cardKey}}}, "mymodule/templates/checklist").
+    {{/quoted}},
+    {{#quoted}}
+    create(L, "mymodule/templates/assetCheck", A) :-
+      created(L, _, "mymodule/templates/checklist", _, T),
+      parent(T, "mymodule/templates/checklist"),
+      projectCard(A), field(A, "cardType", "mymodule/cardTypes/asset").
+    {{/quoted}},
+    {{#quoted}}
+    setField(K, "title", @concatenate("Check: ", N)) :-
+      created(K, _, "mymodule/templates/assetCheck", A, T),
+      parent(T, "mymodule/templates/assetCheck"),
+      field(A, "title", N).
+    addLink(K, A, "mymodule/linkTypes/checks") :-
+      created(K, _, "mymodule/templates/assetCheck", A, T),
+      parent(T, "mymodule/templates/assetCheck").
+    {{/quoted}}
+  ]
+{{/action}}
+
+{{/raw}}
+```
+
+=== Setting fields
+
+`setField` sets only the `title` and the custom fields of the card's card type. Other fields, such as `workflowState` or `labels`, cannot be set; use the other effects for them. List fields cannot be set.
+
+A calculated field can be set only if its card type allows overriding it, but it can always be cleared with `null` or `""`. The check does not look at this: setting a calculated field that cannot be overridden fails when the effect is applied, like a transition from the wrong state.
+
+The value is converted to the field's data type:
+
+* Boolean fields take `true` or `false`, with or without quotes.
+* Integer and number fields take a number, or a number in quotes.
+* Date fields take a date written `YYYY-MM-DD`.
+* DateTime fields take an ISO 8601 date and time with a time zone, such as `2026-01-02T03:04:05Z`. The value is stored in UTC: `2026-01-02T03:04+02:00` is stored as `2026-01-02T01:04:00.000Z`.
+* Other fields take a string, or a number, which becomes a string.
+
+The constant `null`, written without quotes, clears a field of any data type; the string `"null"` in quotes is text like any other. The empty string `""` also clears a boolean, integer, number, date or dateTime field. In a text field, it writes an empty text. Because of the conversion, `setField(K, F, V) :- field(A, F, V)` copies a field from card `A` to card `K`.
+
+=== Setting content
+
+Write the text of `setContent` with another {{#raw}}`{{#quoted}}`{{/raw}} inside the program. The text can have several lines and any characters:
+
+```
+{{#raw}}
+
+{{#action}}
+  "buttonLabel": "Reset instructions",
+  "actions": [
+    {{#quoted}}
+    setContent({{{cardKey}}}, {{#quoted}}
+== Instructions
+
+. Read the "Security policy" card.
+. Fill in the fields of this card.
+{{/quoted}}).
+    {{/quoted}}
+  ]
+{{/action}}
+
+{{/raw}}
+```
+
+Start the lines of the text at the beginning of the line. In AsciiDoc, an indented line is shown as preformatted text.
+
+=== When something fails
+
+If the check refuses the first program, or the first program is not a valid program or has no answer, nothing is changed. The error message gives only the reason. For example, for a transition that the card's workflow does not have:
+
+----
+Cannot apply 'transition(bat_1,"Approve")': transition 'Approve' is not in workflow 'mymodule/workflows/review' of card 'bat_1'
+----
+
+For a program that is not valid, the message starts with `Parsing failed` and gives clingo's errors. Their line numbers count from the start of the text that Cyberismo runs, not from the start of your program. For a program that has no answer, for example because a constraint always fails, the message is `The logic programs have no answer for the query`.
+
+If something fails after that, the error message names the program, and the effect if one failed:
+
+----
+Action failed in program 2 at transition(bat_7,"Approve"): <reason>. Without autocommit, the changes of the earlier programs were kept.
+----
+
+When the first program fails, the message does not have the last sentence. With autocommit, the earlier programs' changes are undone too, as described below.
+
+This happens when applying an effect fails, for example a transition from the wrong state, and when a later program is refused or is not valid. What else happens depends on how Cyberismo runs:
+
+* With autocommit (`cyberismo app --autocommit`), every change of the click is undone. Nothing is changed.
+* Without autocommit, the changes made before the failure stay. The card view is refreshed to show them.
+
+If the server is busy before anything is changed, the message says so and, if the server tells, how many seconds to wait before trying again. If it is busy in a later program, the message names the program, as above.
+
+If the request does not reach the server, or its answer is lost, the action may or may not have run. The message says so, and says whether the page could be refreshed to show the current state. Check the cards before clicking again.
+
+== Using the macro in a report
+
+A report can show a button for each of its rows. For example, with this query:
+
+```
+{{#raw}}
+
+select("title").
+result(C) :- projectCard(C), field(C, "cardType", "mymodule/cardTypes/risk").
+
+{{/raw}}
+```
+
+the following content template lists the risks, each with a button that links the risk to the card that shows the report:
+
+```
+{{#raw}}
+
+{{#each results}}
+* {{this.title}}
+{{#action}}
+  "buttonLabel": "Mitigates this",
+  "actions": [
+    {{#quoted}}
+    addLink({{{this.key}}}, {{{cardKey}}}, "mymodule/linkTypes/mitigates").
+    {{/quoted}}
+  ]
+{{/action}}
+{{/each}}
+
+{{/raw}}
+```
+
+Inside an `action` block:
+
+* {{#raw}}`{{{cardKey}}}`{{/raw}} is always the card that shows the report, also inside {{#raw}}`{{#each}}`{{/raw}}. The button runs on this card.
+* {{#raw}}`{{{this.key}}}`{{/raw}} is the key of the row.
+* {{#raw}}`{{{@root.cardKey}}}`{{/raw}} is the `cardKey` parameter of the `report` macro if it was given, and otherwise the card that shows the report.
+
+For more about reports, see {{#xref}}"cardKey":"docs_j1ldnk0s"{{/xref}}.
+
+== Placing the button
+
+Use the macro in report templates only. A button element written by hand into card content, for example in a passthrough block, is not supported.
+
+== Static site and exports
+
+In the static site and in exports such as PDF, the macro does not produce anything. Take this into account when writing instructions next to it.
