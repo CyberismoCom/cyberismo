@@ -7,6 +7,7 @@ import migration3 from './3/index.js';
 import migration4 from './4/index.js';
 import migration5 from './5/index.js';
 import migration6 from './6/index.js';
+import migration7 from './7/index.js';
 
 /**
  * Map of migration version to migration implementation.
@@ -17,6 +18,7 @@ export const migrations: Record<number, Migration> = {
   4: migration4,
   5: migration5,
   6: migration6,
+  7: migration7,
 };
 
 /**

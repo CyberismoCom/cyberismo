@@ -1,5 +1,38 @@
 # Changelog
 
+## [1.4.0] — 2026-11-19
+
+### Highlights
+
+The new `{{#createLinks}}` macro adds a button that lists the results of a query and links the cards or external items you pick in one go. Exports now cover the subtree of the card they start from and can include hidden cards on request, and links to cards outside an export become plain text with a warning instead of dead links. The schema version is now 7, so run `cyberismo migrate` on existing projects (no files change).
+
+### Features
+
+- New `{{#createLinks}}` macro: a button that opens a searchable list of query results and creates a link to each item you check, with an optional description; insert it from the toolbar under Insert macro → Create links (#1686, #1698)
+- Exports cover the subtree of the card they start from; from a hidden card the whole subtree is exported (#1692)
+- Exports can include hidden cards with `--include-hidden` on the CLI or "Include hidden cards" in the export dialogs; they appear in the content but stay out of navigation, and in the PDF they are unnumbered and left out of the table of contents (#1694)
+- In PDF and static site exports, links to cards outside the export become plain text, with one warning per target card (#1695)
+- Hidden cards now show breadcrumbs and can be picked as link targets; navigation still hides them (#1691)
+- The attachments panel is always shown, collapsible like the policy checks, so readers can download attachments too (#1647)
+- The static site export includes every attachment of each exported card, not only images (#1672)
+- Schema version 7: projects that use the createLinks macro can no longer be opened by older Cyberismo versions; run `cyberismo migrate` to upgrade (no file changes)
+
+### Fixes
+
+- Editor drafts survive crossing a layout breakpoint and failed background refreshes; a failed refresh shows a notice instead of replacing the view (#1690)
+- The card body stays mounted while changed content re-converts, so the selection and scroll position are kept (#1689)
+- `cyberismo export pdf <file> <key> -r` exports the card's subtree; before, `-r` was ignored and only that card was exported (#1694)
+- `cyberismo preview` serves files whose names contain reserved characters such as `#`, `&`, `+` or `?` (#1674)
+- Exported `.jpg` attachments keep their file name (#1672)
+- Dragging an attachment into the editor works in Chrome (#1679)
+- Only files directly in a card's attachment folder are listed as attachments; a subfolder no longer shows up as an attachment that can't be removed (#1671)
+- PDF exports started below the top level get correct heading levels, and macros are evaluated in all cards of an adoc export (#1692)
+
+### Internal
+
+- Backend errors reach a central error handler and are answered with typed status codes (#1678)
+- End-to-end export tests (#1696)
+
 ## [1.3.1] — 2026-11-11
 
 ### Highlights
