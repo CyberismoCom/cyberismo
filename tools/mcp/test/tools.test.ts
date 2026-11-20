@@ -242,13 +242,11 @@ describe('undeclared tool arguments', () => {
   };
 
   test('every listed input schema refuses them', async () => {
-    // Listed as an empty object until its union input is replaced.
-    const exempt = new Set(['update_file_resource']);
     const { tools } = await client.listTools();
     expect(tools.map((tool) => tool.name)).toContain('create_card');
-    const open = tools
-      .filter((tool) => !exempt.has(tool.name))
-      .flatMap((tool) => openObjects(tool.inputSchema, tool.name));
+    const open = tools.flatMap((tool) =>
+      openObjects(tool.inputSchema, tool.name),
+    );
     expect(open).toEqual([]);
   });
 
@@ -265,20 +263,5 @@ describe('undeclared tool arguments', () => {
     expect(contentOf(result)[0].text).toContain(
       'Unrecognized key: "parentCardKey"',
     );
-  });
-
-  test('an undeclared key in a union-typed input fails the call', async () => {
-    const result = await client.callTool({
-      name: 'update_file_resource',
-      arguments: {
-        projectPrefix: 'decision',
-        resource: 'decision/workflows/simple',
-        key: 'displayName',
-        operation: { name: 'change', target: '', to: 'Renamed' },
-        extra: true,
-      },
-    });
-    expect(result.isError).toBe(true);
-    expect(contentOf(result)[0].text).toContain('Invalid arguments');
   });
 });

@@ -11,7 +11,7 @@ import type { Checkout } from '../../../../src/state/checkout/checkout.js';
 const stubProject = undefined as unknown as Checkout;
 
 describe('dispatcher', () => {
-  it('throws when no route matches (edit on an unregistered key)', () => {
+  it('names the editable keys when an edit has an unregistered key', () => {
     const ctx = {
       checkout: stubProject,
       input: {
@@ -22,7 +22,9 @@ describe('dispatcher', () => {
         operation: { name: 'change' as const, target: 'Old', to: 'New' },
       },
     };
-    expect(() => dispatch(ctx)).toThrow(/no.*handler/i);
+    expect(() => dispatch(ctx)).toThrow(
+      /'noSuchKey' cannot be edited on cardTypes. Editable keys: .*workflow/,
+    );
   });
 
   describe('customFields add/remove routing', () => {

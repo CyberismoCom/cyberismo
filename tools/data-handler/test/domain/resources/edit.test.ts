@@ -75,7 +75,7 @@ describe('changes.apply: editing a resource', () => {
         name,
         key,
         operation: { name: 'change', to: 'red' } as const,
-        error: /No mutation handler for input/,
+        error: /cannot be edited on/,
       })),
       {
         why: 'the resource is a module resource',

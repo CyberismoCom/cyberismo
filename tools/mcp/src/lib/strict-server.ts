@@ -44,7 +44,7 @@ export class StrictMcpServer extends McpServer {
       input === undefined
         ? undefined // No arguments; the SDK ignores any given.
         : input instanceof z.core.$ZodType
-          ? strict(input)
+          ? input // A whole schema states its own strictness.
           : // A raw shape. This package uses only zod 4; the cast is needed
             // because the SDK's signature, which an override cannot narrow,
             // also admits zod 3 shapes.
@@ -57,18 +57,4 @@ export class StrictMcpServer extends McpServer {
       cb,
     );
   }
-}
-
-/**
- * An object becomes a strict object and a union gets strict options. Nested
- * objects are made strict where they are defined.
- */
-function strict(schema: z.core.$ZodType): z.core.$ZodType {
-  if (schema instanceof z.ZodObject) {
-    return schema.strict();
-  }
-  if (schema instanceof z.ZodUnion) {
-    return z.union(schema.options.map(strict));
-  }
-  return schema;
 }

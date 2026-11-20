@@ -171,7 +171,7 @@ export class CardTypeResource extends FileResource<CardType> {
     const validWorkflowName = Validate.getInstance().validResourceName(
       'workflows',
       resourceNameToString(resourceName(workflowName)),
-      this.checkout.projectPrefixes(),
+      this.checkout.allModulePrefixes(),
     );
     const workflow = this.checkout.resources
       .byType(workflowName, 'workflows')
