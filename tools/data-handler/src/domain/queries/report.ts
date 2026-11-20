@@ -1,11 +1,21 @@
 // SPDX-FileCopyrightText: Cyberismo Ltd and contributors
 // SPDX-License-Identifier: AGPL-3.0-only
 
-import Handlebars from 'handlebars';
+import Handlebars, { type HelperOptions } from 'handlebars';
 import type { CalculationEngine } from '../../state/engine/calculation-engine.js';
-import { registerEmptyMacros } from '../macros/registry.js';
-import type { Context } from '@cyberismo/model';
 import {
+  createInlineHtmlPlaceholder,
+  registerEmptyMacros,
+  validateMacroContent,
+} from '../macros/registry.js';
+import type {
+  ActionButtonOptions,
+  ActionMacroOptions,
+  Context,
+} from '@cyberismo/model';
+import actionMetadata from '@cyberismo/model/macros/action/metadata';
+import {
+  registerClingoHelpers,
   registerComparisonHelpers,
   registerMathHelpers,
   registerQuotedHelper,
@@ -34,6 +44,12 @@ interface GenerateReportContentParams {
    * fails as a validation error.
    */
   contentRequested?: boolean;
+  /**
+   * The card the report is rendered on, given only when action buttons are
+   * rendered. Inside an `action` block, `cardKey` is this card, whatever the
+   * report parameters say. Without it, an action block renders nothing.
+   */
+  actionCardKey?: string;
 }
 
 /**
@@ -55,12 +71,14 @@ export async function generateReportContent(
     context,
     requested,
     contentRequested,
+    actionCardKey,
   } = params;
 
   const handlebars = Handlebars.create();
   registerComparisonHelpers(handlebars);
   registerMathHelpers(handlebars);
   registerQuotedHelper(handlebars);
+  registerClingoHelpers(handlebars);
 
   const render = (
     template: string,
@@ -97,6 +115,38 @@ export async function generateReportContent(
   // register empty macros so that other macros aren't touched yet
   registerEmptyMacros(handlebars);
   registerReportHelpers(handlebars);
+  // Replaces the re-emitting helper: an action block never leaves a report.
+  handlebars.registerHelper(
+    actionMetadata.name,
+    function (this: unknown, options: HelperOptions) {
+      // A primitive loop item is boxed, so `{{{this}}}` still renders it.
+      const context =
+        this !== null && typeof this === 'object'
+          ? { ...this, cardKey: actionCardKey }
+          : Object.assign(Object(this), { cardKey: actionCardKey });
+      const body = options.fn(context);
+      let input: unknown;
+      try {
+        input = JSON.parse(`{${body}}`);
+      } catch (error) {
+        throw new Error(
+          `${actionMetadata.name} macro JSON error: ${error instanceof Error ? error.message : String(error)}`,
+          { cause: error },
+        );
+      }
+      const { buttonLabel, actions } = validateMacroContent<ActionMacroOptions>(
+        actionMetadata,
+        input,
+      );
+      return actionCardKey
+        ? createInlineHtmlPlaceholder(actionMetadata, {
+            buttonLabel,
+            cardKey: actionCardKey,
+            programs: actions,
+          } satisfies ActionButtonOptions)
+        : '';
+    },
+  );
 
   return render(contentTemplate, { ...options, ...result }, contentRequested);
 }
