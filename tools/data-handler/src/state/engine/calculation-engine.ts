@@ -3,7 +3,7 @@
 
 // node
 
-import { sanitizeSvgBase64 } from '../../shared/utils/sanitize-svg.js';
+import { sanitizeSvg } from '../../shared/utils/sanitize-svg.js';
 import { instance } from '@viz-js/viz';
 
 import type {
@@ -24,6 +24,7 @@ import type {
   ResourceName,
 } from '@cyberismo/model';
 import ClingoParser from '../../infra/engine/clingo-parser.js';
+import { parseQueryOptions, type QueryOptions } from './query-options.js';
 
 import Handlebars from 'handlebars';
 import type { Checkout } from '../checkout/checkout.js';
@@ -453,7 +454,7 @@ export class CalculationEngine {
    * @param model Graph model to use.
    * @param view Graph view to use.
    * @param context In which type of context the query is run.
-   * @returns a base64 encoded image as a string
+   * @returns sanitized SVG
    */
   public async runGraph(model: string, view: string, context: Context) {
     this.logger.trace(
@@ -483,7 +484,7 @@ export class CalculationEngine {
     if (context === 'exportedDocument') {
       graph = graph.replace(/xlink:title="[^"]*"/g, '');
     }
-    return sanitizeSvgBase64(graph);
+    return sanitizeSvg(graph);
   }
 
   /**
@@ -510,15 +511,19 @@ export class CalculationEngine {
    * Runs a pre-defined query.
    * @param queryName Name of the query file without extension
    * @param context In which type of context the query is run.
-   * @param options Any object that contains state for handlebars
+   * @param options The query's inputs (see queryOptions)
    * @returns parsed program output
+   * @throws DHValidationError if the options do not fit the query.
    */
   public async runQuery<T extends QueryName>(
     queryName: T,
     context: Context = 'localApp',
-    options?: unknown,
+    options?: QueryOptions<T>,
   ): Promise<QueryResult<T>[]> {
-    const content = this.queryContent(queryName, options);
+    const content = this.queryContent(
+      queryName,
+      parseQueryOptions(queryName, options),
+    );
 
     this.logger.trace({ queryName }, 'Running query');
     const clingoOutput = await this.run(content, context);

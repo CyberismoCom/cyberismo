@@ -72,7 +72,7 @@ describe('calculate', () => {
       'localApp',
     );
 
-    expect(res).not.toBe('');
+    expect(res).toContain('<svg');
   }, 20000);
 
   it('runWorkflowGraph renders the built-in workflow graph', async () => {

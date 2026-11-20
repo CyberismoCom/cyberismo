@@ -19,6 +19,10 @@ export async function allCards(
   options?: TreeOptions,
 ): Promise<QueryResult<'tree'>[]> {
   const { cardKey, recursive, includeHidden } = options ?? {};
+  // An export applies one card key to every project; most do not hold it.
+  if (cardKey && !ws.cards.has(cardKey)) {
+    return [];
+  }
   const fetchedCards = exportedTree(
     await ws.queries.runQuery('tree', 'exportedSite', { cardKey, recursive }),
     { cardKey, includeHidden },

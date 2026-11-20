@@ -3,13 +3,9 @@
 
 import BaseMacro from '../base-macro.js';
 import { createImage, validateMacroContent } from '../registry.js';
-import { registerComparisonHelpers } from '../../queries/handlebars-helpers.js';
-import Handlebars from 'handlebars';
 import macroMetadata from '@cyberismo/model/macros/graph/metadata';
-import {
-  LogicError,
-  LogicUnavailableError,
-} from '../../../infra/logic/logic-backend.js';
+import { graphViewSchema, renderGraph } from '../../queries/graph.js';
+import { svgBase64 } from '../../../shared/utils/sanitize-svg.js';
 
 import type { GraphOptions } from '@cyberismo/model';
 import type { MacroGenerationContext } from '../../../shared/interfaces/macros.js';
@@ -26,80 +22,26 @@ class GraphMacro extends BaseMacro {
 
   handleStatic = async (context: MacroGenerationContext, input: unknown) => {
     const options = this.parseOptions(input, context);
-
-    const modelResource = context.checkout.resources.byType(
-      options.model,
-      'graphModels',
+    const result = await renderGraph(
+      context.checkout,
+      options,
+      context.cardKey,
+      context.context,
     );
-    const modelContent = modelResource.contentData();
-
-    const viewResource = context.checkout.resources.byType(
-      options.view,
-      'graphViews',
-    );
-    const viewContent = viewResource.contentData();
-    if (!viewContent.viewTemplate) {
-      throw new Error(`Graph: View ${options.view} has no view template`);
-    }
-
-    const handlebarsContext = {
-      cardKey: context.cardKey,
-      ...options,
-    };
-
-    const handlebars = Handlebars.create();
-    registerComparisonHelpers(handlebars);
-    const view = handlebars.compile(viewContent.viewTemplate)(
-      handlebarsContext,
-    );
-
-    let result: string;
-    try {
-      result = await context.checkout.calculationEngine.runGraph(
-        modelContent.model,
-        view,
-        context.context,
-      );
-    } catch (error) {
-      // A backend that cannot answer now fails the whole render.
-      if (
-        error instanceof LogicError &&
-        !(error instanceof LogicUnavailableError)
-      ) {
-        throw new Error(
-          `Error running graph in view '${options.view}' in model '${options.model}': ${error.errors.join('\n')}`,
-          { cause: error },
-        );
-      }
-      throw error;
-    }
-
-    if (typeof result !== 'string') {
-      throw new Error(
-        'Graph macro expected a string from clingo, but received an object',
-      );
-    }
-    return createImage(result, context.mode);
+    return createImage(svgBase64(result), context.mode);
   };
 
+  // Checks the macro options, and the view's own parameters against the
+  // view's schema if it has one.
   private parseOptions(
     input: unknown,
     context: MacroGenerationContext,
   ): GraphOptions {
     const options = validateMacroContent<GraphOptions>(this.metadata, input);
-
-    // Get schema from view resource content if available
-    const resource = context.checkout.resources.byType(
-      options.view,
-      'graphViews',
-    );
-    const content = resource.contentData();
-    const schema = content.schema;
-
+    const schema = graphViewSchema(context.checkout, options.view);
     if (schema) {
       validateMacroContent(this.metadata, input, schema);
     }
-
     return options;
   }
 }

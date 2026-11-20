@@ -2,7 +2,11 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { resourceName, type ProjectDirectory } from '@cyberismo/data-handler';
+import {
+  queryOptions,
+  resourceName,
+  type ProjectDirectory,
+} from '@cyberismo/data-handler';
 import { z } from 'zod';
 import { toolResult, toolError } from '../lib/mcp-helpers.js';
 import { renderCard, getCardTree } from '../lib/render.js';
@@ -16,6 +20,9 @@ import {
   arrayUpdateOperationSchema,
   SUB_PROPERTY_KEYS,
 } from './sharedSchemas.js';
+
+// The predefined queries run_query offers.
+const QUERY_NAMES = ['card', 'onCreation', 'onTransition', 'tree'] as const;
 
 const projectPrefixParam = z
   .string()
@@ -1245,15 +1252,18 @@ export function registerTools(
   server.registerTool(
     'run_query',
     {
-      description: 'Run a predefined query against the project',
+      description:
+        "Run a predefined query against the project, with its inputs in options. 'card': card details with fields, links and allowed operations ({ cardKey } or { cardKeys }; none for all cards). 'tree': the card tree ({ cardKey, recursive? } for a subtree; none for the whole project). 'onCreation': fields and transitions that creating cards would set off ({ cardKeys }). 'onTransition': fields and transitions that a transition would set off ({ cardKey, transition }).",
       inputSchema: {
         projectPrefix: projectPrefixParam,
-        queryName: z
-          .enum(['card', 'onCreation', 'onTransition', 'tree'])
-          .describe('Query type to run'),
+        queryName: z.enum(QUERY_NAMES).describe('Query type to run'),
+        options: z
+          .union(QUERY_NAMES.map((name) => queryOptions[name]))
+          .optional()
+          .describe("The query's inputs, as the description lists them"),
       },
     },
-    async ({ projectPrefix, queryName }, extra) => {
+    async ({ projectPrefix, queryName, options }, extra) => {
       try {
         const ws = await resolveWorkspace(
           directory,
@@ -1261,7 +1271,11 @@ export function registerTools(
           extra,
           server,
         );
-        const results = await ws.queries.runQuery(queryName);
+        const results = await ws.queries.runQuery(
+          queryName,
+          'localApp',
+          options,
+        );
         return toolResult({ results });
       } catch (error) {
         return toolError('running query', error);
@@ -1408,14 +1422,27 @@ export function registerTools(
   server.registerTool(
     'run_graph',
     {
-      description: 'Generate a graph visualization',
+      description:
+        'Render a graph from a graph model and a graph view, as the graph macro does in card content. Returns the graph as SVG markup.',
       inputSchema: {
         projectPrefix: projectPrefixParam,
-        model: z.string().describe('Graph model name'),
-        view: z.string().describe('Graph view name'),
+        model: z.string().describe('Graph model resource name'),
+        view: z.string().describe('Graph view resource name'),
+        cardKey: z
+          .string()
+          .optional()
+          .describe(
+            'Card the graph is drawn for; most views need it ({{cardKey}} in the view)',
+          ),
+        parameters: z
+          .record(z.string(), z.unknown())
+          .optional()
+          .describe(
+            "Additional view parameters, checked against the view's schema",
+          ),
       },
     },
-    async ({ projectPrefix, model, view }, extra) => {
+    async ({ projectPrefix, model, view, cardKey, parameters }, extra) => {
       try {
         const ws = await resolveWorkspace(
           directory,
@@ -1423,16 +1450,11 @@ export function registerTools(
           extra,
           server,
         );
-        const base64 = await ws.queries.runGraph(model, view, 'localApp');
-        return {
-          content: [
-            {
-              type: 'image' as const,
-              data: base64,
-              mimeType: 'image/png',
-            },
-          ],
-        };
+        const svg = await ws.queries.runGraph(
+          { model, view, cardKey, parameters },
+          'localApp',
+        );
+        return { content: [{ type: 'text' as const, text: svg }] };
       } catch (error) {
         return toolError('running graph', error);
       }
