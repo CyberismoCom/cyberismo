@@ -4,14 +4,17 @@
 import { z } from 'zod';
 import {
   identifierSchema,
-  resourceParamsSchema,
+  resourceRouteParamsSchema,
   resourceTypes,
+  toResourcePrefix,
 } from '../../common/validationSchemas.js';
 
-export const prefixIdentifierParamsSchema = z.object({
-  prefix: z.string(),
-  identifier: identifierSchema,
-});
+export const prefixIdentifierParamsSchema = z
+  .object({
+    resourcePrefix: z.string(),
+    identifier: identifierSchema,
+  })
+  .transform(toResourcePrefix);
 
 export type PrefixIdentifierParams = z.infer<
   typeof prefixIdentifierParamsSchema
@@ -31,15 +34,19 @@ export const skillPreviewBodySchema = z.object({
 
 export type SkillPreviewBody = z.infer<typeof skillPreviewBodySchema>;
 
-export const resourceFileParamsSchema = resourceParamsSchema.extend({
-  file: z.string(),
-});
+export const resourceFileParamsSchema = resourceRouteParamsSchema
+  .extend({
+    file: z.string(),
+  })
+  .transform(toResourcePrefix);
 
 export type ResourceFileParams = z.infer<typeof resourceFileParamsSchema>;
 
-export const validateResourceParamsSchema = resourceParamsSchema.extend({
-  type: z.enum(resourceTypes),
-});
+export const validateResourceParamsSchema = resourceRouteParamsSchema
+  .extend({
+    type: z.enum(resourceTypes),
+  })
+  .transform(toResourcePrefix);
 
 export type ValidateResourceParams = z.infer<
   typeof validateResourceParamsSchema
