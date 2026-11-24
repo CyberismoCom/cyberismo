@@ -120,5 +120,7 @@ Post one GitHub review with `event: COMMENT` on the head commit you reviewed:
   body.
 - The body: one or two lines of verdict, the questions, and the findings that
   have no line in the diff. Not the change list.
-- If the user asks for a note (e.g. that this is a trial run), put it first in
-  the body.
+- The body always starts with a line marking it as an agent's review posted
+  on the user's behalf, e.g. "Automated review (Claude Code, review-pr skill),
+  posted on behalf of <GitHub login>." Any note the user asks for goes after
+  it.
