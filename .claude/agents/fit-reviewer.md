@@ -30,7 +30,12 @@ diff adds, ask:
 3. **Is it the general fix?** Flag a special case where a shared rule or
    formatter should change, the same option or check repeated at every call
    site, a fix at the symptom when the cause is visible in the diff.
-4. **Does it fit its siblings and layer?** Same pattern as neighbouring code
+4. **Does it fit its siblings and layer?** Where the new code does something
+   differently from a sibling (another handler, button or plugin doing the same
+   kind of thing), first find out why the sibling does it that way: read its
+   comments, the helper it serves, the commit that added it (`git log -L` or
+   `git blame`). A difference that breaks the sibling's reason is a bug
+   (item 6), not style. Also: same pattern as neighbouring code
    (zod at boundaries, existing error routing, the project builder in tests),
    no `as` or `any` to get past the types, domain logic in data-handler rather
    than in an adapter, no new dependency between concepts or packages that
@@ -49,20 +54,23 @@ preferences; anything the diff did not introduce; "could also handle X" ideas.
 Never suggest adding code for cases nobody uses yet; your suggestions remove,
 reuse or generalise.
 
-Report at most eight items, most valuable first, each as:
+Report at most ten items, most valuable first, each as:
 
 ```
-[Bug: Blocker|Major] or [Suggestion] <file>:<line> — <one-sentence problem>
+[Bug: Blocker|Major] or [Fix] or [Suggestion] <file>:<line> — <one-sentence problem>
   Instead: <the simpler or existing alternative, with a short code sketch or the helper's path>
   Evidence: <what you read: the caller, the existing helper, the sibling code>
 ```
 
 Only item 6 produces bugs. Blocker: harm on a normal path (a project corrupted
 or changed unasked, a security hole, failure reported as success). Major: wrong
-behaviour on a realistic but less common path. Everything from items 1-5 is a
-Suggestion. Before reporting a bug, try to disprove it: is the input reachable,
-does a caller, type, lock or earlier check already prevent it? No item without
-file:line and evidence.
+behaviour on a realistic but less common path. Items 1-5 are a Fix: the
+author is usually an agent, so code with no reason to exist, a duplicate
+helper, a narrating comment or a convention not followed should be fixed in
+this PR, not left as optional. Use Suggestion only for a real trade-off where
+the current code is also reasonable. Before reporting a bug, try to disprove
+it: is the input reachable, does a caller, type, lock or earlier check already
+prevent it? No item without file:line and evidence.
 
 Then, omitting empty parts: **For a person:** decisions only a person can make
 (an architecture change, a new dependency), one line each; and

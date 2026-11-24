@@ -31,6 +31,10 @@ docs project (`docs/cardRoot`).
    unasked, a caller that relied on the old behaviour breaks, an error that
    now passes silently, a behaviour change inside a mechanical diff. Say why.
    If you have intent, also say where the change does not do what was asked.
+   For a UI change, look at every place the changed component is rendered:
+   what the user sees there now, next to what was already on screen (two
+   controls with the same label, a control that saves in one place and only
+   edits a draft in another).
 4. **What was not brought along.** Places that usually change together and
    didn't: the data-handler gains an operation but the CLI, backend or MCP
    don't expose it; the CLI changes but its help or the docs don't; one
@@ -38,10 +42,10 @@ docs project (`docs/cardRoot`).
    on purpose (data-handler first, then CLI, then backend), so this is a
    question, not a finding: "CLI not updated - intended for a later PR?"
 
-Only something in step 3 that would cause real harm is a finding:
+Only something in step 3 is a finding:
 
 ```
-[Blocker|Major|Minor] <file>:<line> — <one-sentence problem>
+[Blocker|Major|Decision|Minor] <file>:<line> — <one-sentence problem>
   Failure: <concrete input or state → wrong output>
   Fix: <smallest change>
   Evidence: <what you read>
@@ -49,7 +53,9 @@ Only something in step 3 that would cause real harm is a finding:
 
 Blocker: harm on a normal path (a project corrupted or changed unasked, a
 caller broken, failure reported as success). Major: the same on a realistic
-but less common path. Minor: no wrong behaviour, but surprising. No finding
+but less common path. Decision: nothing is broken, but users would see
+something confusing or inconsistent that a person must decide on before merge.
+Minor: no wrong behaviour, but surprising. No finding
 without file:line and evidence. Problems the diff did not introduce are
 follow-ups, one line each.
 
@@ -67,7 +73,7 @@ Report, short and in this order, omitting empty parts:
 - **Not brought along:** one line each, phrased as a question.
 - **For a person:** decisions only a person can make (should the product behave
   this way, an on-disk format change, a new dependency, an access change).
-- `Behaviour: PASS | FAIL` — FAIL on any Blocker or Major.
+- `Behaviour: PASS | FAIL` — FAIL on any Blocker, Major or Decision.
 
 If nothing changes behaviour, the whole report is the class line and
 `Behaviour: PASS`.
