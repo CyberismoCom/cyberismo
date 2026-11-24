@@ -15,6 +15,7 @@ import { canonicalHubLocation } from '../../infra/modules/hub-utils.js';
 import { getChildLogger } from '../../shared/utils/log-utils.js';
 import { readCardsConfigSync } from '../../infra/paths/cards-config.js';
 import { Validate } from '../../domain/validation/validate.js';
+import { DHValidationError } from '../../shared/exceptions/index.js';
 import { SCHEMA_VERSION } from '@cyberismo/migrations';
 
 /**
@@ -290,7 +291,7 @@ export class ProjectConfiguration implements ProjectSettings {
       this.name = newName;
       return this.save();
     }
-    throw new Error(`Project name '${newName}' is not valid.`);
+    throw new DHValidationError(`Project name '${newName}' is not valid.`);
   }
 
   /**

@@ -41,6 +41,29 @@ router.patch(
   },
 );
 
+/**
+ * @swagger
+ * /api/project/prefix:
+ *   put:
+ *     summary: Renames the card key prefix of the project
+ *     description: The prefix is changed in every card key and resource name of the project. The project is served under the new prefix from then on.
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               cardKeyPrefix:
+ *                 type: string
+ *                 description: New card key prefix
+ *     responses:
+ *       200:
+ *         description: The project information, with the new prefix.
+ *       400:
+ *         description: Invalid request body, or the prefix cannot be used.
+ *       403:
+ *         description: Only an admin can rename the prefix.
+ */
 router.put(
   '/prefix',
   requireRole(UserRole.Admin),

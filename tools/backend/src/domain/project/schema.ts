@@ -7,7 +7,7 @@ export const moduleParamSchema = z.object({
   module: z.string().min(1),
 });
 
-export const updateProjectSchema = z.object({
+export const updateProjectSchema = z.strictObject({
   name: z.string().optional(),
   description: z.string().optional(),
   category: z.string().optional(),

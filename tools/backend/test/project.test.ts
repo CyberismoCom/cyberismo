@@ -145,16 +145,20 @@ describe('Project endpoints', () => {
     expect(after.name).toBe(before.name);
   });
 
-  test('PATCH /api/project no longer takes the prefix', async () => {
-    const response = await app.request('/api/projects/test/project', {
-      method: 'PATCH',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ cardKeyPrefix: 'projtest' }),
-    });
-    expect(response.status).toBe(200);
-    const result = (await response.json()) as ProjectResponse;
-    expect(result.cardKeyPrefix).toBe('test');
-  });
+  test.each([{ cardKeyPrefix: 'projtest' }, { unknown: 'x' }])(
+    'PATCH /api/project refuses the unknown setting in %j',
+    async (body) => {
+      const response = await app.request('/api/projects/test/project', {
+        method: 'PATCH',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      expect(response.status).toBe(400);
+      expect((await app.request('/api/projects/test/project')).status).toBe(
+        200,
+      );
+    },
+  );
 
   test('PUT /api/project/prefix renames the prefix', async () => {
     const response = await app.request('/api/projects/test/project/prefix', {

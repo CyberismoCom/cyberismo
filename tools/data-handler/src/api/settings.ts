@@ -8,7 +8,6 @@ import { moduleInfos } from '../domain/modules/index.js';
 import { recordSettingsChange } from '../infra/tx/change-feed.js';
 import { read, write } from '../infra/tx/rw-lock.js';
 import type { CommitIdentity } from '../infra/tx/tx-record.js';
-import { Validate } from '../domain/validation/index.js';
 import { DHValidationError } from '../shared/exceptions/index.js';
 
 /** Project settings to change; those left out stay as they are. */
@@ -144,15 +143,13 @@ export class Settings {
   @write(() => 'Update project settings')
   public async update(changes: SettingsUpdate): Promise<void> {
     const { name, description, category, gitRemoteUrl } = changes;
-    if (name !== undefined && !Validate.isValidProjectName(name)) {
-      throw new DHValidationError(`Project name '${name}' is not valid.`);
-    }
     if (gitRemoteUrl !== undefined && !(await this.checkout.git.isRepo())) {
       throw new DHValidationError(
         'Cannot set remote URL: directory is not a git repository',
       );
     }
     const configuration = this.checkout.configuration;
+    // First: a name that is not valid is refused before anything is written.
     if (name !== undefined) {
       await configuration.setProjectName(name);
     }
