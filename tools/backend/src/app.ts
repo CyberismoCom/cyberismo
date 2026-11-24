@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { Hono, type MiddlewareHandler } from 'hono';
-import { staticFrontendDirRelative } from './utils.js';
+import { staticFrontendDir, staticFrontendDirRelative } from './utils.js';
 import { frontendFallback, serveFrontend } from './frontend.js';
 import { attachProjectDirectory } from './middleware/commandManager.js';
 import { errorResponse } from './common/errors.js';
@@ -234,10 +234,7 @@ export function createApp(
     ) {
       return c.text('Not Found', 404);
     }
-    return frontendFallback(
-      c,
-      path.join(import.meta.dirname, 'public', 'index.html'),
-    );
+    return frontendFallback(c, path.join(staticFrontendDir, 'index.html'));
   });
   // Error handling
   // Only server faults are logged; client errors are answered, not logged.

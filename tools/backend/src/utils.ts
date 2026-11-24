@@ -5,11 +5,19 @@ import path from 'node:path';
 import { serve, type ServerType } from '@hono/node-server';
 
 /**
+ * The static frontend directory. The single-binary build points
+ * CYBERISMO_PUBLIC_DIR at its embedded copy.
+ */
+export const staticFrontendDir =
+  process.env.CYBERISMO_PUBLIC_DIR ??
+  path.resolve(import.meta.dirname, 'public');
+
+/**
  * The relative path to the static frontend directory.
  */
 export const staticFrontendDirRelative = path.relative(
   process.cwd(),
-  path.resolve(import.meta.dirname, 'public'),
+  staticFrontendDir,
 );
 
 /**

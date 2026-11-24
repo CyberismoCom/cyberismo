@@ -1,0 +1,20 @@
+{
+  "name": "@cyberismo/cli-bin",
+  "version": "1.3.0",
+  "description": "Experimental single-binary build of the Cyberismo CLI (cyberismo-dev).",
+  "private": true,
+  "type": "module",
+  "license": "AGPL-3.0",
+  "scripts": {
+    "build:bin": "bun src/build.ts",
+    "clean": "rm -rf node_modules dist-bin",
+    "lint": "eslint ."
+  },
+  "dependencies": {
+    "@cyberismo/cli": "workspace:*",
+    "commander": "^15.0.0"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.3.0"
+  }
+}
