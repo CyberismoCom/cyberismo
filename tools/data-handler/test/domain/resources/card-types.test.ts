@@ -1,7 +1,9 @@
 // SPDX-FileCopyrightText: Cyberismo Ltd and contributors
 // SPDX-License-Identifier: AGPL-3.0-only
 
+import { execFile } from 'node:child_process';
 import { readFile, writeFile } from 'node:fs/promises';
+import { promisify } from 'node:util';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import { ResourceNotFoundError } from '../../../src/shared/exceptions/index.js';
@@ -20,6 +22,9 @@ import { buildProject } from '../../helpers/project-builder.js';
 import { openTestWorkspace } from '../../helpers/open-test-workspace.js';
 
 const open = projects();
+
+const git = async (path: string, ...args: string[]) =>
+  (await promisify(execFile)('git', args, { cwd: path })).stdout.trim();
 
 const page = 'test/cardTypes/page';
 const bare = 'test/cardTypes/bare';
@@ -138,6 +143,109 @@ describe('card types', () => {
           error,
         );
       });
+    });
+  });
+
+  describe('setting field visibility', () => {
+    const level = 'test/fieldTypes/level';
+    const visibility = async (ws: Awaited<ReturnType<typeof open>>['ws']) => {
+      const { alwaysVisibleFields, optionallyVisibleFields } =
+        await customFields(ws, page);
+      return { always: alwaysVisibleFields, optional: optionallyVisibleFields };
+    };
+
+    it('puts hidden fields in a group, last or at a position', async () => {
+      const { ws } = await open(spec);
+
+      await ws.resources.setFieldVisibility(page, size, 'always');
+      await ws.resources.setFieldVisibility(page, note, 'always');
+      await ws.resources.setFieldVisibility(page, level, 'always', 0);
+
+      expect(await visibility(ws)).toEqual({
+        always: [level, size, note],
+        optional: [],
+      });
+    });
+
+    it('moves a field from one group to the other', async () => {
+      const { ws } = await open(spec);
+      await ws.resources.setFieldVisibility(page, size, 'always');
+      await ws.resources.setFieldVisibility(page, note, 'optional');
+
+      await ws.resources.setFieldVisibility(page, size, 'optional', 0);
+
+      expect(await visibility(ws)).toEqual({
+        always: [],
+        optional: [size, note],
+      });
+    });
+
+    it('only reorders a field within its group', async () => {
+      const { ws } = await open(spec);
+      await ws.resources.setFieldVisibility(page, size, 'always');
+      await ws.resources.setFieldVisibility(page, note, 'always');
+
+      await ws.resources.setFieldVisibility(page, note, 'always', 0);
+
+      expect(await visibility(ws)).toEqual({
+        always: [note, size],
+        optional: [],
+      });
+    });
+
+    it('hides a field, ignoring a position', async () => {
+      const { ws } = await open(spec);
+      await ws.resources.setFieldVisibility(page, size, 'optional');
+
+      await ws.resources.setFieldVisibility(page, size, 'hidden', 3);
+
+      expect(await visibility(ws)).toEqual({ always: [], optional: [] });
+    });
+
+    it.each([
+      ['a field the card type lacks', page, 'test/fieldTypes/nope'],
+      ['a missing card type', 'test/cardTypes/nope', size],
+    ])('refuses %s, changing nothing', async (_name, cardType, field) => {
+      const { ws, path } = await open(spec);
+
+      await expectRefused(
+        path,
+        () => ws.resources.setFieldVisibility(cardType, field, 'always'),
+        ResourceNotFoundError,
+      );
+    });
+
+    it('refuses a position past the group, changing nothing', async () => {
+      // A failed write is rolled back under autocommit only.
+      const { ws, path } = await open(
+        { ...spec, git: true },
+        { autocommit: true },
+      );
+
+      await expectRefused(
+        path,
+        () => ws.resources.setFieldVisibility(page, size, 'always', 5),
+        Error,
+      );
+      expect(await visibility(ws)).toEqual({ always: [], optional: [] });
+    });
+
+    it('is one commit', async () => {
+      const { ws, path } = await open(
+        { ...spec, git: true },
+        { autocommit: true },
+      );
+      await ws.resources.setFieldVisibility(page, size, 'always');
+      const before = await git(path, 'rev-list', '--count', 'HEAD');
+
+      await ws.resources.setFieldVisibility(page, size, 'optional', 0);
+
+      expect(await git(path, 'log', '-1', '--format=%s')).toBe(
+        `Update field visibility for ${page}`,
+      );
+      expect(Number(await git(path, 'rev-list', '--count', 'HEAD'))).toBe(
+        Number(before) + 1,
+      );
     });
   });
 

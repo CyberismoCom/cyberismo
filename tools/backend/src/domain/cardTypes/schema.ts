@@ -10,7 +10,6 @@ export const createCardTypeSchema = z.object({
 });
 
 export const visibilityGroup = z.enum(['always', 'optional', 'hidden']);
-export type VisibilityGroup = z.infer<typeof visibilityGroup>;
 
 export const fieldVisibilityBodySchema = z.object({
   fieldName: z.string().min(1),
