@@ -8,6 +8,16 @@ import { moduleInfos } from '../domain/modules/index.js';
 import { recordSettingsChange } from '../infra/tx/change-feed.js';
 import { read, write } from '../infra/tx/rw-lock.js';
 import type { CommitIdentity } from '../infra/tx/tx-record.js';
+import { Validate } from '../domain/validation/index.js';
+import { DHValidationError } from '../shared/exceptions/index.js';
+
+/** Project settings to change; those left out stay as they are. */
+export interface SettingsUpdate {
+  name?: string;
+  description?: string;
+  category?: string;
+  gitRemoteUrl?: string;
+}
 
 // Project information; the project's own name, prefix and the like, with its
 // modules and card count.
@@ -122,43 +132,40 @@ export class Settings {
   }
 
   /**
-   * Sets the project name.
-   * @param name New project name.
-   * @throws if the name is not valid.
+   * Changes the project settings given; the rest stay as they are. An empty
+   * description or category clears it.
+   * @param changes.name New project name.
+   * @param changes.description New project description.
+   * @param changes.category New project category.
+   * @param changes.gitRemoteUrl New git remote URL of the project.
+   * @throws if the name is not valid, or a git remote URL is given for a
+   *   project that is not a git repository; nothing is changed then.
    */
-  @write(() => 'Set project name')
-  public async setName(name: string): Promise<void> {
-    await this.checkout.configuration.setProjectName(name);
-    recordSettingsChange(this.checkout.lock);
-  }
-
-  /**
-   * Sets the project description. An empty string clears it.
-   * @param description New project description.
-   */
-  @write(() => 'Set project description')
-  public async setDescription(description: string): Promise<void> {
-    await this.checkout.configuration.setDescription(description);
-    recordSettingsChange(this.checkout.lock);
-  }
-
-  /**
-   * Sets the project category. An empty string clears it.
-   * @param category New project category.
-   */
-  @write(() => 'Set project category')
-  public async setCategory(category: string): Promise<void> {
-    await this.checkout.configuration.setCategory(category);
-    recordSettingsChange(this.checkout.lock);
-  }
-
-  /**
-   * Sets the git remote URL for the project.
-   * @param url The remote URL to set.
-   */
-  @write(() => 'Set git remote URL')
-  public async setGitRemoteUrl(url: string): Promise<void> {
-    await this.checkout.git.setRemoteUrl(url);
+  @write(() => 'Update project settings')
+  public async update(changes: SettingsUpdate): Promise<void> {
+    const { name, description, category, gitRemoteUrl } = changes;
+    if (name !== undefined && !Validate.isValidProjectName(name)) {
+      throw new DHValidationError(`Project name '${name}' is not valid.`);
+    }
+    if (gitRemoteUrl !== undefined && !(await this.checkout.git.isRepo())) {
+      throw new DHValidationError(
+        'Cannot set remote URL: directory is not a git repository',
+      );
+    }
+    const configuration = this.checkout.configuration;
+    if (name !== undefined) {
+      await configuration.setProjectName(name);
+    }
+    if (description !== undefined) {
+      await configuration.setDescription(description);
+    }
+    if (category !== undefined) {
+      await configuration.setCategory(category);
+    }
+    // Last: git keeps the remote even if the write is rolled back.
+    if (gitRemoteUrl !== undefined) {
+      await this.checkout.git.setRemoteUrl(gitRemoteUrl);
+    }
     recordSettingsChange(this.checkout.lock);
   }
 }

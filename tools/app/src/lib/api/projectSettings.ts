@@ -35,6 +35,16 @@ export const updateProjectSettings = async (
   mutate(apiPaths.resourceTree());
 };
 
+export const renameProjectPrefix = async (
+  cardKeyPrefix: string,
+  projectPrefix?: string,
+) => {
+  const apiPaths = projectApiPaths(projectPrefix);
+  await callApi(apiPaths.projectPrefix(), 'PUT', { cardKeyPrefix });
+  mutate(apiPaths.project());
+  mutate(apiPaths.resourceTree());
+};
+
 // A `range` re-declares the module's version binding first.
 export const updateProjectModule = async (
   moduleName: string,
@@ -180,6 +190,11 @@ export const useProjectSettingsMutations = (projectPrefix?: string) => {
     isUpdating: (action?: string) => isUpdating(action),
     updateProject: (body: ProjectSettingsUpdate, action: string = 'update') =>
       call(() => updateProjectSettings(body, projectPrefix), action),
+    renamePrefix: (cardKeyPrefix: string) =>
+      call(
+        () => renameProjectPrefix(cardKeyPrefix, projectPrefix),
+        'update-cardKeyPrefix',
+      ),
     updateModule: (moduleName: string, range?: string) =>
       call(
         () => updateProjectModule(moduleName, projectPrefix, range),

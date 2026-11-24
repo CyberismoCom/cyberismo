@@ -11,6 +11,7 @@ import {
   moduleParamSchema,
   moduleVersionsQuerySchema,
   removeHubSchema,
+  renamePrefixSchema,
   updateModuleSchema,
   updateProjectSchema,
 } from './schema.js';
@@ -35,10 +36,21 @@ router.patch(
     const ws = c.get('ws');
     const updates = c.req.valid('json');
 
-    const project = await projectService.updateProject(
-      ws,
+    const project = await projectService.updateProject(ws, updates);
+    return c.json(project);
+  },
+);
+
+router.put(
+  '/prefix',
+  requireRole(UserRole.Admin),
+  zValidator('json', renamePrefixSchema),
+  async (c) => {
+    const { cardKeyPrefix } = c.req.valid('json');
+    const project = await projectService.renamePrefix(
+      c.get('ws'),
       c.get('directory'),
-      updates,
+      cardKeyPrefix,
     );
     return c.json(project);
   },

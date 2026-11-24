@@ -114,25 +114,75 @@ describe('Project endpoints', () => {
     expect(Array.isArray(result.modules)).toBe(true);
   });
 
-  test('PATCH /api/project updates name and prefix', async () => {
+  test('PATCH /api/project updates the name', async () => {
     const response = await app.request('/api/projects/test/project', {
       method: 'PATCH',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({
-        name: 'Updated Project Name',
-        cardKeyPrefix: 'projtest',
-      }),
+      body: JSON.stringify({ name: 'Updated Project Name' }),
     });
 
     expect(response.status).toBe(200);
     const result = (await response.json()) as ProjectResponse;
     expect(result.name).toBe('Updated Project Name');
+  });
+
+  test('PATCH /api/project changes nothing when a setting is refused', async () => {
+    const before = (await (
+      await app.request('/api/projects/test/project')
+    ).json()) as ProjectResponse;
+
+    const response = await app.request('/api/projects/test/project', {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ description: 'Not kept', name: 'not valid!' }),
+    });
+
+    expect(response.status).toBe(400);
+    const after = (await (
+      await app.request('/api/projects/test/project')
+    ).json()) as ProjectResponse;
+    expect(after.description).toBe(before.description);
+    expect(after.name).toBe(before.name);
+  });
+
+  test('PATCH /api/project no longer takes the prefix', async () => {
+    const response = await app.request('/api/projects/test/project', {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ cardKeyPrefix: 'projtest' }),
+    });
+    expect(response.status).toBe(200);
+    const result = (await response.json()) as ProjectResponse;
+    expect(result.cardKeyPrefix).toBe('test');
+  });
+
+  test('PUT /api/project/prefix renames the prefix', async () => {
+    const response = await app.request('/api/projects/test/project/prefix', {
+      method: 'PUT',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ cardKeyPrefix: 'projtest' }),
+    });
+
+    expect(response.status).toBe(200);
+    const result = (await response.json()) as ProjectResponse;
     expect(result.cardKeyPrefix).toBe('projtest');
   });
 
+  test.each([{}, { cardKeyPrefix: '' }])(
+    'PUT /api/project/prefix refuses the body %j',
+    async (body) => {
+      const response = await app.request('/api/projects/test/project/prefix', {
+        method: 'PUT',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      expect(response.status).toBe(400);
+    },
+  );
+
   test('a renamed project is served under its new prefix only', async () => {
-    const response = await app.request('/api/projects/test/project', {
-      method: 'PATCH',
+    const response = await app.request('/api/projects/test/project/prefix', {
+      method: 'PUT',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ cardKeyPrefix: 'projtest' }),
     });

@@ -292,8 +292,8 @@ describe('project event stream over HTTP', () => {
         directoryOf(own),
       );
       const { ready } = await connect('alice', ownApp);
-      const renamed = await ownApp.request(`${base}/project`, {
-        method: 'PATCH',
+      const renamed = await ownApp.request(`${base}/project/prefix`, {
+        method: 'PUT',
         headers: {
           'content-type': 'application/json',
           cookie: 'mock-user=alice',

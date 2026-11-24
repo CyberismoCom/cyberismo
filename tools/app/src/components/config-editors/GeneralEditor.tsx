@@ -28,7 +28,8 @@ export function GeneralEditor({ node }: GeneralEditorProps) {
   const { t } = useTranslation();
   const { general, isLoading } = useProjectSettings(undefined);
   const { publicKey } = usePublicKey();
-  const { isUpdating, updateProject } = useProjectSettingsMutations();
+  const { isUpdating, updateProject, renamePrefix } =
+    useProjectSettingsMutations();
   const isAdmin = useHasMinRole(UserRole.Admin);
 
   const isDisabled = Boolean(node.readOnly) || !isAdmin;
@@ -48,8 +49,7 @@ export function GeneralEditor({ node }: GeneralEditorProps) {
     readOnly: isDisabled,
     isLoading,
     isUpdating,
-    saveValue: (value) =>
-      updateProject({ cardKeyPrefix: value }, 'update-cardKeyPrefix'),
+    saveValue: (value) => renamePrefix(value),
   });
 
   const categoryField = useEditableField({

@@ -127,7 +127,7 @@ describe('change feed', () => {
     },
     {
       write: 'a settings change',
-      run: () => ws.settings.setDescription('Described'),
+      run: () => ws.settings.update({ description: 'Described' }),
       changes: [{ kind: 'settings.changed' }],
     },
     {
