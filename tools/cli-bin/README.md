@@ -17,15 +17,20 @@ gh api repos/CyberismoCom/cyberismo/contents/tools/cli-bin/install.sh \
   -H 'Accept: application/vnd.github.raw' | sh -s -- 1234
 ```
 
-After that, to switch to another pull request or to its newest commit:
+After that:
 
 ```sh
-cyberismo-dev self install 1234
+cyberismo-dev self install 1234   # switch to a pull request, or to its newest commit
+cyberismo-dev self list           # downloaded builds
+cyberismo-dev self remove 1234    # remove the builds of a pull request
+cyberismo-dev self prune          # remove all builds except the active one
 ```
 
-The binary is installed as `~/.local/bin/cyberismo-dev` (set
-`CYBERISMO_DEV_BIN_DIR` to change the directory) and replaced on each install.
-`cyberismo-dev --version` shows which build it is, as `pr-<number>-<commit>`.
+Builds are kept in `~/.cyberismo-dev/versions`, one per pull request, and
+`~/.local/bin/cyberismo-dev` links to the active one. Switching to a build that
+is already downloaded is instant. Installing a newer commit of a pull request
+removes its older build. `cyberismo-dev --version` shows the active build, as
+`pr-<number>-<commit>`.
 
 The install takes the build of the pull request's newest commit. If that build
 has not finished, has failed, or has expired (after 14 days), it says so

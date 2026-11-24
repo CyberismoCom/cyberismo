@@ -7,12 +7,14 @@
 #   install.sh 1234
 #
 # The binary is an artifact of the "Binary" workflow run for the pull
-# request's newest commit. It replaces $CYBERISMO_DEV_BIN_DIR/cyberismo-dev
-# (default ~/.local/bin). `cyberismo-dev self install 1234` runs this script.
+# request's newest commit. Builds are kept in ~/.cyberismo-dev/versions, one
+# directory per pull request, and ~/.local/bin/cyberismo-dev links to the
+# active one. `cyberismo-dev self install 1234` runs this script.
 
 set -eu
 
 REPO="CyberismoCom/cyberismo"
+VERSIONS_DIR="${CYBERISMO_DEV_HOME:-$HOME/.cyberismo-dev}/versions"
 BIN_DIR="${CYBERISMO_DEV_BIN_DIR:-$HOME/.local/bin}"
 
 die() {
@@ -39,46 +41,59 @@ case "$(uname -s)-$(uname -m)" in
   *) die "no build for $(uname -s) $(uname -m) (only Linux x86_64 and macOS arm64)" ;;
 esac
 
-# 3. The build of the pull request's newest commit.
+# 3. The pull request's newest commit, and whether its build is already here.
 sha=$(gh pr view "$pr" -R "$REPO" --json headRefOid -q .headRefOid) ||
   die "pull request $pr not found in $REPO"
 short=$(printf '%s' "$sha" | cut -c1-9)
-runs() {
-  gh run list -R "$REPO" --workflow binary.yml --commit "$sha" --limit 1 \
-    --json databaseId,status "$@" -q '.[0] | select(.) | "\(.databaseId) \(.status)"'
-}
-run=$(runs --status success)
-run=${run%% *}
-if [ -z "$run" ]; then
-  latest=$(runs)
-  case "$latest" in
-    "") die "no build of pull request $pr at $short yet; it starts within a minute of a push" ;;
-    *" completed") die "the build of pull request $pr at $short failed: gh run view ${latest%% *} -R $REPO" ;;
-    *) die "the build of pull request $pr at $short is still running: gh run watch ${latest%% *} -R $REPO" ;;
-  esac
+build="pr-$pr-$short"
+dest="$VERSIONS_DIR/$build"
+
+if [ -x "$dest/cyberismo-dev" ]; then
+  echo "$build is already downloaded"
+else
+  # 4. The CI run that built that commit.
+  runs() {
+    gh run list -R "$REPO" --workflow binary.yml --commit "$sha" --limit 1 \
+      --json databaseId,status "$@" -q '.[0] | select(.) | "\(.databaseId) \(.status)"'
+  }
+  run=$(runs --status success)
+  run=${run%% *}
+  if [ -z "$run" ]; then
+    latest=$(runs)
+    case "$latest" in
+      "") die "no build of pull request $pr at $short yet; it starts within a minute of a push" ;;
+      *" completed") die "the build of pull request $pr at $short failed: gh run view ${latest%% *} -R $REPO" ;;
+      *) die "the build of pull request $pr at $short is still running: gh run watch ${latest%% *} -R $REPO" ;;
+    esac
+  fi
+  artifact_id=$(gh api "repos/$REPO/actions/runs/$run/artifacts" \
+    -q ".artifacts[] | select(.name == \"$artifact\" and (.expired | not)) | .id")
+  [ -n "$artifact_id" ] ||
+    die "the build of pull request $pr at $short has expired; re-run it: gh run rerun $run -R $REPO"
+
+  # 5. Download it and check that it runs.
+  mkdir -p "$VERSIONS_DIR"
+  tmp=$(mktemp -d "$VERSIONS_DIR/.tmp.XXXXXX")
+  trap 'rm -rf "$tmp"' EXIT
+  echo "Downloading $build"
+  curl -fL --progress-bar -o "$tmp/artifact.zip" \
+    -H "Authorization: Bearer $(gh auth token)" \
+    "https://api.github.com/repos/$REPO/actions/artifacts/$artifact_id/zip" ||
+    die "download failed"
+  unzip -q "$tmp/artifact.zip" -d "$tmp"
+  rm "$tmp/artifact.zip"
+  chmod +x "$tmp/cyberismo-dev"
+  "$tmp/cyberismo-dev" --version >/dev/null || die "the downloaded binary does not run"
+  mv "$tmp" "$dest"
 fi
-artifact_id=$(gh api "repos/$REPO/actions/runs/$run/artifacts" \
-  -q ".artifacts[] | select(.name == \"$artifact\" and (.expired | not)) | .id")
-[ -n "$artifact_id" ] ||
-  die "the build of pull request $pr at $short has expired; re-run it: gh run rerun $run -R $REPO"
 
-# 4. Download, next to the destination so the final move is atomic.
+# 6. Make it the active build, and drop older builds of the same pull request.
 mkdir -p "$BIN_DIR"
-tmp=$(mktemp -d "$BIN_DIR/.cyberismo-dev.XXXXXX")
-trap 'rm -rf "$tmp"' EXIT
-echo "Downloading cyberismo-dev for pull request $pr ($short)"
-curl -fL --progress-bar -o "$tmp/artifact.zip" \
-  -H "Authorization: Bearer $(gh auth token)" \
-  "https://api.github.com/repos/$REPO/actions/artifacts/$artifact_id/zip" ||
-  die "download failed"
-unzip -q "$tmp/artifact.zip" -d "$tmp"
-
-# 5. Check that it runs, then put it in place.
-chmod +x "$tmp/cyberismo-dev"
-build=$("$tmp/cyberismo-dev" --version | head -n 1) ||
-  die "the downloaded binary does not run"
-mv -f "$tmp/cyberismo-dev" "$BIN_DIR/cyberismo-dev"
-echo "Installed $BIN_DIR/cyberismo-dev (${build#cyberismo-dev build: })"
+ln -sfn "$dest/cyberismo-dev" "$BIN_DIR/cyberismo-dev"
+for old in "$VERSIONS_DIR/pr-$pr-"*; do
+  [ "$old" = "$dest" ] || rm -rf "$old"
+done
+echo "cyberismo-dev is now $build"
 
 case ":$PATH:" in
   *":$BIN_DIR:"*) ;;
