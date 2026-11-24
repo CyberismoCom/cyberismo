@@ -2,14 +2,17 @@
 # SPDX-FileCopyrightText: Cyberismo Ltd and contributors
 # SPDX-License-Identifier: AGPL-3.0-only
 
-# Installs the `cyberismo-dev` binary that CI built for a pull request:
+# Installs the `cyberismo-dev` binary that CI built for a pull request, or
+# for main:
 #
 #   install.sh 1234
+#   install.sh          (or: install.sh main)
 #
 # The binary is an artifact of the "Binary" workflow run for the pull
-# request's newest commit. Builds are kept in ~/.cyberismo-dev/versions, one
-# directory per pull request, and ~/.local/bin/cyberismo-dev links to the
-# active one. `cyberismo-dev self install 1234` runs this script.
+# request's newest commit, or of its newest finished run on main. Builds are
+# kept in ~/.cyberismo-dev/versions, one directory per pull request and one
+# for main, and ~/.local/bin/cyberismo-dev links to the active one.
+# `cyberismo-dev self install 1234` runs this script.
 
 set -eu
 
@@ -22,9 +25,11 @@ die() {
   exit 1
 }
 
-pr="${1:-}"
-case "$pr" in
-  "" | *[!0-9]*) die "usage: install.sh <pull request number>" ;;
+target="${1:-main}"
+case "$target" in
+  main) name="main" what="main" ;;
+  *[!0-9]*) die "usage: install.sh [<pull request number> | main]" ;;
+  *) name="pr-$target" what="pull request $target" ;;
 esac
 
 # 1. Tools. Actions artifacts cannot be downloaded anonymously, so the GitHub
@@ -41,11 +46,18 @@ case "$(uname -s)-$(uname -m)" in
   *) die "no build for $(uname -s) $(uname -m) (only Linux x86_64 and macOS arm64)" ;;
 esac
 
-# 3. The pull request's newest commit, and whether its build is already here.
-sha=$(gh pr view "$pr" -R "$REPO" --json headRefOid -q .headRefOid) ||
-  die "pull request $pr not found in $REPO"
+# 3. The commit to install, and whether its build is already here. For a pull
+#    request it is the newest commit; for main, the newest one CI has built.
+if [ "$target" = main ]; then
+  sha=$(gh run list -R "$REPO" --workflow binary.yml --branch main --event push \
+    --status completed --limit 1 --json headSha -q '.[0].headSha // empty')
+  [ -n "$sha" ] || die "no build of main yet"
+else
+  sha=$(gh pr view "$target" -R "$REPO" --json headRefOid -q .headRefOid) ||
+    die "pull request $target not found in $REPO"
+fi
 short=$(printf '%s' "$sha" | cut -c1-9)
-build="pr-$pr-$short"
+build="$name-$short"
 dest="$VERSIONS_DIR/$build"
 
 if [ -x "$dest/cyberismo-dev" ]; then
@@ -61,13 +73,13 @@ else
   if [ -z "$run" ]; then
     run=$(runs)
     [ -z "$run" ] ||
-      die "the build of pull request $pr at $short is still running: gh run watch $run -R $REPO"
-    die "no build of pull request $pr at $short. One starts within a minute of a push, but only for pull requests into main that have no merge conflicts"
+      die "the build of $what at $short is still running: gh run watch $run -R $REPO"
+    die "no build of $what at $short. One starts within a minute of a push, but only for pull requests into main that have no merge conflicts"
   fi
   artifact_id=$(gh api "repos/$REPO/actions/runs/$run/artifacts" \
     -q ".artifacts[] | select(.name == \"$artifact\" and (.expired | not)) | .id")
   [ -n "$artifact_id" ] ||
-    die "the build of pull request $pr at $short failed or has expired: gh run view $run -R $REPO"
+    die "the build of $what at $short failed or has expired: gh run view $run -R $REPO"
 
   # 5. Download it and check that it runs.
   mkdir -p "$VERSIONS_DIR"
@@ -85,10 +97,10 @@ else
   mv "$tmp" "$dest"
 fi
 
-# 6. Make it the active build, and drop older builds of the same pull request.
+# 6. Make it the active build, and drop older builds of the same pull request (or of main).
 mkdir -p "$BIN_DIR"
 ln -sfn "$dest/cyberismo-dev" "$BIN_DIR/cyberismo-dev"
-for old in "$VERSIONS_DIR/pr-$pr-"*; do
+for old in "$VERSIONS_DIR/$name-"*; do
   [ "$old" = "$dest" ] || rm -rf "$old"
 done
 echo "cyberismo-dev is now $build"

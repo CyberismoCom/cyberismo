@@ -1,10 +1,14 @@
 name: Binary
 
 # Builds the `cyberismo-dev` development binary (tools/cli-bin) of every pull
-# request and uploads it as a workflow artifact per platform. Nothing is
-# released; the artifacts are what tools/cli-bin/install.sh downloads.
+# request and of main, and uploads it as a workflow artifact per platform.
+# Nothing is released; the artifacts are what tools/cli-bin/install.sh
+# downloads.
 
 on:
+  push:
+    branches:
+      - main
   pull_request:
     branches:
       - main

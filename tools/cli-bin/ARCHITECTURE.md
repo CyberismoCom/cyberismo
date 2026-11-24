@@ -24,5 +24,5 @@ checking it out. It is private and never published. See `README.md` for use.
 - The CLI is not forked: the binary runs the same program object as `cyberismo`. Behaviour belongs in `tools/cli`, not here.
 - Code that reads files by path cannot see inside the binary. The two places that do get a directory through an internal environment variable that `main.ts` sets: `CYBERISMO_STATIC_DIR` (`@cyberismo/assets`) and `CYBERISMO_PUBLIC_DIR` (`@cyberismo/backend`). They are not a public interface.
 - The extracted files live next to the binary, so removing a build removes them.
-- `install.sh` and `self.ts` share one layout: `~/.cyberismo-dev/versions/pr-<number>-<commit>/cyberismo-dev`.
+- `install.sh` and `self.ts` share one layout: `~/.cyberismo-dev/versions/<build>/cyberismo-dev`, where `<build>` is `pr-<number>-<commit>` or `main-<commit>`.
 - Built by `.github/workflows/binary.yml`; its smoke test is the only automated check.

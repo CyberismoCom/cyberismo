@@ -10,33 +10,38 @@ or published, and it never shadows an npm-installed `cyberismo`.
 Needs an authenticated [GitHub CLI](https://cli.github.com) (`gh auth login`),
 `curl` and `unzip`. Linux x86_64 and macOS arm64 are built.
 
-First time, with the number of any open pull request:
+First time, which installs the newest build of `main`:
 
 ```sh
 gh api repos/CyberismoCom/cyberismo/contents/tools/cli-bin/install.sh \
-  -H 'Accept: application/vnd.github.raw' | sh -s -- 1234
+  -H 'Accept: application/vnd.github.raw' | sh
 ```
 
 After that:
 
 ```sh
 cyberismo-dev self install 1234           # switch to a pull request, or to its newest commit
+cyberismo-dev self install                # switch to main, or to its newest build
 cyberismo-dev self run 1234 -- validate   # run a downloaded build once, without switching
 cyberismo-dev self list                   # downloaded builds
 cyberismo-dev self remove 1234            # remove the builds of a pull request
 cyberismo-dev self prune                  # remove all builds except the active one
 ```
 
-Builds are kept in `~/.cyberismo-dev/versions`, one per pull request, and
-`~/.local/bin/cyberismo-dev` links to the active one. Switching to a build that
-is already downloaded is instant. Installing a newer commit of a pull request
-removes its older build. `cyberismo-dev --version` shows the active build, as
-`pr-<number>-<commit>`.
+`run` and `remove` also take `main` in place of a number.
 
-The install takes the build of the pull request's newest commit. If that build
-has not finished, has failed, or has expired (after 14 days), it says so
+Builds are kept in `~/.cyberismo-dev/versions`, one per pull request and one
+for `main`, and `~/.local/bin/cyberismo-dev` links to the active one. Switching
+to a build that is already downloaded is instant. Installing a newer commit of
+a pull request, or a newer build of `main`, removes the older one.
+`cyberismo-dev --version` shows the active build, as `pr-<number>-<commit>` or
+`main-<commit>`.
+
+For a pull request, the install takes the build of its newest commit. If that
+build has not finished, has failed, or has expired (after 14 days), it says so
 instead of installing an older one. Builds are made for pull requests into
-`main` that have no merge conflicts.
+`main` that have no merge conflicts. For `main`, the install takes the newest
+finished build.
 
 Installing a pull request means running its code, as checking it out and
 building it would. That includes pull requests from forks, and nothing checks

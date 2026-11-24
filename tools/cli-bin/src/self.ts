@@ -10,7 +10,8 @@ import type { Command } from 'commander';
 
 import installScript from '../install.sh' with { type: 'text' };
 
-// Same layout as install.sh: one directory per build, named pr-<number>-<commit>.
+// Same layout as install.sh: one directory per build, named pr-<number>-<commit>
+// or main-<commit>.
 const versionsDir = join(
   process.env.CYBERISMO_DEV_HOME ?? join(homedir(), '.cyberismo-dev'),
   'versions',
@@ -19,8 +20,14 @@ const versionsDir = join(
 function installedBuilds(): string[] {
   if (!existsSync(versionsDir)) return [];
   return readdirSync(versionsDir)
-    .filter((name) => name.startsWith('pr-'))
+    .filter((name) => /^(pr-\d+|main)-/.test(name))
     .sort();
+}
+
+/** The builds of a pull request number, or of `main`. */
+function buildsOf(target: string): string[] {
+  const prefix = target === 'main' ? 'main-' : `pr-${target}-`;
+  return installedBuilds().filter((name) => name.startsWith(prefix));
 }
 
 function removeBuilds(builds: string[]) {
@@ -46,11 +53,11 @@ export function registerSelf(program: Command, buildId: string) {
   self
     .command('install')
     .description(
-      'Switch to the CI build of a pull request, downloading it if needed. Needs the GitHub CLI (gh).',
+      'Switch to the CI build of a pull request or of main, downloading it if needed. Needs the GitHub CLI (gh).',
     )
-    .argument('<pr>', 'Pull request number')
-    .action((pr: string) => {
-      const result = spawnSync('sh', ['-s', '--', pr], {
+    .argument('[target]', 'Pull request number, or main', 'main')
+    .action((target: string) => {
+      const result = spawnSync('sh', ['-s', '--', target], {
         input: installScript,
         stdio: ['pipe', 'inherit', 'inherit'],
       });
@@ -63,15 +70,13 @@ export function registerSelf(program: Command, buildId: string) {
     .description(
       'Run a downloaded build once without making it active, e.g. `self run 1234 -- app --port 3001`',
     )
-    .argument('<pr>', 'Pull request number')
+    .argument('<target>', 'Pull request number, or main')
     .argument('[args...]', 'Arguments for that build; put them after --')
-    .action((pr: string, args: string[]) => {
-      const build = installedBuilds().findLast((name) =>
-        name.startsWith(`pr-${pr}-`),
-      );
+    .action((target: string, args: string[]) => {
+      const build = buildsOf(target).at(-1);
       if (!build) {
         program.error(
-          `no build of pull request ${pr}; download it with: cyberismo-dev self install ${pr}`,
+          `no build of ${target} is downloaded; get it with: cyberismo-dev self install ${target}`,
         );
       }
       const result = spawnSync(
@@ -96,18 +101,16 @@ export function registerSelf(program: Command, buildId: string) {
 
   self
     .command('remove')
-    .description('Remove the downloaded builds of a pull request')
-    .argument('<pr>', 'Pull request number')
-    .action((pr: string) => {
-      const builds = installedBuilds().filter((build) =>
-        build.startsWith(`pr-${pr}-`),
-      );
+    .description('Remove the downloaded builds of a pull request or of main')
+    .argument('<target>', 'Pull request number, or main')
+    .action((target: string) => {
+      const builds = buildsOf(target);
       if (builds.includes(active)) {
         program.error(
           `${active} is the active build; switch to another one first`,
         );
       }
-      if (builds.length === 0) console.log(`no builds of pull request ${pr}`);
+      if (builds.length === 0) console.log(`no builds of ${target}`);
       removeBuilds(builds);
     });
 
