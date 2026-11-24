@@ -61,6 +61,7 @@ describe('FieldEditor', () => {
         shown,
       );
       const clear = screen.getByRole('button', { name: 'Clear field' });
+      expect(clear).toHaveTextContent('Clear');
       fireEvent.mouseDown(clear);
       fireEvent.click(clear);
 

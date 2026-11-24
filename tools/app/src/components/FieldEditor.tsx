@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: Cyberismo Ltd and contributors
 // SPDX-License-Identifier: AGPL-3.0-only
 
-import { Select, Option, Input, Textarea, IconButton } from '@mui/joy';
+import { Select, Option, Input, Textarea, Button } from '@mui/joy';
 import type {
   DataType,
   EnumDefinition,
@@ -9,7 +9,6 @@ import type {
 } from '../lib/definitions';
 import { useTranslation } from 'react-i18next';
 import Person from '@mui/icons-material/Person';
-import CloseRounded from '@mui/icons-material/CloseRounded';
 import LabelEditor from './LabelEditor';
 
 export interface FieldEditorProps {
@@ -42,14 +41,16 @@ export default function FieldEditor({
   const handleListboxOpenChange = (open: boolean) => {
     if (!open) onCommit?.();
   };
-  // The × button that clears a field and saves at once. It is shown only when
-  // the field has a value. Stopping mousedown keeps a Select listbox closed.
+  // The "Clear" button that clears a field and saves at once. It is a word and
+  // not an ×, so that it is not confused with the cancel button next to the
+  // editor. It is shown only when the field has a value. Stopping mousedown
+  // keeps a Select listbox closed.
   const clearButton = (
     hasValue: boolean,
     emptyValue: string[] | null = null,
   ) =>
     hasValue && !disabled ? (
-      <IconButton
+      <Button
         size="sm"
         variant="plain"
         color="neutral"
@@ -60,8 +61,8 @@ export default function FieldEditor({
           onCommit?.();
         }}
       >
-        <CloseRounded />
-      </IconButton>
+        {t('clear')}
+      </Button>
     ) : null;
   switch (dataType) {
     case 'integer':
