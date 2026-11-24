@@ -13,20 +13,6 @@ await import('./gen-assets.js');
 
 const createRequireDecl = 'const require = createRequire(import.meta.url);';
 
-// `createRequire(import.meta.url)` hides require() calls from the bundler, so
-// their targets are not embedded. Dropping the declaration leaves plain
-// require() calls that Bun bundles statically (css-tree's JSON data).
-const inlineCreateRequire: BunPlugin = {
-  name: 'inline-create-require',
-  setup(build) {
-    build.onLoad({ filter: /node_modules\/.*\.js$/ }, async (args) => {
-      const source = await readFile(args.path, 'utf8');
-      if (!source.includes(createRequireDecl)) return undefined;
-      return { contents: source.replace(createRequireDecl, ''), loader: 'js' };
-    });
-  },
-};
-
 // node-clingo picks its addon by runtime path; pin the in-tree build with a
 // literal require so the .node file is embedded in the binary.
 const embedClingoAddon: BunPlugin = {
@@ -118,12 +104,7 @@ const result = await Bun.build({
   // Bytecode defaults to CJS, which rejects our top-level await.
   format: 'esm',
   define: { BUILD_ID: JSON.stringify(buildId) },
-  plugins: [
-    inlineCreateRequire,
-    embedClingoAddon,
-    inlineJsdomStylesheet,
-    stubJsdomSyncXhrWorker,
-  ],
+  plugins: [embedClingoAddon, inlineJsdomStylesheet, stubJsdomSyncXhrWorker],
 });
 for (const log of result.logs) console.log(log);
 if (!result.success) process.exit(1);

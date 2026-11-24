@@ -27,6 +27,7 @@ pnpm workspaces under `tools/`:
 - `app` — React 19 + Vite frontend
 - `backend` — Hono server
 - `cli` — CLI (`cyberismo` command)
+- `cli-bin` — development tool: single-binary build of the CLI of a pull request (`cyberismo-dev`)
 - `data-handler` — core business logic
 - `mcp` — Model Context Protocol server
 - `node-clingo` — native Clingo bindings

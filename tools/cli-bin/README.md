@@ -20,10 +20,11 @@ gh api repos/CyberismoCom/cyberismo/contents/tools/cli-bin/install.sh \
 After that:
 
 ```sh
-cyberismo-dev self install 1234   # switch to a pull request, or to its newest commit
-cyberismo-dev self list           # downloaded builds
-cyberismo-dev self remove 1234    # remove the builds of a pull request
-cyberismo-dev self prune          # remove all builds except the active one
+cyberismo-dev self install 1234           # switch to a pull request, or to its newest commit
+cyberismo-dev self run 1234 -- validate   # run a downloaded build once, without switching
+cyberismo-dev self list                   # downloaded builds
+cyberismo-dev self remove 1234            # remove the builds of a pull request
+cyberismo-dev self prune                  # remove all builds except the active one
 ```
 
 Builds are kept in `~/.cyberismo-dev/versions`, one per pull request, and
@@ -34,7 +35,13 @@ removes its older build. `cyberismo-dev --version` shows the active build, as
 
 The install takes the build of the pull request's newest commit. If that build
 has not finished, has failed, or has expired (after 14 days), it says so
-instead of installing an older one.
+instead of installing an older one. Builds are made for pull requests into
+`main` that have no merge conflicts.
+
+Installing a pull request means running its code, as checking it out and
+building it would. That includes pull requests from forks, and nothing checks
+the binary beyond it coming from this repository's CI. Read the pull request
+first if you do not know its author.
 
 ## Build locally
 

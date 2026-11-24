@@ -17,7 +17,7 @@ static-site export. It holds no project rules; those live in data-handler.
 ## Dependencies
 
 - May use `@cyberismo/data-handler` (package root only), `@cyberismo/model`, and `@cyberismo/mcp` (hosted in `domain/mcp/`). Never `@cyberismo/cli`.
-- `@cyberismo/app` is a build-time input only: `build` copies `../app/dist` to `dist/public`, served by `app.ts`.
+- `@cyberismo/app` is a build-time input only: `build` copies `../app/dist` to `dist/public`, served by `app.ts`. `CYBERISMO_PUBLIC_DIR` overrides that directory; it is internal, set only by the `cyberismo-dev` binary (`tools/cli-bin`).
 - Inside: `domain/` -> `middleware/`, `common/`, `types.ts`; `auth/` and `common/` import no route module; `app.ts` imports routers via `index.ts`.
 - Enforced: `package.json` workspace dependencies (pnpm resolves only declared packages) and data-handler's `exports`. Inside rules are checked in review, not linted.
 

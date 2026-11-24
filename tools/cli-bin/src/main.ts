@@ -2,18 +2,18 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 // Entrypoint of the `cyberismo-dev` single binary. Static content is embedded
-// in the binary; code that walks or copies directories gets a per-build
-// extracted copy under the user cache dir.
+// in the binary; code that walks or copies directories gets a copy extracted
+// next to the binary.
 import type { EventEmitter } from 'node:events';
 import {
   existsSync,
   mkdirSync,
   readFileSync,
+  realpathSync,
   renameSync,
   rmSync,
   writeFileSync,
 } from 'node:fs';
-import { homedir } from 'node:os';
 import { dirname, join } from 'node:path';
 
 import { assetsHash, embeddedAssets } from './embedded-assets.gen.js';
@@ -22,9 +22,12 @@ import { registerSelf } from './self.js';
 // Replaced at build time, see build.ts.
 declare const BUILD_ID: string;
 
+// Extracted next to the binary, so removing a build removes its assets too.
 function materialiseAssets(): string {
-  const cacheRoot = process.env.XDG_CACHE_HOME ?? join(homedir(), '.cache');
-  const root = join(cacheRoot, 'cyberismo-dev', 'assets', assetsHash);
+  const root = join(
+    dirname(realpathSync(process.execPath)),
+    `assets-${assetsHash}`,
+  );
   if (existsSync(join(root, '.complete'))) return root;
   const tmp = `${root}.tmp-${process.pid}`;
   for (const [logical, embedded] of embeddedAssets) {
@@ -35,9 +38,10 @@ function materialiseAssets(): string {
   writeFileSync(join(tmp, '.complete'), '');
   try {
     renameSync(tmp, root);
-  } catch {
-    // Another process won the race; its copy is identical.
+  } catch (error) {
     rmSync(tmp, { recursive: true, force: true });
+    // Fine if another process won the race; its copy is identical.
+    if (!existsSync(join(root, '.complete'))) throw error;
   }
   return root;
 }

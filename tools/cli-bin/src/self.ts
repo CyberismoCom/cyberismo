@@ -59,6 +59,33 @@ export function registerSelf(program: Command, buildId: string) {
     });
 
   self
+    .command('run')
+    .description(
+      'Run a downloaded build once without making it active, e.g. `self run 1234 -- app --port 3001`',
+    )
+    .argument('<pr>', 'Pull request number')
+    .argument('[args...]', 'Arguments for that build; put them after --')
+    .action((pr: string, args: string[]) => {
+      const build = installedBuilds().findLast((name) =>
+        name.startsWith(`pr-${pr}-`),
+      );
+      if (!build) {
+        program.error(
+          `no build of pull request ${pr}; download it with: cyberismo-dev self install ${pr}`,
+        );
+      }
+      const result = spawnSync(
+        join(versionsDir, build, 'cyberismo-dev'),
+        args,
+        {
+          stdio: 'inherit',
+        },
+      );
+      if (result.error) throw result.error;
+      process.exitCode = result.status ?? 1;
+    });
+
+  self
     .command('list')
     .description('List the downloaded builds')
     .action(() => {

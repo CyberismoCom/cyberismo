@@ -483,13 +483,13 @@ importers:
       '@cyberismo/cli':
         specifier: workspace:*
         version: link:../cli
-      commander:
-        specifier: ^15.0.0
-        version: 15.0.0
     devDependencies:
       '@types/bun':
         specifier: ^1.3.0
         version: 1.4.4
+      commander:
+        specifier: ^15.0.0
+        version: 15.0.0
 
   tools/data-handler:
     dependencies:

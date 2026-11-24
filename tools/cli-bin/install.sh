@@ -51,25 +51,23 @@ dest="$VERSIONS_DIR/$build"
 if [ -x "$dest/cyberismo-dev" ]; then
   echo "$build is already downloaded"
 else
-  # 4. The CI run that built that commit.
+  # 4. The CI run for that commit, and this platform's binary from it. A run
+  #    can fail on the other platform and still have the binary for this one.
   runs() {
     gh run list -R "$REPO" --workflow binary.yml --commit "$sha" --limit 1 \
-      --json databaseId,status "$@" -q '.[0] | select(.) | "\(.databaseId) \(.status)"'
+      --json databaseId "$@" -q '.[0].databaseId // empty'
   }
-  run=$(runs --status success)
-  run=${run%% *}
+  run=$(runs --status completed)
   if [ -z "$run" ]; then
-    latest=$(runs)
-    case "$latest" in
-      "") die "no build of pull request $pr at $short yet; it starts within a minute of a push" ;;
-      *" completed") die "the build of pull request $pr at $short failed: gh run view ${latest%% *} -R $REPO" ;;
-      *) die "the build of pull request $pr at $short is still running: gh run watch ${latest%% *} -R $REPO" ;;
-    esac
+    run=$(runs)
+    [ -z "$run" ] ||
+      die "the build of pull request $pr at $short is still running: gh run watch $run -R $REPO"
+    die "no build of pull request $pr at $short. One starts within a minute of a push, but only for pull requests into main that have no merge conflicts"
   fi
   artifact_id=$(gh api "repos/$REPO/actions/runs/$run/artifacts" \
     -q ".artifacts[] | select(.name == \"$artifact\" and (.expired | not)) | .id")
   [ -n "$artifact_id" ] ||
-    die "the build of pull request $pr at $short has expired; re-run it: gh run rerun $run -R $REPO"
+    die "the build of pull request $pr at $short failed or has expired: gh run view $run -R $REPO"
 
   # 5. Download it and check that it runs.
   mkdir -p "$VERSIONS_DIR"

@@ -9,7 +9,7 @@ import { serve, type ServerType } from '@hono/node-server';
  * CYBERISMO_PUBLIC_DIR at its embedded copy.
  */
 export const staticFrontendDir =
-  process.env.CYBERISMO_PUBLIC_DIR ??
+  process.env.CYBERISMO_PUBLIC_DIR ||
   path.resolve(import.meta.dirname, 'public');
 
 /**
