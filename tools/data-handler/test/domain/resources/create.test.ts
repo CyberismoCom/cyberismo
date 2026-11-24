@@ -271,6 +271,39 @@ describe('resources.create', () => {
     },
   );
 
+  it('creates a calculation with the display name given', async () => {
+    const { ws } = await open(spec);
+
+    await ws.resources.create('named', 'calculations', {
+      displayName: 'Named',
+    });
+
+    expect(await ws.resources.show('test/calculations/named')).toMatchObject({
+      name: 'test/calculations/named',
+      displayName: 'Named',
+      calculation: 'calculation.lp',
+    });
+  });
+
+  it('creates a calculation from content, with the display name given', async () => {
+    const { ws } = await open(spec);
+
+    await ws.resources.create('named', 'calculations', {
+      content: {
+        name: 'ignored',
+        displayName: 'Replaced',
+        description: 'About',
+        calculation: '',
+      },
+      displayName: 'Named',
+    });
+
+    expect(await ws.resources.show('test/calculations/named')).toMatchObject({
+      displayName: 'Named',
+      description: 'About',
+    });
+  });
+
   describe('refusals leave the project as it was', () => {
     it.each([
       {
