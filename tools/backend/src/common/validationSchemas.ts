@@ -23,39 +23,16 @@ export const identifierSchema = z
     message: 'Invalid identifier',
   });
 
-/**
- * Path params of a resource route. Resource routes name the prefix of the
- * resource `:resourcePrefix`, because the project-scoped routes are mounted
- * at `/api/projects/:prefix`, and Hono gives the project prefix for a
- * repeated `:prefix`. A resource of a module would then be looked up under
- * the prefix of the project.
- */
-export const resourceRouteParamsSchema = z.object({
-  resourcePrefix: z.string(),
+export const resourceParamsSchema = z.object({
+  prefix: z.string(),
   type: z.enum(resourceTypes),
   identifier: identifierSchema,
 });
 
-/**
- * Renames the `resourcePrefix` route param to the `prefix` of a resource
- * name.
- */
-export function toResourcePrefix<T extends { resourcePrefix: string }>({
-  resourcePrefix,
-  ...rest
-}: T): Omit<T, 'resourcePrefix'> & { prefix: string } {
-  return { prefix: resourcePrefix, ...rest };
-}
-
-export const resourceParamsSchema =
-  resourceRouteParamsSchema.transform(toResourcePrefix);
-
 export type ResourceParams = z.infer<typeof resourceParamsSchema>;
 
-export const resourceParamsWithCard = resourceRouteParamsSchema
-  .extend({
-    type: z.enum([...resourceTypes, 'cards']),
-  })
-  .transform(toResourcePrefix);
+export const resourceParamsWithCard = resourceParamsSchema.extend({
+  type: z.enum([...resourceTypes, 'cards']),
+});
 
 export type ResourceParamsWithCard = z.infer<typeof resourceParamsWithCard>;

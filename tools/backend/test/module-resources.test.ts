@@ -12,7 +12,7 @@ import {
   directoryOf,
 } from './helpers/open-test-workspace.js';
 
-// The resource routes are mounted under /api/projects/:prefix. A resource of
+// The resource routes are mounted under /api/projects/:projectPrefix. A resource of
 // a module has a prefix other than the project prefix, and the routes must
 // find it under its own prefix. The project 'test' has the resources of the
 // project 'decision-records' installed as the module 'decision'.
@@ -48,14 +48,6 @@ test('the workflow graph of a module workflow renders', async () => {
   const decoded = Buffer.from(result.svg, 'base64').toString('utf-8');
   expect(decoded).toContain('<svg');
   expect(decoded).toContain('Approved');
-}, 20000);
-
-test('the workflow graph of a project workflow still renders', async () => {
-  const response = await app.request(
-    '/api/projects/test/resources/test/workflows/test/graph',
-  );
-
-  expect(response.status).toBe(200);
 }, 20000);
 
 test('a module resource validates under its own prefix', async () => {

@@ -12,7 +12,7 @@ import { requireRole } from '../../middleware/auth.js';
 const router = new Hono();
 
 router.get(
-  '/:resourcePrefix/:type/:identifier',
+  '/:prefix/:type/:identifier',
   requireRole(UserRole.Reader),
   zValidator('param', resourceParamsWithCard),
   async (c) => {

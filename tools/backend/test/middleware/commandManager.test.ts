@@ -67,11 +67,14 @@ function createApp(
     identity: ws.identity,
     hasEvents,
   });
-  app.use('/projects/:prefix/*', attachProjectDirectory(directory, events));
-  app.get('/projects/:prefix/test', (c) =>
+  app.use(
+    '/projects/:projectPrefix/*',
+    attachProjectDirectory(directory, events),
+  );
+  app.get('/projects/:projectPrefix/test', (c) =>
     c.json(body(c.get('ws'), !!c.get('events'))),
   );
-  // Fixed prefix route (no :prefix param)
+  // Fixed prefix route (no :projectPrefix param)
   app.use('/static/*', attachProjectDirectory(directory, events, fixedPrefix));
   app.get('/static/test', (c) => c.json({ ok: true }));
   app.onError((error, c) => {

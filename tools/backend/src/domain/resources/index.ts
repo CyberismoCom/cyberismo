@@ -40,13 +40,13 @@ router.get('/tree', requireRole(UserRole.Reader), async (c) => {
 
 /**
  * @swagger
- * /api/resources/{resourcePrefix}/{type}/{identifier}/validate:
+ * /api/resources/{prefix}/{type}/{identifier}/validate:
  *   get:
  *     summary: Validates a single resource
  *     description: Returns validation errors for a specific resource
  *     parameters:
  *       - in: path
- *         name: resourcePrefix
+ *         name: prefix
  *         required: true
  *         schema:
  *           type: string
@@ -83,7 +83,7 @@ router.get('/tree', requireRole(UserRole.Reader), async (c) => {
  *         description: Internal server error
  */
 router.get(
-  '/:resourcePrefix/:type/:identifier/validate',
+  '/:prefix/:type/:identifier/validate',
   requireRole(UserRole.Reader),
   zValidator('param', validateResourceParamsSchema),
   async (c) => {
@@ -97,7 +97,7 @@ router.get(
 );
 
 router.delete(
-  '/:resourcePrefix/:type/:identifier',
+  '/:prefix/:type/:identifier',
   requireRole(UserRole.Admin),
   zValidator('param', resourceParamsSchema),
   async (c) => {
@@ -112,7 +112,7 @@ router.delete(
 
 /**
  * @swagger
- * /api/resources/{resourcePrefix}/workflows/{identifier}/graph:
+ * /api/resources/{prefix}/workflows/{identifier}/graph:
  *   get:
  *     summary: Render the state-machine graph for a workflow
  *     description: Returns a base64-encoded sanitized SVG of the workflow's
@@ -122,7 +122,7 @@ router.delete(
  *                  that card's current workflowState.
  *     parameters:
  *       - in: path
- *         name: resourcePrefix
+ *         name: prefix
  *         required: true
  *         schema:
  *           type: string
@@ -157,15 +157,11 @@ router.delete(
  *         description: Server error
  */
 router.get(
-  '/:resourcePrefix/workflows/:identifier/graph',
+  '/:prefix/workflows/:identifier/graph',
   requireRole(UserRole.Reader),
   ssgParams(async (c: AppContext) => {
     const ws = c.get('ws');
-    const params = await resourceService.listWorkflowGraphParams(ws);
-    return params.map(({ prefix, identifier }) => ({
-      resourcePrefix: prefix,
-      identifier,
-    }));
+    return resourceService.listWorkflowGraphParams(ws);
   }),
   zValidator('param', prefixIdentifierParamsSchema),
   zValidator('query', workflowGraphQuerySchema),
@@ -181,7 +177,7 @@ router.get(
 
 /**
  * @swagger
- * /api/resources/{resourcePrefix}/skills/{identifier}/preview:
+ * /api/resources/{prefix}/skills/{identifier}/preview:
  *   post:
  *     summary: Render a skill's instructions for the configuration editor
  *     description: Applies Handlebars templating to the skill content and
@@ -193,7 +189,7 @@ router.get(
  *                  unsaved editor content instead of what is stored on disk.
  *     parameters:
  *       - in: path
- *         name: resourcePrefix
+ *         name: prefix
  *         required: true
  *         schema:
  *           type: string
@@ -246,7 +242,7 @@ router.get(
  *                      header's seconds
  */
 router.post(
-  '/:resourcePrefix/skills/:identifier/preview',
+  '/:prefix/skills/:identifier/preview',
   requireRole(UserRole.Admin),
   zValidator('param', prefixIdentifierParamsSchema),
   zValidator('json', skillPreviewBodySchema),
@@ -265,7 +261,7 @@ router.post(
 );
 
 router.post(
-  '/:resourcePrefix/:type/:identifier/operation',
+  '/:prefix/:type/:identifier/operation',
   requireRole(UserRole.Admin, [UserRole.Connector]),
   zValidator('param', resourceParamsSchema),
   zValidator('json', updateOperationBodySchema),
