@@ -36,9 +36,10 @@ export function actorOf(user: UserInfo): ActorRef {
  *
  * @param directory - Directory the project is opened from.
  * @param events - Events of the directory's projects.
- * @param fixedPrefix - When provided, used instead of the `:prefix` route
- *   param. This is needed in export/SSG mode where routes are mounted at
- *   concrete paths (e.g. `/api/projects/decision/...`) with no dynamic param.
+ * @param fixedPrefix - When provided, used instead of the `:projectPrefix`
+ *   route param. This is needed in export/SSG mode where routes are mounted
+ *   at concrete paths (e.g. `/api/projects/decision/...`) with no dynamic
+ *   param.
  */
 export const attachProjectDirectory = (
   directory: ProjectDirectory,
@@ -46,7 +47,7 @@ export const attachProjectDirectory = (
   fixedPrefix?: string,
 ): MiddlewareHandler => {
   return async (c: Context, next) => {
-    const prefix = c.req.param('prefix') ?? fixedPrefix;
+    const prefix = c.req.param('projectPrefix') ?? fixedPrefix;
     if (!prefix) {
       return c.json({ error: 'Project prefix is required' }, 400);
     }

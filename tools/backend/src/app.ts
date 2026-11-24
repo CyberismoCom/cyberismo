@@ -206,7 +206,7 @@ export function createApp(
 
   if (exportPrefixes) {
     // Export mode: mount at each concrete prefix so SSG sees
-    // static routes instead of dynamic :prefix patterns it would skip.
+    // static routes instead of dynamic :projectPrefix patterns it would skip.
     for (const prefix of exportPrefixes) {
       const scoped = createProjectScopedRoutes(
         attachProjectDirectory(directory, events, prefix),
@@ -214,11 +214,11 @@ export function createApp(
       app.route(`/api/projects/${prefix}`, scoped);
     }
   } else {
-    // Normal mode: dynamic :prefix param
+    // Normal mode: dynamic :projectPrefix param
     const scoped = createProjectScopedRoutes(
       attachProjectDirectory(directory, events),
     );
-    app.route('/api/projects/:prefix', scoped);
+    app.route('/api/projects/:projectPrefix', scoped);
   }
 
   // MCP endpoint for AI assistant integration
