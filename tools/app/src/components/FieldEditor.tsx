@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: Cyberismo Ltd and contributors
 // SPDX-License-Identifier: AGPL-3.0-only
 
-import { Select, Option, Input, Textarea, Button } from '@mui/joy';
+import { Select, Option, Input, Textarea } from '@mui/joy';
 import type {
   DataType,
   EnumDefinition,
@@ -10,6 +10,7 @@ import type {
 import { useTranslation } from 'react-i18next';
 import Person from '@mui/icons-material/Person';
 import LabelEditor from './LabelEditor';
+import ClearButton from './ClearButton';
 
 export interface FieldEditorProps {
   value: MetadataValue;
@@ -25,6 +26,11 @@ export interface FieldEditorProps {
   focus?: boolean;
   /** Accessible name for the control when no visible label is rendered. */
   ariaLabel?: string;
+  /**
+   * Shows a Clear button on enum, boolean, list, date, and dateTime editors
+   * that have a value. Turn it off where another control clears the field.
+   */
+  clearable?: boolean;
 }
 
 export default function FieldEditor({
@@ -36,33 +42,28 @@ export default function FieldEditor({
   disabled,
   focus,
   ariaLabel,
+  clearable = true,
 }: FieldEditorProps) {
   const { t } = useTranslation();
   const handleListboxOpenChange = (open: boolean) => {
     if (!open) onCommit?.();
   };
-  // The "Clear" button that clears a field and saves at once. It is a word and
-  // not an ×, so that it is not confused with the cancel button next to the
-  // editor. It is shown only when the field has a value. Stopping mousedown
-  // keeps a Select listbox closed.
+  // Clears the field. A caller that saves in onCommit saves the cleared
+  // value at once; other callers keep it as a draft.
   const clearButton = (
     hasValue: boolean,
     emptyValue: string[] | null = null,
   ) =>
-    hasValue && !disabled ? (
-      <Button
-        size="sm"
-        variant="plain"
-        color="neutral"
-        aria-label={t('clearField')}
-        onMouseDown={(event) => event.stopPropagation()}
+    clearable && hasValue && !disabled ? (
+      <ClearButton
+        ariaLabel={
+          ariaLabel ? t('clearNamed', { field: ariaLabel }) : undefined
+        }
         onClick={() => {
           onChange?.(emptyValue);
           onCommit?.();
         }}
-      >
-        {t('clear')}
-      </Button>
+      />
     ) : null;
   switch (dataType) {
     case 'integer':

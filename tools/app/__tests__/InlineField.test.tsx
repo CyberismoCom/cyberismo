@@ -303,7 +303,7 @@ describe('InlineField popover', () => {
     // The editor starts from the stored override, not the value shown or the calculated one.
     expect(editor()).toHaveValue('Ann');
     expect(screen.getByText('Bob')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'clearOverride' }));
+    fireEvent.click(screen.getByRole('button', { name: 'clear' }));
 
     await waitFor(() => expect(onSave).toHaveBeenCalledWith(null));
   });

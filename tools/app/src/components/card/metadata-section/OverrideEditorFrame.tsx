@@ -3,32 +3,9 @@
 
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Box, Button, Stack, Tooltip, Typography } from '@mui/joy';
+import { Box, Stack, Tooltip, Typography } from '@mui/joy';
 import { rowValueWidthSx } from '@/components/fieldRowFrame';
-
-/** Removes a stored value, restoring the calculated value of the field. */
-export function ClearOverrideButton({
-  disabled,
-  onClick,
-}: {
-  disabled?: boolean;
-  onClick: () => void;
-}) {
-  const { t } = useTranslation();
-  return (
-    <Button
-      data-cy="fieldClearOverrideButton"
-      size="sm"
-      variant="plain"
-      color="neutral"
-      disabled={disabled}
-      onClick={onClick}
-      onMouseDown={(e) => e.preventDefault()}
-    >
-      {t('clearOverride')}
-    </Button>
-  );
-}
+import ClearButton from '@/components/ClearButton';
 
 /**
  * Marks a field whose calculated value is currently replaced by a stored
@@ -116,7 +93,11 @@ export function OverrideEditorFrame({
         <Box flexGrow={1} minWidth={0}>
           {editor}
         </Box>
-        <ClearOverrideButton disabled={clearDisabled} onClick={onClear} />
+        <ClearButton
+          dataCy="fieldClearOverrideButton"
+          disabled={clearDisabled}
+          onClick={onClear}
+        />
         {actions}
       </Stack>
     </Stack>

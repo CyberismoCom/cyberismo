@@ -153,8 +153,7 @@
   "cleanPromptTitle": "Dormant field values in this project",
   "cleanSuccess": "Dormant field values removed",
   "clear": "Clear",
-  "clearField": "Clear field",
-  "clearOverride": "Clear",
+  "clearNamed": "Clear {{field}}",
   "close": "Close",
   "configMove": {
     "invalidTarget": "Cannot drop the card here.",

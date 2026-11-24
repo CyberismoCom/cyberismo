@@ -159,6 +159,40 @@ describe('FieldRow', () => {
       expect(input.value).toBe('');
     });
 
+    it('shows one Clear button for an enum override, not the editor one too', () => {
+      render(
+        <FieldRow
+          value="high"
+          overrideValue="high"
+          calculatedValue="low"
+          overrideMode
+          label="Priority"
+          dataType="enum"
+          enumValues={[
+            {
+              key: 'low',
+              index: 0,
+              enumValue: 'low',
+              enumDisplayValue: 'Low',
+              enumDescription: '',
+            },
+            {
+              key: 'high',
+              index: 1,
+              enumValue: 'high',
+              enumDisplayValue: 'High',
+              enumDescription: '',
+            },
+          ]}
+          isEditing
+          expanded
+          onSave={vi.fn()}
+        />,
+      );
+
+      expect(screen.getAllByText('Clear')).toHaveLength(1);
+    });
+
     it('disables Clear when there is no existing override and nothing has been typed', () => {
       render(
         <FieldRow
