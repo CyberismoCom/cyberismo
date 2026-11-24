@@ -66,6 +66,7 @@ export {
 export { errorFunction } from './shared/utils/error-utils.js';
 export type { WorkspaceOptions } from './api/workspace.js';
 export type { SettingsUpdate } from './api/settings.js';
+export type { LinkEnd } from './api/cards.js';
 export type { GraphRequest } from './api/queries.js';
 export {
   queryOptions,

@@ -8,7 +8,11 @@ import type {
   MetadataContent,
   QueryResult,
 } from '@cyberismo/model';
-import { AsciidoctorPdfError, type Workspace } from '@cyberismo/data-handler';
+import {
+  AsciidoctorPdfError,
+  type LinkEnd,
+  type Workspace,
+} from '@cyberismo/data-handler';
 import { preprocessMermaidBlocksForHtml } from './mermaid.js';
 import { allCards } from './lib.js';
 import {
@@ -286,31 +290,11 @@ export async function removeLink(
 export async function updateLink(
   ws: Workspace,
   key: string,
-  toCard: string,
-  linkType: string,
-  direction: 'outbound' | 'inbound',
-  previousToCard: string,
-  previousLinkType: string,
-  previousDirection: 'outbound' | 'inbound',
-  linkDescription?: string,
-  previousLinkDescription?: string,
+  link: LinkEnd,
+  changed: LinkEnd,
 ) {
-  // For simplicity create the new link first so that duplicate-link validation runs before
-  // the old link is removed. This also handles direction changes.
-  return ws.atomic(async () => {
-    await createLink(ws, key, toCard, linkType, direction, linkDescription);
-
-    await removeLink(
-      ws,
-      key,
-      previousToCard,
-      previousLinkType,
-      previousDirection,
-      previousLinkDescription,
-    );
-
-    return { message: 'Link updated successfully' };
-  }, `Update link on ${key} to ${toCard}`);
+  await ws.cards.editLink(key, link, changed);
+  return { message: 'Link updated successfully' };
 }
 
 export async function getAttachment(

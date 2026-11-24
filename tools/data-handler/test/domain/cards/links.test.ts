@@ -1,6 +1,8 @@
 // SPDX-FileCopyrightText: Cyberismo Ltd and contributors
 // SPDX-License-Identifier: AGPL-3.0-only
 
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
 import { describe, expect, it } from 'vitest';
 
 import type { Workspace } from '../../../src/api/workspace.js';
@@ -8,6 +10,9 @@ import { CardNotFoundError } from '../../../src/shared/exceptions/index.js';
 import { expectRefused, metadataOf, projects } from './fixture.js';
 
 const open = projects();
+
+const git = async (path: string, ...args: string[]) =>
+  (await promisify(execFile)('git', args, { cwd: path })).stdout.trim();
 
 const rel = 'test/linkTypes/rel';
 const note = 'test/linkTypes/note';
@@ -222,5 +227,115 @@ describe('cards.removeLink', () => {
     const { cards, path, keys } = await open(spec);
 
     await expectRefused(path, () => operation(cards, keys), error);
+  });
+});
+
+describe('cards.editLink', () => {
+  it('changes the description of a link in place of the old one', async () => {
+    const { ws, keys } = await open(spec);
+
+    await ws.cards.editLink(
+      keys[0],
+      { target: keys[2], linkType: described, linkDescription: 'why' },
+      { target: keys[2], linkType: described, linkDescription: 'because' },
+    );
+
+    expect(await linksOf(ws, keys[0])).toEqual([
+      { linkType: rel, cardKey: keys[1] },
+      { linkType: described, cardKey: keys[2], linkDescription: 'because' },
+    ]);
+  });
+
+  it('turns an outbound link inbound, moving it to the other card', async () => {
+    const { ws, keys } = await open(spec);
+
+    await ws.cards.editLink(
+      keys[0],
+      { target: keys[1], linkType: rel, direction: 'outbound' },
+      { target: keys[1], linkType: rel, direction: 'inbound' },
+    );
+
+    expect(await linksOf(ws, keys[0])).toEqual([
+      { linkType: described, cardKey: keys[2], linkDescription: 'why' },
+    ]);
+    expect(await linksOf(ws, keys[1])).toEqual([
+      { linkType: rel, cardKey: keys[0] },
+    ]);
+  });
+
+  it('changes the other end and type of an external link', async () => {
+    const { ws, keys } = await open(spec);
+
+    await ws.cards.editLink(
+      keys[0],
+      { target: 'jira:P-1', linkType: rel },
+      { target: 'jira:P-2', linkType: rel, direction: 'inbound' },
+    );
+
+    expect(await externalOf(ws, keys[0])).toEqual([
+      { ...jira, externalItemKey: 'P-2', direction: 'inbound' },
+    ]);
+  });
+
+  it.each([
+    [
+      'into a link the card already has',
+      (c: Links, k: string[]) =>
+        c.editLink(
+          k[0],
+          { target: k[2], linkType: described, linkDescription: 'why' },
+          { target: k[1], linkType: rel },
+        ),
+      /already exists/,
+    ],
+    [
+      'a link the card lacks',
+      (c: Links, k: string[]) =>
+        c.editLink(
+          k[1],
+          { target: k[0], linkType: rel },
+          { target: k[2], linkType: rel },
+        ),
+      /not found/,
+    ],
+    [
+      'into a link its card types do not allow',
+      (c: Links, k: string[]) =>
+        c.editLink(
+          k[0],
+          { target: k[1], linkType: rel },
+          { target: k[1], linkType: note },
+        ),
+      /cannot be used as destination/,
+    ],
+  ])('refuses to change %s, writing nothing', async (_name, edit, error) => {
+    // A failed write is rolled back under autocommit only.
+    const { cards, path, keys } = await open(
+      { ...spec, git: true },
+      { autocommit: true },
+    );
+
+    await expectRefused(path, () => edit(cards, keys), error);
+  });
+
+  it('is one commit', async () => {
+    const { ws, path, keys } = await open(
+      { ...spec, git: true },
+      { autocommit: true },
+    );
+    const before = await git(path, 'rev-list', '--count', 'HEAD');
+
+    await ws.cards.editLink(
+      keys[0],
+      { target: keys[1], linkType: rel },
+      { target: keys[2], linkType: rel },
+    );
+
+    expect(await git(path, 'log', '-1', '--format=%s')).toBe(
+      `Edit link of ${keys[0]}`,
+    );
+    expect(Number(await git(path, 'rev-list', '--count', 'HEAD'))).toBe(
+      Number(before) + 1,
+    );
   });
 });
