@@ -154,37 +154,37 @@ export async function getProjectInfo(ws: Workspace) {
   });
 }
 
-export async function updateCard(
+export async function editCardContent(
   ws: Workspace,
   key: string,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  body: any,
+  content: string,
 ): Promise<void> {
-  await ws.atomic(async () => {
-    if (body.state) {
-      await ws.cards.transition(key, body.state);
-    }
-    if (body.content != null) {
-      await ws.cards.edit(key, body.content);
-    }
-    if (body.metadata) {
-      for (const [metadataKey, metadataValue] of Object.entries(
-        body.metadata,
-      )) {
-        await ws.cards.editField(
-          key,
-          metadataKey,
-          metadataValue as Exclude<MetadataContent, bigint>,
-        );
-      }
-    }
-    if (body.parent) {
-      await ws.cards.move(key, body.parent);
-    }
-    if (body.index != null) {
-      await ws.cards.rankAt(key, body.index);
-    }
-  }, `Update card ${key}`);
+  await ws.cards.edit(key, content);
+}
+
+export async function editCardFields(
+  ws: Workspace,
+  key: string,
+  fields: Record<string, Exclude<MetadataContent, bigint>>,
+): Promise<void> {
+  await ws.cards.editFields(key, fields);
+}
+
+export async function transitionCard(
+  ws: Workspace,
+  key: string,
+  transition: string,
+): Promise<void> {
+  await ws.cards.transition(key, transition);
+}
+
+export async function moveCard(
+  ws: Workspace,
+  key: string,
+  parent: string,
+  index?: number,
+): Promise<void> {
+  await ws.cards.move(key, parent, index);
 }
 
 export async function deleteCard(ws: Workspace, key: string) {

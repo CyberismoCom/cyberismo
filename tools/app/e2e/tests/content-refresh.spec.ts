@@ -33,7 +33,7 @@ test('a content refresh keeps the text selection', async ({
   const cardApiPath = `/api/projects/${prefix}/cards/${card.key}`;
 
   const write = async (tail: string) => {
-    const res = await page.request.patch(cardApiPath, {
+    const res = await page.request.put(`${cardApiPath}/content`, {
       data: { content: body(tail) },
     });
     expect(res.ok()).toBeTruthy();

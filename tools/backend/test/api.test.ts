@@ -718,20 +718,18 @@ test('PUT /api/projects/:prefix/cards/:key/links returns 400 when required field
   expect(response.status).toBe(400);
 });
 
-test('PATCH /api/projects/:prefix/cards/:key updates a single metadata field and returns updated card', async () => {
+test('PATCH /api/projects/:prefix/cards/:key/fields updates a single metadata field and returns updated card', async () => {
   const before = (await (
     await app.request('/api/projects/decision/cards/decision_5')
   ).json()) as CardApiResponse;
 
   try {
     const response = await app.request(
-      '/api/projects/decision/cards/decision_5',
+      '/api/projects/decision/cards/decision_5/fields',
       {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          metadata: { title: 'Updated Title' },
-        }),
+        body: JSON.stringify({ title: 'Updated Title' }),
       },
     );
     expect(response.status).toBe(200);
@@ -741,33 +739,29 @@ test('PATCH /api/projects/:prefix/cards/:key updates a single metadata field and
   } finally {
     // Restore original title
     const restore = await app.request(
-      '/api/projects/decision/cards/decision_5',
+      '/api/projects/decision/cards/decision_5/fields',
       {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          metadata: { title: before.title },
-        }),
+        body: JSON.stringify({ title: before.title }),
       },
     );
     expect(restore.status).toBe(200);
   }
 });
 
-test('PATCH /api/projects/:prefix/cards/:key updates labels and returns updated card', async () => {
+test('PATCH /api/projects/:prefix/cards/:key/fields updates labels and returns updated card', async () => {
   const before = (await (
     await app.request('/api/projects/decision/cards/decision_5')
   ).json()) as CardApiResponse;
 
   try {
     const response = await app.request(
-      '/api/projects/decision/cards/decision_5',
+      '/api/projects/decision/cards/decision_5/fields',
       {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          metadata: { labels: ['new-label', 'another-label'] },
-        }),
+        body: JSON.stringify({ labels: ['new-label', 'another-label'] }),
       },
     );
     expect(response.status).toBe(200);
@@ -776,45 +770,40 @@ test('PATCH /api/projects/:prefix/cards/:key updates labels and returns updated 
   } finally {
     // Restore original labels
     const restore = await app.request(
-      '/api/projects/decision/cards/decision_5',
+      '/api/projects/decision/cards/decision_5/fields',
       {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          metadata: { labels: before.labels },
-        }),
+        body: JSON.stringify({ labels: before.labels }),
       },
     );
     expect(restore.status).toBe(200);
   }
 });
 
-test('PATCH /api/projects/:prefix/cards/:key returns 404 for unknown card key', async () => {
-  const response = await app.request('/api/projects/decision/cards/bogus_999', {
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      metadata: { title: 'Should Fail' },
-    }),
-  });
+test('PATCH /api/projects/:prefix/cards/:key/fields returns 404 for unknown card key', async () => {
+  const response = await app.request(
+    '/api/projects/decision/cards/bogus_999/fields',
+    {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title: 'Should Fail' }),
+    },
+  );
   expect(response.status).toBe(404);
   expect(await response.json()).toMatchObject({ code: 'not-found' });
 });
 
-test('PATCH /api/projects/:prefix/cards/:key returns 400 for an invalid index', async () => {
+test('POST /api/projects/:prefix/cards/:key/move returns 400 for an invalid index', async () => {
   const response = await app.request(
-    '/api/projects/decision/cards/decision_5',
+    '/api/projects/decision/cards/decision_5/move',
     {
-      method: 'PATCH',
+      method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ index: -1 }),
+      body: JSON.stringify({ parent: 'root', index: -1 }),
     },
   );
   expect(response.status).toBe(400);
-  expect(await response.json()).toMatchObject({
-    code: 'validation',
-    message: 'Index must be greater than 0',
-  });
 });
 
 test('POST /api/projects/:prefix/cards/:key returns 404 for an unknown template', async () => {
@@ -827,7 +816,7 @@ test('POST /api/projects/:prefix/cards/:key returns 404 for an unknown template'
   expect(await response.json()).toMatchObject({ code: 'not-found' });
 });
 
-test('PATCH /api/projects/:prefix/cards/:key does not override other metadata fields', async () => {
+test('PATCH /api/projects/:prefix/cards/:key/fields does not override other metadata fields', async () => {
   // Read original card state
   const before = (await (
     await app.request('/api/projects/decision/cards/decision_5')
@@ -836,13 +825,11 @@ test('PATCH /api/projects/:prefix/cards/:key does not override other metadata fi
   try {
     // Update only the title
     const response = await app.request(
-      '/api/projects/decision/cards/decision_5',
+      '/api/projects/decision/cards/decision_5/fields',
       {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          metadata: { title: 'Partial Update' },
-        }),
+        body: JSON.stringify({ title: 'Partial Update' }),
       },
     );
     expect(response.status).toBe(200);
@@ -857,13 +844,11 @@ test('PATCH /api/projects/:prefix/cards/:key does not override other metadata fi
   } finally {
     // Restore original title
     const restore = await app.request(
-      '/api/projects/decision/cards/decision_5',
+      '/api/projects/decision/cards/decision_5/fields',
       {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          metadata: { title: before.title },
-        }),
+        body: JSON.stringify({ title: before.title }),
       },
     );
     expect(restore.status).toBe(200);

@@ -1,8 +1,10 @@
 // SPDX-FileCopyrightText: Cyberismo Ltd and contributors
 // SPDX-License-Identifier: AGPL-3.0-only
 
+import { execFile } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { promisify } from 'node:util';
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -18,6 +20,9 @@ import {
 } from './fixture.js';
 
 const open = projects();
+
+const git = async (path: string, ...args: string[]) =>
+  (await promisify(execFile)('git', args, { cwd: path })).stdout.trim();
 
 const size = 'test/fieldTypes/size';
 const score = 'test/fieldTypes/score';
@@ -184,6 +189,70 @@ describe('cards.editField', () => {
       path,
       () => ws.cards.editField(card, field, value as never),
       error,
+    );
+  });
+});
+
+describe('cards.editFields', () => {
+  it('sets several fields, changing nothing else', async () => {
+    const { ws, keys } = await open(spec);
+    const before = await metadataOf(ws, keys[0]);
+
+    await ws.cards.editFields(keys[0], {
+      title: 'Renamed',
+      [size]: 9,
+      labels: ['x'],
+    });
+
+    const after = await metadataOf(ws, keys[0]);
+    expect(after).toEqual({
+      ...before,
+      title: 'Renamed',
+      [size]: 9,
+      labels: ['x'],
+      lastUpdated: after.lastUpdated,
+    });
+  });
+
+  it('clears a custom field given null among others', async () => {
+    const { ws, keys } = await open(spec);
+
+    await ws.cards.editFields(keys[0], { title: 'Renamed', [size]: null });
+
+    const after = await metadataOf(ws, keys[0]);
+    expect(after.title).toBe('Renamed');
+    expect(size in after).toBe(false);
+  });
+
+  // A failed write is rolled back under autocommit only.
+  it('refuses all when one field is refused, writing nothing', async () => {
+    const { ws, path, keys } = await open(
+      { ...spec, git: true },
+      { autocommit: true },
+    );
+
+    await expectRefused(
+      path,
+      () => ws.cards.editFields(keys[0], { title: 'Renamed', [score]: 4 }),
+      /Cannot edit calculated field/,
+    );
+    expect((await metadataOf(ws, keys[0])).title).toBe('A');
+  });
+
+  it('is one commit', async () => {
+    const { ws, path, keys } = await open(
+      { ...spec, git: true },
+      { autocommit: true },
+    );
+    const before = await git(path, 'rev-list', '--count', 'HEAD');
+
+    await ws.cards.editFields(keys[0], { title: 'Renamed', [size]: 9 });
+
+    expect(await git(path, 'log', '-1', '--format=%s')).toBe(
+      `Edit metadata of ${keys[0]}`,
+    );
+    expect(Number(await git(path, 'rev-list', '--count', 'HEAD'))).toBe(
+      Number(before) + 1,
     );
   });
 });

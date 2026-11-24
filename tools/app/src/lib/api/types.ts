@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: Cyberismo Ltd and contributors
 // SPDX-License-Identifier: AGPL-3.0-only
 
-import type { Project, FieldTypes, MetadataValue } from '../definitions';
+import type { Project, FieldTypes } from '../definitions';
 import type {
   Calculation,
   CardType,
@@ -97,16 +97,6 @@ export type SwrResult<T extends ResourceName, InitialData = null> = {
   [key in T]: Resources[T] | InitialData;
 } & Omit<SWRResponse<Resources[T]>, 'data'> &
   AdditionalProperties;
-
-export type FullCardUpdate = {
-  content: string;
-  metadata: Record<string, MetadataValue>;
-  state: string;
-  parent: string;
-  index: number;
-};
-
-export type CardUpdate = Partial<FullCardUpdate>;
 
 // Base resource node type
 interface BaseResourceNode {

@@ -47,7 +47,8 @@ export default function Page() {
     createLink,
     deleteLink,
     editLink,
-    updateCard,
+    updateContent,
+    updateFields,
   } = useCard(key);
   const { cardContent, loadError: contentError } = useCardContent(key);
   const { cardSource, loadError: sourceError } = useCardSource(key);
@@ -146,10 +147,10 @@ export default function Page() {
             connectors={connectors ?? []}
             onEditingChange={setIsEditing}
             onMetadataUpdate={async (update) => {
-              await updateCard(update);
+              await updateFields(update.metadata);
             }}
             onContentSave={async (content) => {
-              await updateCard({ content });
+              await updateContent(content);
               dispatch(
                 addNotification({
                   message: t('saveCard.success'),

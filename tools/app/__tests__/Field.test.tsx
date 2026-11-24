@@ -25,7 +25,7 @@ import type * as ApiModule from '@/lib/api';
 type Card = Record<string, unknown> & {
   deniedOperations: { editField: unknown[]; transition: unknown[] };
 };
-type Mutations = { updateCard: Mock; updateWorkFlowState: Mock };
+type Mutations = { updateFields: Mock; updateWorkFlowState: Mock };
 const notifyError = vi.fn();
 let cards: Record<string, Card>;
 let errors: Record<string, Error>;
@@ -132,7 +132,7 @@ describe('Field macro', () => {
     deniedOperations: { editField: [], transition: [] },
   });
   const spies = () => ({
-    updateCard: vi.fn(),
+    updateFields: vi.fn(),
     updateWorkFlowState: vi.fn(),
   });
 
@@ -202,7 +202,7 @@ describe('Field macro', () => {
     fireEvent.click(screen.getByRole('menuitem', { name: /Finish/ }));
 
     expect(mutations.k_1.updateWorkFlowState).toHaveBeenCalledWith('Finish');
-    expect(mutations.k_1.updateCard).not.toHaveBeenCalled();
+    expect(mutations.k_1.updateFields).not.toHaveBeenCalled();
   });
 
   it('disables a transition the server would refuse', () => {
@@ -257,15 +257,15 @@ describe('Field macro', () => {
         edit(shown, 'new');
 
         await waitFor(() =>
-          expect(mutations.k_1.updateCard).toHaveBeenCalledWith({
-            metadata: { [field]: 'new' },
+          expect(mutations.k_1.updateFields).toHaveBeenCalledWith({
+            [field]: 'new',
           }),
         );
       },
     );
 
     it('keeps the editor and its draft open when the save fails', async () => {
-      mutations.k_1.updateCard.mockRejectedValue(new Error('Save refused'));
+      mutations.k_1.updateFields.mockRejectedValue(new Error('Save refused'));
       render(<Body html={placeholder('m/fieldTypes/a', false)} />);
 
       const input = edit('A', 'draft');
@@ -297,8 +297,8 @@ describe('Field macro', () => {
       field: 'm/fieldTypes/a',
       target: 'k_1',
       edit: editValue,
-      save: 'updateCard' as const,
-      args: [{ metadata: { 'm/fieldTypes/a': 'new' } }],
+      save: 'updateFields' as const,
+      args: [{ 'm/fieldTypes/a': 'new' }],
       cross: false,
     },
     {
@@ -306,8 +306,8 @@ describe('Field macro', () => {
       field: 'm/fieldTypes/a',
       target: 'k_2',
       edit: editValue,
-      save: 'updateCard' as const,
-      args: [{ metadata: { 'm/fieldTypes/a': 'new' } }],
+      save: 'updateFields' as const,
+      args: [{ 'm/fieldTypes/a': 'new' }],
       cross: true,
     },
     {

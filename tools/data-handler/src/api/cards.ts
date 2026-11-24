@@ -13,6 +13,7 @@ import type {
 } from '@cyberismo/model';
 import type { Checkout } from '../state/checkout/checkout.js';
 import { read, write } from '../infra/tx/rw-lock.js';
+import { DHValidationError } from '../shared/exceptions/index.js';
 import type { CommitIdentity } from '../infra/tx/tx-record.js';
 import {
   addAttachment,
@@ -63,14 +64,27 @@ export class Cards {
   ) {}
 
   /**
-   * Moves a card under another card, or to a root.
+   * Moves a card under another card, or to a root, optionally to a position
+   * among its new siblings. Moving a card to its own parent only ranks it.
    * @param source Card to move.
    * @param destination New parent card; 'root' for the root of the card's
    *   own container, or 'root:project' / 'root:<template>'.
+   * @param index Position among the new siblings; 0 is first. Last when
+   *   moved to another parent without one.
    */
   @write((source, destination) => `Move card ${source} to ${destination}`)
-  public async move(source: string, destination: string): Promise<void> {
+  public async move(
+    source: string,
+    destination: string,
+    index?: number,
+  ): Promise<void> {
+    if (index !== undefined && index < 0) {
+      throw new DHValidationError(`Index must be greater than 0`);
+    }
     await moveCard(this.checkout, source, destination);
+    if (index !== undefined) {
+      await rankAt(this.checkout, source, index);
+    }
   }
 
   /**
@@ -140,6 +154,21 @@ export class Cards {
     newValue: Exclude<MetadataContent, bigint>,
   ): Promise<void> {
     await editCardMetadata(this.checkout, cardKey, changedKey, newValue);
+  }
+
+  /**
+   * Updates several metadata properties of a card, in order.
+   * @param cardKey The card to update.
+   * @param fields New values by metadata property.
+   */
+  @write((cardKey) => `Edit metadata of ${cardKey}`)
+  public async editFields(
+    cardKey: string,
+    fields: Record<string, Exclude<MetadataContent, bigint>>,
+  ): Promise<void> {
+    for (const [changedKey, newValue] of Object.entries(fields)) {
+      await editCardMetadata(this.checkout, cardKey, changedKey, newValue);
+    }
   }
 
   /**

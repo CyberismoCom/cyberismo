@@ -11,6 +11,30 @@ export const attachmentParamSchema = cardKeyParamSchema.extend({
 
 const linkDirection = z.enum(['outbound', 'inbound']);
 
+export const editContentSchema = z.object({ content: z.string() });
+
+// Setting a custom field to null or an empty string clears it.
+const fieldValue = z.union([
+  z.string(),
+  z.number(),
+  z.boolean(),
+  z.array(z.string()),
+  z.null(),
+]);
+
+export const editFieldsSchema = z
+  .record(z.string().min(1), fieldValue)
+  .refine((fields) => Object.keys(fields).length > 0, {
+    message: 'At least one field is required',
+  });
+
+export const transitionSchema = z.object({ transition: z.string().min(1) });
+
+export const moveCardSchema = z.object({
+  parent: z.string().min(1),
+  index: z.number().int().min(0).optional(),
+});
+
 export const createLinkSchema = z.object({
   toCard: z.string(),
   linkType: z.string(),

@@ -154,9 +154,22 @@ async function presence(
   });
 }
 
-async function patch(cardKey: string, body: unknown, user = 'bob') {
-  return app.request(`${base}/cards/${cardKey}`, {
-    method: 'PATCH',
+const cardRoutes = {
+  content: 'PUT',
+  fields: 'PATCH',
+  transition: 'POST',
+  move: 'POST',
+} as const;
+
+// Writes to a card through one of its write routes.
+async function writeCard(
+  cardKey: string,
+  route: keyof typeof cardRoutes,
+  body: unknown,
+  user = 'bob',
+) {
+  return app.request(`${base}/cards/${cardKey}/${route}`, {
+    method: cardRoutes[route],
     headers: {
       'content-type': 'application/json',
       cookie: `mock-user=${user}`,
@@ -232,11 +245,10 @@ describe('project event stream over HTTP', () => {
       (await presence(bobReady.connectionId, 'decision_5', 1, 'bob')).status,
     ).toBe(204);
 
-    const written = {
-      content: 'Written content',
-      metadata: { title: 'Written content' },
-    };
-    expect((await patch('decision_5', written, 'alice')).status).toBe(200);
+    const written = { content: 'Written content' };
+    expect(
+      (await writeCard('decision_5', 'content', written, 'alice')).status,
+    ).toBe(200);
     expect(await nextEvent(carolStream, 'card.updated')).toEqual({
       cardKey: 'decision_5',
     });
@@ -982,22 +994,45 @@ describe('card update notifications', () => {
 
   const bodies: {
     field: string;
+    route: keyof typeof cardRoutes;
     body: () => unknown;
     notifies: number;
     prepare?: () => Promise<unknown>;
   }[] = [
-    { field: 'nothing', body: () => ({}), notifies: 0 },
-    { field: 'state', body: () => ({ state: 'Approve' }), notifies: 1 },
-    { field: 'content', body: () => ({ content: 'Edited body' }), notifies: 1 },
     {
-      field: 'metadata',
-      body: () => ({ metadata: { title: 'Edited title' } }),
+      field: 'nothing',
+      route: 'move',
+      body: () => ({ parent: 'decision_5' }),
+      notifies: 0,
+    },
+    {
+      field: 'state',
+      route: 'transition',
+      body: () => ({ transition: 'Approve' }),
       notifies: 1,
     },
-    { field: 'parent', body: () => ({ parent: 'decision_6' }), notifies: 1 },
+    {
+      field: 'content',
+      route: 'content',
+      body: () => ({ content: 'Edited body' }),
+      notifies: 1,
+    },
+    {
+      field: 'metadata',
+      route: 'fields',
+      body: () => ({ title: 'Edited title' }),
+      notifies: 1,
+    },
+    {
+      field: 'parent',
+      route: 'move',
+      body: () => ({ parent: 'decision_6' }),
+      notifies: 1,
+    },
     {
       field: 'index',
-      body: () => ({ index: 0 }),
+      route: 'move',
+      body: () => ({ parent: 'decision_6', index: 0 }),
       notifies: 1,
       // A sibling ranked first, so that index 0 is a move: a write that
       // changes nothing notifies no one.
@@ -1012,11 +1047,11 @@ describe('card update notifications', () => {
   ];
 
   test.each(bodies)(
-    'a PATCH body carrying $field notifies $notifies time(s)',
-    async ({ body, notifies, prepare }) => {
+    'a write of $field notifies $notifies time(s)',
+    async ({ route, body, notifies, prepare }) => {
       await prepare?.();
       notify.mockClear();
-      expect((await patch(edited, body())).status).toBe(200);
+      expect((await writeCard(edited, route, body())).status).toBe(200);
       expect(notify.mock.calls).toEqual(
         notifies
           ? [

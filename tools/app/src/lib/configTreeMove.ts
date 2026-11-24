@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import type { AnyNode } from './api/types';
-import { findCardParentInResourceTree } from './utils';
 import { findTemplateForCard } from './hooks/utils';
 
 export type ConfigTreeMoveRejectReason = 'invalidTarget' | 'moduleReadOnly';
@@ -13,7 +12,7 @@ export type ConfigTreeMoveResult =
   | {
       kind: 'update';
       cardKey: string;
-      update: { parent?: string; index: number };
+      update: { parent: string; index: number };
     };
 
 export function findResourceNodeById(
@@ -65,7 +64,7 @@ function isUnderReadOnlyModule(
 /**
  * Decides what to do with a drag-and-drop in the configuration tree.
  * Returns a `noop` for non-card drags, a `reject` (with a reason for a toast),
- * or an `update` payload describing the PATCH to send to /api/cards/:key.
+ * or an `update` with the parent and position to move the card to.
  */
 export function resolveConfigTreeMove(
   resourceTree: readonly AnyNode[] | null | undefined,
@@ -98,51 +97,29 @@ export function resolveConfigTreeMove(
     return { kind: 'reject', reason: 'moduleReadOnly' };
   }
 
-  const writableResourceTree = resourceTree as AnyNode[];
-  const sourceTemplate = findTemplateForCard(writableResourceTree, dragId);
+  const sourceTemplate = findTemplateForCard(resourceTree as AnyNode[], dragId);
 
   // Drop onto a templates node → move to that template's root.
+  // A move to the card's own parent only reorders it.
   if (destParent.type === 'templates') {
     const destTemplateName = destParent.name;
-    const currentParentForRootCheck = findCardParentInResourceTree(
-      writableResourceTree,
-      dragId,
-    );
-    const alreadyAtSourceTemplateRoot =
-      currentParentForRootCheck?.type === 'templates';
-    if (destTemplateName === sourceTemplate) {
-      if (alreadyAtSourceTemplateRoot) {
-        // Already a root card of this template — just reorder.
-        return { kind: 'update', cardKey: dragId, update: { index } };
-      }
-      return {
-        kind: 'update',
-        cardKey: dragId,
-        update: { parent: 'root', index },
-      };
-    }
     return {
       kind: 'update',
       cardKey: dragId,
-      update: { parent: `root:${destTemplateName}`, index },
+      update: {
+        parent:
+          destTemplateName === sourceTemplate
+            ? 'root'
+            : `root:${destTemplateName}`,
+        index,
+      },
     };
   }
 
   // Drop onto a card.
-  const currentParent = findCardParentInResourceTree(
-    writableResourceTree,
-    dragId,
-  );
-  const currentParentKey =
-    currentParent?.type === 'card' ? currentParent.id : undefined;
-  const newParentKey = destParent.id;
-
-  if (newParentKey === currentParentKey) {
-    return { kind: 'update', cardKey: dragId, update: { index } };
-  }
   return {
     kind: 'update',
     cardKey: dragId,
-    update: { parent: newParentKey, index },
+    update: { parent: destParent.id, index },
   };
 }

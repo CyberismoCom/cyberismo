@@ -1,8 +1,6 @@
 // SPDX-FileCopyrightText: Cyberismo Ltd and contributors
 // SPDX-License-Identifier: AGPL-3.0-only
 
-import type { CardUpdate } from './types';
-
 export * from './fieldTypes';
 export * from './projectSettings';
 export * from './project';
@@ -27,4 +25,3 @@ export * from './user';
 export * from './projects';
 export * from './presence';
 export * from './publicKey';
-export type { CardUpdate };

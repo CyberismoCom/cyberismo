@@ -31,7 +31,7 @@ function findAncestorResourceGroup(
 
 export default function ConfigMenu() {
   const { resourceTree } = useResourceTree();
-  const { project, updateCard } = useProject();
+  const { project, moveCard } = useProject();
   const { t } = useTranslation();
   const dispatch = useDispatch();
 
@@ -74,7 +74,11 @@ export default function ConfigMenu() {
         return;
       }
       try {
-        await updateCard(result.cardKey, result.update);
+        await moveCard(
+          result.cardKey,
+          result.update.parent,
+          result.update.index,
+        );
       } catch (error) {
         dispatch(
           addNotification({
@@ -84,7 +88,7 @@ export default function ConfigMenu() {
         );
       }
     },
-    [resourceTree, updateCard, dispatch, t],
+    [resourceTree, moveCard, dispatch, t],
   );
 
   return (

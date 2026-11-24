@@ -30,7 +30,14 @@ vi.mock('@/lib/api/actions', async (importOriginal) => ({
   addAttachments: vi.fn().mockResolvedValue(undefined),
 }));
 
-import { deleteCard, updateCard, useCardMutations } from '@/lib/api/card';
+import {
+  deleteCard,
+  editCardContent,
+  editCardFields,
+  moveCard,
+  transitionCard,
+  useCardMutations,
+} from '@/lib/api/card';
 import { useAttachments } from '@/lib/api/attachments';
 
 const base = '/api/projects/TST';
@@ -60,8 +67,23 @@ beforeEach(() => {
 describe('card mutations', () => {
   it.each([
     {
-      action: 'updateCard metadata',
-      run: () => updateCard('TST_1', { metadata: { title: 'x' } }, 'TST'),
+      action: 'editCardContent',
+      run: () => editCardContent('TST_1', 'x', 'TST'),
+      keys: [card, content, source, tree, resourceTree],
+    },
+    {
+      action: 'editCardFields',
+      run: () => editCardFields('TST_1', { title: 'x' }, 'TST'),
+      keys: [card, content, source, tree, resourceTree],
+    },
+    {
+      action: 'transitionCard',
+      run: () => transitionCard('TST_1', 'Approve', 'TST'),
+      keys: [card, content, source, tree, resourceTree],
+    },
+    {
+      action: 'moveCard',
+      run: () => moveCard('TST_1', 'TST_2', 0, 'TST'),
       keys: [card, content, source, tree, resourceTree],
     },
     {
@@ -94,6 +116,33 @@ describe('card mutations', () => {
     );
   });
 
+  it.each([
+    {
+      action: 'editCardContent',
+      run: () => editCardContent('TST_1', 'x', 'TST'),
+      call: [`${card}/content`, 'PUT', { content: 'x' }],
+    },
+    {
+      action: 'editCardFields',
+      run: () => editCardFields('TST_1', { title: 'x', labels: [] }, 'TST'),
+      call: [`${card}/fields`, 'PATCH', { title: 'x', labels: [] }],
+    },
+    {
+      action: 'transitionCard',
+      run: () => transitionCard('TST_1', 'Approve', 'TST'),
+      call: [`${card}/transition`, 'POST', { transition: 'Approve' }],
+    },
+    {
+      action: 'moveCard',
+      run: () => moveCard('TST_1', 'root', 2, 'TST'),
+      call: [`${card}/move`, 'POST', { parent: 'root', index: 2 }],
+    },
+  ])('$action sends one request to its route', async ({ run, call }) => {
+    await run();
+
+    expect(callApi.mock.calls).toEqual([call]);
+  });
+
   it('resolves a content save only after the new body is fetched', async () => {
     let fetched!: () => void;
     mutate.mockImplementation((key: string) =>
@@ -102,7 +151,7 @@ describe('card mutations', () => {
         : Promise.resolve(),
     );
     const pending = Symbol('pending');
-    const save = updateCard('TST_1', { content: 'x' }, 'TST');
+    const save = editCardContent('TST_1', 'x', 'TST');
 
     await vi.waitFor(() => expect(fetched).toBeDefined());
     expect(await Promise.race([save, Promise.resolve(pending)])).toBe(pending);

@@ -12,6 +12,10 @@ import {
   attachmentParamSchema,
   cardKeyParamSchema,
   createLinkSchema,
+  editContentSchema,
+  editFieldsSchema,
+  moveCardSchema,
+  transitionSchema,
   removeLinkSchema,
   updateLinkSchema,
   exportCardPdfSchema,
@@ -251,45 +255,168 @@ router.get(
 
 /**
  * @swagger
- * /api/cards/{key}:
- *   patch:
- *     summary: Make changes to a card
- *     description: The key parameter is the unique identifier ("cardKey") of the card.
+ * /api/cards/{key}/content:
+ *   put:
+ *     summary: Replaces the AsciiDoc content of a card
  *     parameters:
  *       - name: key
  *         in: path
  *         required: true
  *         description: Card key (string)
- *       - name: content
- *         in: body
- *         required: false
- *         description: New asciidoc content for the card. Must be a string.
- *       - name: metadata
- *         in: body
- *         type: object
- *         required: false
- *         description: New metadata for the card. Must be an object with key-value pairs. Setting a custom field to null or an empty string clears it.
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               content:
+ *                 type: string
  *     responses:
  *       200:
- *         description: The updated card query result, same as GET.
- *       207:
- *         description: Partial success. some updates failed, some succeeded. Returns card object with successful updates.
+ *         description: The updated card query result, same as GET /api/cards/{key}.
  *       400:
- *         description: Error. Card not found, all updates failed etc. Error message in response body.
- *       500:
- *         description: project_path not set.
+ *         description: Invalid request body, or the content cannot be edited.
+ *       404:
+ *         description: Card not found with given key
  */
-router.patch(
-  '/:key',
+router.put(
+  '/:key/content',
   requireRole(UserRole.Editor),
   zValidator('param', cardKeyParamSchema),
+  zValidator('json', editContentSchema),
+  async (c) => {
+    const ws = c.get('ws');
+    const { key } = c.req.valid('param');
+    const { content } = c.req.valid('json');
+
+    await cardService.editCardContent(ws, key, content);
+    return c.json(await cardService.getCardData(ws, key, isSSGContext(c)));
+  },
+);
+
+/**
+ * @swagger
+ * /api/cards/{key}/fields:
+ *   patch:
+ *     summary: Changes metadata fields of a card
+ *     description: The body maps field names to their new values; fields left out stay as they are. Setting a custom field to null or an empty string clears it.
+ *     parameters:
+ *       - name: key
+ *         in: path
+ *         required: true
+ *         description: Card key (string)
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             additionalProperties: true
+ *     responses:
+ *       200:
+ *         description: The updated card query result, same as GET /api/cards/{key}.
+ *       400:
+ *         description: Invalid request body, or a value is not valid for its field.
+ *       404:
+ *         description: Card not found with given key
+ */
+router.patch(
+  '/:key/fields',
+  requireRole(UserRole.Editor),
+  zValidator('param', cardKeyParamSchema),
+  zValidator('json', editFieldsSchema),
   async (c) => {
     const ws = c.get('ws');
     const { key } = c.req.valid('param');
 
-    const body = await c.req.json();
+    await cardService.editCardFields(ws, key, c.req.valid('json'));
+    return c.json(await cardService.getCardData(ws, key, isSSGContext(c)));
+  },
+);
 
-    await cardService.updateCard(ws, key, body);
+/**
+ * @swagger
+ * /api/cards/{key}/transition:
+ *   post:
+ *     summary: Transitions a card to a new workflow state
+ *     parameters:
+ *       - name: key
+ *         in: path
+ *         required: true
+ *         description: Card key (string)
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               transition:
+ *                 type: string
+ *                 description: Name of the workflow transition to do
+ *     responses:
+ *       200:
+ *         description: The updated card query result, same as GET /api/cards/{key}.
+ *       400:
+ *         description: Invalid request body, or the transition is not possible.
+ *       404:
+ *         description: Card not found with given key
+ */
+router.post(
+  '/:key/transition',
+  requireRole(UserRole.Editor),
+  zValidator('param', cardKeyParamSchema),
+  zValidator('json', transitionSchema),
+  async (c) => {
+    const ws = c.get('ws');
+    const { key } = c.req.valid('param');
+    const { transition } = c.req.valid('json');
+
+    await cardService.transitionCard(ws, key, transition);
+    return c.json(await cardService.getCardData(ws, key, isSSGContext(c)));
+  },
+);
+
+/**
+ * @swagger
+ * /api/cards/{key}/move:
+ *   post:
+ *     summary: Moves a card under a parent, optionally to a position
+ *     description: Moving a card to its own parent only changes its position.
+ *     parameters:
+ *       - name: key
+ *         in: path
+ *         required: true
+ *         description: Card key (string)
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               parent:
+ *                 type: string
+ *                 description: New parent card; 'root' for the root of the card's own container, or 'root:project' / 'root:<template>'
+ *               index:
+ *                 type: integer
+ *                 description: Position among the new siblings; 0 is first. Last if left out.
+ *     responses:
+ *       200:
+ *         description: The updated card query result, same as GET /api/cards/{key}.
+ *       400:
+ *         description: Invalid request body, or the card cannot be moved there.
+ *       404:
+ *         description: Card not found with given key
+ */
+router.post(
+  '/:key/move',
+  requireRole(UserRole.Editor),
+  zValidator('param', cardKeyParamSchema),
+  zValidator('json', moveCardSchema),
+  async (c) => {
+    const ws = c.get('ws');
+    const { key } = c.req.valid('param');
+    const { parent, index } = c.req.valid('json');
+
+    await cardService.moveCard(ws, key, parent, index);
     return c.json(await cardService.getCardData(ws, key, isSSGContext(c)));
   },
 );
