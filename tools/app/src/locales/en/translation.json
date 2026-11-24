@@ -152,6 +152,7 @@
   "cleanPromptMessage_other": "This project has {{count}} dormant field values on {{cards}} — stored, but not shown and not visible to logic programs. Remove them now?",
   "cleanPromptTitle": "Dormant field values in this project",
   "cleanSuccess": "Dormant field values removed",
+  "clearField": "Clear field",
   "clearOverride": "Clear",
   "close": "Close",
   "configMove": {

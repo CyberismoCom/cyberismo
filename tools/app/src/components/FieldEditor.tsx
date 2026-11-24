@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: Cyberismo Ltd and contributors
 // SPDX-License-Identifier: AGPL-3.0-only
 
-import { Select, Option, Input, Textarea } from '@mui/joy';
+import { Select, Option, Input, Textarea, IconButton } from '@mui/joy';
 import type {
   DataType,
   EnumDefinition,
@@ -9,6 +9,7 @@ import type {
 } from '../lib/definitions';
 import { useTranslation } from 'react-i18next';
 import Person from '@mui/icons-material/Person';
+import CloseRounded from '@mui/icons-material/CloseRounded';
 import LabelEditor from './LabelEditor';
 
 export interface FieldEditorProps {
@@ -41,6 +42,27 @@ export default function FieldEditor({
   const handleListboxOpenChange = (open: boolean) => {
     if (!open) onCommit?.();
   };
+  // The × button that clears a field and saves at once. It is shown only when
+  // the field has a value. Stopping mousedown keeps a Select listbox closed.
+  const clearButton = (
+    hasValue: boolean,
+    emptyValue: string[] | null = null,
+  ) =>
+    hasValue && !disabled ? (
+      <IconButton
+        size="sm"
+        variant="plain"
+        color="neutral"
+        aria-label={t('clearField')}
+        onMouseDown={(event) => event.stopPropagation()}
+        onClick={() => {
+          onChange?.(emptyValue);
+          onCommit?.();
+        }}
+      >
+        <CloseRounded />
+      </IconButton>
+    ) : null;
   switch (dataType) {
     case 'integer':
     case 'number':
@@ -66,7 +88,7 @@ export default function FieldEditor({
     case 'boolean':
       return (
         <Select
-          value={value?.toString() ?? ''}
+          value={value == null ? null : value.toString()}
           disabled={disabled}
           onChange={(_, value) => onChange?.(value)}
           onListboxOpenChange={handleListboxOpenChange}
@@ -78,8 +100,8 @@ export default function FieldEditor({
           autoFocus={focus}
           slotProps={{ button: { 'aria-label': ariaLabel } }}
           placeholder={t('placeholder.boolean')}
+          endDecorator={clearButton(value != null)}
         >
-          <Option value="">{t('none')}</Option>
           <Option value="true">{t('yes')}</Option>
           <Option value="false">{t('no')}</Option>
         </Select>
@@ -87,7 +109,7 @@ export default function FieldEditor({
     case 'enum':
       return (
         <Select
-          value={(value as string | null) ?? ''}
+          value={(value as string | null) || null}
           disabled={disabled}
           onChange={(_, value) => onChange?.(value)}
           onListboxOpenChange={handleListboxOpenChange}
@@ -99,10 +121,8 @@ export default function FieldEditor({
           autoFocus={focus}
           slotProps={{ button: { 'aria-label': ariaLabel } }}
           placeholder={t('placeholder.enum')}
+          endDecorator={clearButton(!!value)}
         >
-          <Option value="" key="none">
-            {t('none')}
-          </Option>
           {enumValues?.map((enumDef) => (
             <Option key={enumDef.enumValue} value={enumDef.enumValue}>
               {enumDef.enumDisplayValue}
@@ -126,6 +146,10 @@ export default function FieldEditor({
           slotProps={{ button: { 'aria-label': ariaLabel } }}
           placeholder={t('placeholder.enum')}
           disabled={disabled}
+          endDecorator={clearButton(
+            Array.isArray(value) && value.length > 0,
+            [],
+          )}
         >
           {enumValues?.map((enumDef) => (
             <Option key={enumDef.enumValue} value={enumDef.enumValue}>
@@ -146,6 +170,7 @@ export default function FieldEditor({
           fullWidth
           autoFocus={focus}
           slotProps={{ input: { 'aria-label': ariaLabel } }}
+          endDecorator={clearButton(!!value)}
         />
       );
     case 'dateTime':
@@ -160,6 +185,7 @@ export default function FieldEditor({
           fullWidth
           autoFocus={focus}
           slotProps={{ input: { 'aria-label': ariaLabel } }}
+          endDecorator={clearButton(!!value)}
         />
       );
     case 'person':
