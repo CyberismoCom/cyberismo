@@ -18,7 +18,8 @@ import {
   type SkillMetadata,
   type Workflow,
 } from '@cyberismo/model';
-import type { Card } from '@cyberismo/model';
+import type { Card, CardNode } from '@cyberismo/model';
+import { ClingoContext } from '@cyberismo/node-clingo';
 import type { Checkout } from '../../../src/state/checkout/checkout.js';
 import { copyDir } from '../../../src/shared/utils/file-utils.js';
 import { getTestProject } from '../../helpers/test-utils.js';
@@ -374,5 +375,40 @@ describe('createCardFacts only emits fields the card type declares', () => {
     expect(facts).toContain(
       `field(${BROKEN_CARD_TYPE_CARD_KEY}, "${DECLARED_FIELD}", "Kept as a plain field").`,
     );
+  });
+});
+
+describe('createCardFacts templateCardKey', () => {
+  // Built in memory so the test does not depend on test-data fixtures.
+  const TEMPLATE_CARD = 'tmpl_card1';
+  const card: CardNode = {
+    key: 'proj_card1',
+    path: '',
+    parent: 'root',
+    children: [],
+    metadata: {
+      title: 'Instantiated',
+      cardType: 'mod/cardTypes/any',
+      workflowState: 'Draft',
+      rank: '0|a',
+      templateCardKey: TEMPLATE_CARD,
+      links: [],
+    },
+  };
+  const checkout = {
+    resources: {
+      byType: () => ({ show: () => ({ customFields: [] }) }),
+    },
+  } as unknown as Checkout;
+
+  it('emits the template card key as a constant that unifies with card keys', async () => {
+    const facts = await createCardFacts(card, checkout);
+    // A string "tmpl_card1" would not unify with the constant, so the
+    // atom is derived only if the key is emitted as a constant.
+    const program = `${facts}
+      fromTemplate(C) :- field(C, "templateCardKey", ${TEMPLATE_CARD}).
+      #show fromTemplate/1.`;
+    const result = await new ClingoContext().solve(program);
+    expect(result.answers[0]).toContain(`fromTemplate(${card.key})`);
   });
 });
