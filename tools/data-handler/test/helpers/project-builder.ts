@@ -83,6 +83,10 @@ export interface ResourceSpec {
   calculations?: Record<string, string>;
   /** Report name → its logic program query and content template (Handlebars). */
   reports?: Record<string, { query?: string; content: string }>;
+  /** Graph model name → its logic program. */
+  graphModels?: Record<string, string>;
+  /** Graph view name → its view template and optional parameter schema. */
+  graphViews?: Record<string, { view?: string; schema?: object }>;
 }
 
 export interface ModuleSpec extends ResourceSpec {
@@ -316,6 +320,35 @@ class Builder {
         properties: { name: { type: 'string' } },
         required: ['name'],
       });
+    }
+
+    if (spec.graphModels)
+      await writeSchema(join(folder, 'graphModels'), 'graphModelSchema');
+    for (const [name, model] of Object.entries(spec.graphModels ?? {})) {
+      await writeJson(join(folder, 'graphModels', `${name}.json`), {
+        name: fullName(prefix, 'graphModels', name),
+        displayName: name,
+      });
+      await mkdir(join(folder, 'graphModels', name), { recursive: true });
+      await writeFile(join(folder, 'graphModels', name, 'model.lp'), model);
+    }
+
+    if (spec.graphViews)
+      await writeSchema(join(folder, 'graphViews'), 'graphViewSchema');
+    for (const [name, graphView] of Object.entries(spec.graphViews ?? {})) {
+      await writeJson(join(folder, 'graphViews', `${name}.json`), {
+        name: fullName(prefix, 'graphViews', name),
+        displayName: name,
+      });
+      const viewFolder = join(folder, 'graphViews', name);
+      await mkdir(viewFolder, { recursive: true });
+      if (graphView.view !== undefined)
+        await writeFile(join(viewFolder, 'view.lp.hbs'), graphView.view);
+      if (graphView.schema)
+        await writeJson(join(viewFolder, 'parameterSchema.json'), {
+          $id: `${name}GraphSchema`,
+          ...graphView.schema,
+        });
     }
 
     for (const template of spec.templates ?? []) {

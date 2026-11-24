@@ -1,5 +1,5 @@
 {
-    "schemaVersion": 6,
+    "schemaVersion": 7,
     "cardKeyPrefix": "decision",
     "name": "decision",
     "modules": [],

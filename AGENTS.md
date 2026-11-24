@@ -32,8 +32,11 @@ pnpm workspaces under `tools/`:
 - `node-clingo` — native Clingo bindings
 - `assets` — shared JSON schemas and static content
 - `migrations` — schema migrations
+- `model` — browser-safe shared types (the app imports these, never Node code)
 
 Internal deps use `"workspace:*"` and are imported as `@cyberismo/<package>`.
+
+Before changing a package, read its `tools/<pkg>/ARCHITECTURE.md`: structure, allowed dependencies and invariants.
 
 ## Code style
 

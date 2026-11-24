@@ -156,6 +156,11 @@ const wildcardEditKeys: Record<string, string[]> = {
   skills: ['displayName', 'description', 'category', 'relatedTools', 'content'],
 };
 
+/** The keys an edit may change on a resource type. */
+export function editableKeys(type: string): readonly string[] {
+  return wildcardEditKeys[type] ?? [];
+}
+
 export const ROUTES: Registration[] = [
   // CREATE rows: a new resource has no consumers yet.
   {

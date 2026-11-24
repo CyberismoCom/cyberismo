@@ -101,6 +101,174 @@ describe('queries.runQuery', () => {
   });
 });
 
+describe('queries.runQuery options', () => {
+  it('gives only the card asked for', async () => {
+    const { ws, keys } = await open(spec);
+
+    const cards = await ws.queries.runQuery('card', 'localApp', {
+      cardKey: keys[1],
+    });
+
+    expect(cards.map((card) => card.key)).toEqual([keys[1]]);
+  });
+
+  it('refuses a card the project does not hold', async () => {
+    const { ws, keys } = await open(spec);
+
+    await expect(
+      ws.queries.runQuery('card', 'localApp', {
+        cardKeys: [keys[0], 'test_missing'],
+      }),
+    ).rejects.toThrow(/test_missing/);
+  });
+
+  it('gives the side effects a transition would set off', async () => {
+    const { ws, keys } = await open({
+      ...spec,
+      calculations: {
+        effects:
+          'onTransitionSetField(X, "To Closed", X, "title", "Done") :- field(X, "title", "Top").',
+      },
+    });
+
+    const [effects] = await ws.queries.runQuery('onTransition', 'localApp', {
+      cardKey: keys[0],
+      transition: 'To Closed',
+    });
+
+    expect(effects.updateFields).toEqual([
+      expect.objectContaining({ card: keys[0], field: 'title' }),
+    ]);
+  });
+
+  it.each([
+    ['onTransition', {}, /Invalid options for query 'onTransition'/],
+    [
+      'onTransition',
+      { cardKey: 'test_1' },
+      /Invalid options for query 'onTransition'.*\n.*transition/,
+    ],
+    ['onCreation', {}, /Invalid options for query 'onCreation'/],
+    ['onCreation', { cardKeys: [] }, /Invalid options for query 'onCreation'/],
+    ['card', { title: 'x' }, /Unrecognized key/],
+  ] as const)(
+    'refuses %s with options %j',
+    async (queryName, options, message) => {
+      const { ws } = await open(spec);
+
+      await expect(
+        // Deliberately wrong options, as an untyped caller could send.
+        ws.queries.runQuery(queryName, 'localApp', options as never),
+      ).rejects.toThrow(message);
+    },
+  );
+
+  it.each([
+    ['card', { cardKey: 'x). result(Y) :- card(Y' }],
+    ['tree', { cardKey: 'Test_1' }],
+    ['card', { cardKeys: ['test_1', 'x.'] }],
+    ['card', { cardKeys: 'test_1' }],
+    ['onTransition', { cardKey: 'x(', transition: 'To Closed' }],
+  ] as const)(
+    'refuses %s with the malformed card key in %j',
+    async (queryName, options) => {
+      const { ws } = await open(spec);
+
+      await expect(
+        ws.queries.runQuery(queryName, 'localApp', options as never),
+      ).rejects.toThrow(DHValidationError);
+    },
+  );
+});
+
+describe('queries.runGraph', () => {
+  const graphSpec = {
+    ...spec,
+    graphModels: { children: 'node(C) :- parent(C, Root), viewRoot(Root).' },
+    graphViews: {
+      children: { view: 'viewRoot({{cardKey}}).' },
+      coloured: {
+        view: 'viewRoot({{cardKey}}).\nattr(node, C, "color", "{{colour}}") :- node(C).',
+        schema: {
+          type: 'object',
+          properties: { colour: { type: 'string' } },
+          required: ['colour'],
+        },
+      },
+      empty: {},
+    },
+  };
+  it('draws the view of the card it is given', async () => {
+    const { ws, keys } = await open(graphSpec);
+    const [top, childA, childB, other] = keys;
+
+    const svg = await ws.queries.runGraph({
+      model: 'test/graphModels/children',
+      view: 'test/graphViews/children',
+      cardKey: top,
+    });
+
+    expect(svg).toContain('<svg');
+    expect(svg).toContain(childA);
+    expect(svg).toContain(childB);
+    expect(svg).not.toContain(other);
+  });
+
+  it("passes the view's parameters to its template", async () => {
+    const { ws, keys } = await open(graphSpec);
+
+    const svg = await ws.queries.runGraph({
+      model: 'test/graphModels/children',
+      view: 'test/graphViews/coloured',
+      cardKey: keys[0],
+      parameters: { colour: 'red' },
+    });
+
+    expect(svg).toContain('stroke="red"');
+  });
+
+  it.each([
+    [
+      'an unknown model',
+      { model: 'test/graphModels/nope', view: 'test/graphViews/children' },
+      /nope/,
+    ],
+    [
+      'an unknown view',
+      { model: 'test/graphModels/children', view: 'test/graphViews/nope' },
+      /nope/,
+    ],
+    [
+      'a view without a template',
+      { model: 'test/graphModels/children', view: 'test/graphViews/empty' },
+      /has no view template/,
+    ],
+    [
+      'parameters the view schema rejects',
+      { model: 'test/graphModels/children', view: 'test/graphViews/coloured' },
+      /Invalid graph options: must have required property 'colour'/,
+    ],
+    [
+      'a card the project does not hold',
+      {
+        model: 'test/graphModels/children',
+        view: 'test/graphViews/children',
+        cardKey: 'test_missing',
+      },
+      /does not exist/,
+    ],
+    [
+      'a view that needs a card key but gets none',
+      { model: 'test/graphModels/children', view: 'test/graphViews/children' },
+      /may need a cardKey/,
+    ],
+  ])('refuses %s', async (_name, request, message) => {
+    const { ws } = await open(graphSpec);
+
+    await expect(ws.queries.runGraph(request)).rejects.toThrow(message);
+  });
+});
+
 describe('queries.runQuery card fields', () => {
   const fieldSpec = {
     fieldTypes: [

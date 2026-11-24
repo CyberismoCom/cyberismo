@@ -50,6 +50,50 @@ describe('RWLock', () => {
       const result = await lock.read(async () => 'ok');
       expect(result).toBe('ok');
     });
+
+    it('refuses the reads and writes its admission check throws for', async () => {
+      let refused = true;
+      const lock = new RWLock('test', () => {
+        if (refused) throw new Error('refused');
+      });
+
+      await expect(lock.write(SYSTEM_FRAME, async () => 'no')).rejects.toThrow(
+        'refused',
+      );
+      await expect(lock.read(async () => 'no')).rejects.toThrow('refused');
+      // A refusal releases the lock.
+      refused = false;
+      expect(await lock.write(SYSTEM_FRAME, async () => 'ok')).toBe('ok');
+      expect(await lock.read(async () => 'ok')).toBe('ok');
+    });
+
+    it('runs exclusive work once the running read has ended, unchecked by admission, and refuses it inside a lock', async () => {
+      const order: string[] = [];
+      const lock = new RWLock('test', () => {
+        if (order.length > 0) throw new Error('refused');
+      });
+      const held = deferred();
+      const running = lock.read(async () => {
+        await held.promise;
+        order.push('read');
+      });
+      const exclusive = lock.exclusive(async () => {
+        order.push('exclusive');
+      });
+      held.resolve();
+      await Promise.all([running, exclusive]);
+
+      expect(order).toEqual(['read', 'exclusive']);
+      // Admission refuses everything from now on.
+      expect(await lock.exclusive(async () => 'ok')).toBe('ok');
+      await expect(lock.write(SYSTEM_FRAME, async () => 0)).rejects.toThrow(
+        'refused',
+      );
+      const other = new RWLock();
+      await expect(
+        other.write(SYSTEM_FRAME, () => other.exclusive(async () => 0)),
+      ).rejects.toThrow(/holding the lock/);
+    });
   });
 
   describe('concurrent reads', () => {

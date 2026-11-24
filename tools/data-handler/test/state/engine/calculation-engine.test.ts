@@ -11,6 +11,10 @@ import type { QueryResult } from '@cyberismo/model';
 import Handlebars from 'handlebars';
 import { lpFiles, pdfReport } from '@cyberismo/assets';
 import { Queries } from '../../../src/api/queries.js';
+import {
+  LogicInternalError,
+  LogicInvalidError,
+} from '../../../src/infra/logic/logic-backend.js';
 import { getTestProject } from '../../helpers/test-utils.js';
 
 const expectedTree: QueryResult<'tree'>[] = [
@@ -68,7 +72,7 @@ describe('calculate', () => {
       'localApp',
     );
 
-    expect(res).not.toBe('');
+    expect(res).toContain('<svg');
   }, 20000);
 
   it('runWorkflowGraph renders the built-in workflow graph', async () => {
@@ -94,6 +98,19 @@ describe('calculate', () => {
     expect(decoded).toContain('<svg');
     expect(decoded).toContain('Approved');
   }, 20000);
+
+  it('fails a query that does not parse as invalid when supplied, as internal when the project runs it', async () => {
+    await expect(
+      new Queries(checkout).runLogicProgram('result(X :- '),
+    ).rejects.toThrow(LogicInvalidError);
+    const error = await checkout.calculationEngine
+      .runLogicProgram('result(X :- ')
+      .catch((error: unknown) => error);
+    expect(error).toBeInstanceOf(LogicInternalError);
+    expect((error as LogicInternalError).errors.join()).toContain(
+      'syntax error',
+    );
+  });
 
   describe('python functions', () => {
     it('concatenate a string, a number and a constant', async () => {
@@ -446,7 +463,7 @@ describe('calculation validation on generate', () => {
     const calculations = checkout.resources.calculations();
     const broken = calculations.find((c) => c.data?.name === brokenCalcName);
     expect(broken).toBeDefined();
-    expect(broken!.validateLogicProgram().valid).toBe(false);
+    expect((await broken!.validateLogicProgram()).valid).toBe(false);
     expect(calculations.some((c) => c.data?.name === validCalcName)).toBe(true);
 
     await checkout.calculationEngine.generate();

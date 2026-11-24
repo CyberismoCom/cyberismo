@@ -3,7 +3,10 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { ResourceNotFoundError } from '../../../src/shared/exceptions/index.js';
+import {
+  DHValidationError,
+  ResourceNotFoundError,
+} from '../../../src/shared/exceptions/index.js';
 import {
   edit,
   expectRefused,
@@ -72,7 +75,7 @@ describe('changes.apply: editing a resource', () => {
         name,
         key,
         operation: { name: 'change', to: 'red' } as const,
-        error: /No mutation handler for input/,
+        error: /cannot be edited on/,
       })),
       {
         why: 'the resource is a module resource',
@@ -92,6 +95,33 @@ describe('changes.apply: editing a resource', () => {
       const { ws, path } = await open(spec);
 
       await expectRefused(path, () => edit(ws, name, key, operation), error);
+    });
+
+    it('when the calculation is not a valid logic program, with its diagnostics', async () => {
+      const { ws, path } = await open(spec);
+      let refusal: unknown;
+
+      await expectRefused(
+        path,
+        () =>
+          edit(
+            ws,
+            'test/calculations/calc',
+            { key: 'content', subKey: 'calculation' },
+            { name: 'change', to: 'this is not a logic program' },
+          ).catch((error: unknown) => {
+            refusal = error;
+            throw error;
+          }),
+        DHValidationError,
+      );
+      expect(refusal).toMatchObject({
+        details: {
+          diagnostics: expect.arrayContaining([
+            expect.objectContaining({ severity: 'error' }),
+          ]),
+        },
+      });
     });
 
     it('when the resource does not exist', async () => {

@@ -3,6 +3,7 @@
 
 /** The door of this domain: api/ imports it only through here. */
 
+export { graphViewSchema, renderGraph, validateGraphOptions } from './graph.js';
 export { registerClingoHelpers } from './handlebars-helpers.js';
 export { toLinkCandidates } from './link-candidates.js';
 export { generateReportContent } from './report.js';

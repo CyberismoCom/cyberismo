@@ -116,11 +116,15 @@ export async function createCard(
       checkout,
       createdCards.map((card) => card.key),
     );
+    // Side effects may have changed the cards; return them as they are now.
+    const currentCards = createdCards.map((card) =>
+      checkout.cardTree.card(card.key),
+    );
 
     const rootParent = specificCard?.key ?? ROOT;
     const rootCards: Card[] = [];
     const childCards: Card[] = [];
-    for (const card of createdCards) {
+    for (const card of currentCards) {
       if (card.parent === rootParent) {
         rootCards.push(card);
       } else {

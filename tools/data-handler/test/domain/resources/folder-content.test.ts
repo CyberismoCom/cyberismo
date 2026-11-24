@@ -133,7 +133,7 @@ describe('folder resources: editing content', () => {
       await expectRefused(
         path,
         () => setContent(ws, 'test/templates/tpl', 'calculation', 'x'),
-        /No mutation handler/,
+        /'content' cannot be edited on templates/,
       );
     });
 

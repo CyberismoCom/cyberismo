@@ -179,6 +179,20 @@ describe('creation side effects', () => {
     expect((await metadataOf(ws, keys[2])).title).toBe('Set on creation');
   });
 
+  it('returns the created cards as the effects left them', async () => {
+    const { ws } = await openWith(
+      set('new', 'Create', 'new', 'title', '"Renamed"'),
+    );
+
+    const created = await ws.cards.create('test/templates/tpl');
+
+    expect(created.map((card) => card.metadata?.title)).toEqual([
+      'Renamed',
+      'kid',
+    ]);
+    expect((await metadataOf(ws, created[0].key)).title).toBe('Renamed');
+  });
+
   it('queries once for a batch of created cards', async () => {
     const { ws } = await openWith();
     const query = vi.spyOn(checkoutOf(ws).calculationEngine, 'creationQuery');

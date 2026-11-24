@@ -5,7 +5,7 @@ import { resolve } from 'node:path';
 
 import { type Command } from 'commander';
 
-import { MockAuthProvider, startServer } from '@cyberismo/backend';
+import { MockAuthProvider, createServer } from '@cyberismo/backend';
 import { formatProjectErrors, type ProjectErrors } from '@cyberismo/model';
 import {
   localFolder,
@@ -115,12 +115,10 @@ export function registerApp(program: Command) {
       );
     }
 
-    // Pass multiProjectRoot only in multi-project mode (enables project creation)
-    await startServer(
-      new MockAuthProvider(user),
-      directory,
-      true,
-      isSingleProject ? undefined : basePath,
+    // Project creation only in multi-project mode.
+    await createServer(
+      { projectPath: basePath, multiProject: !isSingleProject },
+      { auth: new MockAuthProvider(user), directory },
     );
   });
 }

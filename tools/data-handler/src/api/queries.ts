@@ -14,15 +14,40 @@ import type {
   ResourceName,
 } from '@cyberismo/model';
 import type { Checkout } from '../state/checkout/checkout.js';
-import { DHValidationError } from '../shared/exceptions/index.js';
-import { ReportMacro } from '../domain/macros/index.js';
-import { TaskQueue } from '../domain/macros/index.js';
-import { evaluateMacros } from '../domain/macros/index.js';
+import {
+  CardNotFoundError,
+  DHValidationError,
+} from '../shared/exceptions/index.js';
+import {
+  evaluateMacros,
+  ReportMacro,
+  TaskQueue,
+} from '../domain/macros/index.js';
+import { hasCard } from '../domain/cards/index.js';
 import {
   registerClingoHelpers,
+  renderGraph,
   toLinkCandidates,
+  validateGraphOptions,
 } from '../domain/queries/index.js';
 import { read } from '../infra/tx/rw-lock.js';
+import { svgBase64 } from '../shared/utils/sanitize-svg.js';
+import {
+  parseQueryOptions,
+  type QueryOptions,
+} from '../state/engine/query-options.js';
+
+/** A graph to render from graph model and graph view resources. */
+export interface GraphRequest {
+  /** Graph model resource name. */
+  model: string;
+  /** Graph view resource name. */
+  view: string;
+  /** Card the graph is drawn for; must exist. */
+  cardKey?: string;
+  /** Parameters of the view, checked against the view's schema. */
+  parameters?: Record<string, unknown>;
+}
 
 const workflowGraphHandlebars = Handlebars.create();
 registerClingoHelpers(workflowGraphHandlebars);
@@ -50,20 +75,36 @@ export class Queries {
       );
     }
     return this.checkout.calculationEngine.logicProgram(
-      ['all'],
       query as QueryName | undefined,
     );
   }
 
   /**
-   * Runs given logic program and creates a graph using clingraph
-   * @param data Provide a query or/and a file which can be given to clingraph
-   * @param timeout Maximum amount of milliseconds clingraph is allowed to run
-   * @returns a base64 encoded image as a string
+   * Renders a graph from a graph model and a graph view resource, the way
+   * the graph macro does in card content.
+   * @param request Model and view resource names, the card the graph is
+   *   drawn for (filled into the view's `{{cardKey}}`), and the view's
+   *   parameters, checked against the view's schema.
+   * @param context In which type of context the graph is rendered.
+   * @returns sanitized SVG.
+   * @throws if a resource or the card does not exist, the parameters do not
+   *   validate or the logic program fails.
    */
   @read
-  public async runGraph(model: string, view: string, context: Context) {
-    return this.checkout.calculationEngine.runGraph(model, view, context);
+  public async runGraph(
+    request: GraphRequest,
+    context: Context = 'localApp',
+  ): Promise<string> {
+    const { model, view, cardKey, parameters } = request;
+    if (cardKey !== undefined) {
+      this.assertCardExists(cardKey);
+    }
+    const options = validateGraphOptions(this.checkout, {
+      ...parameters,
+      model,
+      view,
+    });
+    return renderGraph(this.checkout, options, cardKey, context);
   }
 
   /**
@@ -81,21 +122,26 @@ export class Queries {
       workflow: workflowName,
       currentState: options.currentState,
     });
-    return this.checkout.calculationEngine.runGraph(
+    const svg = await this.checkout.calculationEngine.runGraph(
       workflowGraph.model,
       view,
       options.context ?? 'localApp',
     );
+    return svgBase64(svg);
   }
 
   /**
    * Runs a logic program using clingo.
-   * @param query Logic program to be run
+   * @param query Logic program to be run; a mistake in it is invalid.
    * @returns parsed program output
    */
   @read
   public async runLogicProgram(query: string, context: Context = 'localApp') {
-    return this.checkout.calculationEngine.runLogicProgram(query, context);
+    return this.checkout.calculationEngine.runLogicProgram(
+      query,
+      context,
+      true,
+    );
   }
 
   /**
@@ -115,20 +161,27 @@ export class Queries {
   /**
    * Runs a pre-defined query.
    * @param queryName Name of the query file without extension
-   * @param options Any object that contains state for handlebars
+   * @param options The query's inputs; see queryOptions for what each
+   *   query takes.
    * @returns parsed program output
+   * @throws DHValidationError if the options do not fit the query.
+   * @throws CardNotFoundError if a card in the options does not exist.
    */
   @read
   public async runQuery<T extends QueryName>(
     queryName: T,
     context: Context = 'localApp',
-    options?: unknown,
+    options?: QueryOptions<T>,
   ): Promise<QueryResult<T>[]> {
-    return this.checkout.calculationEngine.runQuery(
-      queryName,
-      context,
-      options,
-    );
+    const parsed = parseQueryOptions(queryName, options);
+    const { cardKey, cardKeys = [] } = parsed as {
+      cardKey?: string;
+      cardKeys?: string[];
+    };
+    for (const key of [cardKey ?? [], cardKeys].flat()) {
+      this.assertCardExists(key);
+    }
+    return this.checkout.calculationEngine.runQuery(queryName, context, parsed);
   }
 
   /** The logic program of a resource. */
@@ -193,5 +246,13 @@ export class Queries {
     });
 
     return result ?? '';
+  }
+
+  // The card key is pasted into the logic program unquoted, so only a key
+  // the project holds may reach it.
+  private assertCardExists(cardKey: string) {
+    if (!hasCard(this.checkout, cardKey)) {
+      throw new CardNotFoundError(cardKey);
+    }
   }
 }

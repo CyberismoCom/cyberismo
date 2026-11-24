@@ -38,6 +38,36 @@ No relative `import()` in `src/`: it hides a cycle from these rules.
 - A helper several layers need and that touches no project: `shared/`.
 - Tests mirror the source path under `test/`.
 
+## Logic backend
+
+The project's logic programs live in a `LogicBackend` (`infra/logic/`),
+one per opened checkout. The `logic` open option makes it; clingo is the
+default, and its native binding loads on first use. The checkout closes
+it when it is disposed, once the running reads and writes have ended;
+from then on the checkout refuses every read and write.
+
+- Only the calculation engine calls it. A write's program changes and
+  the queries inside the write go through one transaction; every write
+  ends by replacing all programs and committing them.
+- `check` covers one program at a time (calculation edits, validation,
+  the skip of invalid calculations). Problems of the project as a whole
+  are the commit's to refuse; the write then fails like any failed write.
+- An abort or a refused commit leaves the committed programs as they
+  were. A failed write that changed files rebuilds them from the files:
+  the rollback with autocommit, the reload without it.
+- Logic failures are `LogicError`s, one subclass and error code per
+  reason: `LogicInvalidError` (`logic-invalid`), `LogicNonTotalError`
+  (`logic-non-total`), `LogicUnavailableError` (`logic-unavailable`) and
+  `LogicInternalError` (`logic-internal`); a query without a total answer
+  fails as non-total. A failure of a query the request supplied stays
+  what it is, with its diagnostics, unless the stored programs fail
+  without the query. A project or built-in query that is invalid fails as
+  internal, as does a supplied one the stored programs fail; an internal
+  failure keeps its diagnostics out of its details. Nothing else imports
+  `@cyberismo/node-clingo`. The contract every backend must pass is the
+  suite in `test/logic-contract/contract.ts`, which runs on clingo in
+  data-handler's tests; another backend's tests import it by path.
+
 ## Known debt
 
 - `Modules` (782 lines), `Export` and `Clean` are fat API classes: they

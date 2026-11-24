@@ -179,4 +179,89 @@ describe('MCP Tools via Client', () => {
     expect(Array.isArray(parsed.results)).toBe(true);
     expect(parsed.results.length).toBeGreaterThan(0);
   });
+
+  test('run_query passes the card it is given', async () => {
+    const result = await client.callTool({
+      name: 'run_query',
+      arguments: {
+        projectPrefix: 'decision',
+        queryName: 'card',
+        options: { cardKey: 'decision_5' },
+      },
+    });
+
+    expect(result.isError, contentOf(result)[0].text).toBeFalsy();
+    const { results } = JSON.parse(contentOf(result)[0].text);
+    expect(results.map((card: { key: string }) => card.key)).toEqual([
+      'decision_5',
+    ]);
+  });
+
+  test('run_query refuses options its query needs but lacks', async () => {
+    const result = await client.callTool({
+      name: 'run_query',
+      arguments: { projectPrefix: 'decision', queryName: 'onTransition' },
+    });
+
+    expect(result.isError).toBe(true);
+    expect(contentOf(result)[0].text).toMatch(
+      /Invalid options for query 'onTransition'/,
+    );
+  });
+
+  test('run_graph names a view that does not exist', async () => {
+    const result = await client.callTool({
+      name: 'run_graph',
+      arguments: {
+        projectPrefix: 'decision',
+        model: 'decision/graphModels/test',
+        view: 'decision/graphViews/nope',
+      },
+    });
+
+    expect(result.isError).toBe(true);
+    expect(contentOf(result)[0].text).toContain('decision/graphViews/nope');
+  });
+});
+
+describe('undeclared tool arguments', () => {
+  // Paths of object schemas under `schema` that declare properties but allow
+  // other keys.
+  const openObjects = (schema: unknown, path: string): string[] => {
+    if (typeof schema !== 'object' || schema === null) return [];
+    const node = schema as Record<string, unknown>;
+    const open =
+      Object.keys(node.properties ?? {}).length > 0 &&
+      node.additionalProperties !== false;
+    return [
+      ...(open ? [path] : []),
+      ...Object.entries(node).flatMap(([key, value]) =>
+        openObjects(value, `${path}.${key}`),
+      ),
+    ];
+  };
+
+  test('every listed input schema refuses them', async () => {
+    const { tools } = await client.listTools();
+    expect(tools.map((tool) => tool.name)).toContain('create_card');
+    const open = tools.flatMap((tool) =>
+      openObjects(tool.inputSchema, tool.name),
+    );
+    expect(open).toEqual([]);
+  });
+
+  test('a misnamed argument fails the call', async () => {
+    const result = await client.callTool({
+      name: 'create_card',
+      arguments: {
+        projectPrefix: 'decision',
+        template: 'decision/templates/simplepage',
+        parentCardKey: 'decision_5',
+      },
+    });
+    expect(result.isError).toBe(true);
+    expect(contentOf(result)[0].text).toContain(
+      'Unrecognized key: "parentCardKey"',
+    );
+  });
 });

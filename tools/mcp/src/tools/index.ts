@@ -1,8 +1,14 @@
 // SPDX-FileCopyrightText: Cyberismo Ltd and contributors
 // SPDX-License-Identifier: AGPL-3.0-only
 
+import { isDeepStrictEqual } from 'node:util';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { resourceName, type ProjectDirectory } from '@cyberismo/data-handler';
+import {
+  queryOptions,
+  resourceName,
+  type ProjectDirectory,
+  type Workspace,
+} from '@cyberismo/data-handler';
 import { z } from 'zod';
 import { toolResult, toolError } from '../lib/mcp-helpers.js';
 import { renderCard, getCardTree } from '../lib/render.js';
@@ -11,15 +17,62 @@ import { callerOf, resolveWorkspace } from '../lib/resolve-project.js';
 import {
   resourceNameRegex,
   BASE_PROPERTY_KEYS,
-  DATA_TYPES,
   changeOperationSchema,
   arrayUpdateOperationSchema,
   SUB_PROPERTY_KEYS,
+  contentChangeOperationSchema,
 } from './sharedSchemas.js';
+
+// The predefined queries run_query offers.
+const QUERY_NAMES = ['card', 'onCreation', 'onTransition', 'tree'] as const;
 
 const projectPrefixParam = z
   .string()
   .describe('Project prefix. Call list_projects to see available projects.');
+
+/**
+ * Rejects a content 'change' whose target is given but is not the file's
+ * complete current content. Agents have sent a snippet as target expecting
+ * it to be replaced, which would truncate the file to `to`.
+ */
+async function checkCurrentContent(
+  ws: Workspace,
+  resource: string,
+  subKey: string,
+  target: unknown,
+) {
+  if (target === undefined) {
+    return;
+  }
+  const { content } = (await ws.resources.show(resource)) as {
+    content?: Record<string, unknown>;
+  };
+  const current = content?.[subKey] ?? '';
+  if (!sameContent(current, target)) {
+    throw new Error(
+      `'target' does not match the current '${subKey}' content, so nothing was written. ` +
+        `A 'change' replaces the whole file with 'to': send the complete new content in 'to', ` +
+        `and either omit 'target' or send the complete current content in it.`,
+    );
+  }
+}
+
+// Text files compare as strings; JSON files (such as the parameter schema)
+// compare as parsed values, so formatting does not matter.
+function sameContent(current: unknown, target: unknown): boolean {
+  if (typeof current === 'string') {
+    return target === current;
+  }
+  let parsed = target;
+  if (typeof target === 'string') {
+    try {
+      parsed = JSON.parse(target);
+    } catch {
+      return false;
+    }
+  }
+  return isDeepStrictEqual(current, parsed);
+}
 
 /**
  * Register all MCP tools for Cyberismo operations
@@ -997,130 +1050,33 @@ export function registerTools(
     {
       description:
         'Update a file based resource (card types, field types, workflows, link types)',
-      inputSchema: z.union([
-        z.object({
-          projectPrefix: projectPrefixParam,
+      inputSchema: {
+        projectPrefix: projectPrefixParam,
+        query: z.strictObject({
           key: z
-            .enum([...BASE_PROPERTY_KEYS, 'workflow'])
-            .describe('Available property keys to update'),
-          operation: changeOperationSchema,
-          resource: z
             .string()
-            .regex(resourceNameRegex('cardTypes'))
             .describe(
-              'Full resource name (e.g., "prefix/cardTypes/myResourceName")',
+              "Property to update, e.g. displayName, workflow, customFields, dataType, states. An unknown key's error lists the keys the resource type takes",
             ),
-        }),
-        z.object({
-          projectPrefix: projectPrefixParam,
-          key: z
-            .enum([
-              'alwaysVisibleFields',
-              'optionallyVisibleFields',
-              'customFields',
-            ])
-            .describe('Available property keys to update'),
           operation: arrayUpdateOperationSchema,
-          resource: z
-            .string()
-            .regex(resourceNameRegex('cardTypes'))
-            .describe(
-              'Full resource name (e.g., "prefix/cardTypes/myResourceName")',
-            ),
         }),
-        z.object({
-          projectPrefix: projectPrefixParam,
-          key: z
-            .enum(BASE_PROPERTY_KEYS)
-            .describe('Available property keys to update'),
-          operation: changeOperationSchema,
-          resource: z
-            .string()
-            .regex(resourceNameRegex('fieldTypes'))
-            .describe(
-              'Full resource name (e.g., "prefix/fieldTypes/myResourceName")',
+        resource: z
+          .string()
+          .regex(
+            resourceNameRegex(
+              'cardTypes',
+              'fieldTypes',
+              'linkTypes',
+              'workflows',
             ),
-        }),
-        z.object({
-          projectPrefix: projectPrefixParam,
-          key: z.literal('dataType'),
-          operation: changeOperationSchema.extend({
-            to: z.enum(DATA_TYPES).describe('New data type for the field'),
-          }),
-          resource: z
-            .string()
-            .regex(resourceNameRegex('fieldTypes'))
-            .describe(
-              'Full resource name (e.g., "prefix/fieldTypes/myResourceName")',
-            ),
-        }),
-        z.object({
-          projectPrefix: projectPrefixParam,
-          key: z.literal('enumValues'),
-          operation: arrayUpdateOperationSchema,
-          resource: z
-            .string()
-            .regex(resourceNameRegex('fieldTypes'))
-            .describe(
-              'Full resource name (e.g., "prefix/fieldTypes/myResourceName")',
-            ),
-        }),
-        z.object({
-          projectPrefix: projectPrefixParam,
-          key: z
-            .enum([
-              ...BASE_PROPERTY_KEYS,
-              'enableLinkDescription',
-              'inboundDisplayName',
-              'outboundDisplayName',
-            ])
-            .describe('Base metadata field to update'),
-          operation: changeOperationSchema,
-          resource: z
-            .string()
-            .regex(resourceNameRegex('linkTypes'))
-            .describe(
-              'Full resource name (e.g., "prefix/linkTypes/myResourceName")',
-            ),
-        }),
-        z.object({
-          projectPrefix: projectPrefixParam,
-          key: z.enum(['destinationCardTypes', 'sourceCardTypes']),
-          operation: arrayUpdateOperationSchema,
-          resource: z
-            .string()
-            .regex(resourceNameRegex('linkTypes'))
-            .describe(
-              'Full resource name (e.g., "prefix/linkTypes/myResourceName")',
-            ),
-        }),
-        z.object({
-          projectPrefix: projectPrefixParam,
-          key: z
-            .enum(BASE_PROPERTY_KEYS)
-            .describe('Available property keys to update'),
-          operation: changeOperationSchema,
-          resource: z
-            .string()
-            .regex(resourceNameRegex('workflows'))
-            .describe(
-              'Full resource name (e.g., "prefix/workflows/myResourceName")',
-            ),
-        }),
-        z.object({
-          projectPrefix: projectPrefixParam,
-          key: z.enum(['states', 'transitions']),
-          operation: arrayUpdateOperationSchema,
-          resource: z
-            .string()
-            .regex(resourceNameRegex('workflows'))
-            .describe(
-              'Full resource name (e.g., "prefix/workflows/myResourceName")',
-            ),
-        }),
-      ]),
+          )
+          .describe(
+            'Full resource name (e.g., "prefix/{cardTypes|fieldTypes|linkTypes|workflows}/myResourceName")',
+          ),
+      },
     },
-    async ({ projectPrefix, resource, operation, key }, extra) => {
+    async ({ projectPrefix, resource, query }, extra) => {
+      const { key, operation } = query;
       try {
         const ws = await resolveWorkspace(
           directory,
@@ -1150,22 +1106,22 @@ export function registerTools(
     'update_folder_resource',
     {
       description:
-        'Update folder based resource (calculations, graphModels, graphViews, reports, templates)',
+        'Update folder based resource (calculations, graphModels, graphViews, reports, templates). With key "content", a change replaces the whole content file with `to`.',
       inputSchema: {
         projectPrefix: projectPrefixParam,
         query: z.union([
-          z.object({
+          z.strictObject({
             key: z
               .enum(BASE_PROPERTY_KEYS)
               .describe('Available property keys to update'),
             operation: changeOperationSchema,
           }),
-          z.object({
+          z.strictObject({
             key: z.literal('content'),
             subKey: z
               .enum(SUB_PROPERTY_KEYS)
               .describe('Content sub-key to update'),
-            operation: changeOperationSchema,
+            operation: contentChangeOperationSchema,
           }),
         ]),
         resource: z
@@ -1192,6 +1148,14 @@ export function registerTools(
           extra,
           server,
         );
+        if (query.key === 'content') {
+          await checkCurrentContent(
+            ws,
+            resource,
+            query.subKey,
+            query.operation.target,
+          );
+        }
         const updateKey =
           query.key === 'content'
             ? ({ key: 'content', subKey: query.subKey } as const)
@@ -1245,15 +1209,18 @@ export function registerTools(
   server.registerTool(
     'run_query',
     {
-      description: 'Run a predefined query against the project',
+      description:
+        "Run a predefined query against the project, with its inputs in options. 'card': card details with fields, links and allowed operations ({ cardKey } or { cardKeys }; none for all cards). 'tree': the card tree ({ cardKey, recursive? } for a subtree; none for the whole project). 'onCreation': fields and transitions that creating cards would set off ({ cardKeys }). 'onTransition': fields and transitions that a transition would set off ({ cardKey, transition }).",
       inputSchema: {
         projectPrefix: projectPrefixParam,
-        queryName: z
-          .enum(['card', 'onCreation', 'onTransition', 'tree'])
-          .describe('Query type to run'),
+        queryName: z.enum(QUERY_NAMES).describe('Query type to run'),
+        options: z
+          .union(QUERY_NAMES.map((name) => queryOptions[name]))
+          .optional()
+          .describe("The query's inputs, as the description lists them"),
       },
     },
-    async ({ projectPrefix, queryName }, extra) => {
+    async ({ projectPrefix, queryName, options }, extra) => {
       try {
         const ws = await resolveWorkspace(
           directory,
@@ -1261,7 +1228,11 @@ export function registerTools(
           extra,
           server,
         );
-        const results = await ws.queries.runQuery(queryName);
+        const results = await ws.queries.runQuery(
+          queryName,
+          'localApp',
+          options,
+        );
         return toolResult({ results });
       } catch (error) {
         return toolError('running query', error);
@@ -1408,14 +1379,27 @@ export function registerTools(
   server.registerTool(
     'run_graph',
     {
-      description: 'Generate a graph visualization',
+      description:
+        'Render a graph from a graph model and a graph view, as the graph macro does in card content. Returns the graph as SVG markup.',
       inputSchema: {
         projectPrefix: projectPrefixParam,
-        model: z.string().describe('Graph model name'),
-        view: z.string().describe('Graph view name'),
+        model: z.string().describe('Graph model resource name'),
+        view: z.string().describe('Graph view resource name'),
+        cardKey: z
+          .string()
+          .optional()
+          .describe(
+            'Card the graph is drawn for; most views need it ({{cardKey}} in the view)',
+          ),
+        parameters: z
+          .record(z.string(), z.unknown())
+          .optional()
+          .describe(
+            "Additional view parameters, checked against the view's schema",
+          ),
       },
     },
-    async ({ projectPrefix, model, view }, extra) => {
+    async ({ projectPrefix, model, view, cardKey, parameters }, extra) => {
       try {
         const ws = await resolveWorkspace(
           directory,
@@ -1423,16 +1407,11 @@ export function registerTools(
           extra,
           server,
         );
-        const base64 = await ws.queries.runGraph(model, view, 'localApp');
-        return {
-          content: [
-            {
-              type: 'image' as const,
-              data: base64,
-              mimeType: 'image/png',
-            },
-          ],
-        };
+        const svg = await ws.queries.runGraph(
+          { model, view, cardKey, parameters },
+          'localApp',
+        );
+        return { content: [{ type: 'text' as const, text: svg }] };
       } catch (error) {
         return toolError('running graph', error);
       }
