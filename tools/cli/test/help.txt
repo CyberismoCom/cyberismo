@@ -32,6 +32,7 @@ Commands:
   validate [options]                                                           Validate project structure
   install-skills [options] [path]                                              Install the dynamic skill discovery bootstrap skill and MCP server configuration for an AI agent platform. Installs into the current directory by default — run it from (or pass) the directory your AI agent operates in, usually the repository root.
   app [options]                                                                Starts the cyberismo app, accessible with a web browser at http://localhost:3000
+  mcp [options]                                                                Serves the MCP server over stdio, without the app. An AI agent starts it as a child process
   publish [options]                                                            Publish the current version (creates annotated git tag, pushes to remote). Run "cyberismo create version" first to set the version.
   clean [options]                                                              Remove dormant field values: values a card stores but that are not shown and not visible to logic programs (empty placeholders, fields the card type no longer declares, values on calculated fields)
   help [command]                                                               display help for command

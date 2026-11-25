@@ -16,6 +16,7 @@ import { registerExport } from './commands/export.js';
 import { registerFetch } from './commands/fetch.js';
 import { registerImport } from './commands/import.js';
 import { registerInstallSkills } from './commands/install-skills.js';
+import { registerMcp } from './commands/mcp.js';
 import { registerMigrate } from './commands/migrate.js';
 import {
   registerCheckUpdates,
@@ -81,6 +82,7 @@ registerCheckUpdates(program);
 registerValidate(program);
 registerInstallSkills(program);
 registerApp(program);
+registerMcp(program);
 registerPublish(program);
 registerClean(program);
 

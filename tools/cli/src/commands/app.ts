@@ -4,13 +4,8 @@
 import { resolve } from 'node:path';
 
 import { type Command } from 'commander';
-import { simpleGit } from 'simple-git';
 
-import {
-  MockAuthProvider,
-  type MockUserConfig,
-  createServer,
-} from '@cyberismo/backend';
+import { MockAuthProvider, createServer } from '@cyberismo/backend';
 import { formatProjectErrors, type ProjectErrors } from '@cyberismo/model';
 import {
   localFolder,
@@ -20,17 +15,11 @@ import {
 } from '@cyberismo/data-handler';
 
 import { CommandWithPath } from '../lib/args.js';
+import { gitUser } from '../lib/git-user.js';
 import { isProjectFolder } from '../lib/open.js';
 import { confirm } from '../lib/prompts.js';
 import { validation } from './validate.js';
 import type { StartCommandOptions } from '../options.js';
-
-async function getGitUserConfig(): Promise<MockUserConfig> {
-  const git = simpleGit();
-  const name = (await git.getConfig('user.name')).value || undefined;
-  const email = (await git.getConfig('user.email')).value || undefined;
-  return { name, email };
-}
 
 // The projects that fail to load or to validate, those first; a load
 // failure is reported as the project's own error, and a folder whose name is
@@ -119,8 +108,8 @@ export function registerApp(program: Command) {
       }
     }
 
-    const gitUser = await getGitUserConfig();
-    if (!gitUser.name || !gitUser.email) {
+    const user = await gitUser();
+    if (!user.name || !user.email) {
       console.warn(
         'Warning: git user.name or user.email is not configured. Using defaults.',
       );
@@ -129,7 +118,7 @@ export function registerApp(program: Command) {
     // Project creation only in multi-project mode.
     await createServer(
       { projectPath: basePath, multiProject: !isSingleProject },
-      { auth: new MockAuthProvider(gitUser), directory },
+      { auth: new MockAuthProvider(user), directory },
     );
   });
 }

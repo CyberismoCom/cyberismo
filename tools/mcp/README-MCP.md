@@ -55,6 +55,27 @@ After configuration, reload VS Code. Copilot Chat will have access to Cyberismo 
 
 ---
 
+## Without the app (stdio)
+
+`cyberismo mcp` serves the same server over stdio. The MCP client starts it as a child process, so `cyberismo app` does not need to run. In the `.mcp.json` of a project:
+
+```json
+{
+  "mcpServers": {
+    "cyberismo": {
+      "command": "cyberismo",
+      "args": ["mcp"]
+    }
+  }
+}
+```
+
+The server opens the projects in the current folder, like `cyberismo app`. Options: `-p <path>` for another folder, `-w` to reload resources that change on disk, and `--autocommit` (before `mcp`) for git-backed writes. The tools act as the local user, with the name and email from the git configuration. Standard output carries only protocol messages. Errors and other output go to standard error.
+
+Use stdio when an agent works without a person at the keyboard, or when several agents work in parallel, each in its own folder or git worktree. Use the app when you also want to look at the projects in a browser.
+
+---
+
 ## HTTP Protocol Details
 
 The HTTP transport uses Server-Sent Events (SSE) for streaming:
