@@ -142,6 +142,26 @@ describe('an effect refused in the check', () => {
     ],
     ['addLabel(p_1,"l")', 'addLabel(p_1,"l")', "card 'p_1' does not exist"],
     ['removeLabel(p_1,l)', 'removeLabel(p_1,l)', "card 'p_1' does not exist"],
+    [
+      'addLink(p_1,"p_2","x/linkTypes/l")',
+      'addLink(p_1,"p_2","x/linkTypes/l")',
+      "card 'p_1' does not exist",
+    ],
+    [
+      'addLink(A,p_2,"x/linkTypes/l","d")',
+      'addLink(A,p_2,"x/linkTypes/l","d")',
+      "card 'p_2' does not exist",
+    ],
+    [
+      'removeLink(A,B,"x/linkTypes/l")',
+      'removeLink(A,B,"x/linkTypes/l")',
+      "link type 'x/linkTypes/l' does not exist",
+    ],
+    [
+      'removeLink(p_1,p_2,"x/linkTypes/l","d")',
+      'removeLink(p_1,p_2,"x/linkTypes/l","d")',
+      "card 'p_1' does not exist",
+    ],
     ['rank(A,p_2)', 'rank(A,p_2)', "card 'p_2' does not exist"],
     ['rankFirst(p_1)', 'rankFirst(p_1)', "card 'p_1' does not exist"],
     [
@@ -160,6 +180,16 @@ describe('an effect refused in the check', () => {
 
   it.each<[string, string, RegExp]>([
     ['an unknown card', 'setField(nope_1,"title","x")', /nope_1/],
+    [
+      'a link to an external item',
+      'addLink(A,"jira:X-1","proj/linkTypes/rel")',
+      /'jira:X-1' is not a card key \(external items are not supported\)/,
+    ],
+    [
+      'a link from an external item',
+      'removeLink("jira:X-1",A,"proj/linkTypes/rel")',
+      /'jira:X-1' is not a card key \(external items are not supported\)/,
+    ],
     ['a template card target', 'setField(TPL,"title","x")', /template card/],
     ['a template card content', 'setContent(TPL,"x")', /template card/],
     ['a module card content', 'setContent(MOD,"x")', /module card/],
@@ -174,6 +204,32 @@ describe('an effect refused in the check', () => {
       'a copy from an unknown card',
       'copyContent(A,nope_1)',
       /card 'nope_1' does not exist/,
+    ],
+    ['an unknown link type', 'addLink(A,B,"proj/linkTypes/nope")', /link type/],
+    [
+      'an unknown link type on remove',
+      'removeLink(A,B,"proj/linkTypes/nope")',
+      /link type/,
+    ],
+    [
+      'a disallowed description',
+      'addLink(A,B,"proj/linkTypes/rel","d")',
+      /description/,
+    ],
+    [
+      'a card type not allowed',
+      'addLink(A,C,"proj/linkTypes/fromNote")',
+      /cannot be used as source/,
+    ],
+    [
+      'a link to a template card',
+      'addLink(A,TPL,"proj/linkTypes/rel")',
+      /template card/,
+    ],
+    [
+      'a link from a template card',
+      'addLink(TPL,A,"proj/linkTypes/rel")',
+      /template card/,
     ],
     [
       'setField on workflowState',
@@ -205,6 +261,11 @@ describe('an effect refused in the check', () => {
       'maybe for a boolean',
       'setField(A,"proj/fieldTypes/flag",maybe)',
       /"maybe" is not a valid boolean value/,
+    ],
+    [
+      'a link type name without prefix',
+      'addLink(A,B,"/linkTypes/rel")',
+      /link type '\/linkTypes\/rel' does not exist/,
     ],
     [
       'a number out of range',
@@ -270,6 +331,22 @@ describe('an effect refused in the check', () => {
       'two values for one field',
       ['setField(A,"title","x")', 'setField(A,"title","y")'],
       /^Cannot apply 'setField\(.*,"title","x"\)': field 'title' of card '.*' is set to two different values$/,
+    ],
+    [
+      'a link both added and removed',
+      [
+        'addLink(A,B,"proj/linkTypes/rel")',
+        'removeLink(A,B,"proj/linkTypes/rel")',
+      ],
+      /^Cannot apply 'addLink\(.*the link from card '.*' to card '.*' is both added and removed$/,
+    ],
+    [
+      'a link added with no description and removed with ""',
+      [
+        'addLink(A,B,"proj/linkTypes/rel")',
+        'removeLink(A,B,"proj/linkTypes/rel","")',
+      ],
+      /is both added and removed$/,
     ],
     [
       'a label both added and removed',

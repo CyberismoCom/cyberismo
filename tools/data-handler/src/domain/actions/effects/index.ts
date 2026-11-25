@@ -4,6 +4,7 @@
 import { copyContent, setContent } from './content.js';
 import type { EffectKind } from './define.js';
 import { addLabel, removeLabel } from './label.js';
+import { addLink, removeLink } from './link.js';
 import { rank, rankFirst } from './rank.js';
 import { setField } from './setField.js';
 
@@ -14,6 +15,8 @@ export const EFFECTS: readonly EffectKind[] = [
   copyContent,
   addLabel,
   removeLabel,
+  addLink,
+  removeLink,
   rank,
   rankFirst,
 ];
