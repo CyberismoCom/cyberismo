@@ -132,7 +132,8 @@ export class Settings {
 
   /**
    * Changes the project settings given; the rest stay as they are. An empty
-   * description or category clears it.
+   * description or category clears it. An update that gives none changes
+   * nothing.
    * @param changes.name New project name.
    * @param changes.description New project description.
    * @param changes.category New project category.
@@ -143,26 +144,38 @@ export class Settings {
   @write(() => 'Update project settings')
   public async update(changes: SettingsUpdate): Promise<void> {
     const { name, description, category, gitRemoteUrl } = changes;
-    if (gitRemoteUrl !== undefined && !(await this.checkout.git.isRepo())) {
+    const { configuration, git, lock } = this.checkout;
+    if (gitRemoteUrl !== undefined && !(await git.isRepo())) {
       throw new DHValidationError(
         'Cannot set remote URL: directory is not a git repository',
       );
     }
-    const configuration = this.checkout.configuration;
+    // Each change is recorded as it is saved, so a later step that fails
+    // leaves a write that is known to have changed something.
     // First: a name that is not valid is refused before anything is written.
     if (name !== undefined) {
       await configuration.setProjectName(name);
+      recordSettingsChange(lock);
     }
     if (description !== undefined) {
       await configuration.setDescription(description);
+      recordSettingsChange(lock);
     }
     if (category !== undefined) {
       await configuration.setCategory(category);
+      recordSettingsChange(lock);
     }
-    // Last: git keeps the remote even if the write is rolled back.
+    // Last: the remote is in the git configuration, which a rollback of the
+    // project files does not restore; the write is given its undo.
     if (gitRemoteUrl !== undefined) {
-      await this.checkout.git.setRemoteUrl(gitRemoteUrl);
+      const previous = await git.getRemoteUrl();
+      await git.setRemoteUrl(gitRemoteUrl);
+      lock
+        .currentTx()
+        ?.undo.push(() =>
+          previous === null ? git.removeRemote() : git.setRemoteUrl(previous),
+        );
+      recordSettingsChange(lock);
     }
-    recordSettingsChange(this.checkout.lock);
   }
 }

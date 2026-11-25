@@ -4,7 +4,10 @@
 import { execFile } from 'node:child_process';
 import { join } from 'node:path';
 import { promisify } from 'node:util';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import type { ChangeEvent } from '@cyberismo/model';
+
+import { GitManager } from '../../src/infra/git/git-manager.js';
 
 import { DHValidationError } from '../../src/shared/exceptions/index.js';
 
@@ -15,6 +18,10 @@ import {
 } from '../domain/resources/fixture.js';
 
 const open = projects();
+
+afterEach(() => {
+  vi.restoreAllMocks();
+});
 
 const config = (path: string) =>
   readJson(join(path, '.cards', 'local', 'cardsConfig.json'));
@@ -183,6 +190,78 @@ describe('settings: the git remote', () => {
     ).rejects.toThrow(/is not valid/);
 
     expect(await ws.settings.gitRemoteUrl()).toBe('');
+  });
+});
+
+describe('settings: a write that fails', () => {
+  // The remote lives in .git/config, which the rollback of the project files
+  // does not restore.
+  it.each([
+    ['puts the previous remote back', 'https://example.com/one.git'],
+    ['removes a remote that was not there', undefined],
+  ])(
+    '%s when an autocommitted update fails after the remote is set',
+    async (_name, previous) => {
+      const { ws, path } = await open(
+        { name: 'Original', git: true },
+        { autocommit: true },
+      );
+      if (previous) {
+        await ws.settings.update({ gitRemoteUrl: previous });
+      }
+      vi.spyOn(GitManager.prototype, 'commit').mockRejectedValueOnce(
+        new Error('commit failed'),
+      );
+
+      await expect(
+        ws.settings.update({
+          name: 'Renamed',
+          gitRemoteUrl: 'https://example.com/two.git',
+        }),
+      ).rejects.toThrow('commit failed');
+
+      expect(ws.settings.name).toBe('Original');
+      expect(config(path).name).toBe('Original');
+      expect(await ws.settings.gitRemoteUrl()).toBe(previous ?? '');
+    },
+  );
+
+  it('tells clients to reload when the remote fails after other settings are saved', async () => {
+    const { ws } = await open({ name: 'Original', git: true });
+    const events: ChangeEvent[] = [];
+    ws.changes.subscribe((event) => events.push(event));
+    vi.spyOn(GitManager.prototype, 'setRemoteUrl').mockRejectedValueOnce(
+      new Error('remote failed'),
+    );
+
+    await expect(
+      ws.settings.update({
+        name: 'Renamed',
+        gitRemoteUrl: 'https://example.com/repo.git',
+      }),
+    ).rejects.toThrow('remote failed');
+
+    expect(events).toEqual([
+      expect.objectContaining({
+        cause: 'failed-write',
+        changes: [{ kind: 'project.reloaded' }],
+      }),
+    ]);
+    expect(ws.settings.name).toBe('Renamed');
+  });
+});
+
+describe('settings: an update that gives nothing', () => {
+  it('changes nothing and publishes nothing', async () => {
+    const { ws, path } = await open({ git: true }, { autocommit: true });
+    const head = await git(path, 'rev-parse', 'HEAD');
+    const events: ChangeEvent[] = [];
+    ws.changes.subscribe((event) => events.push(event));
+
+    await ws.settings.update({});
+
+    expect(events).toEqual([]);
+    expect(await git(path, 'rev-parse', 'HEAD')).toBe(head);
   });
 });
 

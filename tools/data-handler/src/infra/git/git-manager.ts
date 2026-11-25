@@ -176,6 +176,17 @@ export class GitManager {
     this.logger.info({ remoteName, url }, 'Remote URL updated');
   }
 
+  /** Remove a named remote. Does nothing if there is no such remote. */
+  async removeRemote(
+    remoteName: string = GitManager.DEFAULT_REMOTE,
+  ): Promise<void> {
+    const remotes = await this.git.getRemotes();
+    if (remotes.some((r) => r.name === remoteName)) {
+      await this.git.removeRemote(remoteName);
+      this.logger.info({ remoteName }, 'Remote removed');
+    }
+  }
+
   /**
    * Push current branch and optionally tags to remote.
    *
