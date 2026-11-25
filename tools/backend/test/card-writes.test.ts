@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: Cyberismo Ltd and contributors
 // SPDX-License-Identifier: AGPL-3.0-only
 
-import { afterEach, beforeEach, describe, expect, test } from 'vitest';
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import type { Workspace } from '@cyberismo/data-handler';
 import { createApp } from '../src/app.js';
 import { MockAuthProvider, MOCK_ROLE_COOKIE } from '../src/auth/mock.js';
@@ -143,6 +143,27 @@ describe('POST /cards/:key/move', () => {
     expect(response.status).toBe(200);
     expect((await ws.cards.details(card)).parent).toBe('decision_6');
     expect((await rank(card)) < (await rank(sibling))).toBe(true);
+  });
+
+  // The move and its position are one data-handler write, not a move and a
+  // separate rank.
+  test('moves the card to a position in one write', async () => {
+    const cards = Object.getPrototypeOf(ws.cards);
+    const move = vi.spyOn(cards, 'move');
+    const rankAt = vi.spyOn(cards, 'rankAt');
+    try {
+      const response = await send(`${card}/move`, 'POST', {
+        parent: 'decision_6',
+        index: 0,
+      });
+
+      expect(response.status).toBe(200);
+      expect(move.mock.calls).toEqual([[card, 'decision_6', 0]]);
+      expect(rankAt).not.toHaveBeenCalled();
+    } finally {
+      move.mockRestore();
+      rankAt.mockRestore();
+    }
   });
 
   test.each([
