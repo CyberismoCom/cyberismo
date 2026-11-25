@@ -72,9 +72,9 @@ export const CardTreeNode = (props: CardTreeNodeProps) => {
             color: 'common.black',
             fontWeight: 600,
             fontSize: '0.8rem',
-            padding: '0px 6px 0px 6px',
+            paddingX: 1,
             height: '20px',
-            marginLeft: '4px',
+            marginLeft: 0.5,
             textAlign: 'center',
             alignSelf: 'center',
           }}

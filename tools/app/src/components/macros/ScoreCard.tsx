@@ -20,13 +20,11 @@ export default function ScoreCard({
   return (
     <Card
       variant="outlined"
-      style={{
-        borderRadius: '12px',
-        boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+      sx={{
         display: 'inline-block',
-        padding: '20px',
-        marginTop: '20px',
-        marginRight: '20px',
+        padding: 2,
+        marginTop: 2,
+        marginRight: 2,
       }}
     >
       <Typography style={{ fontSize: '16px' }}>{title}</Typography>
@@ -44,12 +42,7 @@ export default function ScoreCard({
         >
           {value}
         </Typography>
-        <Typography
-          style={{
-            fontSize: '24px',
-            marginLeft: '4px',
-          }}
-        >
+        <Typography style={{ fontSize: '24px' }} sx={{ marginLeft: 0.5 }}>
           {unit}
         </Typography>
       </Box>

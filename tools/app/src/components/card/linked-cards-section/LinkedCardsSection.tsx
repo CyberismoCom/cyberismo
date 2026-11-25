@@ -93,7 +93,7 @@ export default function LinkedCardsSection({
         borderColor={
           editing ? 'primary.outlinedBorder' : 'neutral.outlinedBorder'
         }
-        borderRadius={6}
+        borderRadius="sm"
         padding={{ xs: 1, sm: 1.5 }}
         onClick={
           headerClickable

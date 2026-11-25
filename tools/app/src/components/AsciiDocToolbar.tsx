@@ -69,7 +69,7 @@ export function AsciiDocToolbar({
       direction="row"
       bgcolor="background.surface"
       gap={1.5}
-      borderRadius={6}
+      borderRadius="sm"
       padding={0.5}
       flexWrap="nowrap"
       minWidth={0}
@@ -169,7 +169,7 @@ export function AsciiDocToolbar({
               disabled={readOnly}
               sx={{
                 py: 0,
-                px: 0.75,
+                px: 1,
               }}
             >
               <Add fontSize="medium" />

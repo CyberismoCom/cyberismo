@@ -78,7 +78,7 @@ function AttachmentPreviewCard({
                 color="danger"
                 variant="solid"
                 loading={isUpdating}
-                sx={{ marginRight: '3px' }}
+                sx={{ marginRight: 0.5 }}
                 onClick={async () => {
                   const confirmed = confirm(t('confirmDeleteAttachment'));
                   if (confirmed) {
@@ -97,7 +97,7 @@ function AttachmentPreviewCard({
               component="a"
               variant="solid"
               color="primary"
-              sx={{ marginRight: '3px' }}
+              sx={{ marginRight: 0.5 }}
               href={apiPaths.attachment(cardKey, name)}
               download
             >
@@ -110,7 +110,7 @@ function AttachmentPreviewCard({
                 data-cy="insertToContentButton"
                 variant="solid"
                 color="primary"
-                sx={{ marginRight: '2px' }}
+                sx={{ marginRight: 0.5 }}
                 onClick={() => onInsert()}
               >
                 <AddLink />
@@ -263,7 +263,7 @@ export const AttachmentPanel: React.FC<AttachmentPanelProps> = ({
         <AccordionSummary
           indicator={<ExpandMore />}
           onClick={() => setExpanded(!expanded)}
-          sx={{ borderRadius: '4px', marginTop: 1, marginBottom: 1 }}
+          sx={{ borderRadius: 'sm', marginTop: 1, marginBottom: 1 }}
         >
           {badge}
           <Typography level="title-sm" fontWeight="bold" sx={{ flexGrow: 1 }}>

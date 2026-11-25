@@ -98,7 +98,7 @@ export default function InlineField({
               textDecorationStyle: 'dashed',
               textDecorationColor: 'var(--joy-palette-neutral-400)',
               textUnderlineOffset: '3px',
-              borderRadius: '3px',
+              borderRadius: 'sm',
               // The padding marks the value without moving the text around it.
               paddingX: '2px',
               marginX: '-2px',
@@ -160,7 +160,7 @@ export default function InlineField({
           <LockOutlined
             sx={{
               fontSize: '0.9em',
-              marginLeft: 0.25,
+              marginLeft: 0.5,
               verticalAlign: '-0.1em',
               ...mutedSx,
             }}

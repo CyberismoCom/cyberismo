@@ -185,7 +185,7 @@ export function ChecksAccordion({
               indicator={<ExpandMore />}
               onClick={() => setSuccessesExpanded(!successesExpanded)}
               sx={{
-                borderRadius: '4px',
+                borderRadius: 'sm',
                 marginTop: 1,
                 marginBottom: 1,
               }}
@@ -205,7 +205,7 @@ export function ChecksAccordion({
               indicator={<ExpandMore />}
               onClick={() => setFailuresExpanded(!failuresExpanded)}
               sx={{
-                borderRadius: '4px',
+                borderRadius: 'sm',
                 marginTop: 1,
                 marginBottom: 1,
               }}

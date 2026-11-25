@@ -217,7 +217,7 @@ export const CardBody = forwardRef<CardBodyHandle, CardBodyProps>(
           <Box
             border="1px solid"
             borderColor="primary.outlinedBorder"
-            borderRadius={6}
+            borderRadius="sm"
             padding={{ xs: 1, sm: 1.5 }}
             sx={{
               '& .cm-gutters': {
@@ -329,7 +329,7 @@ export const CardBody = forwardRef<CardBodyHandle, CardBodyProps>(
           <Box
             border="1px solid"
             borderColor="neutral.outlinedBorder"
-            borderRadius={6}
+            borderRadius="sm"
             padding={{ xs: 1, sm: 1.5 }}
             position="relative"
             minHeight={56}

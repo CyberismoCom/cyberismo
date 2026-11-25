@@ -66,7 +66,7 @@ export function AddAttachmentModal({
               <Stack
                 padding={10}
                 spacing={2}
-                borderRadius={20}
+                borderRadius="sm"
                 border={1}
                 alignItems="center"
                 borderColor="primary.outlinedBorder"

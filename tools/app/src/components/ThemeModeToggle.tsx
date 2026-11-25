@@ -18,7 +18,7 @@ export function ThemeModeToggle() {
       aria-label={switchLabel}
       sx={{
         '--IconButton-size': '32px',
-        marginRight: '6px',
+        marginRight: 1,
         color: 'common.white',
       }}
     >

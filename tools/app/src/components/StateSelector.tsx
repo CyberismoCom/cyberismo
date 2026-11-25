@@ -73,6 +73,7 @@ const StateSelector: React.FC<StateSelectorProps> = ({
         height: compact ? '0.9em' : '16px',
         backgroundColor: getStateColor(currentState.category),
         borderRadius: '50%',
+        // Keeps the dot tight against the state's name inside the button.
         marginRight: '2px',
       }}
     ></span>
@@ -98,7 +99,7 @@ const StateSelector: React.FC<StateSelectorProps> = ({
             ? {
                 minHeight: 0,
                 paddingY: 0,
-                paddingX: 0.75,
+                paddingX: 1,
                 fontSize: 'inherit',
                 lineHeight: 'inherit',
               }
