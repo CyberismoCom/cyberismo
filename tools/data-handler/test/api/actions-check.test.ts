@@ -129,6 +129,19 @@ describe('an effect refused in the check', () => {
       "card 'p_1' does not exist",
     ],
     ['setField(p_1,"g",x)', 'setField(p_1,"g",x)', "card 'p_1' does not exist"],
+    [
+      'copyContent(p_1,p_2)',
+      'copyContent(p_1,p_2)',
+      "card 'p_1' does not exist",
+    ],
+    ['copyContent(A,p_2)', 'copyContent(A,p_2)', "card 'p_2' does not exist"],
+    [
+      'setContent(p_1,"a\\nb")',
+      'setContent(p_1,"a\\nb")',
+      "card 'p_1' does not exist",
+    ],
+    ['addLabel(p_1,"l")', 'addLabel(p_1,"l")', "card 'p_1' does not exist"],
+    ['removeLabel(p_1,l)', 'removeLabel(p_1,l)', "card 'p_1' does not exist"],
     ['rank(A,p_2)', 'rank(A,p_2)', "card 'p_2' does not exist"],
     ['rankFirst(p_1)', 'rankFirst(p_1)', "card 'p_1' does not exist"],
     [
@@ -148,9 +161,20 @@ describe('an effect refused in the check', () => {
   it.each<[string, string, RegExp]>([
     ['an unknown card', 'setField(nope_1,"title","x")', /nope_1/],
     ['a template card target', 'setField(TPL,"title","x")', /template card/],
+    ['a template card content', 'setContent(TPL,"x")', /template card/],
+    ['a module card content', 'setContent(MOD,"x")', /module card/],
+    ['an unknown card content', 'setContent(nope_1,"x")', /does not exist/],
+    ['a module card target', 'addLabel(MOD,"x")', /module card/],
+    ['a template card label removal', 'removeLabel(TPL,"x")', /template card/],
     ['a template card as rank anchor', 'rank(A,TPL)', /template card/],
     ['a template card ranked', 'rank(TPL,A)', /template card/],
     ['a template card ranked first', 'rankFirst(TPL)', /template card/],
+    ['a copy onto a template card', 'copyContent(TPL,A)', /template card/],
+    [
+      'a copy from an unknown card',
+      'copyContent(A,nope_1)',
+      /card 'nope_1' does not exist/,
+    ],
     [
       'setField on workflowState',
       'setField(A,"workflowState","Done")',
@@ -248,6 +272,11 @@ describe('an effect refused in the check', () => {
       /^Cannot apply 'setField\(.*,"title","x"\)': field 'title' of card '.*' is set to two different values$/,
     ],
     [
+      'a label both added and removed',
+      ['addLabel(A,"l")', 'removeLabel(A,"l")'],
+      /^Cannot apply 'addLabel\(.*the label 'l' of card '.*' is both added and removed$/,
+    ],
+    [
       'rank and rankFirst of a card',
       ['rank(A,B)', 'rankFirst(A)'],
       /^Cannot apply 'rank\(.*card '.*' has more than one rank or rankFirst$/,
@@ -257,11 +286,36 @@ describe('an effect refused in the check', () => {
       ['rank(A,B)', 'rank(A,C)'],
       /card '.*' has more than one rank or rankFirst$/,
     ],
+    [
+      'two texts for one card',
+      ['setContent(A,"x")', 'setContent(A,"y")'],
+      /^Cannot apply 'setContent\(.*,"x"\)': the content of card '.*' is set more than once$/,
+    ],
+    [
+      'setContent and copyContent of a card',
+      ['copyContent(A,B)', 'setContent(A,"x")'],
+      /^Cannot apply 'copyContent\(.*the content of card '.*' is set more than once$/,
+    ],
+    [
+      'copies of two cards onto one',
+      ['copyContent(A,B)', 'copyContent(A,C)'],
+      /the content of card '.*' is set more than once$/,
+    ],
   ])('refuses %s', async (_case, atoms, reason) => {
     const error = await run(...atoms).catch((e: unknown) => e);
 
     expect(error).toBeInstanceOf(DHValidationError);
     expect((error as Error).message).toMatch(reason);
+  });
+
+  it('reports an effect refused alone before a conflict later in atom order', async () => {
+    await expect(
+      run(
+        'setField(A,"title","x")',
+        'setField(A,"title","y")',
+        'addLabel(TPL,"l")',
+      ),
+    ).rejects.toThrow(`card '${tpl}' is a template card`);
   });
 
   it('does not count an effect refused alone in a conflict', async () => {
