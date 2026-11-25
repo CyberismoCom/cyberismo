@@ -53,9 +53,9 @@ export class CalculationResource extends FolderResource<
       if (displayName !== undefined) {
         newContent.displayName = displayName;
       }
-    } else {
-      await this.validate(newContent);
     }
+    // The display name given is validated with the rest of the content.
+    await this.validate(newContent);
     await super.create(newContent);
 
     const calculationContent = `% add your calculations here for '${this.resourceName.identifier}'`;

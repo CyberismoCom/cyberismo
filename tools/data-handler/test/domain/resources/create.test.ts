@@ -375,6 +375,13 @@ describe('resources.create', () => {
         error: /must have required property 'name'/,
       },
       {
+        why: 'the calculation display name is not a string',
+        name: 'x',
+        type: 'calculations' as const,
+        params: { displayName: 42 },
+        error: /must be string/,
+      },
+      {
         why: 'the workflow content has no initial transition',
         name: 'x',
         type: 'workflows' as const,
