@@ -570,6 +570,14 @@ export class CardTree {
     return this.rankedSiblingsOf(cardKey).map((sibling) => sibling.key);
   }
 
+  /**
+   * The keys of the cards under a parent, in rank order.
+   * @param parentKey Parent card key, or 'root' for the tree's root cards.
+   */
+  public childrenInRankOrder(parentKey: string): string[] {
+    return this.siblingsUnder(parentKey).map((sibling) => sibling.key);
+  }
+
   // The card's sibling set with ranks, in rank order.
   private rankedSiblingsOf(cardKey: string): RankedCard[] {
     return this.siblingsUnder(this.stored(cardKey).parent);

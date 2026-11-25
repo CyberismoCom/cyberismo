@@ -115,6 +115,9 @@ describe('cards.move', () => {
   it.each([
     ['a negative position', -1, /^Index must not be negative$/],
     ['a position past the new siblings', 1, /^Index 1 is out of bounds$/],
+    ['a fractional position', 0.5, /^Index must be a whole number$/],
+    ['an infinite position', Infinity, /^Index must be a whole number$/],
+    ['a position that is not a number', NaN, /^Index must be a whole number$/],
   ])('refuses %s, moving nothing', async (_name, index, error) => {
     const { ws, path, keys } = await open(spec);
 
@@ -139,6 +142,48 @@ describe('cards.move', () => {
 
     expect(await childKeys(ws, a)).toEqual([a2, a1]);
   });
+
+  it('leaves a card staying under its parent where it is at the position right after itself', async () => {
+    const { ws, keys } = await open(spec);
+    const [a, a1, a2] = keys;
+
+    await ws.cards.move(a2, a, 2);
+    await ws.cards.move(a1, a, 1);
+
+    expect(await childKeys(ws, a)).toEqual([a1, a2]);
+  });
+
+  // A moved card is ranked after the ranked siblings, so before unranked
+  // ones; the position counts the new siblings as they were before the move.
+  it.each([
+    [1, ['x', 'moved', 'u']],
+    [2, ['x', 'u', 'moved']],
+  ])(
+    'moves a card to position %i among new siblings that are not all ranked',
+    async (index, expected) => {
+      const { ws, keys } = await open({
+        cards: [
+          { title: 'a', children: [{ title: 'moved' }] },
+          {
+            title: 'b',
+            children: [{ title: 'x' }, { title: 'u', fields: { rank: '' } }],
+          },
+        ],
+      });
+      const [, moved, b, x, u] = keys;
+      const names: Record<string, string> = {
+        [moved]: 'moved',
+        [x]: 'x',
+        [u]: 'u',
+      };
+
+      await ws.cards.move(moved, b, index);
+
+      expect((await childKeys(ws, b)).map((key) => names[key])).toEqual(
+        expected,
+      );
+    },
+  );
 
   it('a move to the own parent is a rank commit', async () => {
     const { ws, path, keys } = await open(

@@ -109,13 +109,15 @@ function staysUnderParent(
 /**
  * Moves a card under a parent, optionally to a position among its new
  * siblings. A move to the card's own parent only ranks it. The position is
- * checked before the card moves.
+ * checked before anything is written.
  * @param source Card to move.
  * @param destination New parent card; 'root' for the root of the card's
  *   own container, or 'root:project' / 'root:<template>'.
- * @param index Position among the new siblings; 0 is first.
+ * @param index Position among the destination's cards as they are now; 0 is
+ *   first. A card staying under its parent counts itself among them.
  * @returns Whether the card moved to another parent.
- * @throws DHValidationError if the position is negative or past the end.
+ * @throws DHValidationError if the position is not a whole number, is
+ *   negative or is past the end.
  */
 export async function moveCard(
   checkout: Checkout,
@@ -126,54 +128,76 @@ export async function moveCard(
   const target = moveTarget(checkout, source, destination);
   const { targetTree, newParent } = target;
   const staying = staysUnderParent(target, source);
-  if (index !== undefined) {
-    assertIndex(index);
-    const others = targetTree
-      .childrenOf(newParent)
-      .filter((key) => key !== source).length;
-    // A card staying where it is can also go after itself.
-    if (index > (staying ? others + 1 : others)) {
-      throw new DHValidationError(`Index ${index} is out of bounds`);
-    }
-  }
+  const step =
+    index === undefined
+      ? undefined
+      : rankStep(targetTree.childrenInRankOrder(newParent), source, index);
   if (!staying) {
     await assertAllowed(checkout, 'move', source);
     await relocateCard(checkout, source, newParent, targetTree.name);
     await checkout.handleCardMoved(cardNode(checkout, source));
   }
-  if (index !== undefined) {
-    await rankAt(checkout, source, index);
+  if (step) {
+    await takeRankStep(checkout, source, step);
   }
   return !staying;
 }
 
-function assertIndex(index: number) {
+// What ranking a card at a position takes: ranking it first, after a
+// sibling, or nothing when it already sits there.
+type RankStep = { first: true } | { after: string } | { stay: true };
+
+// What putting `cardKey` at `index` among `cards` takes. `cards` are the
+// cards under the destination parent as they are now, in rank order; the
+// card is one of them when it stays under its parent, and the position right
+// after it leaves it where it is.
+// @throws DHValidationError if the index is not a whole number, is negative
+//   or is past the end
+function rankStep(cards: string[], cardKey: string, index: number): RankStep {
+  if (!Number.isInteger(index)) {
+    throw new DHValidationError(`Index must be a whole number`);
+  }
   if (index < 0) {
     throw new DHValidationError(`Index must not be negative`);
+  }
+  if (index > cards.length) {
+    throw new DHValidationError(`Index ${index} is out of bounds`);
+  }
+  if (index === 0) {
+    return { first: true };
+  }
+  const previous = cards[index - 1];
+  return previous === cardKey ? { stay: true } : { after: previous };
+}
+
+async function takeRankStep(
+  checkout: Checkout,
+  cardKey: string,
+  step: RankStep,
+) {
+  if ('first' in step) {
+    await rankFirst(checkout, cardKey);
+  } else if ('after' in step) {
+    await rankAfter(checkout, cardKey, step.after);
   }
 }
 
 /**
- * Ranks card using position given as 'index'.
+ * Ranks a card at a position among its siblings.
  * @param cardKey card key
- * @param index to which position should card be ranked to
+ * @param index Position among the siblings as they are now, the card itself
+ *   included; 0 is first, and the position right after the card leaves it
+ *   where it is.
+ * @throws DHValidationError if the position is not a whole number, is
+ *   negative or is past the end.
  */
 export async function rankAt(
   checkout: Checkout,
   cardKey: string,
   index: number,
 ) {
-  assertIndex(index);
-  if (index === 0) {
-    await rankFirst(checkout, cardKey);
-    return;
-  }
-
   const siblings = checkout.treeOf(cardKey).siblingsOf(cardKey);
-  if (siblings.length < index) {
-    throw new DHValidationError(`Index ${index} is out of bounds`);
-  }
-  await rankAfter(checkout, cardKey, siblings[index - 1]);
+  await takeRankStep(checkout, cardKey, rankStep(siblings, cardKey, index));
 }
 
 /**
