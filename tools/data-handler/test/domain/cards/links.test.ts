@@ -12,6 +12,7 @@ const open = projects();
 const rel = 'test/linkTypes/rel';
 const note = 'test/linkTypes/note';
 const described = 'test/linkTypes/described';
+const jiraOnly = 'test/linkTypes/jiraOnly';
 const jira = {
   linkType: rel,
   connector: 'jira',
@@ -125,8 +126,7 @@ describe('cards.addLink', () => {
     ],
     [
       'a connector the link type excludes',
-      (c: Links, k: string[]) =>
-        c.addLink(k[1], 'other:1', 'test/linkTypes/jiraOnly'),
+      (c: Links, k: string[]) => c.addLink(k[1], 'other:1', jiraOnly),
       /does not support links to connector 'other'/,
     ],
     [
@@ -264,11 +264,16 @@ describe('cards.editLink', () => {
     await ws.cards.editLink(
       keys[0],
       { target: 'jira:P-1', linkType: rel },
-      { target: 'jira:P-2', linkType: rel, direction: 'inbound' },
+      { target: 'jira:P-2', linkType: jiraOnly, direction: 'inbound' },
     );
 
     expect(await externalOf(ws, keys[0])).toEqual([
-      { ...jira, externalItemKey: 'P-2', direction: 'inbound' },
+      {
+        ...jira,
+        linkType: jiraOnly,
+        externalItemKey: 'P-2',
+        direction: 'inbound',
+      },
     ]);
   });
 
