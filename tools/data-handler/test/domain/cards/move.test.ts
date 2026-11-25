@@ -110,13 +110,42 @@ describe('cards.move', () => {
     expect(ranked).toEqual([t1, t2, t3]);
   });
 
-  it('refuses a negative position, moving nothing', async () => {
+  // Without autocommit a failed write is not rolled back: the position is
+  // checked before the card moves.
+  it.each([
+    ['a negative position', -1, /^Index must not be negative$/],
+    ['a position past the new siblings', 1, /^Index 1 is out of bounds$/],
+  ])('refuses %s, moving nothing', async (_name, index, error) => {
     const { ws, path, keys } = await open(spec);
 
     await expectRefused(
       path,
-      () => ws.cards.move(keys[1], keys[3], -1),
-      /Index must be/,
+      () => ws.cards.move(keys[1], keys[3], index),
+      error,
+    );
+  });
+
+  it('refuses a position past its siblings for a card it only ranks', async () => {
+    const { ws, path, keys } = await open(spec);
+
+    await expectRefused(
+      path,
+      () => ws.cards.move(keys[1], keys[0], 3),
+      /^Index 3 is out of bounds$/,
+    );
+  });
+
+  it('a move to the own parent is a rank commit', async () => {
+    const { ws, path, keys } = await open(
+      { ...spec, git: true },
+      { autocommit: true },
+    );
+
+    await ws.cards.move(keys[2], keys[0], 0);
+
+    expect(await childKeys(ws, keys[0])).toEqual([keys[2], keys[1]]);
+    expect(await git(path, 'log', '-1', '--format=%s')).toBe(
+      `Rank card ${keys[2]}`,
     );
   });
 

@@ -13,7 +13,6 @@ import type {
 } from '@cyberismo/model';
 import type { Checkout } from '../state/checkout/checkout.js';
 import { read, write } from '../infra/tx/rw-lock.js';
-import { DHValidationError } from '../shared/exceptions/index.js';
 import type { CommitIdentity } from '../infra/tx/tx-record.js';
 import {
   addAttachment,
@@ -24,7 +23,7 @@ import { removeCard } from '../domain/cards/index.js';
 import { importCsv } from '../domain/cards/index.js';
 import { addCards, createCard } from '../domain/cards/index.js';
 import {
-  moveCard,
+  moveCardTo,
   rankAfter,
   rankAt,
   rankFirst,
@@ -72,19 +71,13 @@ export class Cards {
    * @param index Position among the new siblings; 0 is first. Last when
    *   moved to another parent without one.
    */
-  @write((source, destination) => `Move card ${source} to ${destination}`)
+  @write()
   public async move(
     source: string,
     destination: string,
     index?: number,
   ): Promise<void> {
-    if (index !== undefined && index < 0) {
-      throw new DHValidationError(`Index must be greater than 0`);
-    }
-    await moveCard(this.checkout, source, destination);
-    if (index !== undefined) {
-      await rankAt(this.checkout, source, index);
-    }
+    await moveCardTo(this.checkout, source, destination, index);
   }
 
   /**

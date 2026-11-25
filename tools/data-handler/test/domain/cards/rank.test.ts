@@ -102,7 +102,11 @@ describe('cards.rank, rankFirst, rankAt', () => {
       (c, _k, _t, m) => c.rankFirst(m),
       ReadOnlyContainerError,
     ],
-    ['to a negative index', (c, k) => c.rankAt(k[0], -1), /greater than 0/],
+    [
+      'to a negative index',
+      (c, k) => c.rankAt(k[0], -1),
+      /^Index must not be negative$/,
+    ],
     [
       'to an index past the siblings',
       (c, k) => c.rankAt(k[0], 6),
