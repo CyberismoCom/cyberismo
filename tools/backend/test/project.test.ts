@@ -153,7 +153,11 @@ describe('Project endpoints', () => {
     expect(result.cardKeyPrefix).toBe('projtest');
   });
 
-  test.each([{}, { cardKeyPrefix: '' }])(
+  test.each([
+    {},
+    { cardKeyPrefix: '' },
+    { cardKeyPrefix: 'other', name: 'Other' },
+  ])(
     'PUT /api/project/prefix refuses the body %j',
     async (body) => {
       const response = await app.request('/api/projects/test/project/prefix', {

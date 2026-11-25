@@ -19,7 +19,7 @@ export const updateProjectSchema = z.strictObject({
     .optional(),
 });
 
-export const renamePrefixSchema = z.object({
+export const renamePrefixSchema = z.strictObject({
   cardKeyPrefix: z.string().min(1),
 });
 
