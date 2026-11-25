@@ -76,14 +76,7 @@ export interface ParseResult<T extends BaseResult> {
  * Generic types for named queries
  */
 
-export const queries = [
-  'card',
-  'connectors',
-  'enabledSkills',
-  'onCreation',
-  'onTransition',
-  'tree',
-] as const;
+export const queries = ['card', 'connectors', 'enabledSkills', 'tree'] as const;
 
 export type QueryName = (typeof queries)[number];
 
@@ -91,8 +84,6 @@ export type QueryMap = {
   card: CardQueryResult;
   connectors: ConnectorQueryResult;
   enabledSkills: EnabledSkillQueryResult;
-  onCreation: FieldsToUpdateQueryResult;
-  onTransition: FieldsToUpdateQueryResult;
   tree: TreeQueryResult;
 };
 export type QueryResult<T extends QueryName> = QueryMap[T];
@@ -126,10 +117,6 @@ interface ConnectorQueryResult extends BaseResult {
 interface EnabledSkillQueryResult extends BaseResult {
   scope: 'global' | 'card';
 }
-interface FieldsToUpdateQueryResult extends BaseResult {
-  updateFields?: UpdateField[];
-  executeTransition?: ExecuteTransition[];
-}
 interface TreeQueryResult extends BaseResult {
   progress?: string;
   rank: string;
@@ -139,17 +126,6 @@ interface TreeQueryResult extends BaseResult {
   /** True when the card or an ancestor is hiddenInTreeView; hidden cards are still returned. */
   isHidden: boolean;
   children?: TreeQueryResult[];
-}
-
-export interface UpdateField {
-  card: string;
-  field: string;
-  newValue: string;
-}
-
-export interface ExecuteTransition {
-  card: string;
-  transitionToExecute: string;
 }
 
 interface EnumValue {
