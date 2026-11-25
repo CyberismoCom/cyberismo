@@ -32,6 +32,21 @@ export function resourceExists(
   );
 }
 
+/**
+ * Refuses the effect unless the resource exists.
+ * @param what What the resource is called in the refusal.
+ */
+export function resource(
+  checkout: Checkout,
+  name: string,
+  type: string,
+  what: string,
+) {
+  if (!resourceExists(checkout, name, type)) {
+    refuse(`${what} '${name}' does not exist`);
+  }
+}
+
 /** The card type of a card. */
 export function cardTypeOf(checkout: Checkout, card: Card) {
   const name = card.metadata?.cardType ?? '';

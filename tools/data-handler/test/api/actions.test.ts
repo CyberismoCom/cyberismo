@@ -31,6 +31,8 @@ import {
 const open = projects();
 
 const field = (name: string) => `proj/fieldTypes/${name}`;
+const linkType = (name: string) => `proj/linkTypes/${name}`;
+
 // Project cards A (with child A1), Req, B, C, Asset 1 and Asset 2. Every card
 // type a program selects also has a card in template t, so a selector that
 // forgets projectCard reaches a template card. Module mod has a catalogue of
@@ -201,6 +203,56 @@ describe('runAction', () => {
       },
     ],
     [
+      'addLink/3',
+      (k) => `addLink(${k.A}, ${k.req}, "${linkType('implements')}").`,
+      async (ws, k) => {
+        expect((await metadataOf(ws, k.A)).links).toEqual([
+          { cardKey: k.req, linkType: linkType('implements') },
+        ]);
+      },
+    ],
+    [
+      'addLink/4',
+      (k) => `addLink(${k.A}, ${k.req}, "${linkType('relates')}", "why").`,
+      async (ws, k) => {
+        expect((await metadataOf(ws, k.A)).links).toEqual([
+          {
+            cardKey: k.req,
+            linkType: linkType('relates'),
+            linkDescription: 'why',
+          },
+        ]);
+      },
+    ],
+    [
+      'addLink/4 with commas and parentheses in the description',
+      (k) =>
+        `addLink(${k.A}, ${k.req}, "${linkType('relates')}", "a, (b), c").`,
+      async (ws, k) => {
+        expect((await metadataOf(ws, k.A)).links).toEqual([
+          {
+            cardKey: k.req,
+            linkType: linkType('relates'),
+            linkDescription: 'a, (b), c',
+          },
+        ]);
+      },
+    ],
+    [
+      'removeLink/3',
+      (k) => `removeLink(${k.B}, ${k.req}, "${linkType('implements')}").`,
+      async (ws, k) => {
+        expect((await metadataOf(ws, k.B)).links).toEqual([]);
+      },
+    ],
+    [
+      'removeLink/4',
+      (k) => `removeLink(${k.C}, ${k.req}, "${linkType('relates')}", "d").`,
+      async (ws, k) => {
+        expect((await metadataOf(ws, k.C)).links).toEqual([]);
+      },
+    ],
+    [
       'setContent of a number as its digits',
       (k) => `setContent(${k.B}, 3).`,
       async (ws, k) => {
@@ -328,6 +380,27 @@ describe('runAction', () => {
     ['an unknown card', () => 'addLabel(proj_nope, "x").'],
     ['a template card target', (_, t) => `addLabel(${t}, "x").`],
     ['a module card target', (_, __, m) => `addLabel(${m}, "x").`],
+    [
+      'an unknown link type',
+      (k) => `addLink(${k.A}, ${k.req}, "proj/linkTypes/nope").`,
+    ],
+    [
+      'a link description the link type does not allow',
+      (k) => `addLink(${k.A}, ${k.req}, "${linkType('implements')}", "d").`,
+    ],
+    [
+      'a card type the link type does not allow',
+      (k) => `addLink(${k.A}, ${k.req}, "${linkType('checks')}").`,
+    ],
+    [
+      'a link both added and removed',
+      (k) =>
+        `addLink(${k.A}, ${k.req}, "${linkType('implements')}"). removeLink(${k.A}, ${k.req}, "${linkType('implements')}").`,
+    ],
+    [
+      'an external link item',
+      (k) => `addLink(${k.A}, "jira:X-1", "${linkType('implements')}").`,
+    ],
     [
       'setField on workflowState',
       (k) => `setField(${k.A}, "workflowState", "Done").`,
@@ -499,6 +572,18 @@ describe('runAction', () => {
       run('rankFirst(b). addLabel(b, "x"). rank(a, b).'),
     ).rejects.toThrow(
       `Cannot apply 'addLabel(b,"x")': card 'b' does not exist`,
+    );
+  });
+
+  it('keeps effects apart whose arguments concatenate the same', async () => {
+    const { k, run } = await openProject();
+
+    await expect(
+      run(
+        `addLink(${k.A}, ${k.A}, "ab", "c"). addLink(${k.A}, ${k.A}, "a", "bc").`,
+      ),
+    ).rejects.toThrow(
+      `Cannot apply 'addLink(${k.A},${k.A},"a","bc")': link type 'a' does not exist`,
     );
   });
 });
