@@ -6,6 +6,8 @@ import { join } from 'node:path';
 import { promisify } from 'node:util';
 import { describe, expect, it } from 'vitest';
 
+import { DHValidationError } from '../../src/shared/exceptions/index.js';
+
 import {
   expectRefused,
   projects,
@@ -127,6 +129,14 @@ describe('settings: writing', () => {
       expect(ws.settings.description).toBe('');
     },
   );
+
+  it('refuses a name that is not valid as a validation error', async () => {
+    const { ws } = await open({ name: 'Original' });
+
+    await expect(ws.settings.update({ name: 'not valid!' })).rejects.toThrow(
+      DHValidationError,
+    );
+  });
 });
 
 describe('settings: the git remote', () => {

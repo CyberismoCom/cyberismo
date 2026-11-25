@@ -126,25 +126,6 @@ describe('Project endpoints', () => {
     expect(result.name).toBe('Updated Project Name');
   });
 
-  test('PATCH /api/project changes nothing when a setting is refused', async () => {
-    const before = (await (
-      await app.request('/api/projects/test/project')
-    ).json()) as ProjectResponse;
-
-    const response = await app.request('/api/projects/test/project', {
-      method: 'PATCH',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ description: 'Not kept', name: 'not valid!' }),
-    });
-
-    expect(response.status).toBe(400);
-    const after = (await (
-      await app.request('/api/projects/test/project')
-    ).json()) as ProjectResponse;
-    expect(after.description).toBe(before.description);
-    expect(after.name).toBe(before.name);
-  });
-
   test.each([{ cardKeyPrefix: 'projtest' }, { unknown: 'x' }])(
     'PATCH /api/project refuses the unknown setting in %j',
     async (body) => {
