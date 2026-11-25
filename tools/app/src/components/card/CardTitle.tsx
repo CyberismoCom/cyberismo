@@ -16,9 +16,7 @@ type CardTitleProps = {
   title: string;
   disabled?: boolean;
   preview?: boolean;
-  onSave?: (update: {
-    metadata: Record<string, MetadataValue>;
-  }) => Promise<void>;
+  onSave?: (field: string, value: MetadataValue) => Promise<void>;
 };
 
 export const CardTitle: React.FC<CardTitleProps> = ({
@@ -74,7 +72,7 @@ export const CardTitle: React.FC<CardTitleProps> = ({
       return;
     }
     try {
-      await onSave({ metadata: { title: next } });
+      await onSave('title', next);
       setEditing(false);
       dispatch(isEdited(false));
     } catch (error) {

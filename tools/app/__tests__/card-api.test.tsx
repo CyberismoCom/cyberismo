@@ -33,7 +33,7 @@ vi.mock('@/lib/api/actions', async (importOriginal) => ({
 import {
   deleteCard,
   editCardContent,
-  editCardFields,
+  editCardField,
   moveCard,
   transitionCard,
   useCardMutations,
@@ -72,8 +72,8 @@ describe('card mutations', () => {
       keys: [card, content, source, tree, resourceTree],
     },
     {
-      action: 'editCardFields',
-      run: () => editCardFields('TST_1', { title: 'x' }, 'TST'),
+      action: 'editCardField',
+      run: () => editCardField('TST_1', 'title', 'x', 'TST'),
       keys: [card, content, source, tree, resourceTree],
     },
     {
@@ -123,9 +123,9 @@ describe('card mutations', () => {
       call: [`${card}/content`, 'PUT', { content: 'x' }],
     },
     {
-      action: 'editCardFields',
-      run: () => editCardFields('TST_1', { title: 'x', labels: [] }, 'TST'),
-      call: [`${card}/fields`, 'PATCH', { title: 'x', labels: [] }],
+      action: 'editCardField',
+      run: () => editCardField('TST_1', 'labels', [], 'TST'),
+      call: [`${card}/fields`, 'PATCH', { field: 'labels', value: [] }],
     },
     {
       action: 'transitionCard',

@@ -153,21 +153,6 @@ export class Cards {
   }
 
   /**
-   * Updates several metadata properties of a card, in order.
-   * @param cardKey The card to update.
-   * @param fields New values by metadata property.
-   */
-  @write((cardKey) => `Edit metadata of ${cardKey}`)
-  public async editFields(
-    cardKey: string,
-    fields: Record<string, Exclude<MetadataContent, bigint>>,
-  ): Promise<void> {
-    for (const [changedKey, newValue] of Object.entries(fields)) {
-      await editCardMetadata(this.checkout, cardKey, changedKey, newValue);
-    }
-  }
-
-  /**
    * Transitions a card to a new state, then executes any side effects
    * modules have declared for the transition.
    * @param cardKey Card to transition.

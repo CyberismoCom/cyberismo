@@ -923,7 +923,7 @@ test.describe('Field macro', () => {
           response.url().endsWith(`${cardApiPath}/content`),
       );
       const patched = await bob.request.patch(`${cardApiPath}/fields`, {
-        data: { 'test/fieldTypes/integer': 8 },
+        data: { field: 'test/fieldTypes/integer', value: 8 },
       });
       expect(patched.ok()).toBeTruthy();
       await refetched;
@@ -1042,7 +1042,7 @@ test.describe('Create links macro', () => {
         const [card] = (await created.json()) as { key: string }[];
         const patched = await context.request.patch(
           `/api/projects/${prefix}/cards/${card.key}/fields`,
-          { data: { title } },
+          { data: { field: 'title', value: title } },
         );
         expect(patched.ok()).toBeTruthy();
         keys[title] = card.key;

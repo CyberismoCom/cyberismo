@@ -22,11 +22,10 @@ const fieldValue = z.union([
   z.null(),
 ]);
 
-export const editFieldsSchema = z
-  .record(z.string().min(1), fieldValue)
-  .refine((fields) => Object.keys(fields).length > 0, {
-    message: 'At least one field is required',
-  });
+export const editFieldSchema = z.strictObject({
+  field: z.string().min(1),
+  value: fieldValue,
+});
 
 export const transitionSchema = z.object({ transition: z.string().min(1) });
 

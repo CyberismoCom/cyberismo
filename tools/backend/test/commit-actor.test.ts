@@ -42,7 +42,7 @@ test('a REST write is committed as the user', async () => {
     {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ labels: ['urgent'] }),
+      body: JSON.stringify({ field: 'labels', value: ['urgent'] }),
     },
   );
   expect(response.status).toBe(200);

@@ -41,7 +41,7 @@ export function TemplateCardEditor({
   node: AnyNode;
   card: CardView;
 }) {
-  const { updateContent, updateFields } = useCardMutations(node.id);
+  const { updateContent, updateField } = useCardMutations(node.id);
   const { resourceTree } = useResourceTree();
   const router = useAppRouter();
   const dispatch = useAppDispatch();
@@ -126,7 +126,7 @@ export function TemplateCardEditor({
 
   const saveMetadata = async (metadataKey: string, value: MetadataValue) => {
     try {
-      await updateFields({ [metadataKey]: value });
+      await updateField(metadataKey, value);
     } catch (error) {
       notifyError(error);
     }

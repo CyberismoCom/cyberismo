@@ -75,7 +75,7 @@ test('a card write reaches the other users viewing that card', async ({
 
     const title = 'Renamed through the API';
     const patched = await bob.request.patch(`${cardApiPath}/fields`, {
-      data: { title },
+      data: { field: 'title', value: title },
     });
     expect(patched.ok()).toBeTruthy();
     await expect(

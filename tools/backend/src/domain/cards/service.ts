@@ -162,12 +162,13 @@ export async function editCardContent(
   await ws.cards.edit(key, content);
 }
 
-export async function editCardFields(
+export async function editCardField(
   ws: Workspace,
   key: string,
-  fields: Record<string, Exclude<MetadataContent, bigint>>,
+  field: string,
+  value: Exclude<MetadataContent, bigint>,
 ): Promise<void> {
-  await ws.cards.editFields(key, fields);
+  await ws.cards.editField(key, field, value);
 }
 
 export async function transitionCard(

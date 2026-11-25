@@ -48,9 +48,7 @@ describe('CardTitle', () => {
     fireEvent.blur(input);
 
     await waitFor(() =>
-      expect(onSave).toHaveBeenCalledWith({
-        metadata: { title: 'Edited title' },
-      }),
+      expect(onSave).toHaveBeenCalledWith('title', 'Edited title'),
     );
   });
 

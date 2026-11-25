@@ -100,8 +100,8 @@ export const useCardMutations = (
     updateContent: async (content: string) =>
       (key && (await call(() => editCardContent(key, content), 'update'))) ||
       null,
-    updateFields: async (fields: Record<string, MetadataValue>) =>
-      (key && (await call(() => editCardFields(key, fields), 'update'))) ||
+    updateField: async (field: string, value: MetadataValue) =>
+      (key && (await call(() => editCardField(key, field, value), 'update'))) ||
       null,
     deleteCard: async () => {
       if (!key) return;
@@ -282,13 +282,14 @@ export async function editCardContent(
   await bodyRefetch;
 }
 
-export async function editCardFields(
+export async function editCardField(
   key: string,
-  fields: Record<string, MetadataValue>,
+  field: string,
+  value: MetadataValue,
   projectPrefix?: string,
 ) {
   const url = projectApiPaths(projectPrefix).cardFields(key);
-  await writeCard(key, url, 'PATCH', fields, projectPrefix);
+  await writeCard(key, url, 'PATCH', { field, value }, projectPrefix);
 }
 
 export async function transitionCard(

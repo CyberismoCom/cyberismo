@@ -56,7 +56,7 @@ vi.mock('@/components/card/CardLayout', () => ({
   },
 }));
 
-const updateFields = vi.fn().mockResolvedValue(undefined);
+const updateField = vi.fn().mockResolvedValue(undefined);
 const updateContent = vi.fn().mockResolvedValue(undefined);
 // The adapter is covered by templateCardView.test.ts; here it hands the editor
 // the fixture card.
@@ -79,7 +79,7 @@ vi.mock('@/lib/api', () => ({
   }),
   useFieldTypes: () => ({ fieldTypes: [], isLoading: false, error: null }),
   useResourceTree: () => ({ resourceTree: [] }),
-  useCardMutations: () => ({ updateFields, updateContent }),
+  useCardMutations: () => ({ updateField, updateContent }),
 }));
 
 const { dispatchSpy } = vi.hoisted(() => ({ dispatchSpy: vi.fn() }));
@@ -185,7 +185,7 @@ const rowButton = (container: HTMLElement, key: string, dataCy: string) =>
 
 describe('ConfigCardEditor (template card editor)', () => {
   beforeEach(() => {
-    updateFields.mockClear();
+    updateField.mockClear();
     updateContent.mockClear();
     dispatchSpy.mockClear();
     previewTitle = undefined;
@@ -204,7 +204,7 @@ describe('ConfigCardEditor (template card editor)', () => {
     expect(save).not.toBeDisabled();
     fireEvent.click(save);
 
-    expect(updateFields).toHaveBeenCalledWith({ f1: 'hello' });
+    expect(updateField).toHaveBeenCalledWith('f1', 'hello');
   });
 
   it('cancel reverts the field to its saved value', () => {
@@ -217,7 +217,7 @@ describe('ConfigCardEditor (template card editor)', () => {
     fireEvent.click(rowButton(container, 'f1', 'fieldCancelButton'));
 
     expect((fieldInput(container, 'f1') as HTMLInputElement).value).toBe('');
-    expect(updateFields).not.toHaveBeenCalled();
+    expect(updateField).not.toHaveBeenCalled();
   });
 
   it('saves the title via keyboard (Enter and Ctrl+S)', () => {
@@ -228,12 +228,12 @@ describe('ConfigCardEditor (template card editor)', () => {
 
     fireEvent.change(title, { target: { value: 'Saved via Enter' } });
     fireEvent.keyDown(title, { key: 'Enter' });
-    expect(updateFields).toHaveBeenCalledWith({ title: 'Saved via Enter' });
+    expect(updateField).toHaveBeenCalledWith('title', 'Saved via Enter');
 
-    updateFields.mockClear();
+    updateField.mockClear();
     fireEvent.change(title, { target: { value: 'Saved via Ctrl+S' } });
     fireEvent.keyDown(title, { key: 's', ctrlKey: true });
-    expect(updateFields).toHaveBeenCalledWith({ title: 'Saved via Ctrl+S' });
+    expect(updateField).toHaveBeenCalledWith('title', 'Saved via Ctrl+S');
   });
 
   it('saves a metadata field via keyboard (Enter and Ctrl+S)', () => {
@@ -242,12 +242,12 @@ describe('ConfigCardEditor (template card editor)', () => {
 
     fireEvent.change(input, { target: { value: 'kbd enter' } });
     fireEvent.keyDown(input, { key: 'Enter' });
-    expect(updateFields).toHaveBeenCalledWith({ f1: 'kbd enter' });
+    expect(updateField).toHaveBeenCalledWith('f1', 'kbd enter');
 
-    updateFields.mockClear();
+    updateField.mockClear();
     fireEvent.change(input, { target: { value: 'kbd ctrl-s' } });
     fireEvent.keyDown(input, { key: 's', ctrlKey: true });
-    expect(updateFields).toHaveBeenCalledWith({ f1: 'kbd ctrl-s' });
+    expect(updateField).toHaveBeenCalledWith('f1', 'kbd ctrl-s');
   });
 
   it('Escape reverts a dirty field without saving', () => {
@@ -260,7 +260,7 @@ describe('ConfigCardEditor (template card editor)', () => {
     fireEvent.keyDown(input, { key: 'Escape' });
 
     expect((fieldInput(container, 'f1') as HTMLInputElement).value).toBe('');
-    expect(updateFields).not.toHaveBeenCalled();
+    expect(updateField).not.toHaveBeenCalled();
   });
 
   it('each Preview shows the loading state until the draft is parsed', async () => {
@@ -479,7 +479,7 @@ describe('ConfigCardEditor (template card editor)', () => {
         rowButton(container, 'fover', 'fieldClearOverrideButton'),
       );
 
-      expect(updateFields).toHaveBeenCalledWith({ fover: null });
+      expect(updateField).toHaveBeenCalledWith('fover', null);
       // The editor follows the save; a draft left behind keeps the row dirty
       // holding a value that is no longer stored.
       expect((fieldInput(container, 'fover') as HTMLInputElement).value).toBe(
@@ -508,7 +508,7 @@ describe('ConfigCardEditor (template card editor)', () => {
       fireEvent.click(
         rowButton(container, 'flocked', 'fieldClearOverrideButton'),
       );
-      expect(updateFields).toHaveBeenCalledWith({ flocked: null });
+      expect(updateField).toHaveBeenCalledWith('flocked', null);
     });
 
     it('offers no Clear on a read-only calculated field with nothing stored', () => {

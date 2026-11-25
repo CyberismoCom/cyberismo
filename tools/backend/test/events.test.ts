@@ -1020,7 +1020,7 @@ describe('card update notifications', () => {
     {
       field: 'metadata',
       route: 'fields',
-      body: () => ({ title: 'Edited title' }),
+      body: () => ({ field: 'title', value: 'Edited title' }),
       notifies: 1,
     },
     {

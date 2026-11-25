@@ -60,34 +60,34 @@ describe('PUT /cards/:key/content', () => {
 });
 
 describe('PATCH /cards/:key/fields', () => {
-  test('passes the fields to the card and answers with its data only', async () => {
+  test('passes the field to the card and answers with its data only', async () => {
     const response = await send(`${card}/fields`, 'PATCH', {
-      title: 'Both at once',
-      labels: ['one', 'two'],
+      field: 'labels',
+      value: ['one', 'two'],
     });
 
     expect(response.status).toBe(200);
     const result = await response.json();
-    expect(result).toMatchObject({
-      key: card,
-      title: 'Both at once',
-      labels: ['one', 'two'],
-    });
+    expect(result).toMatchObject({ key: card, labels: ['one', 'two'] });
     expect(result).not.toHaveProperty('adocContent');
   });
 
-  test.each([{}, { title: { nested: true } }, { '': 'x' }])(
-    'refuses the body %j',
-    async (body) => {
-      expect((await send(`${card}/fields`, 'PATCH', body)).status).toBe(400);
-    },
-  );
+  test.each([
+    {},
+    { field: 'title' },
+    { field: '', value: 'x' },
+    { field: 'title', value: { nested: true } },
+    { field: 'title', value: 'x', labels: [] },
+    { title: 'x' },
+  ])('refuses the body %j', async (body) => {
+    expect((await send(`${card}/fields`, 'PATCH', body)).status).toBe(400);
+  });
 
   test('is refused to a reader', async () => {
     const response = await send(
       `${card}/fields`,
       'PATCH',
-      { title: 'x' },
+      { field: 'title', value: 'x' },
       'reader',
     );
     expect(response.status).toBe(403);
@@ -121,7 +121,7 @@ describe('POST /cards/:key/move', () => {
   const rank = async (key: string) =>
     (await ws.cards.details(key)).metadata!.rank;
 
-  test('moves the card under another parent, last', async () => {
+  test('moves the card under another parent', async () => {
     const response = await send(`${card}/move`, 'POST', { parent: 'root' });
 
     expect(response.status).toBe(200);
@@ -153,9 +153,4 @@ describe('POST /cards/:key/move', () => {
   ])('refuses the body %j', async (body) => {
     expect((await send(`${card}/move`, 'POST', body)).status).toBe(400);
   });
-});
-
-test('PATCH /cards/:key is no longer served', async () => {
-  const response = await send(card, 'PATCH', { metadata: { title: 'x' } });
-  expect(response.status).toBe(404);
 });

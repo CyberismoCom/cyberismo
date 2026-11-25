@@ -13,7 +13,7 @@ import {
   cardKeyParamSchema,
   createLinkSchema,
   editContentSchema,
-  editFieldsSchema,
+  editFieldSchema,
   moveCardSchema,
   transitionSchema,
   removeLinkSchema,
@@ -298,8 +298,8 @@ router.put(
  * @swagger
  * /api/cards/{key}/fields:
  *   patch:
- *     summary: Changes metadata fields of a card
- *     description: The body maps field names to their new values; fields left out stay as they are. Setting a custom field to null or an empty string clears it.
+ *     summary: Changes a metadata field of a card
+ *     description: Setting a custom field to null or an empty string clears it.
  *     parameters:
  *       - name: key
  *         in: path
@@ -310,12 +310,27 @@ router.put(
  *         application/json:
  *           schema:
  *             type: object
- *             additionalProperties: true
+ *             required: [field, value]
+ *             additionalProperties: false
+ *             properties:
+ *               field:
+ *                 type: string
+ *                 description: Name of the field
+ *               value:
+ *                 description: New value; a string, number, boolean, array of strings or null
+ *                 nullable: true
+ *                 oneOf:
+ *                   - type: string
+ *                   - type: number
+ *                   - type: boolean
+ *                   - type: array
+ *                     items:
+ *                       type: string
  *     responses:
  *       200:
  *         description: The updated card query result, same as GET /api/cards/{key}.
  *       400:
- *         description: Invalid request body, or a value is not valid for its field.
+ *         description: Invalid request body, or the value is not valid for the field.
  *       404:
  *         description: Card not found with given key
  */
@@ -323,12 +338,14 @@ router.patch(
   '/:key/fields',
   requireRole(UserRole.Editor),
   zValidator('param', cardKeyParamSchema),
-  zValidator('json', editFieldsSchema),
+  zValidator('json', editFieldSchema),
   async (c) => {
     const ws = c.get('ws');
     const { key } = c.req.valid('param');
 
-    await cardService.editCardFields(ws, key, c.req.valid('json'));
+    const { field, value } = c.req.valid('json');
+
+    await cardService.editCardField(ws, key, field, value);
     return c.json(await cardService.getCardData(ws, key, isSSGContext(c)));
   },
 );
