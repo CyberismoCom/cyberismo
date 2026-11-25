@@ -11,8 +11,6 @@ const SIZES: Record<OptionCardSize, { width: number; height: number }> = {
   md: { width: 200, height: 200 },
 };
 
-const RADIUS = 16;
-
 export interface OptionCardProps {
   title: string;
   // First line of the tinted band. Further lines go in children.
@@ -88,12 +86,10 @@ export function OptionCard({
       sx={(theme) => ({
         height,
         width,
-        boxShadow: '0px 2px 2px 0px rgba(0, 0, 0, 0.5)',
         cursor: onClick ? (disabled ? 'not-allowed' : 'pointer') : 'default',
         padding: 0,
         overflow: 'hidden',
         gap: 0,
-        borderRadius: RADIUS,
         ...(selected && { borderColor: 'primary.500', borderWidth: 2 }),
         ...(clickable && { [theme.focus.selector]: theme.focus.default }),
       })}
@@ -122,24 +118,14 @@ export function OptionCard({
           {action}
         </Box>
       </Stack>
-      <CardOverflow
-        sx={{
-          height: '50%',
-          borderBottomLeftRadius: RADIUS,
-          borderBottomRightRadius: RADIUS,
-        }}
-      >
+      <CardOverflow sx={{ height: '50%' }}>
         <Box
           bgcolor="neutral.softBg"
           height="100%"
           paddingLeft={2}
           paddingTop={1}
           paddingRight={1}
-          sx={{
-            overflow: 'hidden',
-            borderBottomLeftRadius: RADIUS,
-            borderBottomRightRadius: RADIUS,
-          }}
+          sx={{ overflow: 'hidden' }}
         >
           {caption && (
             <Typography
