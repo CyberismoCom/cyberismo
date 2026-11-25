@@ -215,20 +215,23 @@ describe('card types', () => {
       );
     });
 
-    it('refuses a position past the group, changing nothing', async () => {
-      // A failed write is rolled back under autocommit only.
-      const { ws, path } = await open(
-        { ...spec, git: true },
-        { autocommit: true },
-      );
+    // Without autocommit a failed write is not rolled back: the position is
+    // checked before the field moves.
+    it.each([5, -1])(
+      'refuses the position %i, changing nothing',
+      async (index) => {
+        const { ws, path } = await open(spec);
 
-      await expectRefused(
-        path,
-        () => ws.resources.setFieldVisibility(page, size, 'always', 5),
-        Error,
-      );
-      expect(await visibility(ws)).toEqual({ always: [], optional: [] });
-    });
+        await expectRefused(
+          path,
+          () => ws.resources.setFieldVisibility(page, size, 'always', index),
+          new RegExp(
+            `^Index ${index} is out of bounds for the always visible fields$`,
+          ),
+        );
+        expect(await visibility(ws)).toEqual({ always: [], optional: [] });
+      },
+    );
 
     it('is one commit', async () => {
       const { ws, path } = await open(

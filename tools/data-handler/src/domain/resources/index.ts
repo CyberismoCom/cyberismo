@@ -19,3 +19,7 @@ export {
   ResourceMutations,
   createSubject,
 } from './changes/resource-mutations.js';
+export {
+  setFieldVisibility,
+  type FieldVisibility,
+} from './field-visibility.js';

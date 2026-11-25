@@ -6,7 +6,6 @@ import type {
   AnyResourceContent,
   Context,
   CreateParamsByType,
-  Operation,
   ResourceContent,
   ResourceName,
   ResourceType,
@@ -14,13 +13,16 @@ import type {
   SkillSummary,
 } from '@cyberismo/model';
 import { findCard } from '../domain/cards/index.js';
-import { ResourceNotFoundError } from '../shared/exceptions/index.js';
 import { Validate } from '../domain/validation/index.js';
 import type { Checkout } from '../state/checkout/checkout.js';
 import type { ResourceMap } from '../state/resources/resource-cache.js';
 import { pluralResourceType } from '../state/resources/resource-handler.js';
 import type { ResourcesFrom } from '../state/resources/resources-from.js';
-import { createSubject } from '../domain/resources/index.js';
+import {
+  createSubject,
+  setFieldVisibility,
+  type FieldVisibility,
+} from '../domain/resources/index.js';
 import {
   getSkill,
   listSkills,
@@ -31,15 +33,6 @@ import { resourceName } from '../shared/utils/resource-utils.js';
 import { read, write } from '../infra/tx/rw-lock.js';
 import type { CommitIdentity } from '../infra/tx/tx-record.js';
 import type { Changes } from './changes.js';
-
-/** Visibility group of a card type's custom field. */
-export type FieldVisibility = 'always' | 'optional' | 'hidden';
-
-// The card type key that lists the fields of a visible group.
-const visibilityKeys: Record<Exclude<FieldVisibility, 'hidden'>, string> = {
-  always: 'alwaysVisibleFields',
-  optional: 'optionallyVisibleFields',
-};
 
 /**
  * Resources of one handle. Writes go through the handle's changes. Holds no
@@ -130,50 +123,13 @@ export class Resources {
     group: FieldVisibility,
     index?: number,
   ): Promise<void> {
-    const target = resourceName(cardTypeName);
-    const cardType = this.checkout.resources
-      .byType(cardTypeName, 'cardTypes')
-      .show();
-    if (!cardType.customFields.some((field) => field.name === fieldName)) {
-      throw new ResourceNotFoundError(
-        fieldName,
-        `Field '${fieldName}' does not exist in card type '${cardTypeName}'. `,
-      );
-    }
-    const current: FieldVisibility = cardType.alwaysVisibleFields.includes(
+    await setFieldVisibility(
+      this.checkout,
+      cardTypeName,
       fieldName,
-    )
-      ? 'always'
-      : cardType.optionallyVisibleFields.includes(fieldName)
-        ? 'optional'
-        : 'hidden';
-    const edit = (key: string, operation: Operation<unknown>) =>
-      this.changes.apply({
-        kind: 'edit',
-        target,
-        updateKey: { key },
-        operation,
-      });
-
-    if (current !== group && current !== 'hidden') {
-      await edit(visibilityKeys[current], {
-        name: 'remove',
-        target: fieldName,
-      });
-    }
-    if (group === 'hidden') {
-      return;
-    }
-    if (current !== group) {
-      await edit(visibilityKeys[group], { name: 'add', target: fieldName });
-    }
-    if (index !== undefined) {
-      await edit(visibilityKeys[group], {
-        name: 'rank',
-        target: fieldName,
-        newIndex: index,
-      });
-    }
+      group,
+      index,
+    );
   }
 
   /** The resource's validation errors; '' when it is valid. */
