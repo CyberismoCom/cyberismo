@@ -29,6 +29,13 @@ those live in data-handler.
 - Write tools go through the same Workspace operations as every other adapter, so they obey the same guards.
 - Adapter tests check mapping (input, Workspace call, rendered result), not domain behaviour.
 
+## Testing
+
+- Tool tests follow the backend rule (see Testing in `tools/backend/ARCHITECTURE.md`):
+  a test checks the call to the data-handler operation and its arguments, the
+  result's shape, and input-schema errors. Error rendering is tested once,
+  through `toolError` in `test/helpers.test.ts`.
+
 ## Known debt
 
 - `tools/index.ts` holds every tool in one file; `lib/render.ts` and `resources/index.ts` mix formatting with selection.
