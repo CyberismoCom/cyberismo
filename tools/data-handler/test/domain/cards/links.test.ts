@@ -277,17 +277,22 @@ describe('cards.editLink', () => {
     ]);
   });
 
-  it.each([
-    [
-      'into a link the card already has',
-      (c: Links, k: string[]) =>
-        c.editLink(
-          k[0],
-          { target: k[2], linkType: described, linkDescription: 'why' },
-          { target: k[1], linkType: rel },
+  it('refuses to change into a link the card already has, writing nothing without a rollback', async () => {
+    const { cards, path, keys } = await open(spec);
+
+    await expectRefused(
+      path,
+      () =>
+        cards.editLink(
+          keys[0],
+          { target: keys[2], linkType: described, linkDescription: 'why' },
+          { target: keys[1], linkType: rel },
         ),
       /already exists/,
-    ],
+    );
+  });
+
+  it.each([
     [
       'a link the card lacks',
       (c: Links, k: string[]) =>
