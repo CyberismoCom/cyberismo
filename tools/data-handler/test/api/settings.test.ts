@@ -123,20 +123,12 @@ describe('settings: writing', () => {
       await expectRefused(
         path,
         () => ws.settings.update({ description: 'Not kept', name }),
-        /is not valid/,
+        DHValidationError,
       );
       expect(ws.settings.name).toBe('Original');
       expect(ws.settings.description).toBe('');
     },
   );
-
-  it('refuses a name that is not valid as a validation error', async () => {
-    const { ws } = await open({ name: 'Original' });
-
-    await expect(ws.settings.update({ name: 'not valid!' })).rejects.toThrow(
-      DHValidationError,
-    );
-  });
 });
 
 describe('settings: the git remote', () => {
@@ -151,7 +143,7 @@ describe('settings: the git remote', () => {
           name: 'Not kept',
           gitRemoteUrl: 'https://example.com/repo.git',
         }),
-      /not a git repo/i,
+      DHValidationError,
     );
   });
 
