@@ -9,7 +9,7 @@ import {
   type EffectRow,
 } from './effects/define.js';
 import type { CreatedCard } from './facts.js';
-import { compareText } from './order.js';
+import { compareKeys, compareText, treeOrder } from './order.js';
 
 /** An effect the check refused, and why. */
 export interface Refusal {
@@ -97,8 +97,8 @@ export function checkEffects(
 
 /**
  * Applies checked effects step by step, in the order of STEPS. Within a
- * step, in the order of the effects' atoms. An effect already in place is
- * skipped.
+ * step, in the order of the effects' sort keys, then of their atoms. An
+ * effect already in place is skipped.
  * @returns the cards the effects created, in creation order
  * @throws EffectFailed on the first failure
  */
@@ -106,12 +106,20 @@ export async function applyEffects(
   checkout: Checkout,
   effects: CheckedEffect[],
 ): Promise<CreatedCard[]> {
+  let order: Map<string, number> | undefined;
+  const position = (cardKey: string) =>
+    (order ??= treeOrder(checkout)).get(cardKey);
   const created: CreatedCard[] = [];
   for (const step of STEPS) {
     const inStep = effects
       .filter((effect) => effect.step === step)
-      .sort((a, b) => compareText(a.atom, b.atom));
-    for (const effect of inStep) {
+      .map((effect) => ({ effect, key: effect.sortKey(position) }))
+      .sort(
+        (a, b) =>
+          compareKeys(a.key, b.key) ||
+          compareText(a.effect.atom, b.effect.atom),
+      );
+    for (const { effect } of inStep) {
       try {
         if (effect.inPlace(checkout)) continue;
         created.push(...(await effect.apply(checkout)));
