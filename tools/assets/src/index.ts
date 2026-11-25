@@ -68,6 +68,8 @@ export async function getStaticDirectoryPath(): Promise<string> {
       '@cyberismo/assets: getStaticDirectoryPath can only be called in Node.js',
     );
   }
+  // Set by the single-binary build, which ships these files embedded.
+  if (process.env.CYBERISMO_STATIC_DIR) return process.env.CYBERISMO_STATIC_DIR;
   const { join } = await import('node:path');
 
   // Get the directory of the current module
