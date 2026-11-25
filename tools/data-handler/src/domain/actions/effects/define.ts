@@ -7,7 +7,7 @@ import type { CreatedCard } from '../facts.js';
 
 /**
  * The steps effects are applied in. Within a step, effects are applied in
- * the order of their atoms.
+ * the order of their sort key, then of their atom.
  */
 export const STEPS = [
   'create',
@@ -90,6 +90,14 @@ export interface EffectDefinition<S extends ArgSpec, C> {
    */
   check(checkout: Checkout, e: Args<S>): C;
   conflict?(e: Args<S>, checked: C): Conflict;
+  /**
+   * What the effects of the step are ordered by before their atoms.
+   * @param position The place of a card in the card trees, from treeOrder.
+   */
+  sortKey?(
+    e: Args<S>,
+    position: (cardKey: string) => number | undefined,
+  ): readonly (string | number)[];
   /** Whether the effect is already in place: it is then not applied. */
   inPlace?(checkout: Checkout, e: Args<S>, checked: C): boolean;
   /** Applies the effect; returns the cards it created, if it creates. */
@@ -129,6 +137,9 @@ export interface CheckedEffect {
   readonly atom: string;
   readonly step: Step;
   readonly conflict?: Conflict;
+  sortKey(
+    position: (cardKey: string) => number | undefined,
+  ): readonly (string | number)[];
   inPlace(checkout: Checkout): boolean;
   apply(checkout: Checkout): Promise<CreatedCard[]>;
 }
@@ -184,6 +195,7 @@ export function defineEffect<const S extends ArgSpec, C>(
         atom: row.atom,
         step,
         conflict: definition.conflict?.(e, checked),
+        sortKey: (position) => definition.sortKey?.(e, position) ?? [],
         inPlace: (checkout) =>
           definition.inPlace?.(checkout, e, checked) ?? false,
         apply: async (checkout) =>

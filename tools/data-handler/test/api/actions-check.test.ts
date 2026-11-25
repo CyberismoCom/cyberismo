@@ -114,6 +114,26 @@ describe('an effect refused in the check', () => {
   // The atom is the effect as written, with create/2 given its Id.
   it.each<[string, string, string]>([
     [
+      'create(p_1,"x/templates/t")',
+      'create(p_1,"x/templates/t",none)',
+      "card 'p_1' does not exist",
+    ],
+    [
+      'create(root,"x/templates/t",3)',
+      'create(root,"x/templates/t",3)',
+      "template 'x/templates/t' does not exist",
+    ],
+    [
+      'create("p_1","x/templates/t","a")',
+      'create("p_1","x/templates/t","a")',
+      "card 'p_1' does not exist",
+    ],
+    [
+      'create(A,"x/templates/t","a b")',
+      'create(A,"x/templates/t","a b")',
+      "template 'x/templates/t' does not exist",
+    ],
+    [
       'setField(p_1,"title","v")',
       'setField(p_1,"title","v")',
       "card 'p_1' does not exist",
@@ -197,12 +217,22 @@ describe('an effect refused in the check', () => {
       'removeLink("jira:X-1",A,"proj/linkTypes/rel")',
       /'jira:X-1' is not a card key \(external items are not supported\)/,
     ],
-    ['a template card target', 'setField(TPL,"title","x")', /template card/],
+    ['an unknown template', 'create(A,"proj/templates/nope")', /template/],
+    [
+      'a resource that is no template',
+      'create(A,"proj/linkTypes/rel")',
+      /template/,
+    ],
     ['a template card content', 'setContent(TPL,"x")', /template card/],
     ['a module card content', 'setContent(MOD,"x")', /module card/],
     ['an unknown card content', 'setContent(nope_1,"x")', /does not exist/],
     ['a module card target', 'addLabel(MOD,"x")', /module card/],
     ['a template card label removal', 'removeLabel(TPL,"x")', /template card/],
+    [
+      'a template card parent',
+      'create(TPL,"proj/templates/t")',
+      /template card/,
+    ],
     ['a module card as new parent', 'move(A,MOD)', /module card/],
     ['a template card moved', 'move(TPL,root)', /template card/],
     ['a template card as rank anchor', 'rank(A,TPL)', /template card/],
@@ -267,14 +297,14 @@ describe('an effect refused in the check', () => {
       /"abc" is not a valid number value for field 'proj\/fieldTypes\/num' of card/,
     ],
     [
-      '"1.5" for an integer',
-      'setField(A,"proj/fieldTypes/int","1.5")',
-      /integer/,
+      'a template name without prefix',
+      'create(A,"/templates/t")',
+      /template '\/templates\/t' does not exist/,
     ],
     [
-      'maybe for a boolean',
-      'setField(A,"proj/fieldTypes/flag",maybe)',
-      /"maybe" is not a valid boolean value/,
+      'a template name without identifier',
+      'create(A,"proj/templates/")',
+      /template 'proj\/templates\/' does not exist/,
     ],
     [
       'a link type name without prefix',

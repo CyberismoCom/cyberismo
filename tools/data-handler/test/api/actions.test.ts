@@ -146,6 +146,9 @@ async function openProject(
   return { ...project, k: keys, run, git };
 }
 
+const titles = (result: ActionResult) =>
+  result.created.map((card) => card.title);
+
 describe('runAction', () => {
   it.each<
     [
@@ -154,6 +157,25 @@ describe('runAction', () => {
       (ws: Workspace, k: Keys, result: ActionResult) => Promise<void>,
     ]
   >([
+    [
+      'create/2',
+      (k) => `create(${k.A}, "proj/templates/t").`,
+      async (ws, k, result) => {
+        expect(titles(result)).toEqual(['New', 'Template asset']);
+        expect(await childKeys(ws, k.A)).toEqual([
+          k.A1,
+          ...result.created.map((card) => card.key),
+        ]);
+      },
+    ],
+    [
+      'create/3',
+      () => `create(root, "proj/templates/adopt", 1).`,
+      async (ws, _, result) => {
+        expect(titles(result)).toEqual(['Adopted']);
+        expect((await rootKeys(ws)).at(-1)).toBe(result.created[0].key);
+      },
+    ],
     [
       'setField on the title',
       (k) => `setField(${k.B}, "title", "Renamed").`,
@@ -306,6 +328,14 @@ describe('runAction', () => {
       },
     ],
     [
+      'create/2 and create/3 with none as one effect',
+      (k) =>
+        `create(${k.A}, "proj/templates/adopt"). create(${k.A}, "proj/templates/adopt", none).`,
+      async (_, __, result) => {
+        expect(titles(result)).toEqual(['Adopted']);
+      },
+    ],
+    [
       'rank',
       (k) => `rank(${k.B}, ${k.C}).`,
       async (ws, k) => {
@@ -332,6 +362,20 @@ describe('runAction', () => {
     const result = await run(program(k));
 
     await expectation(ws, k, result);
+  });
+
+  it('creates from a module template, with a module card as Id', async () => {
+    const { ws, run, templateKeys } = await openProject();
+    const [control] = templateKeys['mod/templates/catalogue'];
+
+    const result = await run(
+      `create(root, "mod/templates/catalogue", ${control}).`,
+    );
+
+    expect(titles(result)).toEqual(['C1', 'C2', 'C3']);
+    expect((await rootKeys(ws)).slice(-3)).toEqual(
+      result.created.map((card) => card.key),
+    );
   });
 
   it('copies the content of a template card', async () => {
@@ -361,12 +405,47 @@ describe('runAction', () => {
     expect((await rootKeys(ws)).slice(0, 4)).toEqual([k.req, k.B, k.A, k.C]);
   });
 
-  it('transitions the action card', async () => {
+  it('creates a document with its review task, links it and sets the owner', async () => {
     const { ws, k, run } = await openProject();
 
-    await run('transition(C, "Start") :- actionCard(C).');
+    const result = await run(
+      'create(C, "proj/templates/doc") :- actionCard(C).',
+      `addLink(D, ${k.req}, "${linkType('implements')}") :- created(D, _, "proj/templates/doc", _, T), parent(T, "proj/templates/doc").
+       setField(R, "${field('owner')}", "alice") :- created(R, _, "proj/templates/doc", _, _), field(R, "cardType", "proj/cardTypes/reviewTask").`,
+    );
 
-    expect((await metadataOf(ws, k.A)).workflowState).toBe('Review');
+    expect(titles(result)).toEqual(['Document', 'Review']);
+    const [doc, review] = result.created.map((card) => card.key);
+    expect(await childKeys(ws, k.A)).toEqual([k.A1, doc]);
+    expect(await childKeys(ws, doc)).toEqual([review]);
+    expect((await metadataOf(ws, doc)).links).toEqual([
+      { cardKey: k.req, linkType: linkType('implements') },
+    ]);
+    expect((await metadataOf(ws, review))[field('owner')]).toBe('alice');
+  });
+
+  it('adopts each module control: one card, scope set, transitioned', async () => {
+    const { ws, k, run, templateKeys } = await openProject();
+
+    await run(
+      'create(C, "proj/templates/adopt", X) :- actionCard(C), ancestor(X, "mod/templates/catalogue"), field(X, "cardType", "mod/cardTypes/control").',
+      `setField(K, "${field('scope')}", "in") :- created(K, _, "proj/templates/adopt", _, _).
+       transition(K, "Start") :- created(K, _, "proj/templates/adopt", _, _).
+       setField(K, "title", N) :- created(K, _, "proj/templates/adopt", X, _), field(X, "title", N).`,
+    );
+
+    const adopted = (await childKeys(ws, k.A)).slice(1);
+    const metadata = await Promise.all(
+      adopted.map((key) => metadataOf(ws, key)),
+    );
+    // In catalogue order, which is the module's spec order.
+    const catalogue = templateKeys['mod/templates/catalogue'];
+    expect(catalogue.toSorted()).not.toEqual(catalogue);
+    expect(metadata.map((card) => card.title)).toEqual(['C1', 'C2', 'C3']);
+    for (const card of metadata) {
+      expect(card[field('scope')]).toBe('in');
+      expect(card.workflowState).toBe('Review');
+    }
   });
 
   it('sets a field on every matching card', async () => {
@@ -381,6 +460,65 @@ describe('runAction', () => {
     expect((await metadataOf(ws, k.A))[field('step')]).toBeUndefined();
     const [templateCard] = templateKeys['proj/templates/t'];
     expect((await metadataOf(ws, templateCard))[field('step')]).toBeUndefined();
+  });
+
+  const checklist = (projectCardOnly: boolean) => [
+    'create(C, "proj/templates/checklist") :- actionCard(C).',
+    `create(L, "proj/templates/assetCheck", A) :- created(L, _, "proj/templates/checklist", _, T), parent(T, "proj/templates/checklist"), ${projectCardOnly ? 'projectCard(A), ' : ''}field(A, "cardType", "proj/cardTypes/asset").`,
+    `setField(K, "title", @concatenate("Check: ", N)) :- created(K, _, "proj/templates/assetCheck", A, T), parent(T, "proj/templates/assetCheck"), field(A, "title", N).
+     addLink(K, A, "${linkType('checks')}") :- created(K, _, "proj/templates/assetCheck", A, T), parent(T, "proj/templates/assetCheck").`,
+  ];
+
+  it("creates one checklist item per asset in the assets' tree order", async () => {
+    const { ws, k, run } = await openProject();
+    // Asset 2 first, so the tree order is not the spec order.
+    await ws.cards.rankFirst(k.asset2);
+
+    const result = await run(...checklist(true));
+
+    const [list] = result.created.map((card) => card.key);
+    const items = await childKeys(ws, list);
+    expect(
+      await Promise.all(
+        items.map(async (key) => (await metadataOf(ws, key)).title),
+      ),
+    ).toEqual(['Check: Asset 2', 'Check: Asset 1']);
+    expect(
+      await Promise.all(
+        items.map(async (key) => (await metadataOf(ws, key)).links),
+      ),
+    ).toEqual([
+      [{ cardKey: k.asset2, linkType: linkType('checks') }],
+      [{ cardKey: k.asset1, linkType: linkType('checks') }],
+    ]);
+  });
+
+  // Without projectCard(A), program 2 also creates an item for the template
+  // asset (Ids may be any card), and program 3 links to it.
+  describe('a selector that also matches template cards', () => {
+    it('is refused in the check of the program that targets one; under autocommit nothing stays', async () => {
+      const { run, path, git } = await openProject({ autocommit: true });
+      const log = await git('log', '--format=%H');
+
+      await expectRefused(
+        path,
+        () => run(...checklist(false)),
+        /^Action failed in program 3: Cannot apply 'addLink\(.*is a template card/,
+      );
+      expect(await git('log', '--format=%H')).toBe(log);
+    });
+
+    it('without autocommit, what programs 1 and 2 applied stays', async () => {
+      const { ws, k, run } = await openProject();
+
+      const error = await run(...checklist(false)).catch((e: unknown) => e);
+
+      expect(error).toBeInstanceOf(ActionFailedError);
+      expect((error as ActionFailedError).details?.program).toBe(3);
+      // The checklist with its three items.
+      const [list] = (await childKeys(ws, k.A)).slice(1);
+      expect(await childKeys(ws, list)).toHaveLength(3);
+    });
   });
 
   it('program 2 sees a field set by program 1', async () => {
@@ -436,73 +574,8 @@ describe('runAction', () => {
     expect(metadata[field('size')]).toBe(1.5);
   });
 
-  it.each<[string, (k: Keys, t: string, m: string) => string | undefined]>([
-    ['an unknown card', () => 'addLabel(proj_nope, "x").'],
-    ['a template card target', (_, t) => `addLabel(${t}, "x").`],
-    ['a module card target', (_, __, m) => `addLabel(${m}, "x").`],
-    [
-      'an unknown link type',
-      (k) => `addLink(${k.A}, ${k.req}, "proj/linkTypes/nope").`,
-    ],
-    [
-      'a link description the link type does not allow',
-      (k) => `addLink(${k.A}, ${k.req}, "${linkType('implements')}", "d").`,
-    ],
-    [
-      'a card type the link type does not allow',
-      (k) => `addLink(${k.A}, ${k.req}, "${linkType('checks')}").`,
-    ],
-    [
-      'a link both added and removed',
-      (k) =>
-        `addLink(${k.A}, ${k.req}, "${linkType('implements')}"). removeLink(${k.A}, ${k.req}, "${linkType('implements')}").`,
-    ],
-    [
-      'an external link item',
-      (k) => `addLink(${k.A}, "jira:X-1", "${linkType('implements')}").`,
-    ],
-    [
-      'setField on workflowState',
-      (k) => `setField(${k.A}, "workflowState", "Done").`,
-    ],
-    ['setField on rank', (k) => `setField(${k.A}, "rank", "0|a").`],
-    [
-      "setField on a field the card's type lacks",
-      (k) => `setField(${k.asset1}, "${field('owner')}", "x").`,
-    ],
-    [
-      'setField on a list field',
-      (k) => `setField(${k.A}, "${field('tags')}", "x").`,
-    ],
-    [
-      'a value that is not a number',
-      (k) => `setField(${k.A}, "${field('size')}", "abc").`,
-    ],
-    [
-      'a value that is not a boolean',
-      (k) => `setField(${k.A}, "${field('flag')}", maybe).`,
-    ],
-    [
-      'two values for one field',
-      (k) => `setField(${k.A}, "title", "x"). setField(${k.A}, "title", "y").`,
-    ],
-    [
-      'two moves of a card',
-      (k) => `move(${k.B}, ${k.A}). move(${k.B}, ${k.C}).`,
-    ],
-    ['two ranks of a card', (k) => `rankFirst(${k.B}). rank(${k.B}, ${k.C}).`],
-    [
-      'two transitions of a card',
-      (k) => `transition(${k.B}, "Start"). transition(${k.B}, "Close").`,
-    ],
-    ['an empty programs array', () => undefined],
-  ])(
-    'refuses %s in the first program and writes nothing',
-    async (_, program) => {
-      const { ws, k, path, templateKeys } = await openProject();
-      const [t] = templateKeys['proj/templates/t'];
-      const [m] = templateKeys['mod/templates/catalogue'];
-      const text = program(k, t, m);
+  it('refuses an empty programs array and writes nothing', async () => {
+    const { ws, k, path } = await openProject();
 
     await expectRefused(
       path,
@@ -703,6 +776,7 @@ describe('runAction', () => {
     ['a wrong argument count', 'rankFirst(C, 1) :- actionCard(C).'],
     ['an effect name in another case', 'rankfirst(C) :- actionCard(C).'],
     ['setField/2', 'setField(C, "title") :- actionCard(C).'],
+    ['create/1', 'create(C) :- actionCard(C).'],
     ['a result of its own', 'result(x).'],
     ['a nested term', 'helper(f(1)).'],
   ])('does nothing for %s', async (_, program) => {
@@ -715,14 +789,104 @@ describe('runAction', () => {
     expect(snapshot(path)).toEqual(before);
   });
 
-  it('names the first refused effect in atom order', async () => {
-    const { run } = await openProject();
+  // An Id reaches the action as text and goes into created/5 as an integer
+  // if it reads as one, a constant if it reads as one, and a string
+  // otherwise.
+  it('gives a later program each Id in created/5', async () => {
+    const { ws, run } = await openProject();
+    const adopt = 'create(C, "proj/templates/adopt", I) :- actionCard(C)';
 
-    await expect(
-      run('rankFirst(b). addLabel(b, "x"). rank(a, b).'),
-    ).rejects.toThrow(
-      `Cannot apply 'addLabel(b,"x")': card 'b' does not exist`,
+    const result = await run(
+      String.raw`${adopt}, I = 7.
+        ${adopt}, I = "abc".
+        ${adopt}, I = "a b \"q\"".`,
+      String.raw`addLabel(K, "integer") :- created(K, _, _, 7, _).
+        addLabel(K, "constant") :- created(K, _, _, abc, _).
+        addLabel(K, "notString") :- created(K, _, _, I, _), I != "abc", I = abc.
+        addLabel(K, "string") :- created(K, _, _, "a b \"q\"", _).`,
     );
+
+    const labels = await Promise.all(
+      result.created.map(
+        async (card) => (await metadataOf(ws, card.key)).labels,
+      ),
+    );
+    expect(labels).toEqual([
+      ['integer'],
+      ['string'],
+      ['constant', 'notString'],
+    ]);
+  });
+
+  it('gives a later program none, a negative integer and the parent in created/5', async () => {
+    const { ws, k, run } = await openProject();
+
+    const result = await run(
+      String.raw`create(${k.A}, "proj/templates/adopt").
+        create(root, "proj/templates/adopt", -3).
+        create(${k.A}, "proj/templates/adopt", "a \"b\"").`,
+      String.raw`addLabel(K, "none") :- created(K, _, _, none, _).
+        addLabel(K, "negative") :- created(K, _, _, -3, _).
+        addLabel(K, "string") :- created(K, _, _, "a \"b\"", _).
+        addLabel(K, "underRoot") :- created(K, root, "proj/templates/adopt", _, _).
+        addLabel(K, "underA") :- created(K, ${k.A}, "proj/templates/adopt", _, _).`,
+    );
+
+    const labels = await Promise.all(
+      result.created.map(
+        async (card) => (await metadataOf(ws, card.key)).labels,
+      ),
+    );
+    expect(labels.map((list) => list?.toSorted().join()).toSorted()).toEqual([
+      'negative,underRoot',
+      'none,underA',
+      'string,underA',
+    ]);
+  });
+
+  // Ids that are cards come first, in tree order: the project's cards depth
+  // first, then each template's, templates in name order. Then integers in
+  // numeric order, then the rest in atom order.
+  it('creates in the order of the Ids', async () => {
+    const { k, run, templateKeys } = await openProject();
+    const [control] = templateKeys['mod/templates/catalogue'];
+    const [document, review] = templateKeys['proj/templates/doc'];
+    const [templateCard] = templateKeys['proj/templates/t'];
+    const ids = [
+      'zeta',
+      '10',
+      templateCard,
+      '9',
+      k.B,
+      review,
+      '"alpha"',
+      '-1',
+      document,
+      k.A1,
+      control,
+    ];
+
+    const result = await run(
+      ids
+        .map((id) => `create(${k.A}, "proj/templates/adopt", ${id}).`)
+        .join('\n'),
+      `setField(K, "title", N) :- created(K, _, _, X, _), field(X, "title", N).
+       setField(K, "title", @concatenate("Id ", X)) :- created(K, _, _, X, _), not field(X, "title", _).`,
+    );
+
+    expect(titles(result)).toEqual([
+      'A1',
+      'B',
+      'C1',
+      'Document',
+      'Review',
+      'New',
+      'Id -1',
+      'Id 9',
+      'Id 10',
+      'Id alpha',
+      'Id zeta',
+    ]);
   });
 
   it('keeps effects apart whose arguments concatenate the same', async () => {
