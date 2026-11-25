@@ -128,9 +128,10 @@ export async function updateCardMetadataKey(
     throw new DHValidationError(invalidCard);
   }
 
-  // A metadata write cannot relocate a card, so there is nothing structural
-  // to follow up here; moving a card is moveCard's job.
+  // A metadata write cannot relocate a card, so the card's own facts are all
+  // there is to follow up here; moving a card is moveCard's job.
   await saveCardMetadata(checkout, card);
+  await checkout.handleCardChanged(card);
 }
 
 /**
