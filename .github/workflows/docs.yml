@@ -40,7 +40,9 @@ permissions:
   contents: read
 
 env:
-  CLI_VERSION: 1.3.1
+  # 1.4.0 opens projects at schema version 7, the version of the module
+  # releases in the site. The build migrates older projects to it.
+  CLI_VERSION: 1.4.0
   # The module repositories in the site, space separated, as
   # <repository>[@<tag or branch>]. Without a tag or a branch, the build uses
   # the latest version tag (v*) of the module, which is the version that users
@@ -49,7 +51,8 @@ env:
   # (the label `test-content`). Before that, the site shows its test fixtures.
   # The open modules: module-base, module-isms-essentials,
   # module-secure-development-essentials, and module-eu-cra.
-  MODULES: ''
+  # module-base hides its test content from 1.9.0.
+  MODULES: 'module-base'
 
 jobs:
   build:
