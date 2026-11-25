@@ -272,8 +272,9 @@ jobs:
           platforms: ${{ matrix.platform }}
           load: true
           tags: ${{ steps.repo.outputs.name }}:${{ needs.version.outputs.version }}
+          # A pull request's cache is visible only to that pull request, so
+          # only main writes it.
           cache-from: type=gha,scope=${{ matrix.suffix }}
-          cache-to: type=gha,mode=max,scope=${{ matrix.suffix }}
 
       - name: Smoke-run loaded image (dry-run)
         if: env.DRYRUN == 'true'
