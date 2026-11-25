@@ -34,7 +34,8 @@ const visibilityKeys: Record<
  *   from another group without one. Ignored for 'hidden'.
  * @throws ResourceNotFoundError if the card type, or the field in it, does
  *   not exist.
- * @throws DHValidationError if the position is outside the group.
+ * @throws DHValidationError if the name is not a card type's, or the
+ *   position is outside the group.
  */
 export async function setFieldVisibility(
   checkout: Checkout,
@@ -43,6 +44,13 @@ export async function setFieldVisibility(
   group: FieldVisibility,
   index?: number,
 ): Promise<void> {
+  // An identifier-only name is completed to the project's card type.
+  const target = resourceName(cardTypeName);
+  if (target.type !== '' && target.type !== 'cardTypes') {
+    throw new DHValidationError(
+      `Expected type 'cardTypes', but got '${target.type}'`,
+    );
+  }
   const cardType = checkout.resources.byType(cardTypeName, 'cardTypes').show();
   if (!cardType.customFields.some((field) => field.name === fieldName)) {
     throw new ResourceNotFoundError(
@@ -71,7 +79,6 @@ export async function setFieldVisibility(
     }
   }
 
-  const target = resourceName(cardTypeName);
   const mutations = new ResourceMutations(checkout);
   const edit = (key: string, operation: Operation<unknown>) =>
     mutations.apply({ kind: 'edit', target, updateKey: { key }, operation });

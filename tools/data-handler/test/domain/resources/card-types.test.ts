@@ -6,7 +6,10 @@ import { readFile, writeFile } from 'node:fs/promises';
 import { promisify } from 'node:util';
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { ResourceNotFoundError } from '../../../src/shared/exceptions/index.js';
+import {
+  DHValidationError,
+  ResourceNotFoundError,
+} from '../../../src/shared/exceptions/index.js';
 import {
   edit,
   expectRefused,
@@ -213,17 +216,31 @@ describe('card types', () => {
     });
 
     it.each([
-      ['a field the card type lacks', page, 'test/fieldTypes/nope'],
-      ['a missing card type', 'test/cardTypes/nope', size],
-    ])('refuses %s, changing nothing', async (_name, cardType, field) => {
-      const { ws, path } = await open(spec);
-
-      await expectRefused(
-        path,
-        () => ws.resources.setFieldVisibility(cardType, field, 'always'),
+      [
+        'a field the card type lacks',
+        page,
+        'test/fieldTypes/nope',
         ResourceNotFoundError,
-      );
-    });
+      ],
+      [
+        'a missing card type',
+        'test/cardTypes/nope',
+        size,
+        ResourceNotFoundError,
+      ],
+      ["a workflow's name", 'test/workflows/flow', size, DHValidationError],
+    ])(
+      'refuses %s, changing nothing',
+      async (_name, cardType, field, error) => {
+        const { ws, path } = await open(spec);
+
+        await expectRefused(
+          path,
+          () => ws.resources.setFieldVisibility(cardType, field, 'always'),
+          error,
+        );
+      },
+    );
 
     // Without autocommit a failed write is not rolled back: the position is
     // checked before the field moves.
