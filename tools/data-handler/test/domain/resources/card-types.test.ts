@@ -14,6 +14,7 @@ import {
   projects,
   remove,
   rename,
+  snapshot,
   spec,
 } from './fixture.js';
 import { Validate } from '../../../src/domain/validation/validate.js';
@@ -200,6 +201,15 @@ describe('card types', () => {
       await ws.resources.setFieldVisibility(page, size, 'hidden', 3);
 
       expect(await visibility(ws)).toEqual({ always: [], optional: [] });
+    });
+
+    it('changes nothing hiding a hidden field', async () => {
+      const { ws, path } = await open(spec);
+      const before = snapshot(path);
+
+      await ws.resources.setFieldVisibility(page, size, 'hidden');
+
+      expect(snapshot(path)).toEqual(before);
     });
 
     it.each([
