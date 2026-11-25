@@ -2,6 +2,8 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { execFile } from 'node:child_process';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { promisify } from 'node:util';
 import { describe, expect, it } from 'vitest';
 
@@ -12,6 +14,7 @@ import {
   LogicNonTotalError,
 } from '../../src/infra/logic/logic-backend.js';
 import {
+  ActionFailedError,
   CardNotFoundError,
   DHValidationError,
 } from '../../src/shared/exceptions/index.js';
@@ -170,6 +173,48 @@ describe('runAction', () => {
       },
     ],
     [
+      'setContent',
+      (k) => `setContent(${k.B}, "New text").`,
+      async (ws, k) => {
+        expect((await ws.cards.details(k.B)).content).toBe('New text');
+      },
+    ],
+    [
+      'copyContent',
+      (k) => `copyContent(${k.B}, ${k.C}).`,
+      async (ws, k) => {
+        expect((await ws.cards.details(k.B)).content).toBe('Hello');
+      },
+    ],
+    [
+      'addLabel',
+      (k) => `addLabel(${k.A}, "new").`,
+      async (ws, k) => {
+        expect((await metadataOf(ws, k.A)).labels).toEqual(['new']);
+      },
+    ],
+    [
+      'removeLabel',
+      (k) => `removeLabel(${k.C}, "x").`,
+      async (ws, k) => {
+        expect((await metadataOf(ws, k.C)).labels).toEqual(['todo']);
+      },
+    ],
+    [
+      'setContent of a number as its digits',
+      (k) => `setContent(${k.B}, 3).`,
+      async (ws, k) => {
+        expect((await ws.cards.details(k.B)).content).toBe('3');
+      },
+    ],
+    [
+      'the same content written two ways as one effect',
+      (k) => `setContent(${k.B}, "x"). setContent("${k.B}", "x").`,
+      async (ws, k) => {
+        expect((await ws.cards.details(k.B)).content).toBe('x');
+      },
+    ],
+    [
       'one field value written as an integer and as a string',
       (k) =>
         `setField(${k.B}, "${field('size')}", 4). setField(${k.B}, "${field('size')}", "4").`,
@@ -214,6 +259,15 @@ describe('runAction', () => {
     await expectation(ws, k, result);
   });
 
+  it('copies the content of a template card', async () => {
+    const { ws, k, run, templateKeys } = await openProject();
+    const [templateCard] = templateKeys['proj/templates/t'];
+
+    await run(`copyContent(${k.C}, ${templateCard}).`);
+
+    expect((await ws.cards.details(k.C)).content).toBe('');
+  });
+
   it('gives the action card as actionCard/1', async () => {
     const { ws, k } = await openProject();
 
@@ -246,6 +300,17 @@ describe('runAction', () => {
     expect((await metadataOf(ws, templateCard))[field('step')]).toBeUndefined();
   });
 
+  it('program 2 sees a field set by program 1', async () => {
+    const { ws, k, run } = await openProject();
+
+    await run(
+      'setField(C, "title", "Seen") :- actionCard(C).',
+      'addLabel(C, "seen") :- actionCard(C), field(C, "title", "Seen").',
+    );
+
+    expect((await metadataOf(ws, k.A)).labels).toEqual(['seen']);
+  });
+
   it('copies a boolean and a number field with setField(K,F,V) :- field(A,F,V)', async () => {
     const { ws, k, run } = await openProject();
 
@@ -260,6 +325,9 @@ describe('runAction', () => {
   });
 
   it.each<[string, (k: Keys, t: string, m: string) => string | undefined]>([
+    ['an unknown card', () => 'addLabel(proj_nope, "x").'],
+    ['a template card target', (_, t) => `addLabel(${t}, "x").`],
+    ['a module card target', (_, __, m) => `addLabel(${m}, "x").`],
     [
       'setField on workflowState',
       (k) => `setField(${k.A}, "workflowState", "Done").`,
@@ -325,6 +393,88 @@ describe('runAction', () => {
     ).rejects.toThrow(CardNotFoundError);
   });
 
+  it.each<[string, (k: Keys) => string[], RegExp, string]>([
+    [
+      'a check refusal in program 2',
+      (k) => [
+        `addLabel(${k.A}, "x").`,
+        `setField(${k.A}, "workflowState", "Done").`,
+      ],
+      /^Action failed in program 2: Cannot apply 'setField\(/,
+      'validation',
+    ],
+    [
+      'a logic-non-total error in program 2',
+      (k) => [`addLabel(${k.A}, "x").`, ':- actionCard(_).'],
+      /^Action failed in program 2: /,
+      'logic-non-total',
+    ],
+  ])(
+    'rolls back a failed click under autocommit: %s',
+    async (_, programs, message, code) => {
+      const { ws, k, path, git } = await openProject({ autocommit: true });
+      const before = snapshot(path);
+      const log = await git('log', '--format=%H');
+
+      const error = await ws.cards
+        .runAction(k.A, programs(k))
+        .catch((e: unknown) => e);
+
+      expect(error).toBeInstanceOf(ActionFailedError);
+      expect((error as ActionFailedError).message).toMatch(message);
+      expect((error as ActionFailedError).code).toBe(code);
+      expect(snapshot(path)).toEqual(before);
+      expect(await git('log', '--format=%H')).toBe(log);
+      expect((await metadataOf(ws, k.A)).labels).toEqual([]);
+    },
+  );
+
+  it('program 2 sees a rank set by program 1', async () => {
+    const { ws, k, run } = await openProject();
+
+    await run(
+      `rankFirst(${k.C}).`,
+      `addLabel(${k.C}, "first") :- field(${k.C}, "rank", RC), field(${k.A}, "rank", RA), RC < RA.`,
+    );
+
+    expect((await metadataOf(ws, k.C)).labels).toContain('first');
+  });
+
+  it.each<[string, (k: Keys) => string]>([
+    ['copyContent', (k) => `copyContent(${k.A},${k.C})`],
+    ['setContent', (k) => `setContent(${k.A},"x")`],
+  ])(
+    'a content guard sees a label added earlier in the same program: %s',
+    async (_, effect) => {
+      const { ws, k, run } = await openProject({
+        calculations: {
+          guard:
+            'editingContentDenied(C, "frozen") :- projectCard(C), label(C, "frozen").',
+        },
+      });
+
+      const error = await run(
+        `addLabel(${k.A}, "frozen"). ${effect(k)}.`,
+      ).catch((e: unknown) => e);
+
+      expect(error).toBeInstanceOf(ActionFailedError);
+      expect((error as ActionFailedError).code).toBe('permission-denied');
+      expect((error as ActionFailedError).details?.effect).toBe(effect(k));
+      expect((await ws.cards.details(k.A)).content).toBe('');
+    },
+  );
+
+  it('writes setContent text exactly, over several lines', async () => {
+    const { k, run, path } = await openProject();
+
+    // Clingo string escapes: \n, \" and \\.
+    await run(String.raw`setContent(${k.B}, "line 1\nsay \"hi\"\nC:\\path").`);
+
+    expect(
+      readFileSync(join(path, 'cardRoot', k.B, 'index.adoc'), 'utf-8'),
+    ).toBe('line 1\nsay "hi"\nC:\\path');
+  });
+
   it.each([
     ['a misspelled effect name', 'addLable(C, "x") :- actionCard(C).'],
     ['a wrong argument count', 'rankFirst(C, 1) :- actionCard(C).'],
@@ -340,5 +490,15 @@ describe('runAction', () => {
 
     expect(result).toEqual({ created: [] });
     expect(snapshot(path)).toEqual(before);
+  });
+
+  it('names the first refused effect in atom order', async () => {
+    const { run } = await openProject();
+
+    await expect(
+      run('rankFirst(b). addLabel(b, "x"). rank(a, b).'),
+    ).rejects.toThrow(
+      `Cannot apply 'addLabel(b,"x")': card 'b' does not exist`,
+    );
   });
 });
