@@ -90,6 +90,8 @@ export interface EffectDefinition<S extends ArgSpec, C> {
    */
   check(checkout: Checkout, e: Args<S>): C;
   conflict?(e: Args<S>, checked: C): Conflict;
+  /** Whether the effect is already in place: it is then not applied. */
+  inPlace?(checkout: Checkout, e: Args<S>, checked: C): boolean;
   /** Applies the effect; returns the cards it created, if it creates. */
   apply(
     checkout: Checkout,
@@ -127,6 +129,7 @@ export interface CheckedEffect {
   readonly atom: string;
   readonly step: Step;
   readonly conflict?: Conflict;
+  inPlace(checkout: Checkout): boolean;
   apply(checkout: Checkout): Promise<CreatedCard[]>;
 }
 
@@ -181,6 +184,8 @@ export function defineEffect<const S extends ArgSpec, C>(
         atom: row.atom,
         step,
         conflict: definition.conflict?.(e, checked),
+        inPlace: (checkout) =>
+          definition.inPlace?.(checkout, e, checked) ?? false,
         apply: async (checkout) =>
           (await definition.apply(checkout, e, checked)) ?? [],
       };

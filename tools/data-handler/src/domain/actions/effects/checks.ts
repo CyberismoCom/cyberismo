@@ -16,3 +16,27 @@ export function projectCard(checkout: Checkout, cardKey: string): Card {
   }
   return tree.card(cardKey);
 }
+
+/** Whether a resource of the type exists; a malformed name does not. */
+export function resourceExists(
+  checkout: Checkout,
+  name: string,
+  type: string,
+): boolean {
+  const parts = name.split('/');
+  return (
+    parts.length === 3 &&
+    parts.every(Boolean) &&
+    parts[1] === type &&
+    checkout.resources.exists(name)
+  );
+}
+
+/** The card type of a card. */
+export function cardTypeOf(checkout: Checkout, card: Card) {
+  const name = card.metadata?.cardType ?? '';
+  if (!resourceExists(checkout, name, 'cardTypes')) {
+    refuse(`card '${card.key}' has unknown card type '${name}'`);
+  }
+  return checkout.resources.byType(name, 'cardTypes').show();
+}
