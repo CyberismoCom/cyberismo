@@ -242,24 +242,33 @@ describe('card types', () => {
       },
     );
 
+    it('puts a field last at the position after the other fields', async () => {
+      const { ws } = await open(spec);
+      await ws.resources.setFieldVisibility(page, note, 'always');
+
+      await ws.resources.setFieldVisibility(page, size, 'always', 1);
+
+      expect(await visibility(ws)).toEqual({
+        always: [note, size],
+        optional: [],
+      });
+    });
+
     // Without autocommit a failed write is not rolled back: the position is
     // checked before the field moves.
-    it.each([5, -1])(
+    it.each([2, -1])(
       'refuses the position %i, changing nothing',
       async (index) => {
         const { ws, path } = await open(spec);
+        await ws.resources.setFieldVisibility(page, note, 'always');
 
         await expectRefused(
           path,
           () => ws.resources.setFieldVisibility(page, size, 'always', index),
-          new RegExp(
-            `^Index ${index} is out of bounds for the always visible fields$`,
-          ),
+          DHValidationError,
         );
-        expect(await visibility(ws)).toEqual({ always: [], optional: [] });
       },
     );
-
     it('is one commit', async () => {
       const { ws, path } = await open(
         { ...spec, git: true },
