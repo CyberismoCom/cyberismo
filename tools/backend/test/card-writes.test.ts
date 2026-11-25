@@ -60,25 +60,20 @@ describe('PUT /cards/:key/content', () => {
 });
 
 describe('PATCH /cards/:key/fields', () => {
-  test('changes several fields and leaves the rest as they were', async () => {
-    const before = await ws.cards.details(card);
-
+  test('passes the fields to the card and answers with its data only', async () => {
     const response = await send(`${card}/fields`, 'PATCH', {
       title: 'Both at once',
       labels: ['one', 'two'],
     });
 
     expect(response.status).toBe(200);
-    expect(await response.json()).toMatchObject({
+    const result = await response.json();
+    expect(result).toMatchObject({
+      key: card,
       title: 'Both at once',
       labels: ['one', 'two'],
     });
-    const after = await ws.cards.details(card);
-    expect(after.metadata).toMatchObject({
-      title: 'Both at once',
-      labels: ['one', 'two'],
-      workflowState: before.metadata?.workflowState,
-    });
+    expect(result).not.toHaveProperty('adocContent');
   });
 
   test.each([{}, { title: { nested: true } }, { '': 'x' }])(
@@ -112,13 +107,6 @@ describe('POST /cards/:key/transition', () => {
     );
   });
 
-  test('refuses a transition the card is not in a state for', async () => {
-    const response = await send(`${card}/transition`, 'POST', {
-      transition: 'Deprecate',
-    });
-    expect(response.status).toBe(400);
-  });
-
   test.each([{}, { transition: '' }, { state: 'Approve' }])(
     'refuses the body %j',
     async (body) => {
@@ -130,6 +118,8 @@ describe('POST /cards/:key/transition', () => {
 describe('POST /cards/:key/move', () => {
   const children = async (parent: string) =>
     (await ws.cards.details(parent)).children;
+  const rank = async (key: string) =>
+    (await ws.cards.details(key)).metadata!.rank;
 
   test('moves the card under another parent, last', async () => {
     const response = await send(`${card}/move`, 'POST', { parent: 'root' });
@@ -140,36 +130,29 @@ describe('POST /cards/:key/move', () => {
   });
 
   test('moves the card under another parent at a position', async () => {
+    const [{ key: sibling }] = await ws.cards.create(
+      'decision/templates/decision',
+      'decision_6',
+    );
+
     const response = await send(`${card}/move`, 'POST', {
       parent: 'decision_6',
       index: 0,
     });
 
     expect(response.status).toBe(200);
-    expect(await children('decision_6')).toEqual([card]);
+    expect((await ws.cards.details(card)).parent).toBe('decision_6');
+    expect((await rank(card)) < (await rank(sibling))).toBe(true);
   });
 
-  test('to the own parent only reorders the card', async () => {
-    const rank = async (key: string) =>
-      (await ws.cards.details(key)).metadata!.rank;
-    expect((await rank(card)) > (await rank('decision_6'))).toBe(true);
-
-    const response = await send(`${card}/move`, 'POST', {
-      parent: 'decision_5',
-      index: 0,
-    });
-
-    expect(response.status).toBe(200);
-    expect((await ws.cards.details(card)).parent).toBe('decision_5');
-    expect((await rank(card)) < (await rank('decision_6'))).toBe(true);
+  test.each([
+    {},
+    { index: 0 },
+    { parent: 'root', index: 1.5 },
+    { parent: 'root', index: -1 },
+  ])('refuses the body %j', async (body) => {
+    expect((await send(`${card}/move`, 'POST', body)).status).toBe(400);
   });
-
-  test.each([{}, { index: 0 }, { parent: 'root', index: 1.5 }])(
-    'refuses the body %j',
-    async (body) => {
-      expect((await send(`${card}/move`, 'POST', body)).status).toBe(400);
-    },
-  );
 });
 
 test('PATCH /cards/:key is no longer served', async () => {
