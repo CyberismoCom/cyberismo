@@ -10,6 +10,7 @@ import type {
 } from '@cyberismo/model';
 import {
   AsciidoctorPdfError,
+  linkEnds,
   type LinkEnd,
   type Workspace,
 } from '@cyberismo/data-handler';
@@ -261,11 +262,7 @@ export async function createLink(
   direction: 'outbound' | 'inbound' = 'outbound',
   description?: string,
 ) {
-  // For outbound: key is source, target is destination
-  // For inbound: target is source, key is destination
-  const source = direction === 'outbound' ? key : target;
-  const destination = direction === 'outbound' ? target : key;
-
+  const [source, destination] = linkEnds(key, { target, linkType, direction });
   await ws.cards.addLink(source, destination, linkType, description, direction);
 
   return { message: 'Link created successfully' };
@@ -279,11 +276,14 @@ export async function removeLink(
   direction: 'outbound' | 'inbound' = 'outbound',
   description?: string,
 ) {
-  // For outbound: key is source, target is destination
-  // For inbound: target is source, key is destination
-  const source = direction === 'outbound' ? key : target;
-  const destination = direction === 'outbound' ? target : key;
-  await ws.cards.removeLink(source, destination, linkType, description);
+  const [source, destination] = linkEnds(key, { target, linkType, direction });
+  await ws.cards.removeLink(
+    source,
+    destination,
+    linkType,
+    description,
+    direction,
+  );
   return { message: 'Link removed successfully' };
 }
 

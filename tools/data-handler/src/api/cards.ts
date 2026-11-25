@@ -8,7 +8,6 @@ import type {
   CardAttachment,
   CardListContainer,
   CardLocation,
-  LinkDirection,
   MetadataContent,
   TemplateCardTree,
 } from '@cyberismo/model';
@@ -46,27 +45,12 @@ import {
   addLabel,
   addLink,
   editCardContent,
+  editLink,
   editCardMetadata,
   removeLabel,
   removeLink,
+  type LinkEnd,
 } from '../domain/cards/index.js';
-
-/** A link as seen from one of its cards. */
-export interface LinkEnd {
-  /** The card or external item ("connector:itemKey") at the other end. */
-  target: string;
-  linkType: string;
-  /** 'outbound' (card to target) or 'inbound'; outbound by default. */
-  direction?: LinkDirection;
-  linkDescription?: string;
-}
-
-// Source and destination of a link of `cardKey`.
-function linkEnds(cardKey: string, link: LinkEnd): [string, string] {
-  return link.direction === 'inbound'
-    ? [link.target, cardKey]
-    : [cardKey, link.target];
-}
 
 /**
  * Card operations of one handle. Writes through it are the handle's actor's.
@@ -270,8 +254,7 @@ export class Cards {
 
   /**
    * Changes a link of a card: its other end, link type, description or
-   * direction. The changed link is added before the old one is removed, so
-   * that a duplicate is refused with the old link still in place.
+   * direction.
    * @param cardKey Card whose link is changed.
    * @param link The link as it is.
    * @param changed The link as it is to be.
@@ -282,24 +265,7 @@ export class Cards {
     link: LinkEnd,
     changed: LinkEnd,
   ): Promise<void> {
-    const [source, destination] = linkEnds(cardKey, changed);
-    await addLink(
-      this.checkout,
-      source,
-      destination,
-      changed.linkType,
-      changed.linkDescription,
-      changed.direction,
-    );
-    const [oldSource, oldDestination] = linkEnds(cardKey, link);
-    await removeLink(
-      this.checkout,
-      oldSource,
-      oldDestination,
-      link.linkType,
-      link.linkDescription,
-      link.direction,
-    );
+    await editLink(this.checkout, cardKey, link, changed);
   }
 
   /**

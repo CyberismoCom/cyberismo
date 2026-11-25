@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import type {
+  LinkDirection,
   Card,
   CardMetadata,
   CustomField,
@@ -535,6 +536,52 @@ async function createExternalLink(
     cardKey,
     'externalLinks',
     externalLinks,
+  );
+}
+
+/** A link as seen from one of its cards. */
+export interface LinkEnd {
+  /** The card or external item ("connector:itemKey") at the other end. */
+  target: string;
+  linkType: string;
+  /** 'outbound' (card to target) or 'inbound'; outbound by default. */
+  direction?: LinkDirection;
+  linkDescription?: string;
+}
+
+/** Source and destination of a link of `cardKey`. */
+export function linkEnds(cardKey: string, link: LinkEnd): [string, string] {
+  return link.direction === 'inbound'
+    ? [link.target, cardKey]
+    : [cardKey, link.target];
+}
+
+/**
+ * Changes a link of a card. The changed link is added before the old one is
+ * removed, so that a duplicate is refused with the old link still in place.
+ * @param cardKey Card whose link is changed.
+ * @param link The link as it is.
+ * @param changed The link as it is to be.
+ */
+export async function editLink(
+  checkout: Checkout,
+  cardKey: string,
+  link: LinkEnd,
+  changed: LinkEnd,
+) {
+  await addLink(
+    checkout,
+    ...linkEnds(cardKey, changed),
+    changed.linkType,
+    changed.linkDescription,
+    changed.direction,
+  );
+  await removeLink(
+    checkout,
+    ...linkEnds(cardKey, link),
+    link.linkType,
+    link.linkDescription,
+    link.direction,
   );
 }
 
