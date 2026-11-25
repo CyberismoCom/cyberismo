@@ -42,19 +42,19 @@ export class CalculationResource extends FolderResource<
   /**
    * Creates a new calculation object and file.
    * @param newContent Content for the calculation.
-   * @param displayName Display name for the calculation; replaces the one
-   *   in `newContent`.
+   * @param displayName Display name for the calculation when `newContent`
+   *   is not given.
    */
   public async create(newContent?: CalculationMetadata, displayName?: string) {
     if (!newContent) {
       newContent = DefaultContent.calculation(
         resourceNameToString(this.resourceName),
       );
+      if (displayName !== undefined) {
+        newContent.displayName = displayName;
+      }
     } else {
       await this.validate(newContent);
-    }
-    if (displayName !== undefined) {
-      newContent = { ...newContent, displayName };
     }
     await super.create(newContent);
 
