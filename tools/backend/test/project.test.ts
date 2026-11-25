@@ -157,17 +157,14 @@ describe('Project endpoints', () => {
     {},
     { cardKeyPrefix: '' },
     { cardKeyPrefix: 'other', name: 'Other' },
-  ])(
-    'PUT /api/project/prefix refuses the body %j',
-    async (body) => {
-      const response = await app.request('/api/projects/test/project/prefix', {
-        method: 'PUT',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify(body),
-      });
-      expect(response.status).toBe(400);
-    },
-  );
+  ])('PUT /api/project/prefix refuses the body %j', async (body) => {
+    const response = await app.request('/api/projects/test/project/prefix', {
+      method: 'PUT',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    expect(response.status).toBe(400);
+  });
 
   test('a renamed project is served under its new prefix only', async () => {
     const response = await app.request('/api/projects/test/project/prefix', {
