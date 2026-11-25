@@ -625,14 +625,18 @@ export class CardTree {
    * other than the ranked card may be reranked too.
    * @param cardKey Card to rank.
    * @param afterKey Sibling to place it after.
+   * @returns the keys of the cards whose rank changed.
    * @throws CardNotFoundError if the tree does not hold either card; Error if
    *   the two cards are not siblings
    */
-  public async reorderAfter(cardKey: string, afterKey: string): Promise<void> {
+  public async reorderAfter(
+    cardKey: string,
+    afterKey: string,
+  ): Promise<string[]> {
     if (this.stored(cardKey).parent !== this.stored(afterKey).parent) {
       throw new DHValidationError(`Cards must be from the same parent`);
     }
-    await this.applyRanks(
+    return this.applyRanks(
       planAfter(this.rankedSiblingsOf(afterKey), cardKey, afterKey),
     );
   }
@@ -641,45 +645,54 @@ export class CardTree {
    * Places a card first among its siblings, and persists the ranks that takes.
    * Freeing the first rank may take demoting whoever holds it.
    * @param cardKey Card to rank.
+   * @returns the keys of the cards whose rank changed.
    * @throws CardNotFoundError if the tree does not hold the card
    */
-  public async reorderFirst(cardKey: string): Promise<void> {
-    await this.applyRanks(planFirst(this.rankedSiblingsOf(cardKey), cardKey));
+  public async reorderFirst(cardKey: string): Promise<string[]> {
+    return this.applyRanks(planFirst(this.rankedSiblingsOf(cardKey), cardKey));
   }
 
   /**
    * Spreads the ranks of the cards under a parent evenly across the rank
    * space, and persists them.
    * @param parentKey Parent whose children to rebalance, or 'root'.
+   * @returns the keys of the cards whose rank changed.
    */
-  public async rebalanceChildren(parentKey: string): Promise<void> {
-    await this.applyRanks(planRebalance(this.siblingsUnder(parentKey)));
+  public async rebalanceChildren(parentKey: string): Promise<string[]> {
+    return this.applyRanks(planRebalance(this.siblingsUnder(parentKey)));
   }
 
   /**
    * Spreads the ranks of every card in the tree evenly across the rank space,
    * level by level, and persists them.
+   * @returns the keys of the cards whose rank changed.
    */
-  public async rebalanceAll(): Promise<void> {
-    await this.applyRanks(
+  public async rebalanceAll(): Promise<string[]> {
+    return this.applyRanks(
       planRebalanceSubtree(this.siblingsUnder(ROOT), (cardKey) =>
         this.siblingsUnder(cardKey),
       ),
     );
   }
 
-  private async applyRanks(changes: RankChange[]): Promise<void> {
+  // Writes the ranks and gives the keys of the cards it rewrote.
+  private async applyRanks(changes: RankChange[]): Promise<string[]> {
+    const changed = new Set<string>();
     for (const { cardKey, rank } of changes) {
-      await this.writeRank(cardKey, rank);
+      if (await this.writeRank(cardKey, rank)) {
+        changed.add(cardKey);
+      }
     }
+    return [...changed];
   }
 
   // Ordering is not a card edit: no validation, and no 'lastUpdated' stamp.
-  private async writeRank(cardKey: string, rank: string): Promise<void> {
+  // Tells whether the card was rewritten.
+  private async writeRank(cardKey: string, rank: string): Promise<boolean> {
     this.assertWritable();
     const stored = this.stored(cardKey);
     if (!stored.metadata || stored.metadata.rank === rank) {
-      return;
+      return false;
     }
     const metadata = { ...stored.metadata, rank };
     await writeJsonFile(
@@ -688,6 +701,7 @@ export class CardTree {
     );
     stored.metadata = normalizedMetadata(metadata);
     this.options.onChange?.({ updated: [cardKey] });
+    return true;
   }
 
   /**
