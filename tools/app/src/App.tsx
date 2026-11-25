@@ -35,7 +35,7 @@ function App() {
         <CssBaseline />
         <StoreProvider>
           <SessionExpiredBanner />
-          <Notifications />
+          <Notifications navigate={(href) => router.navigate(href)} />
           <CleanPrompt />
           <SWRConfig value={getSwrConfig()}>
             <RouterProvider router={router} />
