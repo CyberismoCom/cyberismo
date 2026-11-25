@@ -3,7 +3,14 @@
 
 import { extendTheme } from '@mui/joy/styles';
 
+// Inter is bundled with the app so text looks the same on every system.
+const interFontFamily = '"Inter Variable", var(--joy-fontFamily-fallback)';
+
 const theme = extendTheme({
+  fontFamily: {
+    body: interFontFamily,
+    display: interFontFamily,
+  },
   colorSchemes: {
     dark: {
       palette: {

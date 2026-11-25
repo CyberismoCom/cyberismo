@@ -773,7 +773,7 @@
   top: 0.25rem;
   right: 0.5rem;
   color: grey;
-  font-family: Roboto, sans-serif;
+  font-family: var(--joy-fontFamily-body);
   font-size: 0.72222rem;
   line-height: 1;
   -webkit-user-select: none;
@@ -918,7 +918,7 @@
   border: 1px solid;
   border-radius: 100%;
   display: inline-block;
-  font-family: Roboto, sans-serif;
+  font-family: var(--joy-fontFamily-body);
   font-size: 0.75rem;
   font-style: normal;
   line-height: 1.2;
