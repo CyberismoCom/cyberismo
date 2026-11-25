@@ -34,7 +34,10 @@ export function createGit(options?: {
   const settings = {
     allowEnvironment: Object.keys(process.env),
     ...(options?.timeout ? { timeout: { block: options.timeout } } : {}),
-    ...(options?.config ? { config: options.config } : {}),
+    // Without core.longpaths, Git for Windows cannot check out a path over
+    // 260 characters, and modules nest cards deep enough to reach that.
+    // Other platforms ignore the setting.
+    config: ['core.longpaths=true', ...(options?.config ?? [])],
   };
   return options?.baseDir
     ? simpleGit(options.baseDir, settings)

@@ -44,6 +44,29 @@ describe('createGit', () => {
     expect(value.trim()).toBe('ambient-marker');
   });
 
+  it('allows paths over the Windows limit of 260 characters', async () => {
+    // Git for Windows refuses to check out such a path without this, and the
+    // cards of a module can nest that deep.
+    const value = await createGit({ baseDir: dir }).raw([
+      'config',
+      '--get',
+      'core.longpaths',
+    ]);
+
+    expect(value.trim()).toBe('true');
+  });
+
+  it('keeps the longpaths setting next to caller config', async () => {
+    const git = createGit({ baseDir: dir, config: ['user.name=caller'] });
+
+    expect((await git.raw(['config', '--get', 'user.name'])).trim()).toBe(
+      'caller',
+    );
+    expect((await git.raw(['config', '--get', 'core.longpaths'])).trim()).toBe(
+      'true',
+    );
+  });
+
   it('disables interactive prompts', async () => {
     // Without these a silo has no terminal to answer on, so a credential
     // prompt hangs the push until the idle timeout kills it.
