@@ -19,6 +19,7 @@ import type { ProjectSpec } from '../helpers/project-builder.js';
 import {
   expectRefused,
   flow,
+  metadataOf,
   projects,
   rootKeys,
   snapshot,
@@ -148,6 +149,43 @@ describe('runAction', () => {
     ]
   >([
     [
+      'setField on the title',
+      (k) => `setField(${k.B}, "title", "Renamed").`,
+      async (ws, k) => {
+        expect((await metadataOf(ws, k.B)).title).toBe('Renamed');
+      },
+    ],
+    [
+      'setField on a custom field',
+      (k) => `setField(${k.B}, "${field('size')}", "2.5").`,
+      async (ws, k) => {
+        expect((await metadataOf(ws, k.B))[field('size')]).toBe(2.5);
+      },
+    ],
+    [
+      'setField with "" to clear a number field',
+      (k) => `setField(${k.B}, "${field('size')}", "").`,
+      async (ws, k) => {
+        expect((await metadataOf(ws, k.B))[field('size')]).toBeUndefined();
+      },
+    ],
+    [
+      'one field value written as an integer and as a string',
+      (k) =>
+        `setField(${k.B}, "${field('size')}", 4). setField(${k.B}, "${field('size')}", "4").`,
+      async (ws, k) => {
+        expect((await metadataOf(ws, k.B))[field('size')]).toBe(4);
+      },
+    ],
+    [
+      'one field value written as a constant and as a string',
+      (k) =>
+        `setField(${k.B}, "${field('owner')}", x). setField(${k.B}, "${field('owner')}", "x").`,
+      async (ws, k) => {
+        expect((await metadataOf(ws, k.B))[field('owner')]).toBe('x');
+      },
+    ],
+    [
       'rank',
       (k) => `rank(${k.B}, ${k.C}).`,
       async (ws, k) => {
@@ -194,7 +232,59 @@ describe('runAction', () => {
     expect((await rootKeys(ws)).slice(0, 4)).toEqual([k.req, k.B, k.A, k.C]);
   });
 
+  it('sets a field on every matching card', async () => {
+    const { ws, k, run, templateKeys } = await openProject();
+
+    await run(
+      `setField(C, "${field('step')}", "2") :- projectCard(C), label(C, "todo").`,
+    );
+
+    expect((await metadataOf(ws, k.B))[field('step')]).toBe('2');
+    expect((await metadataOf(ws, k.C))[field('step')]).toBe('2');
+    expect((await metadataOf(ws, k.A))[field('step')]).toBeUndefined();
+    const [templateCard] = templateKeys['proj/templates/t'];
+    expect((await metadataOf(ws, templateCard))[field('step')]).toBeUndefined();
+  });
+
+  it('copies a boolean and a number field with setField(K,F,V) :- field(A,F,V)', async () => {
+    const { ws, k, run } = await openProject();
+
+    await run(
+      `setField(K, F, V) :- actionCard(K), field(${k.B}, F, V), F = "${field('flag')}".
+       setField(K, F, V) :- actionCard(K), field(${k.B}, F, V), F = "${field('size')}".`,
+    );
+
+    const metadata = await metadataOf(ws, k.A);
+    expect(metadata[field('flag')]).toBe(true);
+    expect(metadata[field('size')]).toBe(1.5);
+  });
+
   it.each<[string, (k: Keys, t: string, m: string) => string | undefined]>([
+    [
+      'setField on workflowState',
+      (k) => `setField(${k.A}, "workflowState", "Done").`,
+    ],
+    ['setField on rank', (k) => `setField(${k.A}, "rank", "0|a").`],
+    [
+      "setField on a field the card's type lacks",
+      (k) => `setField(${k.asset1}, "${field('owner')}", "x").`,
+    ],
+    [
+      'setField on a list field',
+      (k) => `setField(${k.A}, "${field('tags')}", "x").`,
+    ],
+    [
+      'a value that is not a number',
+      (k) => `setField(${k.A}, "${field('size')}", "abc").`,
+    ],
+    [
+      'a value that is not a boolean',
+      (k) => `setField(${k.A}, "${field('flag')}", maybe).`,
+    ],
+    [
+      'two values for one field',
+      (k) => `setField(${k.A}, "title", "x"). setField(${k.A}, "title", "y").`,
+    ],
     ['two ranks of a card', (k) => `rankFirst(${k.B}). rank(${k.B}, ${k.C}).`],
     ['an empty programs array', () => undefined],
   ])(
@@ -239,6 +329,7 @@ describe('runAction', () => {
     ['a misspelled effect name', 'addLable(C, "x") :- actionCard(C).'],
     ['a wrong argument count', 'rankFirst(C, 1) :- actionCard(C).'],
     ['an effect name in another case', 'rankfirst(C) :- actionCard(C).'],
+    ['setField/2', 'setField(C, "title") :- actionCard(C).'],
     ['a result of its own', 'result(x).'],
     ['a nested term', 'helper(f(1)).'],
   ])('does nothing for %s', async (_, program) => {

@@ -97,7 +97,8 @@ export function checkEffects(
 
 /**
  * Applies checked effects step by step, in the order of STEPS. Within a
- * step, in the order of the effects' atoms.
+ * step, in the order of the effects' atoms. An effect already in place is
+ * skipped.
  * @returns the cards the effects created, in creation order
  * @throws EffectFailed on the first failure
  */
@@ -112,6 +113,7 @@ export async function applyEffects(
       .sort((a, b) => compareText(a.atom, b.atom));
     for (const effect of inStep) {
       try {
+        if (effect.inPlace(checkout)) continue;
         created.push(...(await effect.apply(checkout)));
       } catch (error) {
         throw new EffectFailed(effect.atom, error);
