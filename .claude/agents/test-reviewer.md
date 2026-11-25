@@ -20,6 +20,11 @@ read-only.
 The caller gives you a diff source. Fetch the diff yourself; read a base
 version with `git show <base>:<path>`.
 
+If the caller says the change has no test changes, report only behaviour the
+change introduces that no existing test covers, most important first, as
+Major when it is user-facing or writes files and Minor otherwise. Skip the
+rest of this file.
+
 First, for each new test file: list the existing test files in the same
 folder (`git ls-tree --name-only <head> <folder>/`) and read their setup. If an
 existing file already builds the same client, server or project, the new file
@@ -40,6 +45,10 @@ Ask of each new or changed test:
   level? Is it testing the framework, a trivial getter, a CSS value or a list
   of strings? Would a table (`it.each`) say the same in less? A wiring or stub
   test where one end-to-end test would prove more is low value.
+- **Does it exercise the path it claims?** Check the event or input really
+  reaches the code under test in the test environment (jsdom has no layout,
+  and a handler on a sibling element never sees the event). A check that
+  passes with the production line removed is Major.
 - **Will it break for the wrong reason?** Hard-coded counts ("more than 30
   tools"), ordering that isn't part of the contract, ticket numbers in names,
   timing that can be flaky on CI.
