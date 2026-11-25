@@ -11,7 +11,7 @@ import {
   useProjectSettingsMutations,
   usePublicKey,
 } from '@/lib/api';
-import { useEditableField } from '@/lib/hooks';
+import { useAppRouter, useEditableField } from '@/lib/hooks';
 import BaseEditor from './BaseEditor';
 import FieldRow from './fields/FieldRow';
 import HubsSection from './HubsSection';
@@ -31,6 +31,7 @@ export function GeneralEditor({ node }: GeneralEditorProps) {
   const { isUpdating, updateProject, renamePrefix } =
     useProjectSettingsMutations();
   const isAdmin = useHasMinRole(UserRole.Admin);
+  const router = useAppRouter();
 
   const isDisabled = Boolean(node.readOnly) || !isAdmin;
 
@@ -49,7 +50,13 @@ export function GeneralEditor({ node }: GeneralEditorProps) {
     readOnly: isDisabled,
     isLoading,
     isUpdating,
-    saveValue: (value) => renamePrefix(value),
+    // The project is served under its new prefix only.
+    saveValue: async (value) => {
+      const renamed = await renamePrefix(value);
+      router.push(
+        `/projects/${encodeURIComponent(renamed)}/configuration/general`,
+      );
+    },
   });
 
   const categoryField = useEditableField({

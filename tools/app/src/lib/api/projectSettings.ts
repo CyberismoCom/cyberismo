@@ -8,7 +8,7 @@ import type {
   ModuleSettingFromHub,
   UpdatePlan,
 } from '@cyberismo/model';
-import { projectApiPaths, callApi } from '../swr';
+import { globalApiPaths, projectApiPaths, callApi } from '../swr';
 import { useSWRHook } from './common';
 import type { Hub, HubFetchResult, ProjectSettingsUpdate } from './types';
 import { useUpdating } from '../hooks';
@@ -35,14 +35,27 @@ export const updateProjectSettings = async (
   mutate(apiPaths.resourceTree());
 };
 
+/**
+ * Renames the project's card key prefix. The project is served under the new
+ * prefix from then on, so its settings are revalidated there, along with the
+ * project list.
+ * @returns the new prefix.
+ */
 export const renameProjectPrefix = async (
   cardKeyPrefix: string,
   projectPrefix?: string,
-) => {
-  const apiPaths = projectApiPaths(projectPrefix);
-  await callApi(apiPaths.projectPrefix(), 'PUT', { cardKeyPrefix });
+): Promise<string> => {
+  const project = await callApi<{ cardKeyPrefix: string }>(
+    projectApiPaths(projectPrefix).projectPrefix(),
+    'PUT',
+    { cardKeyPrefix },
+  );
+  const renamed = project.cardKeyPrefix;
+  const apiPaths = projectApiPaths(renamed);
+  mutate(globalApiPaths.projects());
   mutate(apiPaths.project());
   mutate(apiPaths.resourceTree());
+  return renamed;
 };
 
 // A `range` re-declares the module's version binding first.

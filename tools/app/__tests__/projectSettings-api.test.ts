@@ -30,26 +30,33 @@ beforeEach(() => {
 });
 
 describe('project settings writes', () => {
-  it.each([
-    {
-      action: 'renameProjectPrefix',
-      run: () => renameProjectPrefix('NEW', 'TST'),
-      call: [`${base}/project/prefix`, 'PUT', { cardKeyPrefix: 'NEW' }],
-    },
-    {
-      action: 'updateProjectSettings',
-      run: () => updateProjectSettings({ name: 'Renamed' }, 'TST'),
-      call: [`${base}/project`, 'PATCH', { name: 'Renamed' }],
-    },
-  ])(
-    '$action sends one request and revalidates the settings',
-    async ({ run, call }) => {
-      await run();
+  it('updateProjectSettings sends one request and revalidates the settings', async () => {
+    await updateProjectSettings({ name: 'Renamed' }, 'TST');
 
-      expect(callApi.mock.calls).toEqual([call]);
-      expect(mutate.mock.calls.map(([key]) => key).sort()).toEqual(
-        [`${base}/project`, `${base}/resources/tree`].sort(),
-      );
-    },
-  );
+    expect(callApi.mock.calls).toEqual([
+      [`${base}/project`, 'PATCH', { name: 'Renamed' }],
+    ]);
+    expect(mutate.mock.calls.map(([key]) => key).sort()).toEqual(
+      [`${base}/project`, `${base}/resources/tree`].sort(),
+    );
+  });
+
+  // The project is served under its new prefix only: the old prefix's paths
+  // answer 404.
+  it('renameProjectPrefix sends one request and revalidates under the new prefix', async () => {
+    callApi.mockResolvedValueOnce({ cardKeyPrefix: 'new' });
+
+    expect(await renameProjectPrefix('new', 'TST')).toBe('new');
+
+    expect(callApi.mock.calls).toEqual([
+      [`${base}/project/prefix`, 'PUT', { cardKeyPrefix: 'new' }],
+    ]);
+    expect(mutate.mock.calls.map(([key]) => key).sort()).toEqual(
+      [
+        '/api/projects',
+        '/api/projects/new/project',
+        '/api/projects/new/resources/tree',
+      ].sort(),
+    );
+  });
 });
