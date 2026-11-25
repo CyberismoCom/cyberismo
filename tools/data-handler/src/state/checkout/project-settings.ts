@@ -211,6 +211,7 @@ export class ProjectConfiguration implements ProjectSettings {
   /**
    * Changes project prefix.
    * @param newPrefix New prefix to use in the project
+   * @throws DHValidationError if the prefix is not valid; nothing is written.
    */
   public async setCardPrefix(newPrefix: string) {
     const isValid = Validate.validatePrefix(newPrefix);
@@ -218,7 +219,7 @@ export class ProjectConfiguration implements ProjectSettings {
       this.cardKeyPrefix = newPrefix;
       return this.save();
     }
-    throw new Error(
+    throw new DHValidationError(
       `Prefix '${newPrefix}' is not valid prefix. Prefix should be in lowercase and contain letters from a to z (max length 10).`,
     );
   }

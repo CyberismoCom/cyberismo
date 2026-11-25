@@ -166,6 +166,26 @@ describe('Project endpoints', () => {
     expect(response.status).toBe(400);
   });
 
+  // The data-handler owns the prefix rules; a prefix they refuse is the
+  // caller's error.
+  test.each(['ab', 'ABC', 'abcdefghijk', 'test'])(
+    'PUT /api/project/prefix refuses the prefix %j with 400, renaming nothing',
+    async (cardKeyPrefix) => {
+      const response = await app.request('/api/projects/test/project/prefix', {
+        method: 'PUT',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ cardKeyPrefix }),
+      });
+
+      expect(response.status).toBe(400);
+      expect(await response.json()).toMatchObject({ code: 'validation' });
+      const project = await app.request('/api/projects/test/project');
+      expect(((await project.json()) as ProjectResponse).cardKeyPrefix).toBe(
+        'test',
+      );
+    },
+  );
+
   test('a renamed project is served under its new prefix only', async () => {
     const response = await app.request('/api/projects/test/project/prefix', {
       method: 'PUT',
