@@ -44,6 +44,18 @@ describe('createGit', () => {
     expect(value.trim()).toBe('ambient-marker');
   });
 
+  it('allows paths longer than Windows MAX_PATH', async () => {
+    // Without it git for Windows fails to check out a module whose nested
+    // cards end up past 260 characters: "Filename too long".
+    const git = createGit({ baseDir: dir, config: ['user.name=caller'] });
+
+    const longpaths = await git.raw(['config', '--get', 'core.longpaths']);
+    const name = await git.raw(['config', '--get', 'user.name']);
+
+    expect(longpaths.trim()).toBe('true');
+    expect(name.trim()).toBe('caller');
+  });
+
   it('disables interactive prompts', async () => {
     // Without these a silo has no terminal to answer on, so a credential
     // prompt hangs the push until the idle timeout kills it.
