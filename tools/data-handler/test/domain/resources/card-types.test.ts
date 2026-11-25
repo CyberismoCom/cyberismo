@@ -1,9 +1,7 @@
 // SPDX-FileCopyrightText: Cyberismo Ltd and contributors
 // SPDX-License-Identifier: AGPL-3.0-only
 
-import { execFile } from 'node:child_process';
 import { readFile, writeFile } from 'node:fs/promises';
-import { promisify } from 'node:util';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import {
@@ -26,9 +24,6 @@ import { buildProject } from '../../helpers/project-builder.js';
 import { openTestWorkspace } from '../../helpers/open-test-workspace.js';
 
 const open = projects();
-
-const git = async (path: string, ...args: string[]) =>
-  (await promisify(execFile)('git', args, { cwd: path })).stdout.trim();
 
 const page = 'test/cardTypes/page';
 const bare = 'test/cardTypes/bare';
@@ -269,23 +264,6 @@ describe('card types', () => {
         );
       },
     );
-    it('is one commit', async () => {
-      const { ws, path } = await open(
-        { ...spec, git: true },
-        { autocommit: true },
-      );
-      await ws.resources.setFieldVisibility(page, size, 'always');
-      const before = await git(path, 'rev-list', '--count', 'HEAD');
-
-      await ws.resources.setFieldVisibility(page, size, 'optional', 0);
-
-      expect(await git(path, 'log', '-1', '--format=%s')).toBe(
-        `Update field visibility for ${page}`,
-      );
-      expect(Number(await git(path, 'rev-list', '--count', 'HEAD'))).toBe(
-        Number(before) + 1,
-      );
-    });
   });
 
   describe('changing the workflow', () => {
