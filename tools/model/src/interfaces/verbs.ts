@@ -15,6 +15,12 @@ export interface VersionBump {
   newVersion: string;
 }
 
+// What an action did that its caller shows: the cards it created, in
+// creation order.
+export interface ActionResult {
+  created: { key: string; title: string }[];
+}
+
 // A published (or, in a dry run, publishable) version.
 export interface PublishResult {
   version: string;
