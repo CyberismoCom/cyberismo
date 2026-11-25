@@ -291,8 +291,9 @@ jobs:
           file: Dockerfile
           platforms: ${{ matrix.platform }}
           outputs: type=image,name=${{ steps.repo.outputs.name }},push-by-digest=true,name-canonical=true,push=true
+          # A manual run can start from any branch; only main writes the cache.
           cache-from: type=gha,scope=${{ matrix.suffix }}
-          cache-to: type=gha,mode=max,scope=${{ matrix.suffix }}
+          cache-to: ${{ github.ref == 'refs/heads/main' && format('type=gha,mode=max,scope={0}', matrix.suffix) || '' }}
 
       - name: Export digest (real release)
         if: env.DRYRUN != 'true'
