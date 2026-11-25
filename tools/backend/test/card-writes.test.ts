@@ -177,21 +177,22 @@ describe('POST /cards/:key/move', () => {
 });
 
 describe('PUT /cards/:key/links', () => {
-  const linkType = 'decision/linkTypes/test';
+  const described = 'decision/linkTypes/test';
+  const typed = 'decision/linkTypes/testTypes';
   const links = async (key: string) =>
     (await ws.cards.details(key)).metadata?.links;
 
   test('changes the link given by the previous fields into the new one', async () => {
-    await ws.cards.addLink('decision_5', 'decision_6', linkType);
+    await ws.cards.addLink('decision_5', 'decision_6', described, 'why');
 
     const response = await send('decision_5/links', 'PUT', {
-      toCard: 'decision_6',
-      linkType,
+      toCard: card,
+      linkType: typed,
       direction: 'inbound',
-      description: 'why',
       previousToCard: 'decision_6',
-      previousLinkType: linkType,
+      previousLinkType: described,
       previousDirection: 'outbound',
+      previousDescription: 'why',
     });
 
     expect(response.status).toBe(200);
@@ -199,8 +200,8 @@ describe('PUT /cards/:key/links', () => {
       message: 'Link updated successfully',
     });
     expect(await links('decision_5')).toEqual([]);
-    expect(await links('decision_6')).toEqual([
-      { linkType, cardKey: 'decision_5', linkDescription: 'why' },
+    expect(await links(card)).toEqual([
+      { linkType: typed, cardKey: 'decision_5' },
     ]);
   });
 });
