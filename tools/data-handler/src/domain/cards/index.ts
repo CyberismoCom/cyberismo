@@ -13,7 +13,6 @@ export { importCsv } from './import-csv.js';
 export { addCards, createCard } from './instantiate.js';
 export {
   moveCard,
-  moveCardTo,
   rankAfter,
   rankAt,
   rankFirst,

@@ -23,7 +23,7 @@ import { removeCard } from '../domain/cards/index.js';
 import { importCsv } from '../domain/cards/index.js';
 import { addCards, createCard } from '../domain/cards/index.js';
 import {
-  moveCardTo,
+  moveCard,
   rankAfter,
   rankAt,
   rankFirst,
@@ -77,7 +77,10 @@ export class Cards {
     destination: string,
     index?: number,
   ): Promise<void> {
-    await moveCardTo(this.checkout, source, destination, index);
+    const moved = await moveCard(this.checkout, source, destination, index);
+    this.checkout.lock.currentTx()!.message ??= moved
+      ? `Move card ${source} to ${destination}`
+      : `Rank card ${source}`;
   }
 
   /**

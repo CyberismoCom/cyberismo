@@ -125,14 +125,19 @@ describe('cards.move', () => {
     );
   });
 
-  it('refuses a position past its siblings for a card it only ranks', async () => {
+  // A card that stays under its parent counts itself among the positions.
+  it('ranks a card staying under its parent up to the end, and no further', async () => {
     const { ws, path, keys } = await open(spec);
+    const [a, a1, a2] = keys;
 
     await expectRefused(
       path,
-      () => ws.cards.move(keys[1], keys[0], 3),
+      () => ws.cards.move(a1, a, 3),
       /^Index 3 is out of bounds$/,
     );
+    await ws.cards.move(a1, a, 2);
+
+    expect(await childKeys(ws, a)).toEqual([a2, a1]);
   });
 
   it('a move to the own parent is a rank commit', async () => {
