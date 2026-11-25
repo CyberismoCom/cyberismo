@@ -37,14 +37,16 @@ node tools/app/scripts/screenshots.js --project bat --label after <name>=<path> 
 
 The script writes the files to `.tmp/screenshots/<name>-<scheme>-<label>.png`. Look at each pair before you use it. A blank page, a spinner, or "not found" means that the route or the project is wrong.
 
-## 4. Write the table
+## 4. Make one PDF
 
-GitHub has no API to attach images to a pull request. The person drags the files into the description of the pull request in the browser, and GitHub turns each file into a link. Give the person the folder and a table to paste, with one row for each screen and scheme. Each cell names the file that goes there:
+Put all the pairs into one PDF, so that the pull request needs only one upload:
 
-```markdown
-| Screen            | Before                | After                |
-| ----------------- | --------------------- | -------------------- |
-| Card page (light) | card-light-before.png | card-light-after.png |
+```sh
+node tools/app/scripts/screenshots-pdf.js --title "<title of the pull request>"
 ```
 
-Do not commit the screenshots.
+The script writes `.tmp/screenshots/before-after.pdf`: a cover page that lists the screens, then one page for each screen and scheme, with the before screenshot above the after one. Look at the PDF before you give it to the person.
+
+GitHub has no API to attach a file to a pull request. In the description of the pull request, write a section "Screenshots" that names the screens and says that the PDF is attached. The person drags the PDF into the description in the browser, and GitHub turns it into a link.
+
+Do not commit the screenshots or the PDF.
