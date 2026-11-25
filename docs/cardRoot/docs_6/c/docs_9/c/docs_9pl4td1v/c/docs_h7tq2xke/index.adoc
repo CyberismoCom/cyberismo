@@ -1,0 +1,18 @@
+== Parameters
+
+* `CardKey`: The card key of the card, whose workflow state transition shall have a side effect
+* `Transition`: The name of a workflow transition
+* `AffectedCard`: The card key of the card that will be transitioned
+* `TransitionToExecute`: The name of the transition that will be executed on `AffectedCard`
+
+== Description
+
+If `onTransitionExecuteTransition(CardKey, Transition, AffectedCard, TransitionToExecute)` is true, and if the workflow transition `Transition` is executed on `CardKey`, then the transition `TransitionToExecute` shall be executed on `AffectedCard`.
+
+A side effect declared with `onTransitionExecuteTransition` or `onTransitionSetField` is called a hook. Creating a card is also a workflow transition, so a hook can also be declared for the transition that creates a card.
+
+The transition is executed as if a user executed it: it must be in the workflow of `AffectedCard`, it must be possible from the card's current workflow state, and `transitionDenied` must not deny it. A transition that cannot be executed is skipped and logged; it never prevents the transition that set off the hook.
+
+A transition executed by a hook can have hooks of its own. Hooks cascade breadth-first: the hooks of one transition are found right after it, their field updates are applied, and their transitions are executed after the transitions already waiting, in the order of their card keys and names. Within one user operation, a card is transitioned with a given transition at most once; a repeat, for example from a cycle in the logic programs, is skipped and logged.
+
+If the hooks of one transition declare two transitions of the same card, both are skipped and logged.
