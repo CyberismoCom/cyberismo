@@ -175,3 +175,32 @@ describe('POST /cards/:key/move', () => {
     expect((await send(`${card}/move`, 'POST', body)).status).toBe(400);
   });
 });
+
+describe('PUT /cards/:key/links', () => {
+  const linkType = 'decision/linkTypes/test';
+  const links = async (key: string) =>
+    (await ws.cards.details(key)).metadata?.links;
+
+  test('changes the link given by the previous fields into the new one', async () => {
+    await ws.cards.addLink('decision_5', 'decision_6', linkType);
+
+    const response = await send('decision_5/links', 'PUT', {
+      toCard: 'decision_6',
+      linkType,
+      direction: 'inbound',
+      description: 'why',
+      previousToCard: 'decision_6',
+      previousLinkType: linkType,
+      previousDirection: 'outbound',
+    });
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({
+      message: 'Link updated successfully',
+    });
+    expect(await links('decision_5')).toEqual([]);
+    expect(await links('decision_6')).toEqual([
+      { linkType, cardKey: 'decision_5', linkDescription: 'why' },
+    ]);
+  });
+});
