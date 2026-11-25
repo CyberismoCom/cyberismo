@@ -226,6 +226,33 @@ describe('settings: a write that fails', () => {
     },
   );
 
+  it('puts back the fetch URL of a remote with a separate push URL', async () => {
+    const { ws, path } = await open({ git: true }, { autocommit: true });
+    await git(path, 'remote', 'add', 'origin', 'https://example.com/fetch.git');
+    await git(
+      path,
+      'remote',
+      'set-url',
+      '--push',
+      'origin',
+      'https://example.com/push.git',
+    );
+    vi.spyOn(GitManager.prototype, 'commit').mockRejectedValueOnce(
+      new Error('commit failed'),
+    );
+
+    await expect(
+      ws.settings.update({ gitRemoteUrl: 'https://example.com/two.git' }),
+    ).rejects.toThrow('commit failed');
+
+    expect(await git(path, 'remote', 'get-url', 'origin')).toBe(
+      'https://example.com/fetch.git',
+    );
+    expect(await git(path, 'remote', 'get-url', '--push', 'origin')).toBe(
+      'https://example.com/push.git',
+    );
+  });
+
   it('tells clients to reload when the remote fails after other settings are saved', async () => {
     const { ws } = await open({ name: 'Original', git: true });
     const events: ChangeEvent[] = [];

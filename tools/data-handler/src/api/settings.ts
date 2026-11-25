@@ -168,7 +168,9 @@ export class Settings {
     // Last: the remote is in the git configuration, which a rollback of the
     // project files does not restore; the write is given its undo.
     if (gitRemoteUrl !== undefined) {
-      const previous = await git.getRemoteUrl();
+      // setRemoteUrl changes the fetch URL, which differs from the push URL
+      // that getRemoteUrl gives when the remote has a separate push URL.
+      const previous = await git.getRemoteFetchUrl();
       await git.setRemoteUrl(gitRemoteUrl);
       lock
         .currentTx()
