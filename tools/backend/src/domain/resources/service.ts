@@ -518,14 +518,10 @@ export async function updateResourceWithOperation(
   body: UpdateOperationBody,
 ) {
   const { updateKey, operation } = body;
-  await ws.atomic(
-    () =>
-      ws.changes.apply({
-        kind: 'edit',
-        target: resource,
-        updateKey,
-        operation,
-      }),
-    `Update ${resource.type} ${resource.identifier}`,
-  );
+  await ws.changes.apply({
+    kind: 'edit',
+    target: resource,
+    updateKey,
+    operation,
+  });
 }

@@ -218,20 +218,19 @@ export async function uploadAttachments(
   key: string,
   files: File[],
 ) {
-  const succeeded: string[] = [];
-  await ws.atomic(async () => {
-    for (const file of files) {
-      if (file instanceof File) {
-        const buffer = await file.arrayBuffer();
-        await ws.cards.addAttachment(key, file.name, Buffer.from(buffer));
-        succeeded.push(file.name);
-      }
-    }
-  }, `Add attachments to ${key}`);
+  const attachments = await Promise.all(
+    files
+      .filter((file) => file instanceof File)
+      .map(async (file) => ({
+        name: file.name,
+        buffer: Buffer.from(await file.arrayBuffer()),
+      })),
+  );
+  await ws.cards.addAttachments(key, attachments);
 
   return {
     message: 'Attachments uploaded successfully',
-    files: succeeded,
+    files: attachments.map(({ name }) => name),
   };
 }
 
