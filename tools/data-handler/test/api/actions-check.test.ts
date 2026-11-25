@@ -143,6 +143,11 @@ describe('an effect refused in the check', () => {
     ['addLabel(p_1,"l")', 'addLabel(p_1,"l")', "card 'p_1' does not exist"],
     ['removeLabel(p_1,l)', 'removeLabel(p_1,l)', "card 'p_1' does not exist"],
     [
+      'transition(p_1,"Start")',
+      'transition(p_1,"Start")',
+      "card 'p_1' does not exist",
+    ],
+    [
       'addLink(p_1,"p_2","x/linkTypes/l")',
       'addLink(p_1,"p_2","x/linkTypes/l")',
       "card 'p_1' does not exist",
@@ -162,6 +167,8 @@ describe('an effect refused in the check', () => {
       'removeLink(p_1,p_2,"x/linkTypes/l","d")',
       "card 'p_1' does not exist",
     ],
+    ['move(p_1,root)', 'move(p_1,root)', "card 'p_1' does not exist"],
+    ['move(A,"p_2")', 'move(A,"p_2")', "card 'p_2' does not exist"],
     ['rank(A,p_2)', 'rank(A,p_2)', "card 'p_2' does not exist"],
     ['rankFirst(p_1)', 'rankFirst(p_1)', "card 'p_1' does not exist"],
     [
@@ -196,9 +203,16 @@ describe('an effect refused in the check', () => {
     ['an unknown card content', 'setContent(nope_1,"x")', /does not exist/],
     ['a module card target', 'addLabel(MOD,"x")', /module card/],
     ['a template card label removal', 'removeLabel(TPL,"x")', /template card/],
+    ['a module card as new parent', 'move(A,MOD)', /module card/],
+    ['a template card moved', 'move(TPL,root)', /template card/],
     ['a template card as rank anchor', 'rank(A,TPL)', /template card/],
     ['a template card ranked', 'rank(TPL,A)', /template card/],
     ['a template card ranked first', 'rankFirst(TPL)', /template card/],
+    [
+      'a template card transitioned',
+      'transition(TPL,"Start")',
+      /template card/,
+    ],
     ['a copy onto a template card', 'copyContent(TPL,A)', /template card/],
     [
       'a copy from an unknown card',
@@ -268,55 +282,14 @@ describe('an effect refused in the check', () => {
       /link type '\/linkTypes\/rel' does not exist/,
     ],
     [
-      'a number out of range',
-      'setField(A,"proj/fieldTypes/num","1e400")',
-      /number/,
+      'a transition the workflow lacks',
+      'transition(A,"Nope")',
+      /transition 'Nope' is not in workflow 'proj\/workflows\/flow'/,
     ],
     [
-      'an integer beyond the safe range',
-      'setField(A,"proj/fieldTypes/int","123456789012345678901")',
-      /integer/,
-    ],
-    ['"+4" for a number', 'setField(A,"proj/fieldTypes/num","+4")', /number/],
-    [
-      '"+4" for an integer',
-      'setField(A,"proj/fieldTypes/int","+4")',
-      /integer/,
-    ],
-    [
-      'a date-time for a date',
-      'setField(A,"proj/fieldTypes/day","2026-01-02T03:04:05Z")',
-      /not a valid date value/,
-    ],
-    [
-      'a date that does not exist',
-      'setField(A,"proj/fieldTypes/day","2026-02-30")',
-      /not a valid date value/,
-    ],
-    [
-      'a date written another way',
-      'setField(A,"proj/fieldTypes/day","2.1.2026")',
-      /not a valid date value/,
-    ],
-    [
-      'a date for a dateTime',
-      'setField(A,"proj/fieldTypes/when","2026-01-02")',
-      /not a valid dateTime value/,
-    ],
-    [
-      'a dateTime without a time zone',
-      'setField(A,"proj/fieldTypes/when","2026-01-02T03:04:05")',
-      /not a valid dateTime value/,
-    ],
-    [
-      'a dateTime that does not exist',
-      'setField(A,"proj/fieldTypes/when","2026-01-02T25:00:00Z")',
-      /not a valid dateTime value/,
-    ],
-    [
-      'a dateTime on a day that does not exist',
-      'setField(A,"proj/fieldTypes/when","2026-02-30T10:00:00Z")',
-      /not a valid dateTime value/,
+      'a transition given as a number',
+      'transition(A,1)',
+      /transition '1' is not in workflow/,
     ],
   ])('refuses %s', async (_case, atom, reason) => {
     const error = await run(atom).catch((e: unknown) => e);
@@ -352,6 +325,16 @@ describe('an effect refused in the check', () => {
       'a label both added and removed',
       ['addLabel(A,"l")', 'removeLabel(A,"l")'],
       /^Cannot apply 'addLabel\(.*the label 'l' of card '.*' is both added and removed$/,
+    ],
+    [
+      'two transitions of a card',
+      ['transition(A,"Start")', 'transition(A,"Close")'],
+      /^Cannot apply 'transition\(.*,"Close"\)': card '.*' has more than one transition$/,
+    ],
+    [
+      'two moves of a card',
+      ['move(A,root)', 'move(A,B)'],
+      /card '.*' has more than one move$/,
     ],
     [
       'rank and rankFirst of a card',

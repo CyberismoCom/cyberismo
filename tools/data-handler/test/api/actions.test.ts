@@ -20,6 +20,7 @@ import {
 } from '../../src/shared/exceptions/index.js';
 import type { ProjectSpec } from '../helpers/project-builder.js';
 import {
+  childKeys,
   expectRefused,
   flow,
   metadataOf,
@@ -253,6 +254,28 @@ describe('runAction', () => {
       },
     ],
     [
+      'transition',
+      (k) => `transition(${k.B}, "Start").`,
+      async (ws, k) => {
+        expect((await metadataOf(ws, k.B)).workflowState).toBe('Review');
+      },
+    ],
+    [
+      'move to a card',
+      (k) => `move(${k.B}, ${k.A}).`,
+      async (ws, k) => {
+        expect(await childKeys(ws, k.A)).toEqual([k.A1, k.B]);
+      },
+    ],
+    [
+      'move to root',
+      (k) => `move(${k.A1}, root).`,
+      async (ws, k) => {
+        expect(await rootKeys(ws)).toContain(k.A1);
+        expect(await childKeys(ws, k.A)).toEqual([]);
+      },
+    ],
+    [
       'setContent of a number as its digits',
       (k) => `setContent(${k.B}, 3).`,
       async (ws, k) => {
@@ -338,6 +361,14 @@ describe('runAction', () => {
     expect((await rootKeys(ws)).slice(0, 4)).toEqual([k.req, k.B, k.A, k.C]);
   });
 
+  it('transitions the action card', async () => {
+    const { ws, k, run } = await openProject();
+
+    await run('transition(C, "Start") :- actionCard(C).');
+
+    expect((await metadataOf(ws, k.A)).workflowState).toBe('Review');
+  });
+
   it('sets a field on every matching card', async () => {
     const { ws, k, run, templateKeys } = await openProject();
 
@@ -361,6 +392,35 @@ describe('runAction', () => {
     );
 
     expect((await metadataOf(ws, k.A)).labels).toEqual(['seen']);
+  });
+
+  it('the transition guard sees a field set in the same program', async () => {
+    const { ws, k, run } = await openProject({
+      calculations: {
+        guard: `transitionDenied(C, "Start", "not flagged") :- projectCard(C), not field(C, "${field('flag')}", "true").`,
+      },
+    });
+    const program = (setFlag: boolean) =>
+      `${setFlag ? `setField(C, "${field('flag')}", true) :- actionCard(C).` : ''}
+       transition(C, "Start") :- actionCard(C).`;
+
+    await expect(run(program(false))).rejects.toMatchObject({
+      code: 'permission-denied',
+    });
+    await run(program(true));
+
+    expect((await metadataOf(ws, k.A)).workflowState).toBe('Review');
+  });
+
+  it('allows a second transition of a card in a later program', async () => {
+    const { ws, k, run } = await openProject();
+
+    await run(
+      'transition(C, "Start") :- actionCard(C).',
+      'transition(C, "Finish") :- actionCard(C).',
+    );
+
+    expect((await metadataOf(ws, k.A)).workflowState).toBe('Done');
   });
 
   it('copies a boolean and a number field with setField(K,F,V) :- field(A,F,V)', async () => {
@@ -426,7 +486,15 @@ describe('runAction', () => {
       'two values for one field',
       (k) => `setField(${k.A}, "title", "x"). setField(${k.A}, "title", "y").`,
     ],
+    [
+      'two moves of a card',
+      (k) => `move(${k.B}, ${k.A}). move(${k.B}, ${k.C}).`,
+    ],
     ['two ranks of a card', (k) => `rankFirst(${k.B}). rank(${k.B}, ${k.C}).`],
+    [
+      'two transitions of a card',
+      (k) => `transition(${k.B}, "Start"). transition(${k.B}, "Close").`,
+    ],
     ['an empty programs array', () => undefined],
   ])(
     'refuses %s in the first program and writes nothing',
@@ -468,6 +536,12 @@ describe('runAction', () => {
 
   it.each<[string, (k: Keys) => string[], RegExp, string]>([
     [
+      'an execution failure in program 1',
+      (k) => [`addLabel(${k.A}, "x"). transition(${k.A}, "Finish").`],
+      /^Action failed in program 1 at transition\(/,
+      'validation',
+    ],
+    [
       'a check refusal in program 2',
       (k) => [
         `addLabel(${k.A}, "x").`,
@@ -501,6 +575,70 @@ describe('runAction', () => {
       expect((await metadataOf(ws, k.A)).labels).toEqual([]);
     },
   );
+
+  it('without autocommit, stops at the first failure, keeps what was applied and says so', async () => {
+    const { ws, k, run } = await openProject();
+
+    const error = await run(
+      `addLabel(${k.A}, "one"). addLabel(${k.B}, "two").`,
+      `addLabel(${k.C}, "three"). transition(${k.A}, "Finish"). rankFirst(${k.C}).`,
+    ).catch((e: unknown) => e);
+
+    expect(error).toBeInstanceOf(ActionFailedError);
+    expect((error as Error).message).toBe(
+      `Action failed in program 2 at transition(${k.A},"Finish"): ` +
+        `Card's workflow 'proj/workflows/flow' does not contain state transition from state 'Open' for 'Finish'. ` +
+        'Without autocommit, the changes of the earlier programs were kept.',
+    );
+    expect((await metadataOf(ws, k.A)).labels).toEqual(['one']);
+    expect((await metadataOf(ws, k.B)).labels).toEqual(['todo', 'two']);
+    expect((await metadataOf(ws, k.C)).labels).toEqual(['todo', 'x', 'three']);
+    expect((await rootKeys(ws))[0]).toBe(k.A);
+  });
+
+  it('does not say that anything was kept when program 1 fails', async () => {
+    const { k, run } = await openProject();
+
+    const error = await run(
+      `addLabel(${k.A}, "one"). transition(${k.A}, "Finish").`,
+    ).catch((e: unknown) => e);
+
+    expect((error as Error).message).toBe(
+      `Action failed in program 1 at transition(${k.A},"Finish"): ` +
+        `Card's workflow 'proj/workflows/flow' does not contain state transition from state 'Open' for 'Finish'.`,
+    );
+  });
+
+  // removeLabel of a label the card lacks: B has only another label, A has
+  // none, C has several.
+  it('skips effects already in place', async () => {
+    const { k, run, path } = await openProject();
+    const before = snapshot(path);
+
+    // The transition at the end fails, so the error names it; nothing before
+    // it is written.
+    const error = await run(
+      `addLabel(${k.C}, "todo").
+       removeLabel(${k.B}, "x").
+       removeLabel(${k.A}, "x").
+       removeLabel(${k.C}, "y").
+       copyContent(${k.A}, ${k.A1}).
+       addLink(${k.B}, ${k.req}, "${linkType('implements')}").
+       removeLink(${k.C}, ${k.req}, "${linkType('relates')}").
+       setField(${k.B}, "title", "B").
+       setField(${k.B}, "${field('size')}", "1.5").
+       setField(${k.A}, "${field('size')}", "").
+       move(${k.A1}, ${k.A}).
+       transition(${k.A}, "Finish").`,
+    ).catch((e: unknown) => e);
+
+    expect(error).toBeInstanceOf(ActionFailedError);
+    expect((error as ActionFailedError).details).toMatchObject({
+      program: 1,
+      effect: `transition(${k.A},"Finish")`,
+    });
+    expect(snapshot(path)).toEqual(before);
+  });
 
   it('program 2 sees a rank set by program 1', async () => {
     const { ws, k, run } = await openProject();
@@ -546,6 +684,18 @@ describe('runAction', () => {
     expect(
       readFileSync(join(path, 'cardRoot', k.B, 'index.adoc'), 'utf-8'),
     ).toBe('line 1\nsay "hi"\nC:\\path');
+  });
+
+  it('skips a setContent with the content the card has', async () => {
+    const { k, run, path } = await openProject();
+    const before = snapshot(path);
+
+    const error = await run(
+      `setContent(${k.C}, "Hello"). transition(${k.A}, "Finish").`,
+    ).catch((e: unknown) => e);
+
+    expect(error).toBeInstanceOf(ActionFailedError);
+    expect(snapshot(path)).toEqual(before);
   });
 
   it.each([

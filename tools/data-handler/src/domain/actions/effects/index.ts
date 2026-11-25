@@ -5,8 +5,10 @@ import { copyContent, setContent } from './content.js';
 import type { EffectKind } from './define.js';
 import { addLabel, removeLabel } from './label.js';
 import { addLink, removeLink } from './link.js';
+import { move } from './move.js';
 import { rank, rankFirst } from './rank.js';
 import { setField } from './setField.js';
+import { transition } from './transition.js';
 
 /** Every kind of effect an action program may derive. */
 export const EFFECTS: readonly EffectKind[] = [
@@ -15,8 +17,10 @@ export const EFFECTS: readonly EffectKind[] = [
   copyContent,
   addLabel,
   removeLabel,
+  transition,
   addLink,
   removeLink,
+  move,
   rank,
   rankFirst,
 ];
