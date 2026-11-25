@@ -237,6 +237,19 @@ describe('card types', () => {
       },
     );
 
+    it('takes the identifier of a card type of the project', async () => {
+      const { ws } = await open(spec);
+      await ws.resources.setFieldVisibility('page', note, 'optional');
+
+      await ws.resources.setFieldVisibility('page', size, 'always');
+      await ws.resources.setFieldVisibility('page', note, 'always', 0);
+
+      expect(await visibility(ws)).toEqual({
+        always: [note, size],
+        optional: [],
+      });
+    });
+
     it('puts a field last at the position after the other fields', async () => {
       const { ws } = await open(spec);
       await ws.resources.setFieldVisibility(page, note, 'always');
@@ -261,6 +274,20 @@ describe('card types', () => {
           path,
           () => ws.resources.setFieldVisibility(page, size, 'always', index),
           DHValidationError,
+        );
+      },
+    );
+
+    it.each([NaN, 0.5])(
+      'refuses the position %s for a field from the other group, changing nothing',
+      async (index) => {
+        const { ws, path } = await open(spec);
+        await ws.resources.setFieldVisibility(page, size, 'optional');
+
+        await expectRefused(
+          path,
+          () => ws.resources.setFieldVisibility(page, size, 'always', index),
+          /^Index must be a whole number$/,
         );
       },
     );

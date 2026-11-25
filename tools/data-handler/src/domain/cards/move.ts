@@ -11,6 +11,7 @@ import type { Checkout } from '../../state/checkout/checkout.js';
 import type { CardTree } from '../../state/cards/card-tree.js';
 
 import { ROOT } from '../../shared/utils/constants.js';
+import { checkPosition } from '../../shared/utils/validate.js';
 import { cardNode } from './read.js';
 
 interface MoveTarget {
@@ -154,15 +155,7 @@ type RankStep = { first: true } | { after: string } | { stay: true };
 // @throws DHValidationError if the index is not a whole number, is negative
 //   or is past the end
 function rankStep(cards: string[], cardKey: string, index: number): RankStep {
-  if (!Number.isInteger(index)) {
-    throw new DHValidationError(`Index must be a whole number`);
-  }
-  if (index < 0) {
-    throw new DHValidationError(`Index must not be negative`);
-  }
-  if (index > cards.length) {
-    throw new DHValidationError(`Index ${index} is out of bounds`);
-  }
+  checkPosition(index, cards.length);
   if (index === 0) {
     return { first: true };
   }

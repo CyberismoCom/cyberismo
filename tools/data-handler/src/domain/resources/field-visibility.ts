@@ -8,6 +8,7 @@ import {
   ResourceNotFoundError,
 } from '../../shared/exceptions/index.js';
 import { resourceName } from '../../shared/utils/resource-utils.js';
+import { checkPosition } from '../../shared/utils/validate.js';
 import { ResourceMutations } from './changes/resource-mutations.js';
 
 /** Visibility group of a card type's custom field. */
@@ -27,7 +28,8 @@ const visibilityKeys: Record<
  * position among the group's fields. A field already in the group is only
  * moved to the position. Each step is a resource change of its own, logged
  * as such.
- * @param cardTypeName Full name of the card type.
+ * @param cardTypeName The card type: its identifier in this project, or
+ *   its full name.
  * @param fieldName Name of the custom field.
  * @param group 'always' or 'optional' visible, or 'hidden' (in neither).
  * @param index Position in the group; 0 is first. Last when the field comes
@@ -35,7 +37,7 @@ const visibilityKeys: Record<
  * @throws ResourceNotFoundError if the card type, or the field in it, does
  *   not exist.
  * @throws DHValidationError if the name is not a card type's, or the
- *   position is outside the group.
+ *   position is not a whole number or is outside the group.
  */
 export async function setFieldVisibility(
   checkout: Checkout,
@@ -44,14 +46,19 @@ export async function setFieldVisibility(
   group: FieldVisibility,
   index?: number,
 ): Promise<void> {
-  // An identifier-only name is completed to the project's card type.
-  const target = resourceName(cardTypeName);
-  if (target.type !== '' && target.type !== 'cardTypes') {
+  // An identifier-only name is completed to the project's card type, for the
+  // read and for the changes alike.
+  const fullName =
+    cardTypeName && cardTypeName.split('/').length === 1
+      ? `${checkout.projectPrefix}/cardTypes/${cardTypeName}`
+      : cardTypeName;
+  const target = resourceName(fullName);
+  if (target.type !== 'cardTypes') {
     throw new DHValidationError(
       `Expected type 'cardTypes', but got '${target.type}'`,
     );
   }
-  const cardType = checkout.resources.byType(cardTypeName, 'cardTypes').show();
+  const cardType = checkout.resources.byType(fullName, 'cardTypes').show();
   if (!cardType.customFields.some((field) => field.name === fieldName)) {
     throw new ResourceNotFoundError(
       fieldName,
@@ -72,11 +79,7 @@ export async function setFieldVisibility(
     const others = cardType[visibilityKeys[group]].filter(
       (name) => name !== fieldName,
     );
-    if (index < 0 || index > others.length) {
-      throw new DHValidationError(
-        `Index ${index} is out of bounds for the ${group} visible fields`,
-      );
-    }
+    checkPosition(index, others.length);
   }
 
   const mutations = new ResourceMutations(checkout);

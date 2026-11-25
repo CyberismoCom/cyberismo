@@ -108,7 +108,8 @@ export class Resources {
    * Puts a custom field of a card type in a visibility group, optionally at
    * a position among the group's fields. A field already in the group is
    * only moved to the position.
-   * @param cardTypeName Full name of the card type.
+   * @param cardTypeName The card type: its identifier in this project, or
+   *   its full name.
    * @param fieldName Name of the custom field.
    * @param group 'always' or 'optional' visible, or 'hidden' (in neither).
    * @param index Position in the group; 0 is first. Last when the field
