@@ -20,6 +20,7 @@ import { GenericConfirmModal } from '@/components/modals';
 import { EditableRowActions } from './EditableRowActions';
 import { ListRow } from './ListRow';
 import type { Skill } from '@cyberismo/model';
+import SectionHeading from '../SectionHeading';
 
 type ToolDraft = { tool: string };
 
@@ -216,11 +217,9 @@ export function RelatedToolsEditor({
   };
 
   return (
-    <Stack spacing={7}>
+    <Stack spacing={3}>
       <Box>
-        <Typography level="h4" sx={{ mb: 4 }}>
-          {t('relatedTools')}
-        </Typography>
+        <SectionHeading title={t('relatedTools')} />
         <form
           onSubmit={(e) => {
             e.preventDefault();
@@ -229,7 +228,7 @@ export function RelatedToolsEditor({
             }
           }}
         >
-          <Stack spacing={1.25}>
+          <Stack spacing={3}>
             <FormControl>
               <FormLabel>{t('relatedTool')} *</FormLabel>
               <Controller
@@ -238,7 +237,6 @@ export function RelatedToolsEditor({
                 rules={{ required: true }}
                 render={({ field }) => (
                   <Input
-                    size="sm"
                     value={field.value}
                     onChange={field.onChange}
                     disabled={disableAll || isEditingLocked}
@@ -257,7 +255,6 @@ export function RelatedToolsEditor({
             <Button
               type="submit"
               variant="solid"
-              size="sm"
               sx={{ alignSelf: 'stretch' }}
               disabled={!canAddTool}
             >

@@ -48,14 +48,20 @@ export function FieldRow({
       })
     : null;
   return (
-    <Stack direction="column" spacing={0.5}>
+    <Stack direction="column" sx={{ position: 'relative' }}>
       {childWithKeyboardHandlers}
+      {/* Floats under the field's right edge so it reserves no space between
+          fields and appearing does not move the form. */}
       <Stack
         direction="row"
         spacing={0.5}
         sx={{
           visibility: dirty ? 'visible' : 'hidden',
-          alignSelf: 'flex-end',
+          position: 'absolute',
+          top: '100%',
+          right: 0,
+          mt: 0.5,
+          zIndex: 1,
         }}
       >
         <IconButton

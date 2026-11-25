@@ -182,7 +182,7 @@ export function ResourceEditor({ node }: { node: ResourceNode }) {
       {/* Constrained width fields */}
       <Stack
         direction="column"
-        spacing={2}
+        spacing={3}
         sx={{ maxWidth: FORM_FIELD_MAX_WIDTH }}
       >
         {constrainedConfigs.map((fieldConfig) =>
@@ -218,9 +218,13 @@ export function ResourceEditor({ node }: { node: ResourceNode }) {
       </Stack>
 
       {/* Full width fields (no maxWidth constraint) */}
-      {fullWidthConfigs.map((fieldConfig) => (
-        <div key={fieldConfig.key}>{renderField(fieldConfig)}</div>
-      ))}
+      {fullWidthConfigs.length > 0 && (
+        <Stack spacing={3} sx={{ mt: 3 }}>
+          {fullWidthConfigs.map((fieldConfig) => (
+            <div key={fieldConfig.key}>{renderField(fieldConfig)}</div>
+          ))}
+        </Stack>
+      )}
     </BaseEditor>
   );
 }

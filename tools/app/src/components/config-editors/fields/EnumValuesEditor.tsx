@@ -21,6 +21,7 @@ import { EditableRowActions } from './EditableRowActions';
 import { ListRow } from './ListRow';
 import { ReorderButton, ReorderButtonContainer } from './ReorderButtons';
 import type { FieldType, EnumDefinition, DataType } from '@cyberismo/model';
+import SectionHeading from '../SectionHeading';
 
 type EnumDraft = {
   enumValue: string;
@@ -456,11 +457,9 @@ export function EnumValuesEditor({
   };
 
   return (
-    <Stack spacing={7}>
+    <Stack spacing={3}>
       <Box>
-        <Typography level="h4" sx={{ mb: 4 }}>
-          {t('enumValues')}
-        </Typography>
+        <SectionHeading title={t('enumValues')} />
         <form
           onSubmit={(e) => {
             e.preventDefault();
@@ -469,7 +468,7 @@ export function EnumValuesEditor({
             }
           }}
         >
-          <Stack spacing={1.25}>
+          <Stack spacing={3}>
             <FormControl>
               <FormLabel>{t('value')} *</FormLabel>
               <Controller
@@ -478,7 +477,6 @@ export function EnumValuesEditor({
                 rules={{ required: true }}
                 render={({ field }) => (
                   <Input
-                    size="sm"
                     value={field.value}
                     onChange={field.onChange}
                     disabled={disableAll || isEditingLocked}
@@ -501,7 +499,6 @@ export function EnumValuesEditor({
                 name="enumDisplayValue"
                 render={({ field }) => (
                   <Input
-                    size="sm"
                     value={field.value}
                     onChange={field.onChange}
                     disabled={disableAll || isEditingLocked}
@@ -518,7 +515,6 @@ export function EnumValuesEditor({
                 name="enumDescription"
                 render={({ field }) => (
                   <Input
-                    size="sm"
                     value={field.value}
                     onChange={field.onChange}
                     disabled={disableAll || isEditingLocked}
@@ -531,7 +527,6 @@ export function EnumValuesEditor({
             <Button
               type="submit"
               variant="solid"
-              size="sm"
               sx={{ alignSelf: 'stretch' }}
               disabled={!canAddEnum}
             >

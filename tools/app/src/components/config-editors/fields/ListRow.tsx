@@ -19,7 +19,7 @@ export const ListRow = forwardRef<HTMLDivElement, ListRowProps>(
         p: 1.5,
         py: 1,
         border: '0',
-        borderRadius: 16,
+        borderRadius: 'sm',
         backgroundColor: 'neutral.softBg',
         width: '100%',
         ...sx,

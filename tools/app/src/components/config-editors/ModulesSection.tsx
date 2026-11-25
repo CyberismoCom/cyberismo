@@ -18,6 +18,7 @@ import { addNotification } from '@/lib/slices/notifications';
 import { useCleanPrompt } from './useCleanPrompt';
 import { moduleName, moduleRow, modulesSignature } from '@/lib/modules';
 import ModuleCard from './ModuleCard';
+import SectionHeading from './SectionHeading';
 
 interface ModulesSectionProps {
   disabled: boolean;
@@ -120,42 +121,46 @@ export function ModulesSection({ disabled }: ModulesSectionProps) {
   };
 
   return (
-    <Stack spacing={1}>
-      <Stack direction="row" alignItems="center" spacing={1}>
-        <Typography level="title-lg" component="h2">
-          {t('general.modulesSection')}
-        </Typography>
-        <Button
-          size="sm"
-          variant="solid"
-          onClick={openModal('installModule')}
-          disabled={busy}
-        >
-          {t('general.installModule')}
-        </Button>
-        {!!modules?.length && (
-          <Button
-            size="sm"
-            variant="outlined"
-            onClick={handleUpdateAll}
-            loading={isUpdating('update-all-modules')}
-            disabled={busy}
-          >
-            {t('general.updateAllModules')}
-          </Button>
-        )}
-        {canCheck && (
-          <Button
-            size="sm"
-            variant="outlined"
-            onClick={handleCheck}
-            loading={checking}
-            disabled={isUpdating()}
-          >
-            {t('general.checkForUpdates')}
-          </Button>
-        )}
-      </Stack>
+    <Stack spacing={2}>
+      <SectionHeading
+        title={t('general.modulesSection')}
+        component="h2"
+        sx={{ mb: 0 }}
+        actions={
+          <>
+            <Button
+              size="sm"
+              variant="solid"
+              onClick={openModal('installModule')}
+              disabled={busy}
+            >
+              {t('general.installModule')}
+            </Button>
+            {!!modules?.length && (
+              <Button
+                size="sm"
+                variant="outlined"
+                onClick={handleUpdateAll}
+                loading={isUpdating('update-all-modules')}
+                disabled={busy}
+              >
+                {t('general.updateAllModules')}
+              </Button>
+            )}
+            {canCheck && (
+              <Button
+                size="sm"
+                variant="outlined"
+                onClick={handleCheck}
+                loading={checking}
+                disabled={isUpdating()}
+              >
+                {t('general.checkForUpdates')}
+              </Button>
+            )}
+          </>
+        }
+      />
       {modules?.length === 0 && <Typography>{t('noModules')}</Typography>}
       {validCheck?.error && (
         <Alert color="warning" variant="soft" role="alert">

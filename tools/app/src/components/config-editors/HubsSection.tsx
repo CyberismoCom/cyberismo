@@ -22,6 +22,7 @@ import { useAppDispatch } from '@/lib/hooks';
 import { useModals } from '@/lib/utils';
 import { HubDeleteModal, InstallModuleModal } from '@/components/modals';
 import { OptionCard } from '@/components/OptionCard';
+import SectionHeading from './SectionHeading';
 import { addNotification } from '@/lib/slices/notifications';
 
 interface HubsSectionProps {
@@ -118,23 +119,27 @@ export function HubsSection({ disabled }: HubsSectionProps) {
   };
 
   return (
-    <Stack spacing={1} mt={4}>
-      <Stack direction="row" alignItems="center" spacing={1}>
-        <Typography level="title-lg" component="h2">
-          {t('general.hubsSection')}
-        </Typography>
-        {hubs?.length ? (
-          <Button
-            size="sm"
-            variant="outlined"
-            onClick={handleFetchHubs}
-            loading={isUpdating('update-hubs')}
-            disabled={isUpdating() || disabled}
-          >
-            {t('general.updateHubs')}
-          </Button>
-        ) : null}
-      </Stack>
+    <Stack spacing={2}>
+      <SectionHeading
+        title={t('general.hubsSection')}
+        component="h2"
+        sx={{ mb: 0 }}
+        actions={
+          <>
+            {hubs?.length ? (
+              <Button
+                size="sm"
+                variant="outlined"
+                onClick={handleFetchHubs}
+                loading={isUpdating('update-hubs')}
+                disabled={isUpdating() || disabled}
+              >
+                {t('general.updateHubs')}
+              </Button>
+            ) : null}
+          </>
+        }
+      />
 
       <FormControl>
         <FormLabel>{t('general.addHub')} *</FormLabel>
