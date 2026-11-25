@@ -6,6 +6,13 @@ import { simpleGit, type SimpleGit } from 'simple-git';
 // Suppress the credential prompt and Git Credential Manager popups.
 let nonInteractiveApplied = false;
 
+// Git for Windows refuses to check out a path of 260 characters or more
+// unless core.longpaths is on, and the clone then fails with "Filename too
+// long". Module and project clones go under the .temp folder of the project,
+// and a module with nested template cards can reach that length there.
+// Git ignores the setting on other platforms.
+const DEFAULT_CONFIG = ['core.longpaths=true'];
+
 /**
  * Build a git client that cannot prompt.
  *
@@ -34,7 +41,7 @@ export function createGit(options?: {
   const settings = {
     allowEnvironment: Object.keys(process.env),
     ...(options?.timeout ? { timeout: { block: options.timeout } } : {}),
-    ...(options?.config ? { config: options.config } : {}),
+    config: [...DEFAULT_CONFIG, ...(options?.config ?? [])],
   };
   return options?.baseDir
     ? simpleGit(options.baseDir, settings)
