@@ -389,7 +389,7 @@ async function createLocalLink(
     (l) =>
       l.linkType === linkType &&
       l.cardKey === destination &&
-      l.linkDescription === linkDescription,
+      descriptionOf(l.linkDescription) === descriptionOf(linkDescription),
   );
   if (existingLink) {
     throw new DHValidationError(
@@ -514,7 +514,7 @@ async function createExternalLink(
       l.connector === connector &&
       l.externalItemKey === externalItemKey &&
       l.direction === direction &&
-      l.linkDescription === linkDescription,
+      descriptionOf(l.linkDescription) === descriptionOf(linkDescription),
   );
   if (existingLink) {
     throw new DHValidationError(
@@ -556,12 +556,56 @@ export function linkEnds(cardKey: string, link: LinkEnd): [string, string] {
     : [cardKey, link.target];
 }
 
+// A link description as stored: an empty one is no description.
+function descriptionOf(linkDescription?: string): string | undefined {
+  return linkDescription || undefined;
+}
+
+// Whether two ends name the same link of a card.
+function sameLink(a: LinkEnd, b: LinkEnd): boolean {
+  return (
+    a.target === b.target &&
+    a.linkType === b.linkType &&
+    (a.direction ?? 'outbound') === (b.direction ?? 'outbound') &&
+    descriptionOf(a.linkDescription) === descriptionOf(b.linkDescription)
+  );
+}
+
+// Whether `cardKey` has exactly this link, description included.
+function hasLink(checkout: Checkout, cardKey: string, link: LinkEnd): boolean {
+  const description = descriptionOf(link.linkDescription);
+  if (isExternalItemKey(link.target)) {
+    const [connector, ...rest] = link.target.split(':');
+    const externalItemKey = rest.join(':');
+    return (findCard(checkout, cardKey).metadata?.externalLinks ?? []).some(
+      (l) =>
+        l.connector === connector &&
+        l.externalItemKey === externalItemKey &&
+        l.direction === (link.direction ?? 'outbound') &&
+        l.linkType === link.linkType &&
+        descriptionOf(l.linkDescription) === description,
+    );
+  }
+  const [source, destination] = linkEnds(cardKey, link);
+  return (findCard(checkout, source).metadata?.links ?? []).some(
+    (l) =>
+      l.cardKey === destination &&
+      l.linkType === link.linkType &&
+      descriptionOf(l.linkDescription) === description,
+  );
+}
+
 /**
- * Changes a link of a card. The changed link is added before the old one is
- * removed, so that a duplicate is refused with the old link still in place.
+ * Changes a link of a card. The old link must exist, and is checked before
+ * anything is written; a change that changes nothing does nothing. The
+ * changed link is added before the old one is removed, so that a duplicate
+ * is refused with the old link still in place. An empty description is no
+ * description.
  * @param cardKey Card whose link is changed.
  * @param link The link as it is.
  * @param changed The link as it is to be.
+ * @throws DHValidationError if the card has no such link, or the changed
+ *   link is not allowed or already exists.
  */
 export async function editLink(
   checkout: Checkout,
@@ -569,19 +613,39 @@ export async function editLink(
   link: LinkEnd,
   changed: LinkEnd,
 ) {
+  const old = { ...link, linkDescription: descriptionOf(link.linkDescription) };
+  const next = {
+    ...changed,
+    linkDescription: descriptionOf(changed.linkDescription),
+  };
+  if (!hasLink(checkout, cardKey, old)) {
+    throw new DHValidationError(
+      `Link of '${cardKey}' to '${old.target}' with link type '${old.linkType}'` +
+        (old.linkDescription
+          ? ` and description '${old.linkDescription}'`
+          : ' and no description') +
+        ' not found',
+    );
+  }
+  if (sameLink(old, next)) {
+    return;
+  }
   await addLink(
     checkout,
-    ...linkEnds(cardKey, changed),
-    changed.linkType,
-    changed.linkDescription,
-    changed.direction,
+    ...linkEnds(cardKey, next),
+    next.linkType,
+    next.linkDescription,
+    next.direction,
   );
+  // Exactly the old link: without a description it is no wildcard, which
+  // would also remove the changed link and its described siblings.
   await removeLink(
     checkout,
-    ...linkEnds(cardKey, link),
-    link.linkType,
-    link.linkDescription,
-    link.direction,
+    ...linkEnds(cardKey, old),
+    old.linkType,
+    old.linkDescription,
+    old.direction,
+    { exact: true },
   );
 }
 
@@ -594,6 +658,7 @@ export async function removeLink(
   linkType?: string,
   linkDescription?: string,
   direction?: 'outbound' | 'inbound',
+  { exact = false }: { exact?: boolean } = {},
 ) {
   const isExternalSource = isExternalItemKey(source);
   const isExternalDestination = isExternalItemKey(destination);
@@ -617,6 +682,7 @@ export async function removeLink(
       effectiveDirection,
       linkType,
       linkDescription,
+      exact,
     );
   }
 
@@ -675,7 +741,9 @@ async function removeLocalLink(
   await updateCardMetadataKey(checkout, source, 'links', newLinks);
 }
 
-// Removes external link from project.
+// Removes external link from project. An omitted link type or description
+// matches any, unless `exact`: then they match only the link that has
+// exactly them, an omitted description matching only a link without one.
 async function removeExternalLink(
   checkout: Checkout,
   cardKey: string,
@@ -683,6 +751,7 @@ async function removeExternalLink(
   direction: 'outbound' | 'inbound',
   linkType?: string,
   linkDescription?: string,
+  exact = false,
 ) {
   // Parse connector:itemKey
   const [connector, ...rest] = externalItem.split(':');
@@ -700,8 +769,11 @@ async function removeExternalLink(
     l.connector === connector &&
     l.externalItemKey === externalItemKey &&
     l.direction === direction &&
-    (!linkType || l.linkType === linkType) &&
-    (!linkDescription || l.linkDescription === linkDescription);
+    (exact
+      ? l.linkType === linkType &&
+        descriptionOf(l.linkDescription) === descriptionOf(linkDescription)
+      : (!linkType || l.linkType === linkType) &&
+        (!linkDescription || l.linkDescription === linkDescription));
 
   const extLink = card.metadata?.externalLinks?.find(matches);
 

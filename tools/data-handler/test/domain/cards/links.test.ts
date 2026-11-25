@@ -5,7 +5,13 @@ import { describe, expect, it } from 'vitest';
 
 import type { Workspace } from '../../../src/api/workspace.js';
 import { CardNotFoundError } from '../../../src/shared/exceptions/index.js';
-import { expectRefused, git, metadataOf, projects } from './fixture.js';
+import {
+  expectRefused,
+  git,
+  metadataOf,
+  projects,
+  snapshot,
+} from './fixture.js';
 
 const open = projects();
 
@@ -149,6 +155,26 @@ describe('cards.addLink', () => {
 
     await expectRefused(path, () => operation(cards, keys), error);
   });
+});
+
+// An empty description is no description, as removeLink takes it.
+describe('cards.addLink: an empty description', () => {
+  it.each([
+    ['a local', (k: string[]) => k[1]],
+    ['an external', () => 'jira:P-9'],
+  ])(
+    'refuses %s link without a description that the card already has',
+    async (_name, target) => {
+      const { cards, path, keys } = await open(spec);
+      await cards.addLink(keys[0], target(keys), described);
+
+      await expectRefused(
+        path,
+        () => cards.addLink(keys[0], target(keys), described, ''),
+        /already exists/,
+      );
+    },
+  );
 });
 
 describe('cards.removeLink', () => {
@@ -341,6 +367,84 @@ describe('cards.editLink', () => {
     );
     expect(Number(await git(path, 'rev-list', '--count', 'HEAD'))).toBe(
       Number(before) + 1,
+    );
+  });
+
+  // An omitted old description is no wildcard in an edit: it names the link
+  // without one.
+  it('adds a description to an external link, keeping its described siblings', async () => {
+    const { ws, keys } = await open({
+      ...spec,
+      cards: [
+        {
+          fields: {
+            externalLinks: [
+              { ...jira, linkType: described },
+              { ...jira, linkType: described, linkDescription: 'other' },
+            ],
+          },
+        },
+      ],
+    });
+
+    await ws.cards.editLink(
+      keys[0],
+      { target: 'jira:P-1', linkType: described },
+      { target: 'jira:P-1', linkType: described, linkDescription: 'added' },
+    );
+
+    expect(await externalOf(ws, keys[0])).toEqual([
+      { ...jira, linkType: described, linkDescription: 'other' },
+      { ...jira, linkType: described, linkDescription: 'added' },
+    ]);
+  });
+
+  // The app sends an empty description for a link without one.
+  it.each([
+    ['a local', (k: string[]) => k[1]],
+    ['an external', () => 'jira:P-1'],
+  ])(
+    'keeps %s link without a description that is saved unchanged',
+    async (_name, target) => {
+      const { ws, path, keys } = await open(spec);
+      const before = snapshot(path);
+
+      await ws.cards.editLink(
+        keys[0],
+        { target: target(keys), linkType: rel, linkDescription: '' },
+        { target: target(keys), linkType: rel, linkDescription: '' },
+      );
+
+      expect(snapshot(path)).toEqual(before);
+    },
+  );
+
+  it('does nothing for a described link saved unchanged', async () => {
+    const { ws, path, keys } = await open(spec);
+    const before = snapshot(path);
+    const link = {
+      target: keys[2],
+      linkType: described,
+      linkDescription: 'why',
+    };
+
+    await ws.cards.editLink(keys[0], link, { ...link });
+
+    expect(snapshot(path)).toEqual(before);
+  });
+
+  it('refuses to change a link the card lacks before writing anything, without a rollback', async () => {
+    const { cards, path, keys } = await open(spec);
+
+    await expectRefused(
+      path,
+      () =>
+        cards.editLink(
+          keys[1],
+          { target: keys[0], linkType: rel },
+          { target: keys[2], linkType: rel },
+        ),
+      /not found/,
     );
   });
 });
