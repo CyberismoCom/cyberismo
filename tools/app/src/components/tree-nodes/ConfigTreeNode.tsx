@@ -45,6 +45,7 @@ export const ConfigTreeNode = (props: ConfigTreeNodeProps) => {
     <BaseTreeNode {...props}>
       <Typography
         level="title-sm"
+        fontWeight={node.isSelected ? 'lg' : 'sm'}
         noWrap
         alignSelf="center"
         sx={{ cursor: 'pointer' }}

@@ -42,11 +42,7 @@ export const TableOfContents = ({
     >
       <div className="toc-menu" style={{ marginLeft: 2 }}>
         {!inline && (
-          <Typography
-            level="title-sm"
-            fontWeight="bold"
-            sx={{ marginBottom: 1 }}
-          >
+          <Typography level="title-sm" sx={{ marginBottom: 1 }}>
             {t('tableOfContents')}
           </Typography>
         )}

@@ -145,7 +145,7 @@ export const CardTitle: React.FC<CardTitleProps> = ({
               dispatch(isEdited(true));
             }}
             sx={{
-              fontWeight: 'bold',
+              fontWeight: 'xl',
               fontSize: '1.8rem',
               padding: 0,
               '--Textarea-focusedThickness': '0',

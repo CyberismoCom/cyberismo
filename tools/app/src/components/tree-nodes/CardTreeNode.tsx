@@ -57,6 +57,7 @@ export const CardTreeNode = (props: CardTreeNodeProps) => {
       {statusBox}
       <Typography
         level="title-sm"
+        fontWeight={node.isSelected ? 'lg' : 'sm'}
         noWrap
         alignSelf="center"
         sx={{ cursor: 'pointer' }}
@@ -70,7 +71,7 @@ export const CardTreeNode = (props: CardTreeNodeProps) => {
           sx={{
             backgroundColor: chipColor(progress),
             color: 'common.black',
-            fontWeight: 600,
+            fontWeight: 'lg',
             fontSize: '0.8rem',
             padding: '0px 6px 0px 6px',
             height: '20px',

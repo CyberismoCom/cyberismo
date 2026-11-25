@@ -35,7 +35,7 @@ export const CardNotifications = ({
   const title = (
     <Typography
       level={collapsible ? 'title-sm' : 'body-xs'}
-      fontWeight={collapsible ? 'bold' : 'lg'}
+      fontWeight="lg"
       sx={{ flexGrow: 1 }}
     >
       {t('notifications')}
@@ -56,7 +56,7 @@ export const CardNotifications = ({
           }}
         >
           <Box>
-            <Typography level="title-sm" fontWeight="bold">
+            <Typography level="title-sm">
               {notification.category} - {notification.title}
             </Typography>
             <Typography fontSize="xs">{notification.message}</Typography>

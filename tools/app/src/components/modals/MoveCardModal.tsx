@@ -229,7 +229,7 @@ export function MoveCardModal({ open, onClose, cardKey }: MoveCardModalProps) {
                         </Stack>
                         <Typography
                           level="body-xs"
-                          fontWeight={600}
+                          fontWeight="lg"
                           sx={{
                             color: 'text.primary',
                           }}
@@ -310,7 +310,7 @@ export function MoveCardModal({ open, onClose, cardKey }: MoveCardModalProps) {
                           </Stack>
                           <Typography
                             level="body-xs"
-                            fontWeight={600}
+                            fontWeight="lg"
                             sx={{
                               color: 'text.primary',
                             }}

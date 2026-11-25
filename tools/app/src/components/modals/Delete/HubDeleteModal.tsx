@@ -31,7 +31,7 @@ export function HubDeleteModal({
           hubName,
         }}
         components={{
-          bold: <Typography fontWeight="bold" />,
+          bold: <Typography fontWeight="lg" />,
         }}
       />
     ),

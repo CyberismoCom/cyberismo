@@ -11,6 +11,17 @@ const theme = extendTheme({
     body: interFontFamily,
     display: interFontFamily,
   },
+  // One role per weight: sm regular text, md short interactive labels,
+  // lg titles and emphasis, xl page titles. Joy's default sm is 300 (light),
+  // which nothing here uses.
+  fontWeight: {
+    sm: 400,
+  },
+  typography: {
+    'title-md': { fontWeight: 'var(--joy-fontWeight-lg)' },
+    'title-sm': { fontWeight: 'var(--joy-fontWeight-lg)' },
+    'body-xs': { fontWeight: 'var(--joy-fontWeight-sm)' },
+  },
   colorSchemes: {
     dark: {
       palette: {

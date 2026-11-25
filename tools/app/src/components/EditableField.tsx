@@ -142,7 +142,7 @@ const EditableField = ({
       ) : (
         <Typography
           level="body-xs"
-          fontWeight={showEmpty ? 'normal' : 'bold'}
+          fontWeight={showEmpty ? 'sm' : 'md'}
           fontStyle={showEmpty ? 'italic' : undefined}
           textColor={showEmpty ? 'text.tertiary' : undefined}
           color={disabled ? 'neutral' : 'primary'}

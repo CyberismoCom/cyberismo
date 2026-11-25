@@ -62,7 +62,7 @@ export function BaseDeleteModal({
             <Alert variant="soft" color="danger" endDecorator={<Warning />}>
               <Checkbox
                 label={
-                  <Typography color="danger" variant="soft" fontWeight="normal">
+                  <Typography color="danger" variant="soft" fontWeight="sm">
                     {warning}
                   </Typography>
                 }

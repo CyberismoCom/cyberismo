@@ -91,7 +91,7 @@ export function LinkRow({
               <Link
                 component="span"
                 fontSize="xs"
-                fontWeight="bold"
+                fontWeight="lg"
                 sx={{ display: 'inline', fontFamily: 'inherit' }}
               >
                 {link.key}
