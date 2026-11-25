@@ -25,6 +25,15 @@ it returns, and calls domain operations on the checkout.
 
 No relative `import()` in `src/`: it hides a cycle from these rules.
 
+Inside `domain/`, `cards`, `actions` and `hooks` are layers. `cards` has
+the plain card writes and knows nothing of the other two; `actions` has the
+effects and their executor, and takes what applied effects set off as a
+parameter; `hooks` derives a write's hook effects and applies them on the
+executor, importing `actions` through its door. The API class composes a
+write and its hooks: `ws.cards.transition`, `create`, `importCsv` and
+`runAction` each call the write, then `runHooks`, with one set of run hook
+transitions per call.
+
 ## Where new code goes
 
 - A new operation or rule on a concept: `domain/<concept>/`, as a function

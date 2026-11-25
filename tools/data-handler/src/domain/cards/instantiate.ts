@@ -19,7 +19,6 @@ import {
   ROOT,
 } from '../../shared/utils/constants.js';
 import { findCard } from './read.js';
-import { runCreationSideEffects } from './transition.js';
 import {
   DHValidationError,
   ResourceNotFoundError,
@@ -31,7 +30,8 @@ import type { Checkout } from '../../state/checkout/checkout.js';
 
 const logger = getChildLogger({ module: 'template' });
 
-// Adds cards of a card type to a template, then runs the creation side effects.
+// Adds cards of a card type to a template. Creation hooks do not run for
+// template cards.
 export async function addCards(
   checkout: Checkout,
   cardTypeName: string,
@@ -74,12 +74,14 @@ export async function addCards(
     throw new DHValidationError(`Invalid value for 'repeat:' "${count}"`);
   }
 
-  await runCreationSideEffects(checkout, cardsContainer);
-
   return cardsContainer;
 }
 
-// Creates project cards from a template, then runs the creation side effects.
+/**
+ * Creates project cards from a template. The creation hooks are not run
+ * here.
+ * @returns the created cards, parents before children
+ */
 export async function createCard(
   checkout: Checkout,
   templateName: string,
@@ -112,19 +114,10 @@ export async function createCard(
     specificCard,
   );
   if (createdCards.length > 0) {
-    await runCreationSideEffects(
-      checkout,
-      createdCards.map((card) => card.key),
-    );
-    // Side effects may have changed the cards; return them as they are now.
-    const currentCards = createdCards.map((card) =>
-      checkout.cardTree.card(card.key),
-    );
-
     const rootParent = specificCard?.key ?? ROOT;
     const rootCards: Card[] = [];
     const childCards: Card[] = [];
-    for (const card of currentCards) {
+    for (const card of createdCards) {
       if (card.parent === rootParent) {
         rootCards.push(card);
       } else {

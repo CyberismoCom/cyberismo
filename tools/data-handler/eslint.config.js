@@ -46,6 +46,25 @@ function domainBoundary(allow = []) {
   return restrict([API], 'src/domain/ may not import api/ code.', allow);
 }
 
+// Inside domain/, cards, actions and hooks are layers, each above the one
+// before: domain/cards imports neither domain/actions nor domain/hooks, and
+// domain/actions does not import domain/hooks. domain/hooks imports
+// domain/actions through its door.
+const ACTIONS = '**/actions/**';
+const HOOKS = '**/hooks/**';
+const cardsBoundary = restrict(
+  [API, ACTIONS, HOOKS],
+  'src/domain/cards/ may not import api/, domain/actions/ or domain/hooks/ code.',
+);
+const actionsBoundary = restrict(
+  [API, HOOKS],
+  'src/domain/actions/ may not import api/ or domain/hooks/ code.',
+);
+const hooksBoundary = restrict(
+  [API, ACTIONS, '!**/actions/index.js'],
+  'src/domain/hooks/ may not import api/ code, and imports domain/actions/ only through its door.',
+);
+
 // api/ imports a domain only through its door, domain/<x>/index.ts.
 const apiBoundary = restrict(
   [DOMAIN, '!**/domain/*/index.js'],
@@ -131,6 +150,9 @@ export default [
     rules: stateBoundary(['**/domain/resources/*-resource.js']),
   },
   { files: ['src/domain/**/*.ts'], rules: domainBoundary() },
+  { files: ['src/domain/cards/**/*.ts'], rules: cardsBoundary },
+  { files: ['src/domain/actions/**/*.ts'], rules: actionsBoundary },
+  { files: ['src/domain/hooks/**/*.ts'], rules: hooksBoundary },
   // Ticket (to file, V-series): Validate takes the Workspace handle; the
   // validation redesign inverts it.
   {

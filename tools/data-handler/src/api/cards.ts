@@ -15,6 +15,7 @@ import type {
 import type { Checkout } from '../state/checkout/checkout.js';
 import { read, write } from '../infra/tx/rw-lock.js';
 import { runAction } from '../domain/actions/index.js';
+import { runHooks } from '../domain/hooks/index.js';
 import type { CommitIdentity } from '../infra/tx/tx-record.js';
 import {
   addAttachment,
@@ -42,7 +43,7 @@ import {
   rootCards,
   templateCardTrees,
 } from '../domain/cards/index.js';
-import { transitionCard } from '../domain/cards/index.js';
+import { performTransition } from '../domain/cards/index.js';
 import {
   addLabel,
   addLink,
@@ -145,8 +146,9 @@ export class Cards {
   }
 
   /**
-   * Transitions a card to a new state, then executes any side effects
-   * modules have declared for the transition.
+   * Transitions a card to a new state, then runs the hooks modules have
+   * declared for the transition. The transition is strict; its hooks are
+   * lenient.
    * @param cardKey Card to transition.
    * @param transitionName Name of the transition to do.
    */
@@ -155,12 +157,19 @@ export class Cards {
     cardKey: string,
     transitionName: string,
   ): Promise<void> {
-    await transitionCard(this.checkout, cardKey, transitionName);
+    await performTransition(this.checkout, cardKey, transitionName);
+    await runHooks(this.checkout, {
+      kind: 'transition',
+      card: cardKey,
+      transition: transitionName,
+    });
   }
 
   /**
    * Runs an action's logic programs on a card, in order, as one write: each
    * program is solved, then its effects are checked and applied to cards.
+   * Each applied create and transition runs its hooks before the next
+   * effect; a hook transition runs at most once in the action.
    * @param cardKey Card the action runs on; actionCard/1 in every program.
    * @param programs The action's logic programs, one or more.
    */
@@ -169,7 +178,10 @@ export class Cards {
     cardKey: string,
     programs: string[],
   ): Promise<ActionResult> {
-    return runAction(this.checkout, cardKey, programs);
+    const visited = new Set<string>();
+    return runAction(this.checkout, cardKey, programs, (trigger) =>
+      runHooks(this.checkout, trigger, visited),
+    );
   }
 
   /**
@@ -302,14 +314,15 @@ export class Cards {
   /**
    * Creates cards in the project from a template, optionally under a parent
    * card. Returns the template's root cards first, in rank order; the rest
-   * follow, grouped by parent key and in rank order within a group.
+   * follow, grouped by parent key and in rank order within a group, as
+   * the creation hooks left them.
    */
   @write((templateName) => `Create card from template ${templateName}`)
   public async create(
     templateName: string,
     parentCardKey?: string,
   ): Promise<Card[]> {
-    return createCard(this.checkout, templateName, parentCardKey);
+    return this.createWithHooks(templateName, parentCardKey, new Set());
   }
 
   /**
@@ -322,7 +335,30 @@ export class Cards {
     csv: string,
     parentCardKey?: string,
   ): Promise<string[]> {
-    return importCsv(this.checkout, csv, parentCardKey);
+    const visited = new Set<string>();
+    return importCsv(this.checkout, csv, parentCardKey, (template, parent) =>
+      this.createWithHooks(template, parent, visited),
+    );
+  }
+
+  // Creates cards from a template, then runs their creation hooks (lenient)
+  // and gives the cards as the hooks left them.
+  private async createWithHooks(
+    templateName: string,
+    parentCardKey: string | undefined,
+    visited: Set<string>,
+  ): Promise<Card[]> {
+    const created = await createCard(
+      this.checkout,
+      templateName,
+      parentCardKey,
+    );
+    await runHooks(
+      this.checkout,
+      { kind: 'creation', cards: created.map((card) => card.key) },
+      visited,
+    );
+    return created.map((card) => findCard(this.checkout, card.key));
   }
 
   /** Adds cards of a card type to a template, optionally under a card. */

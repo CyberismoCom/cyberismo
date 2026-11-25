@@ -9,14 +9,18 @@ import {
   updateCardContent,
   updateCardMetadataKey,
 } from './update.js';
-import { createCard } from './instantiate.js';
+import type { Card } from '@cyberismo/model';
 import { findCard } from './read.js';
 
-// Creates a card per row of a CSV text from the row's template.
+/**
+ * Creates a card per row of a CSV text from the row's template.
+ * @param createCard Creates the cards of a template.
+ */
 export async function importCsv(
   checkout: Checkout,
   csvContent: string,
-  parentCardKey?: string,
+  parentCardKey: string | undefined,
+  createCard: (template: string, parentCardKey?: string) => Promise<Card[]>,
 ): Promise<string[]> {
   const csv = parseCsv(csvContent);
 
@@ -39,7 +43,7 @@ export async function importCsv(
     }
 
     // Create card
-    const cards = await createCard(checkout, template, parentCardKey);
+    const cards = await createCard(template, parentCardKey);
 
     if (cards.length !== 1) {
       throw new Error('Card not created');

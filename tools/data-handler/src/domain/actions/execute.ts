@@ -13,7 +13,7 @@ import {
 } from '../../shared/exceptions/index.js';
 import type { Checkout } from '../../state/checkout/checkout.js';
 import { findCard } from '../cards/read.js';
-import type { CheckedEffect } from './effects/define.js';
+import type { CheckedEffect, Trigger } from './effects/define.js';
 import { EFFECTS } from './effects/index.js';
 import { actionFacts, type CreatedCard } from './facts.js';
 import { solveEffects } from './rows.js';
@@ -92,12 +92,15 @@ async function effectsOf(
  * @param checkout The checkout to change.
  * @param cardKey The card the action runs on; actionCard/1 in every program.
  * @param programs The action's logic programs.
+ * @param afterTrigger Takes what each applied create and transition sets
+ *   off, before the next effect is applied.
  * @throws CardNotFoundError if the card does not exist
  */
 export async function runAction(
   checkout: Checkout,
   cardKey: string,
   programs: string[],
+  afterTrigger?: (trigger: Trigger) => Promise<void>,
 ): Promise<ActionResult> {
   findCard(checkout, cardKey);
   if (programs.length === 0) {
@@ -119,7 +122,9 @@ export async function runAction(
       throw actionFailed(n, undefined, error);
     }
     try {
-      created.push(...(await applyEffects(checkout, effects)));
+      created.push(
+        ...(await applyEffects(checkout, effects, { afterTrigger })),
+      );
     } catch (error) {
       throw error instanceof EffectFailed
         ? actionFailed(n, error.atom, error.cause)

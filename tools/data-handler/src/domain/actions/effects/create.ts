@@ -58,4 +58,8 @@ export const create = defineEffect({
       templateCard: String(card.metadata?.templateCardKey),
     }));
   },
+  trigger: (_e, created) => ({
+    kind: 'creation',
+    cards: created.map((card) => card.key),
+  }),
 });
