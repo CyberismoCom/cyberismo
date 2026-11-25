@@ -1,18 +1,13 @@
 // SPDX-FileCopyrightText: Cyberismo Ltd and contributors
 // SPDX-License-Identifier: AGPL-3.0-only
 
-import { execFile } from 'node:child_process';
-import { promisify } from 'node:util';
 import { describe, expect, it } from 'vitest';
 
 import type { Workspace } from '../../../src/api/workspace.js';
 import { CardNotFoundError } from '../../../src/shared/exceptions/index.js';
-import { expectRefused, metadataOf, projects } from './fixture.js';
+import { expectRefused, git, metadataOf, projects } from './fixture.js';
 
 const open = projects();
-
-const git = async (path: string, ...args: string[]) =>
-  (await promisify(execFile)('git', args, { cwd: path })).stdout.trim();
 
 const rel = 'test/linkTypes/rel';
 const note = 'test/linkTypes/note';

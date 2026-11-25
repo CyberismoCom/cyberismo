@@ -1,10 +1,8 @@
 // SPDX-FileCopyrightText: Cyberismo Ltd and contributors
 // SPDX-License-Identifier: AGPL-3.0-only
 
-import { execFile } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
-import { promisify } from 'node:util';
 import { describe, expect, it } from 'vitest';
 
 import type { Workspace } from '../../../src/api/workspace.js';
@@ -18,6 +16,7 @@ import {
 import {
   childKeys,
   expectRefused,
+  git,
   projects,
   rootKeys,
   snapshot,
@@ -25,9 +24,6 @@ import {
 } from './fixture.js';
 
 const open = projects();
-
-const git = async (path: string, ...args: string[]) =>
-  (await promisify(execFile)('git', args, { cwd: path })).stdout.trim();
 
 // Cards a(a1, a2), b, c; templates tpl(t1(t2)) and other(u1); module template mod(m1).
 const spec = {
