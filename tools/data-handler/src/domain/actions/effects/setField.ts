@@ -12,7 +12,7 @@ import { coerce } from './value.js';
 /**
  * setField(Card, Field, Value): sets the title or a custom field of a card.
  * The value is converted to the field's data type. The constant null
- * clears any field; "" clears a field that is not text.
+ * clears any field; "" clears any custom field.
  */
 export const setField = defineEffect({
   name: 'setField',
@@ -37,7 +37,12 @@ export const setField = defineEffect({
     if (dataType === 'list') {
       refuse(`list field '${e.field}' cannot be set`);
     }
-    const coerced = e.value === null ? null : coerce(dataType, e.value);
+    // An empty custom field is no value, so "" clears one like null; the
+    // title keeps "".
+    const coerced =
+      e.value === null || (e.value === '' && e.field !== 'title')
+        ? null
+        : coerce(dataType, e.value);
     if (coerced === undefined) {
       refuse(
         `${quoted(e.value!)} is not a valid ${dataType} value for field '${e.field}' of card '${card.key}'`,

@@ -190,6 +190,7 @@ describe('an effect refused in the check', () => {
     ['move(p_1,root)', 'move(p_1,root)', "card 'p_1' does not exist"],
     ['move(A,"p_2")', 'move(A,"p_2")', "card 'p_2' does not exist"],
     ['rank(A,p_2)', 'rank(A,p_2)', "card 'p_2' does not exist"],
+    ['rank(A,A)', 'rank(A,A)', "card 'A' cannot be ranked after itself"],
     ['rankFirst(p_1)', 'rankFirst(p_1)', "card 'p_1' does not exist"],
     [
       'setField(TPL,"title","x")',
@@ -451,10 +452,20 @@ describe('a setField value', () => {
     expect((await metadataOf(ws, b))[fieldName]).toEqual(written);
   });
 
-  it('"" is written to a text field as it is', async () => {
+  it('"" clears a text field', async () => {
     await run(`setField(B,"${field('short')}","")`);
 
     // An empty custom field has no key in the card's metadata.
     expect((await metadataOf(ws, b))[field('short')]).toBeUndefined();
+  });
+
+  it('null and "" on one field are one value', async () => {
+    await run(`setField(B,"${field('long')}","x")`);
+    await run(
+      `setField(B,"${field('long')}",null)`,
+      `setField(B,"${field('long')}","")`,
+    );
+
+    expect((await metadataOf(ws, b))[field('long')]).toBeUndefined();
   });
 });

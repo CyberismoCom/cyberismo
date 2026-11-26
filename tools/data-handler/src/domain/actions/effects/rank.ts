@@ -3,7 +3,7 @@
 
 import { rankAfter, rankFirst as rankCardFirst } from '../../cards/move.js';
 import { projectCard } from './checks.js';
-import { defineEffect, type Conflict } from './define.js';
+import { defineEffect, refuse, type Conflict } from './define.js';
 
 // A card is ranked once.
 const conflict = (e: { card: string }): Conflict => ({
@@ -19,8 +19,18 @@ export const rank = defineEffect({
   check(checkout, e) {
     projectCard(checkout, e.card);
     projectCard(checkout, e.after);
+    if (e.card === e.after) {
+      refuse(`card '${e.card}' cannot be ranked after itself`);
+    }
   },
   conflict,
+  // The card is already right after its sibling.
+  inPlace(checkout, e) {
+    const tree = checkout.treeOf(e.card);
+    if (tree !== checkout.treeOf(e.after)) return false;
+    const siblings = tree.siblingsOf(e.after);
+    return siblings[siblings.indexOf(e.after) + 1] === e.card;
+  },
   async apply(checkout, e) {
     await rankAfter(checkout, e.card, e.after);
   },

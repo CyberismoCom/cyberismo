@@ -405,6 +405,15 @@ describe('runAction', () => {
     expect((await rootKeys(ws)).slice(0, 4)).toEqual([k.req, k.B, k.A, k.C]);
   });
 
+  it('skips a rank of a card already right after its sibling', async () => {
+    const { k, run, path } = await openProject();
+    const before = snapshot(path);
+
+    await run(`rank(${k.B}, ${k.req}).`);
+
+    expect(snapshot(path)).toEqual(before);
+  });
+
   it('creates a document with its review task, links it and sets the owner', async () => {
     const { ws, k, run } = await openProject();
 
@@ -460,6 +469,19 @@ describe('runAction', () => {
     expect((await metadataOf(ws, k.A))[field('step')]).toBeUndefined();
     const [templateCard] = templateKeys['proj/templates/t'];
     expect((await metadataOf(ws, templateCard))[field('step')]).toBeUndefined();
+  });
+
+  it('skips "" on an empty field, which a deny rule then does not meet', async () => {
+    const { k, run, path } = await openProject({
+      calculations: {
+        guard: `editingFieldDenied(C, "${field('owner')}", "locked") :- projectCard(C).`,
+      },
+    });
+    const before = snapshot(path);
+
+    await run(`setField(${k.A}, "${field('owner')}", "").`);
+
+    expect(snapshot(path)).toEqual(before);
   });
 
   const checklist = (projectCardOnly: boolean) => [
@@ -598,6 +620,15 @@ describe('runAction', () => {
       await expectRefused(path, () => run(program), error);
     },
   );
+
+  // A failure without the mark may come after effects were applied.
+  it('marks a failure of program 1 as having applied nothing', async () => {
+    const { run } = await openProject();
+
+    const error = await run(':- actionCard(_).').catch((e: unknown) => e);
+
+    expect((error as LogicNonTotalError).details?.applied).toBe(false);
+  });
 
   it('refuses an unknown card key', async () => {
     const { ws } = await openProject();
@@ -842,6 +873,28 @@ describe('runAction', () => {
       'none,underA',
       'string,underA',
     ]);
+  });
+
+  // Text that would read as a keyword, a variable or an integer past 32 bits
+  // stays a string; an integer within 32 bits stays an integer.
+  it.each([
+    ['"not"', '"not"'],
+    ['"_"', '"_"'],
+    ['"_Item"', '"_Item"'],
+    ['"3000000000"', '"3000000000"'],
+    ['"-2147483649"', '"-2147483649"'],
+    ['"2147483647"', '2147483647'],
+    ['-2147483648', '-2147483648'],
+  ])('gives a later program the Id %s as %s', async (id, read) => {
+    const { ws, run } = await openProject();
+
+    const result = await run(
+      `create(root, "proj/templates/adopt", ${id}).`,
+      `addLabel(K, "seen") :- created(K, _, _, ${read}, _).`,
+    );
+
+    const [card] = result.created;
+    expect((await metadataOf(ws, card.key)).labels).toEqual(['seen']);
   });
 
   // Ids that are cards come first, in tree order: the project's cards depth

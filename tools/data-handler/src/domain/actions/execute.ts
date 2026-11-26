@@ -9,6 +9,7 @@ import {
 import {
   ActionFailedError,
   DHValidationError,
+  DomainError,
 } from '../../shared/exceptions/index.js';
 import type { Checkout } from '../../state/checkout/checkout.js';
 import { findCard } from '../cards/read.js';
@@ -85,7 +86,9 @@ async function effectsOf(
  * see the cards created before them as created/5 facts. Runs inside a write.
  *
  * A check refusal or logic error in the first program propagates as is, with
- * nothing written. Any other failure is an ActionFailedError.
+ * nothing written, and with `applied: false` in its details: a failure
+ * without it, such as one when the write completes, may come after effects
+ * were applied. Any other failure is an ActionFailedError.
  * @param checkout The checkout to change.
  * @param cardKey The card the action runs on; actionCard/1 in every program.
  * @param programs The action's logic programs.
@@ -107,7 +110,12 @@ export async function runAction(
     try {
       effects = await effectsOf(checkout, cardKey, created, program);
     } catch (error) {
-      if (n === 1) throw error;
+      if (n === 1) {
+        if (error instanceof DomainError) {
+          error.details = { ...error.details, applied: false };
+        }
+        throw error;
+      }
       throw actionFailed(n, undefined, error);
     }
     try {

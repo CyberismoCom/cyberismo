@@ -32,12 +32,18 @@ export const quoted = (text: string) => `"${encodeClingoValue(text)}"`;
 /**
  * A create's Id as a term. Its text does not say what it was written as: it
  * becomes an integer or a constant when it reads as one, otherwise a string.
- * Card keys are constants, so an Id that is a card key matches one.
+ * Card keys are constants, so an Id that is a card key matches one. Only an
+ * integer that fits a logic program's 32 bits is one; `not` is a keyword,
+ * and a name that starts with an upper-case letter after its underscores is
+ * a variable.
  */
 export function term(text: string): string {
-  return asInteger(text) !== undefined || /^[a-z_][A-Za-z0-9_']*$/.test(text)
-    ? text
-    : quoted(text);
+  const integer = asInteger(text);
+  const bare =
+    integer !== undefined
+      ? integer >= -(2 ** 31) && integer < 2 ** 31
+      : /^_*[a-z][A-Za-z0-9_']*$/.test(text) && text !== 'not';
+  return bare ? text : quoted(text);
 }
 
 /**
