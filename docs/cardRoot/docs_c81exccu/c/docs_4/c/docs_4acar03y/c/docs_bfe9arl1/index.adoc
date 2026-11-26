@@ -94,7 +94,7 @@ Each program is a logic program, written in the same language as queries. See {{
 * Write arguments as plain values: card keys, strings and numbers. Values reach the effect as text, so a number is accepted where text is expected, for example `setContent(C, 3)`.
 * Links connect cards only. Links to external items are not supported.
 * Cards in templates and modules cannot be changed. When a program selects cards, use `+projectCard(C)+`, so that cards in templates are not matched. `+card(C)+` and `field(C, "cardType", T)` also match template cards, and the action then fails.
-* An effect that changes nothing is skipped: a `setField` or `setContent` with the current value, a `copyContent` from a card with the same content, an `addLabel` or `addLink` that is already there, a `removeLabel` of a label the card does not have, a `removeLink` with no matching link, a `move` to the current parent, and a `rank` of a card that is already right after `After`. `create` and `rankFirst` always run, and so does `transition`, unless the same click already ran that transition of the card. See <<Order of the effects>>.
+* An effect that changes nothing is skipped: a `setField` or `setContent` with the current value, a `copyContent` from a card with the same content, an `addLabel` or `addLink` that is already there, a `removeLabel` of a label the card does not have, a `removeLink` with no matching link, a `move` to the current parent, and a `rank` of a card that is already right after `After`. `create` and `rankFirst` always run, and so does `transition`, unless a hook of the same click already ran that transition of the card. See <<Order of the effects>>.
 * An atom with a misspelled name, such as `addLable`, is not an effect and is ignored, so check the names carefully. An effect name with the wrong number of arguments is ignored in the same way, and neither is reported.
 * Do not use the effect names for your own predicates in calculations. Every action would see them.
 * If the program has choice rules, the action uses one of its answers, and you cannot tell which one.
@@ -182,7 +182,7 @@ Before anything in a program is applied, all its effects are checked. The check 
 
 A `create` or a `transition` also runs the hooks that the logic programs define for it with `onTransitionSetField` and `onTransitionExecuteTransition`. Hooks follow the same rules as the effects of a button, but a hook effect that breaks a rule is skipped and logged, and never fails the click. The hooks of an effect finish before the next effect is applied.
 
-One click runs a transition of a card at most once. A `transition` effect for a transition of the card that a hook or an earlier program of the click already ran is skipped like an effect that changes nothing: it does not run the transition or its hooks again, and the click does not fail. A hook transition that the click already ran is skipped and logged.
+A `transition` effect for a transition of the card that a hook of the same click already ran is skipped like an effect that changes nothing: it does not run the transition or its hooks again, and the click does not fail. A transition that the programs themselves repeat, for example `Start`, then `Reject`, then `Start`, runs each time, with its hooks. A hook transition that the click already ran, by an effect or by a hook, is skipped and logged.
 
 === Creating cards
 
