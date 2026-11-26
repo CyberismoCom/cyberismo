@@ -108,7 +108,7 @@ function Detail({ label, children }: { label: string; children: ReactNode }) {
 export default function Configuration() {
   const { t } = useTranslation();
   const { projectPrefix } = useParams();
-  const { resourceTree, isLoading } = useResourceTree();
+  const { resourceTree, isLoading, loadError } = useResourceTree();
   const counts = useMemo(() => countResources(resourceTree), [resourceTree]);
   const generalNode = resourceTree.find((node) => node.type === 'general');
   const general = generalNode?.type === 'general' ? generalNode : undefined;
@@ -138,6 +138,11 @@ export default function Configuration() {
 
         {isLoading ? (
           <Typography level="body-sm">{t('loading')}</Typography>
+        ) : loadError ? (
+          // Without the tree every count would read "None yet".
+          <Typography level="body-sm" color="danger">
+            {loadError.message ?? t('failedToLoad')}
+          </Typography>
         ) : (
           <>
             {general && (

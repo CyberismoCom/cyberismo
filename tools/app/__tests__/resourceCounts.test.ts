@@ -10,6 +10,8 @@ function resource(type: string, name: string, children: AnyNode[] = []) {
   return { id: name, type, name, children } as unknown as AnyNode;
 }
 
+// The backend marks imported modules read-only and names the project's own
+// node "project".
 function module(name: string, children: AnyNode[]) {
   return {
     id: `module-${name}`,
@@ -17,6 +19,17 @@ function module(name: string, children: AnyNode[]) {
     name,
     prefix: name,
     children,
+    readOnly: true,
+  } as unknown as AnyNode;
+}
+
+function projectModule(children: AnyNode[]) {
+  return {
+    id: 'project',
+    type: 'module',
+    name: 'project',
+    children,
+    readOnly: false,
   } as unknown as AnyNode;
 }
 
@@ -36,7 +49,7 @@ const tree: AnyNode[] = [
     name: 'project',
   } as unknown as AnyNode,
   group('calculations', [
-    module('project', [resource('calculations', 'bat/calculations/a')]),
+    projectModule([resource('calculations', 'bat/calculations/a')]),
     module('Base', [
       resource('calculations', 'base/calculations/b'),
       resource('calculations', 'base/calculations/c'),
@@ -44,12 +57,15 @@ const tree: AnyNode[] = [
     module('Extra', [resource('calculations', 'extra/calculations/d')]),
   ]),
   group('templates', [
-    module('project', [
+    projectModule([
       resource('templates', 'bat/templates/page', [
         resource('card', 'bat_1'),
         resource('card', 'bat_2'),
       ]),
     ]),
+  ]),
+  group('workflows', [
+    module('project', [resource('workflows', 'imported/workflows/flow')]),
   ]),
 ];
 
@@ -59,6 +75,14 @@ describe('countResources', () => {
       project: 1,
       modules: 3,
       moduleNames: ['Base', 'Extra'],
+    });
+  });
+
+  test('counts an imported module named "project" as a module', () => {
+    expect(countResources(tree).workflows).toEqual({
+      project: 0,
+      modules: 1,
+      moduleNames: ['project'],
     });
   });
 

@@ -8,7 +8,7 @@ import { useTranslation } from 'react-i18next';
 import { useResourceTree } from '@/lib/api';
 import type { ResourceName } from '@/lib/constants';
 import type { AnyNode } from '@/lib/api/types';
-import { isProjectModuleName, isResourceName } from '@/lib/resourceCounts';
+import { isProjectModule, isResourceName } from '@/lib/resourceCounts';
 import { useAppModals } from '@/lib/contexts/AppModalsContext';
 import { useMediaQuery } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
@@ -98,7 +98,7 @@ function ResourceOverviewContent({
 
       <Stack spacing={3} sx={{ mt: 2 }}>
         {modulesToShow.map((mod) => {
-          const isProject = isProjectModuleName(mod.name);
+          const isProject = isProjectModule(mod);
           const resources = getModuleResources(
             mod.children || [],
             typedResourceType,
@@ -156,6 +156,11 @@ function ResourceOverviewContent({
                     to={r.to}
                   />
                 ))}
+                {resources.length === 0 && !(isProject && isAdmin) && (
+                  <Typography level="body-sm" textColor="text.tertiary">
+                    {t('overview.none')}
+                  </Typography>
+                )}
               </Box>
             </ResourceModuleSection>
           );
@@ -184,20 +189,32 @@ export default function ResourceOverviewPage() {
   }, [resourceTree, typedResourceType]);
 
   const modules = useMemo(() => {
-    if (!groupNode?.children) return [];
-    const moduleNodes = groupNode.children.filter(
+    if (!typedResourceType) return [];
+    const moduleNodes = (groupNode?.children ?? []).filter(
       (n): n is Extract<AnyNode, { type: 'module' }> => n.type === 'module',
     );
-    const project = moduleNodes.find((m) => isProjectModuleName(m.name));
-    const rest = moduleNodes.filter((m) => !isProjectModuleName(m.name));
-    return [...(project ? [project] : []), ...rest];
-  }, [groupNode]);
+    // The tree leaves out the project's node, or the whole group, when the
+    // project has none of these resources. The page still shows the project,
+    // where an admin creates the first one.
+    const project: Extract<AnyNode, { type: 'module' }> = moduleNodes.find(
+      isProjectModule,
+    ) ?? {
+      id: `${typedResourceType}-project`,
+      type: 'module',
+      name: 'project',
+      prefix: '',
+      readOnly: false,
+      children: [],
+    };
+    const rest = moduleNodes.filter((m) => !isProjectModule(m));
+    return [project, ...rest];
+  }, [groupNode, typedResourceType]);
 
   const filterOptions = useMemo(
     () =>
       modules.map((m) => ({
         id: m.name,
-        label: isProjectModuleName(m.name) ? t('project') : m.name,
+        label: isProjectModule(m) ? t('project') : m.name,
       })),
     [modules, t],
   );
@@ -218,10 +235,6 @@ export default function ResourceOverviewPage() {
 
   if (isLoading) {
     return <div>{t('loading')}</div>;
-  }
-
-  if (!groupNode) {
-    return <div>{t('invalidResource')}</div>;
   }
 
   const selectedModulesKey = selectedModules.join(',');

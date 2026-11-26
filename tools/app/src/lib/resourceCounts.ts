@@ -12,9 +12,13 @@ export interface ResourceCount {
   moduleNames: string[];
 }
 
-/** The resource tree groups the project's own resources under this module name. */
-export function isProjectModuleName(moduleName: string) {
-  return moduleName.toLowerCase() === 'project';
+/**
+ * Whether a module node of the resource tree holds the project's own
+ * resources. The tree names that node "project", but an imported module can
+ * have the same display name; only imported modules are read-only.
+ */
+export function isProjectModule(node: { name: string; readOnly?: boolean }) {
+  return node.name === 'project' && !node.readOnly;
 }
 
 export function isResourceName(name: string): name is ResourceName {
@@ -45,7 +49,7 @@ export function countResources(
         (node) => node.type === group.name,
       ).length;
       if (resources === 0) continue;
-      if (isProjectModuleName(module.name)) {
+      if (isProjectModule(module)) {
         count.project += resources;
       } else {
         count.modules += resources;

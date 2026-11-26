@@ -518,6 +518,7 @@
     "createNew": "Create New {{resourceType}}",
     "filter": "Filter",
     "localProject": "Local project",
+    "none": "None yet",
     "viewMore": "View more"
   },
   "passedPolicyChecks": "Passed policy checks",
