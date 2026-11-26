@@ -49,7 +49,7 @@ export function BaseTreeComponent<T>({
   readOnly = false,
 }: BaseTreeProps<T>) {
   const treeRef = useRef(null);
-  const openedId = useRef<string | null>(null);
+  const opened = useRef<{ id: string; openByDefault: boolean } | null>(null);
   const { width, height, ref } = useResizeObserver();
   const { height: titleHeight, ref: titleRef } = useResizeObserver();
   const canEdit = useHasMinRole(UserRole.Editor) && !readOnly;
@@ -71,14 +71,24 @@ export function BaseTreeComponent<T>({
     if (listHeight === undefined) return;
     // The tree selects `selection` itself, so remember which node has been
     // opened rather than checking whether it is selected.
-    if (selectedId && tree && openedId.current !== selectedId) {
-      openedId.current = selectedId;
+    // While openByDefault is set, opening a node records nothing because it is
+    // already open. So when openByDefault is cleared (for example, when a
+    // search is cleared), the parents close again and must be opened again.
+    const selectionChanged = opened.current?.id !== selectedId;
+    if (
+      selectedId &&
+      tree &&
+      (selectionChanged || opened.current?.openByDefault !== openByDefault)
+    ) {
+      opened.current = { id: selectedId, openByDefault };
       tree.openParents(selectedId);
       tree.open(selectedId);
       tree.update(tree.props);
-      tree.select(selectedId);
+      // Only a new selection moves the focus to the tree. Otherwise the focus
+      // would leave the search field while the user types.
+      tree.select(selectedId, { focus: selectionChanged });
     }
-  }, [selectedId, listHeight]);
+  }, [selectedId, listHeight, openByDefault]);
 
   const handleMove = useCallback(
     (moveData: {
