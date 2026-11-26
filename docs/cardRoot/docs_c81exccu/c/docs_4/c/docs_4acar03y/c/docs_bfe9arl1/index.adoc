@@ -118,7 +118,7 @@ For example, this program sets the step of every project card with the label `to
 
 === Values from the report
 
-Inside an action, write interpolations with three braces, as in {{#raw}}`{{{cardKey}}}`{{/raw}}. With two braces, special characters in the value are changed. Use {{#raw}}`{{{cardKey}}}`{{/raw}}, not {{#raw}}`{{@root.cardKey}}`{{/raw}}, for the card that shows the report. See <<Using the macro in a report>>.
+Inside an action, write interpolations with three braces, as in {{#raw}}`{{{cardKey}}}`{{/raw}}. With two braces, special characters in the value are changed. Use {{#raw}}`{{{cardKey}}}`{{/raw}}, not {{#raw}}`{{@root.cardKey}}`{{/raw}}, for the card that shows the report. Write it only as an interpolation: as an argument of a helper, as in {{#raw}}`{{#if cardKey}}`{{/raw}}, `cardKey` is read from the current row or the context of the report, which is not always the card that shows the report. See <<Using the macro in a report>>.
 
 To put a text value into a string in the program, write {{#raw}}`"{{{clingoEscape value}}}"`{{/raw}}. `clingoEscape` escapes quotes and backslashes, so the value stays inside its string whatever it contains.
 
