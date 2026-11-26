@@ -133,7 +133,11 @@ describe('runAction', () => {
 
     expect(await runAction('TST_1', ['a.'], 'TST')).toEqual({ created: [] });
     expect(callApi).toHaveBeenCalledWith(action, 'POST', { programs: ['a.'] });
-    expect(mutated()).toEqual([tree, 'mounted cards', source]);
+    expect(mutated()).toEqual([tree, 'mounted cards']);
+    // The source too: the card editor shows it.
+    const [mounted] = mutate.mock.calls[1];
+    expect(mounted(card)).toBe(true);
+    expect(mounted(source)).toBe(true);
   });
 
   it('marks the cards it created as recently created, from the hook', async () => {
@@ -152,11 +156,11 @@ describe('runAction', () => {
     callApi.mockRejectedValueOnce(error);
 
     await expect(runAction('TST_1', ['a.'], 'TST')).rejects.toBe(error);
-    expect(mutated()).toEqual([tree, 'mounted cards', source]);
+    expect(mutated()).toEqual([tree, 'mounted cards']);
   });
 
   it.each([
-    [true, [tree, 'mounted cards', source]],
+    [true, [tree, 'mounted cards']],
     [false, []],
   ])(
     'says the answer was lost, refreshing only a reachable server: %s',

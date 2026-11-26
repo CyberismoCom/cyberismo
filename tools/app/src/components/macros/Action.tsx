@@ -25,18 +25,20 @@ function failureMessage(error: unknown, t: TFunction): string {
       error.refreshed ? 'action.lostRefreshed' : 'action.lostNotRefreshed',
     );
   }
-  // A busy server without a program in the details changed nothing, so the
-  // click can be retried. A later program's failure names the program, and
-  // its message says what was kept.
-  if (
-    error instanceof ApiCallError &&
-    error.response.status === 503 &&
-    error.details?.program === undefined
-  ) {
-    const seconds = Number(error.response.headers.get('Retry-After'));
-    return Number.isInteger(seconds) && seconds > 0
-      ? t('action.busyIn', { count: seconds })
-      : t('action.busy');
+  // A busy server that applied nothing says so in the details, and the click
+  // can be retried. A later program's failure names the program, and its
+  // message says what was kept. Without either, the server was busy when
+  // the click's changes were being completed: they may have been applied.
+  if (error instanceof ApiCallError && error.response.status === 503) {
+    if (error.details?.applied === false) {
+      const seconds = Number(error.response.headers.get('Retry-After'));
+      return Number.isInteger(seconds) && seconds > 0
+        ? t('action.busyIn', { count: seconds })
+        : t('action.busy');
+    }
+    if (error.details?.program === undefined) {
+      return t('action.maybeApplied', { reason: error.message });
+    }
   }
   return error instanceof Error ? error.message : t('unknownError');
 }

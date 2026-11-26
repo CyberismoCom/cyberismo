@@ -252,15 +252,19 @@ function revalidateCardView(key: string, projectPrefix?: string) {
 }
 
 /**
- * Refetches every mounted card's data and rendered content. A write to one
- * card can change another's calculated values or the content that shows it.
+ * Refetches every mounted card's data, rendered content and source. A write
+ * to one card can change another's calculated values or the content that
+ * shows it, and an action can change any card's content.
  */
 export function revalidateMountedCards(projectPrefix?: string) {
   const cardsBase = `${projectApiPaths(projectPrefix).cards()}/`;
   return mutate((key) => {
     if (typeof key !== 'string' || !key.startsWith(cardsBase)) return false;
     const [, ...rest] = key.slice(cardsBase.length).split('/');
-    return rest.length === 0 || (rest.length === 1 && rest[0] === 'content');
+    return (
+      rest.length === 0 ||
+      (rest.length === 1 && (rest[0] === 'content' || rest[0] === 'source'))
+    );
   });
 }
 
@@ -349,10 +353,7 @@ export async function runAction(
   const apiPaths = projectApiPaths(projectPrefix);
   const refresh = () => {
     mutate(apiPaths.tree());
-    return Promise.all([
-      revalidateMountedCards(projectPrefix),
-      mutate(apiPaths.cardSource(cardKey)),
-    ]);
+    return revalidateMountedCards(projectPrefix);
   };
   let result: ActionResult;
   try {

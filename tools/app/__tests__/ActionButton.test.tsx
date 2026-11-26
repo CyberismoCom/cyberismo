@@ -62,8 +62,10 @@ vi.mock('@/lib/hooks', () => ({
 }));
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
-    t: (s: string, options?: { count?: number }) =>
-      options?.count === undefined ? s : `${s}:${options.count}`,
+    t: (s: string, options?: { count?: number; reason?: string }) => {
+      const value = options?.count ?? options?.reason;
+      return value === undefined ? s : `${s}:${value}`;
+    },
   }),
 }));
 
@@ -175,12 +177,13 @@ describe('Action', () => {
     ['with Retry-After', { 'Retry-After': '5' }, 'action.busyIn:5'],
     ['without Retry-After', {}, 'action.busy'],
   ])(
-    'says only that the server is busy on 503 %s',
+    'says only that the server is busy on 503 %s, before anything was applied',
     async (_, headers, message) => {
       runAction.mockRejectedValue(
         new ApiCallError(
           new Response(null, { status: 503, headers }),
           'The logic backend is busy.',
+          { applied: false },
         ),
       );
       renderButton();
@@ -191,6 +194,24 @@ describe('Action', () => {
       );
     },
   );
+
+  // As when the write fails to complete.
+  it('says that the changes may have been applied on 503 without details', async () => {
+    runAction.mockRejectedValue(
+      new ApiCallError(
+        new Response(null, { status: 503, headers: { 'Retry-After': '5' } }),
+        'Lost the programs',
+      ),
+    );
+    renderButton();
+    fireEvent.click(button());
+
+    await waitFor(() =>
+      expect(notifications()).toEqual([
+        { message: 'action.maybeApplied:Lost the programs', type: 'error' },
+      ]),
+    );
+  });
 
   it('shows the server message on 503 from a later program', async () => {
     const message =

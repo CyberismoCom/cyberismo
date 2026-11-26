@@ -94,7 +94,7 @@ Each program is a logic program, written in the same language as queries. See {{
 * Write arguments as plain values: card keys, strings and numbers. Values reach the effect as text, so a number is accepted where text is expected, for example `setContent(C, 3)`.
 * Links connect cards only. Links to external items are not supported.
 * Cards in templates and modules cannot be changed. When a program selects cards, use `+projectCard(C)+`, so that cards in templates are not matched. `+card(C)+` and `field(C, "cardType", T)` also match template cards, and the action then fails.
-* An effect that changes nothing is skipped: a `setField` or `setContent` with the current value, a `copyContent` from a card with the same content, an `addLabel` or `addLink` that is already there, a `removeLabel` of a label the card does not have, a `removeLink` with no matching link, and a `move` to the current parent. `create`, `transition`, `rank` and `rankFirst` always run.
+* An effect that changes nothing is skipped: a `setField` or `setContent` with the current value, a `copyContent` from a card with the same content, an `addLabel` or `addLink` that is already there, a `removeLabel` of a label the card does not have, a `removeLink` with no matching link, a `move` to the current parent, and a `rank` of a card that is already right after `After`. `create` and `rankFirst` always run, and so does `transition`, unless the same click already ran that transition of the card. See <<Order of the effects>>.
 * An atom with a misspelled name, such as `addLable`, is not an effect and is ignored, so check the names carefully. An effect name with the wrong number of arguments is ignored in the same way, and neither is reported.
 * Do not use the effect names for your own predicates in calculations. Every action would see them.
 * If the program has choice rules, the action uses one of its answers, and you cannot tell which one.
@@ -178,9 +178,11 @@ Within one program, the effects are applied in this order:
 
 So a transition sees the fields that the same program set, for example in a transition guard. A change of rank is seen only by the next program.
 
-Before anything in a program is applied, all its effects are checked. The check refuses, for example, a card or template that does not exist, a card in a template, a field that cannot be set, two different values for one field, a label or link that is both added and removed, or two transitions, moves or ranks of one card. To change a card twice, use two programs.
+Before anything in a program is applied, all its effects are checked. The check refuses, for example, a card or template that does not exist, a card in a template, a field that cannot be set, two different values for one field, a label or link that is both added and removed, a card ranked after itself, or two transitions, moves or ranks of one card. To change a card twice, use two programs.
 
 A `create` or a `transition` also runs the hooks that the logic programs define for it with `onTransitionSetField` and `onTransitionExecuteTransition`. Hooks follow the same rules as the effects of a button, but a hook effect that breaks a rule is skipped and logged, and never fails the click. The hooks of an effect finish before the next effect is applied.
+
+One click runs a transition of a card at most once. A `transition` effect for a transition of the card that a hook or an earlier program of the click already ran is skipped like an effect that changes nothing: it does not run the transition or its hooks again, and the click does not fail. A hook transition that the click already ran is skipped and logged.
 
 === Creating cards
 
@@ -192,7 +194,7 @@ Cards created under the same parent in one program are created in the order of t
 
 New top-level cards go after the existing ones.
 
-Use a card key or a number as `Id`. A string that looks like a name, such as `"abc"`, reaches later programs as the constant `abc`: `created(K, _, _, abc, _)` matches it, but `created(K, _, _, "abc", _)` does not. Numbers stay numbers, and strings with spaces or quotes stay strings.
+Use a card key or a number as `Id`. A string that looks like a name, such as `"abc"`, reaches later programs as the constant `abc`: `created(K, _, _, abc, _)` matches it, but `created(K, _, _, "abc", _)` does not. Numbers stay numbers. Other strings stay strings, for example ones with spaces or quotes, `"not"`, `"_Item"`, or a number too large for a logic program such as `"3000000000"`.
 
 For example, this button creates a checklist with one item per asset, in the order of the assets in the tree. The third program names each item after its asset and links it to the asset:
 
@@ -240,7 +242,7 @@ The value is converted to the field's data type:
 * DateTime fields take an ISO 8601 date and time with a time zone, such as `2026-01-02T03:04:05Z`. The value is stored in UTC: `2026-01-02T03:04+02:00` is stored as `2026-01-02T01:04:00.000Z`.
 * Other fields take a string, or a number, which becomes a string.
 
-The constant `null`, written without quotes, clears a field of any data type; the string `"null"` in quotes is text like any other. The empty string `""` also clears a boolean, integer, number, date or dateTime field. In a text field, it writes an empty text. Because of the conversion, `setField(K, F, V) :- field(A, F, V)` copies a field from card `A` to card `K`.
+The constant `null`, written without quotes, clears a field of any data type; the string `"null"` in quotes is text like any other. The empty string `""` also clears a custom field of any data type, so `null` and `""` for one field are the same value. Only the `title` takes `""` as a value, an empty title. Because of the conversion, `setField(K, F, V) :- field(A, F, V)` copies a field from card `A` to card `K`.
 
 === Setting content
 
@@ -291,7 +293,7 @@ This happens when applying an effect fails, for example a transition from the wr
 * With autocommit (`cyberismo app --autocommit`), every change of the click is undone. Nothing is changed.
 * Without autocommit, the changes made before the failure stay. The card view is refreshed to show them.
 
-If the server is busy before anything is changed, the message says so and, if the server tells, how many seconds to wait before trying again. If it is busy in a later program, the message names the program, as above.
+If the server is busy before anything is changed, the message says so and, if the server tells, how many seconds to wait before trying again. If it is busy in a later program, the message names the program, as above. If it is busy when the changes of the click are being completed, the message gives the server's reason and says that the changes may have been applied. Check the cards before clicking again.
 
 If the request does not reach the server, or its answer is lost, the action may or may not have run. The message says so, and says whether the page could be refreshed to show the current state. Check the cards before clicking again.
 
