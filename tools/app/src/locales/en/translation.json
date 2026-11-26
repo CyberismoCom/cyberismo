@@ -158,6 +158,27 @@
     "invalidTarget": "Cannot drop the card here.",
     "moduleReadOnly": "Cards in imported modules cannot be moved."
   },
+  "configOverview": {
+    "intro": "Card types, workflows, and templates define how work is recorded in this project. Choose a resource type to see or change its resources.",
+    "resourceTypes": "Resource types",
+    "inProject": "{{count}} in this project",
+    "fromModule": "{{count}} from {{module}}",
+    "fromModules": "{{count}} from {{modules}} modules",
+    "none": "None yet",
+    "noModules": "None",
+    "descriptions": {
+      "calculations": "Logic programs that derive field values, links, and policy checks.",
+      "cardTypes": "The kinds of cards, with their fields and workflow.",
+      "fieldTypes": "The fields that cards can have, with their data types.",
+      "graphModels": "Logic programs that draw cards and links as diagrams.",
+      "graphViews": "Filters that choose what a graph model shows.",
+      "linkTypes": "The kinds of links between cards, and the card types they connect.",
+      "reports": "Lists and summaries of cards that card content can show.",
+      "skills": "Instructions for AI assistants that work in this project.",
+      "templates": "Starting points for new cards, with their content and child cards.",
+      "workflows": "The states of a card and the transitions between them."
+    }
+  },
   "configTree": {
     "backToProject": "Back to project",
     "files": {

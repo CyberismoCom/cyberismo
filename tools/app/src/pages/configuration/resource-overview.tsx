@@ -6,8 +6,9 @@ import { useParams, useSearchParams } from 'react-router';
 import { Box, Stack, Typography } from '@mui/joy';
 import { useTranslation } from 'react-i18next';
 import { useResourceTree } from '@/lib/api';
-import { RESOURCES, type ResourceName } from '@/lib/constants';
+import type { ResourceName } from '@/lib/constants';
 import type { AnyNode } from '@/lib/api/types';
+import { isProjectModuleName, isResourceName } from '@/lib/resourceCounts';
 import { useAppModals } from '@/lib/contexts/AppModalsContext';
 import { useMediaQuery } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
@@ -22,14 +23,6 @@ import { UserRole, useHasMinRole } from '@/lib/auth';
 function identifier(name: string) {
   const parts = name.split('/');
   return parts[parts.length - 1] || name;
-}
-
-function isProjectModuleName(moduleName: string) {
-  return moduleName.toLowerCase() === 'project';
-}
-
-function isResourceName(name: string): name is ResourceName {
-  return (RESOURCES as readonly string[]).includes(name);
 }
 
 function parseModulesParam(param: string | null): string[] {
