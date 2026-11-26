@@ -39,7 +39,7 @@ The look is MUI Joy with the overrides in `theme.ts`. Follow these rules:
 - Forms: fields 24px apart (`Stack spacing={3}`), at most `FORM_FIELD_MAX_WIDTH` wide, with controls of size md. Section headings are `h4`, with 32px above and 16px below. Size sm is for dense rows: toolbars, tables, list rows, and the tree.
 - Shadows only on what floats: menus, popovers, and dialogs.
 - Colour comes from palette tokens, and workflow state from `getStateColor`. Set type with `level`, not `fontSize`.
-- A change to what the app renders shows before and after screenshots in its pull request (`.claude/skills/ui-screenshots`).
+- A change to what the app renders shows before and after screenshots in its pull request.
 
 ## Known debt
 
