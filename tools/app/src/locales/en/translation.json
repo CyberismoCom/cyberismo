@@ -159,7 +159,7 @@
     "moduleReadOnly": "Cards in imported modules cannot be moved."
   },
   "configTree": {
-    "backToCards": "Back to cards",
+    "backToProject": "Back to project",
     "files": {
       "calculation": "Calculation",
       "model": "Model",
