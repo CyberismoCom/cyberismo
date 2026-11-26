@@ -33,12 +33,12 @@ export function SidebarPanelAccordion({
     <Box
       border="1px solid"
       borderColor="neutral.outlinedBorder"
-      borderRadius={6}
+      borderRadius="sm"
     >
       <Accordion expanded={expanded} data-cy={dataCy}>
         <AccordionSummary
           onClick={onToggle}
-          sx={{ borderRadius: 6 }}
+          sx={{ borderRadius: 'sm' }}
           slotProps={{
             button: {
               sx: {

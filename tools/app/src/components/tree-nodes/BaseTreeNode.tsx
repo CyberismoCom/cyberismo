@@ -32,10 +32,10 @@ export const BaseTreeNode = <T,>({
       }}
       alignContent="center"
       display="flex"
-      paddingRight="4px"
+      paddingRight={0.5}
       height="100%"
-      marginRight={1}
-      borderRadius="6px 6px 6px 6px"
+      marginRight={2}
+      borderRadius="sm"
       bgcolor={visualState.backgroundColor}
       sx={{
         opacity: visualState.opacity,

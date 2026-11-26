@@ -33,6 +33,7 @@ import type {
   WorkflowTransition,
 } from '@cyberismo/model';
 import { WorkflowCategory } from '@cyberismo/model';
+import SectionHeading from '../SectionHeading';
 
 // Zod schemas
 const createStateSchema = (
@@ -513,9 +514,7 @@ export function WorkflowStatesEditor({
     <>
       {/* States Section */}
       <Box>
-        <Typography level="h4" sx={{ mb: 4 }}>
-          {t('workflowStates.states')}
-        </Typography>
+        <SectionHeading title={t('workflowStates.states')} />
         <form
           onSubmit={(e) => {
             e.preventDefault();
@@ -524,7 +523,7 @@ export function WorkflowStatesEditor({
             }
           }}
         >
-          <Stack spacing={2} sx={{ maxWidth: FORM_FIELD_MAX_WIDTH }}>
+          <Stack spacing={3} sx={{ maxWidth: FORM_FIELD_MAX_WIDTH }}>
             <FormControl>
               <FormLabel>{t('workflowStates.category')}</FormLabel>
               <Controller
@@ -570,7 +569,6 @@ export function WorkflowStatesEditor({
             <Button
               type="submit"
               variant="solid"
-              size="sm"
               disabled={disableAll || isAnyEditingLocked || !isNewStateValid}
             >
               {t('workflowStates.addState')}
@@ -616,9 +614,7 @@ export function WorkflowStatesEditor({
       </Stack>
 
       {/* Transitions Section */}
-      <Typography level="h4" marginTop={6} marginBottom={4}>
-        {t('workflowStates.transitions')}
-      </Typography>
+      <SectionHeading title={t('workflowStates.transitions')} sx={{ mt: 3 }} />
 
       {/* Transitions List */}
       <Stack spacing={1}>

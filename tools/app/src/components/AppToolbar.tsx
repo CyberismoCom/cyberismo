@@ -55,7 +55,7 @@ export function CreateButton({
         startDecorator={<AddIcon />}
         aria-label={t('toolbar.newCard')}
         sx={{
-          marginRight: '16px',
+          marginRight: 2,
           '--Button-gap': { xs: 0, sm: '0.375rem' },
         }}
         onClick={() => onClick()}
@@ -73,7 +73,7 @@ export function CreateButton({
         variant="solid"
         size="sm"
         endDecorator={<ExpandMoreIcon />}
-        sx={{ marginRight: '16px' }}
+        sx={{ marginRight: 2 }}
         color="primary"
       >
         {t('toolbar.newResource')}

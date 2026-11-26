@@ -72,7 +72,7 @@ export function FieldPopover({
           aria-label={row.label}
           data-cy="fieldMacroPopover"
           sx={{
-            borderRadius: 'md',
+            borderRadius: 'sm',
             boxShadow: 'md',
             backgroundColor: 'background.popup',
             padding: 1.5,

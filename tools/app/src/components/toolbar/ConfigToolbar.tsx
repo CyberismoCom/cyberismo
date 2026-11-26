@@ -35,7 +35,7 @@ export function ConfigToolbar({
     const pathParts = node.name.split('/');
 
     return (
-      <Breadcrumbs separator=">" size="sm">
+      <Breadcrumbs size="sm" sx={{ px: 0 }}>
         <Link href="/configuration" color="neutral">
           {t('configuration')}
         </Link>
@@ -43,12 +43,7 @@ export function ConfigToolbar({
           const isLast = index === pathParts.length - 1;
           if (isLast) {
             return (
-              <Typography
-                key={index}
-                color="primary"
-                fontSize="sm"
-                fontWeight="lg"
-              >
+              <Typography key={index} textColor="text.primary" fontSize="sm">
                 {part}
               </Typography>
             );

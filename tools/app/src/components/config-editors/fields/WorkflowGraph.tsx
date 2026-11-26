@@ -13,6 +13,7 @@ import Fullscreen from '@mui/icons-material/Fullscreen';
 import { useTranslation } from 'react-i18next';
 import { useWorkflowGraph } from '@/lib/api';
 import SvgViewerModal from '@/components/modals/svgViewerModal';
+import SectionHeading from '../SectionHeading';
 
 export function WorkflowGraph({ workflowName }: { workflowName: string }) {
   const { t } = useTranslation();
@@ -77,9 +78,7 @@ export function WorkflowGraph({ workflowName }: { workflowName: string }) {
 
   return (
     <Box>
-      <Typography level="h4" marginTop={6} marginBottom={4}>
-        {t('workflowGraph.title')}
-      </Typography>
+      <SectionHeading title={t('workflowGraph.title')} />
       {body}
       <SvgViewerModal
         open={modalOpen && Boolean(svgMarkup)}

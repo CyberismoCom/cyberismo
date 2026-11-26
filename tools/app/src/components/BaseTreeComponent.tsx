@@ -49,6 +49,7 @@ export function BaseTreeComponent<T>({
   readOnly = false,
 }: BaseTreeProps<T>) {
   const treeRef = useRef(null);
+  const openedId = useRef<string | null>(null);
   const { width, height, ref } = useResizeObserver();
   const { height: titleHeight, ref: titleRef } = useResizeObserver();
   const canEdit = useHasMinRole(UserRole.Editor) && !readOnly;
@@ -68,7 +69,10 @@ export function BaseTreeComponent<T>({
     // fires, and react-window keeps rendering rows for the offset it thinks it
     // has — leaving a blank gap above them. So wait for the measured height.
     if (listHeight === undefined) return;
-    if (selectedId && tree && !tree.selectedIds.has(selectedId)) {
+    // The tree selects `selection` itself, so remember which node has been
+    // opened rather than checking whether it is selected.
+    if (selectedId && tree && openedId.current !== selectedId) {
+      openedId.current = selectedId;
       tree.openParents(selectedId);
       tree.open(selectedId);
       tree.update(tree.props);
@@ -100,7 +104,7 @@ export function BaseTreeComponent<T>({
   return (
     <Stack
       paddingTop={2}
-      paddingLeft={3}
+      paddingLeft={2}
       bgcolor="background.surface"
       height="100%"
       width="100%"
@@ -141,6 +145,9 @@ export function BaseTreeComponent<T>({
         <Tree
           ref={treeRef}
           data={data || []}
+          // Without it react-arborist clears the selection when it mounts,
+          // which can land after the effect above has selected the node.
+          selection={selectedId ?? undefined}
           openByDefault={openByDefault}
           disableDrag={
             !canEdit || !onMove

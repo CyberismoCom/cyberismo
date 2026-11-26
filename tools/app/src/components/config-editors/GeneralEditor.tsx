@@ -19,6 +19,7 @@ import ModulesSection from './ModulesSection';
 import TextInput from './fields/TextInput';
 import TextareaInput from './fields/TextareaInput';
 import { UserRole, useHasMinRole } from '@/lib/auth';
+import { FORM_FIELD_MAX_WIDTH } from '@/lib/constants';
 
 type GeneralEditorProps = {
   node: GenericNode<'general'>;
@@ -95,7 +96,7 @@ export function GeneralEditor({ node }: GeneralEditorProps) {
 
   return (
     <BaseEditor node={node}>
-      <Stack>
+      <Stack spacing={3} sx={{ maxWidth: FORM_FIELD_MAX_WIDTH }}>
         <FieldRow
           dirty={nameField.dirty}
           onSave={() => nameField.save()}
@@ -161,7 +162,7 @@ export function GeneralEditor({ node }: GeneralEditorProps) {
         </FieldRow>
 
         {isGitRepo && publicKey && (
-          <Stack spacing={0.5} mb={4.5}>
+          <Stack spacing={0.5}>
             <Stack direction="row" alignItems="center" spacing={1}>
               <Typography level="title-md">
                 {t('general.gitPushPublicKey')}

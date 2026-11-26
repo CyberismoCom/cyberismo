@@ -39,7 +39,7 @@ export function MetadataFields({
       data-cy="metadataView"
       border="1px solid"
       borderColor="neutral.outlinedBorder"
-      borderRadius={6}
+      borderRadius="sm"
       padding={{ xs: 1, sm: 1.5 }}
     >
       <Stack>

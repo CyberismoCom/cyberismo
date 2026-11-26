@@ -521,7 +521,7 @@ const SvgViewerModal: React.FC<SvgViewerModalProps> = ({
             color: 'white',
             px: 1,
             py: 0.5,
-            borderRadius: 1,
+            borderRadius: 'sm',
             userSelect: 'none',
           }}
         >
@@ -584,6 +584,7 @@ const SvgViewerModal: React.FC<SvgViewerModalProps> = ({
         <Box
           ref={scrollRef}
           sx={{
+            // Clears the fixed control bar above.
             marginTop: '44px',
             flex: 1,
             overflow: 'auto',

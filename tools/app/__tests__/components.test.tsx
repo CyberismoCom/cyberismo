@@ -18,6 +18,7 @@ import { expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { BrowserRouter } from 'react-router';
+import { StrictMode } from 'react';
 
 vi.mock('react-router', async (importOriginal) => {
   const actual = await importOriginal<typeof reactRouterModule>();
@@ -129,6 +130,24 @@ describe('TreeMenu', () => {
     );
     const node = screen.getByText('Demand phase').parentNode?.parentNode;
     expect(node).toBeVisible();
+    expect(node).toHaveAttribute('aria-selected', 'true');
+  });
+
+  it('keeps the card selected when effects run twice', () => {
+    // StrictMode mounts the tree twice in development; react-arborist
+    // clears its selection on mount unless the tree is given one.
+    render(
+      <StrictMode>
+        <BrowserRouter>
+          <TreeMenu
+            title={testProject.name}
+            selectedCardKey={'usdl_46'}
+            tree={treeQueryResult}
+          />
+        </BrowserRouter>
+      </StrictMode>,
+    );
+    const node = screen.getByText('Demand phase').parentNode?.parentNode;
     expect(node).toHaveAttribute('aria-selected', 'true');
   });
 });

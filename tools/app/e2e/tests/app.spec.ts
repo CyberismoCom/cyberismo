@@ -992,6 +992,10 @@ test.describe('Hidden cards', () => {
       page.getByRole('heading', { level: 1, name: 'Export start' }),
     ).toBeVisible();
     await expect(treeNode(page, 'Export start')).toBeVisible();
+    // A deep link marks the open card in the tree.
+    await expect(page.getByRole('treeitem', { selected: true })).toContainText(
+      'Export start',
+    );
     await expect(treeNode(page, 'Hidden note')).toHaveCount(0);
 
     await page.goto(`/projects/bat/cards/${keys.hiddenNoteKey}`);

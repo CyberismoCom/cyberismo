@@ -32,7 +32,8 @@ export function useTreeNodeVisualState<T>(
         : isDragging
           ? 'neutral.softBg'
           : node.isSelected
-            ? 'background.body'
+            ? // The fill of the current project under Recent projects.
+              'neutral.softActiveBg'
             : 'transparent',
       borderStyle: isDropTarget
         ? { border: '2px solid', borderColor: 'primary.500' }

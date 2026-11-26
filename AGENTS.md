@@ -39,6 +39,10 @@ Internal deps use `"workspace:*"` and are imported as `@cyberismo/<package>`.
 
 Before changing a package, read its `tools/<pkg>/ARCHITECTURE.md`: structure, allowed dependencies and invariants.
 
+## Public repository
+
+This repository is open source. Never link to or name internal Cyberismo material in code, comments, docs, skills, commit messages, or pull requests. Internal material is anything that only the Cyberismo organisation can open, such as claude.ai artifacts (design systems, canvases, and documents). Write what a reader needs into the repository instead.
+
 ## Code style
 
 - TypeScript strict mode, ES modules (`"type": "module"`)

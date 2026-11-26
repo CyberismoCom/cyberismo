@@ -62,7 +62,7 @@ export function OverriddenMarker({
         aria-label={label}
         sx={{
           display: 'inline',
-          ml: 0.25,
+          ml: 0.5,
           color: 'neutral.500',
           userSelect: 'none',
         }}

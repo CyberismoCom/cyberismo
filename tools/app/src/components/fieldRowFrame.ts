@@ -35,6 +35,6 @@ export const metadataBoxSx = {
   containerType: 'inline-size',
   border: '1px solid',
   borderColor: 'neutral.outlinedBorder',
-  borderRadius: 6,
+  borderRadius: 'sm',
   padding: { xs: 1, sm: 1.5 },
 } as const;

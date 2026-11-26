@@ -31,6 +31,7 @@ import { useCleanPrompt } from '../useCleanPrompt';
 import { EditableRowActions } from './EditableRowActions';
 import { ListRow } from './ListRow';
 import { ReorderButton, ReorderButtonContainer } from './ReorderButtons';
+import SectionHeading from '../SectionHeading';
 
 type FieldView = {
   name: string;
@@ -592,11 +593,9 @@ export function CardTypeFieldsEditor({
   );
 
   return (
-    <Stack spacing={7}>
+    <Stack spacing={3}>
       <Box>
-        <Typography level="h4" sx={{ mb: 4 }}>
-          {t('customFields')}
-        </Typography>
+        <SectionHeading title={t('customFields')} />
         <form
           onSubmit={(e) => {
             e.preventDefault();
@@ -605,7 +604,7 @@ export function CardTypeFieldsEditor({
             }
           }}
         >
-          <Stack spacing={1.25}>
+          <Stack spacing={3}>
             <FormControl>
               <FormLabel>{t('visibility')}</FormLabel>
               <Controller
@@ -656,7 +655,6 @@ export function CardTypeFieldsEditor({
                     onChange={(_, value) =>
                       field.onChange((value as string) ?? '')
                     }
-                    size="sm"
                     disabled={
                       disableAll ||
                       isEditingLocked ||
@@ -680,7 +678,6 @@ export function CardTypeFieldsEditor({
                 name="displayName"
                 render={({ field }) => (
                   <Input
-                    size="sm"
                     value={field.value}
                     onChange={field.onChange}
                     disabled={disableAll || isEditingLocked}
@@ -689,42 +686,43 @@ export function CardTypeFieldsEditor({
               />
             </FormControl>
 
-            <Controller
-              control={newFieldControl}
-              name="isCalculated"
-              render={({ field }) => (
-                <Checkbox
-                  size="sm"
-                  label={t('isCalculated')}
-                  checked={field.value}
-                  disabled={disableAll || isEditingLocked}
-                  onChange={(event) => field.onChange(event.target.checked)}
-                />
-              )}
-            />
+            <Stack spacing={1.5}>
+              <Controller
+                control={newFieldControl}
+                name="isCalculated"
+                render={({ field }) => (
+                  <Checkbox
+                    size="sm"
+                    label={t('isCalculated')}
+                    checked={field.value}
+                    disabled={disableAll || isEditingLocked}
+                    onChange={(event) => field.onChange(event.target.checked)}
+                  />
+                )}
+              />
 
-            <Controller
-              control={newFieldControl}
-              name="enableOverride"
-              render={({ field }) => (
-                <Checkbox
-                  size="sm"
-                  label={t('enableOverride')}
-                  checked={!!newFieldValues.isCalculated && field.value}
-                  disabled={
-                    disableAll ||
-                    isEditingLocked ||
-                    !newFieldValues.isCalculated
-                  }
-                  onChange={(event) => field.onChange(event.target.checked)}
-                />
-              )}
-            />
+              <Controller
+                control={newFieldControl}
+                name="enableOverride"
+                render={({ field }) => (
+                  <Checkbox
+                    size="sm"
+                    label={t('enableOverride')}
+                    checked={!!newFieldValues.isCalculated && field.value}
+                    disabled={
+                      disableAll ||
+                      isEditingLocked ||
+                      !newFieldValues.isCalculated
+                    }
+                    onChange={(event) => field.onChange(event.target.checked)}
+                  />
+                )}
+              />
+            </Stack>
 
             <Button
               type="submit"
               variant="solid"
-              size="sm"
               sx={{ alignSelf: 'stretch' }}
               disabled={!canAddField}
             >
@@ -734,7 +732,7 @@ export function CardTypeFieldsEditor({
         </form>
       </Box>
 
-      <Stack spacing={4}>
+      <Stack spacing={3}>
         {renderGroup(t('alwaysVisibleFields'), fields.always, 'always')}
         {renderGroup(t('optionallyVisibleFields'), fields.optional, 'optional')}
         {renderGroup(t('notVisible'), fields.hidden, 'hidden')}

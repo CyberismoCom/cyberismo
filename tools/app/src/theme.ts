@@ -25,6 +25,38 @@ const theme = extendTheme({
       },
     },
   },
+  // One corner for every rectangle (radius.sm), see Design system in
+  // ARCHITECTURE.md. Joy's own defaults round cards and dialogs more than the
+  // controls inside them.
+  components: {
+    JoyCard: {
+      styleOverrides: {
+        root: ({ theme, ownerState }) => ({
+          '--Card-radius': theme.vars.radius.sm,
+          // Joy's sm padding (10px) is off the spacing scale.
+          ...(ownerState.size === 'sm' && {
+            '--Card-padding': theme.spacing(1.5),
+          }),
+        }),
+      },
+    },
+    JoyCardActions: {
+      styleOverrides: {
+        // Joy shrinks buttons in a card to the card's nested radius (2.5px).
+        root: ({ theme }) => ({
+          '--Button-radius': theme.vars.radius.sm,
+          '--IconButton-radius': theme.vars.radius.sm,
+        }),
+      },
+    },
+    JoyModalDialog: {
+      styleOverrides: {
+        root: ({ theme }) => ({
+          '--Card-radius': theme.vars.radius.sm,
+        }),
+      },
+    },
+  },
 });
 
 export default theme;
