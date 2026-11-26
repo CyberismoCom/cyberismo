@@ -20,6 +20,21 @@ import {
 
 const logger = getChildLogger({ module: 'hooks' });
 
+// A (card, transition) pair as the visited set of a user operation holds it.
+const pair = (card: string, transition: string) => `${card}:${transition}`;
+
+/**
+ * Whether a user operation has already run what a trigger is: a transition
+ * in its visited set. An action's transition it has run is then in place.
+ * @param visited The visited set the operation gives runHooks.
+ */
+export function performed(visited: Set<string>, trigger: Trigger): boolean {
+  return (
+    trigger.kind === 'transition' &&
+    visited.has(pair(trigger.card, trigger.transition))
+  );
+}
+
 // The kinds of effect a hook may ask for.
 const HOOK_EFFECTS = [setField, transition];
 
@@ -114,7 +129,6 @@ export async function runHooks(
   trigger: Trigger,
   visited = new Set<string>(),
 ): Promise<void> {
-  const pair = (card: string, transition: string) => `${card}:${transition}`;
   if (trigger.kind === 'transition') {
     visited.add(pair(trigger.card, trigger.transition));
   }

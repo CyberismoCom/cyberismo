@@ -38,6 +38,11 @@ export interface ApplyOptions {
   onFailure?: (atom: string, error: unknown) => void;
   /** Takes what an applied effect sets off, right after the effect. */
   afterTrigger?: (trigger: Trigger) => Promise<void>;
+  /**
+   * Whether the caller's operation already performed what an effect sets
+   * off: the effect is then in place, and nothing of it is applied.
+   */
+  performed?: (trigger: Trigger) => boolean;
 }
 
 /**
@@ -117,8 +122,8 @@ export function checkEffects(
 /**
  * Applies checked effects step by step, in the order of STEPS. Within a
  * step, in the order of the effects' sort keys, then of their atoms. An
- * effect already in place is skipped. What an applied effect's `trigger`
- * gives goes to `afterTrigger`.
+ * effect already in place, or whose trigger was `performed`, is skipped.
+ * What an applied effect's `trigger` gives goes to `afterTrigger`.
  * @returns the cards the effects created, in creation order
  * @throws EffectFailed on the first failure
  */
@@ -130,6 +135,8 @@ export async function applyEffects(
   const triggered = async (effect: CheckedEffect, made: CreatedCard[]) => {
     if (effect.trigger) await options?.afterTrigger?.(effect.trigger(made));
   };
+  const performed = (effect: CheckedEffect) =>
+    !!effect.trigger && !!options?.performed?.(effect.trigger([]));
   let order: Map<string, number> | undefined;
   const position = (cardKey: string) =>
     (order ??= treeOrder(checkout)).get(cardKey);
@@ -146,7 +153,7 @@ export async function applyEffects(
     for (const { effect } of inStep) {
       const before = created.length;
       try {
-        if (effect.inPlace(checkout)) continue;
+        if (effect.inPlace(checkout) || performed(effect)) continue;
         created.push(...(await effect.apply(checkout)));
       } catch (error) {
         if (options?.onFailure) {

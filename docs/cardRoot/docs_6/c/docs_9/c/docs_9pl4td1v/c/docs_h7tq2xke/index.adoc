@@ -15,4 +15,6 @@ The transition is executed as if a user executed it: it must be in the workflow 
 
 A transition executed by a hook can have hooks of its own. Hooks cascade breadth-first: the hooks of one transition are found right after it, their field updates are applied, and their transitions are executed after the transitions already waiting, in the order of their card keys and names. Within one user operation, a card is transitioned with a given transition at most once; a repeat, for example from a cycle in the logic programs, is skipped and logged.
 
+A click on a button of the `action` macro is one user operation too, with all its programs. A hook transition that the action or an earlier hook already executed is skipped and logged. A transition of the action that a hook or an earlier program of the action already executed is skipped like an effect that is already in place: the card is not written, its hooks do not run again, and the action does not fail.
+
 If the hooks of one transition declare two transitions of the same card, both are skipped and logged.

@@ -505,6 +505,50 @@ describe('hook field updates', () => {
     expect(hooksOfB).toHaveLength(1);
   });
 
+  // A transition runs once in an action, whether a hook or the action runs it
+  // first. In one program the atoms' order decides which comes first: C
+  // sorts before A, and A before B.
+  it.each<[string, string, (k: string[]) => string[]]>([
+    [
+      'a hook, in one program',
+      'B',
+      (k) => [`transition(${k[0]}, "Start"). transition(${k[1]}, "Close").`],
+    ],
+    [
+      'the action, in one program',
+      'C',
+      (k) => [`transition(${k[0]}, "Start"). transition(${k[2]}, "Close").`],
+    ],
+    [
+      'a hook, in an earlier program',
+      'B',
+      (k) => [`transition(${k[0]}, "Start").`, `transition(${k[1]}, "Close").`],
+    ],
+    [
+      'the action, in an earlier program',
+      'B',
+      (k) => [`transition(${k[1]}, "Close").`, `transition(${k[0]}, "Start").`],
+    ],
+  ])(
+    'runs a transition once when %s runs it first',
+    async (_, target, programs) => {
+      const { ws, keys } = await openWith(run('A', 'Start', target, 'Close'));
+      expect(keys[2] < keys[0] && keys[0] < keys[1]).toBe(true);
+      const solve = vi.spyOn(
+        checkoutOf(ws).calculationEngine,
+        'runLogicProgram',
+      );
+
+      await ws.cards.runAction(keys[0], programs(keys));
+
+      const closed = keys['ABC'.indexOf(target)];
+      const hooksOfClose = solve.mock.calls.filter(([program]) =>
+        program.includes(`onTransitionSetField(${closed}, "Close"`),
+      );
+      expect(hooksOfClose).toHaveLength(1);
+    },
+  );
+
   it("applies the hooks of an action's transition leniently", async () => {
     const { ws, keys, state } = await openWith(
       run('A', 'Start', 'B', 'Finish'),
@@ -528,7 +572,7 @@ describe('hook field updates', () => {
     const error = await ws.cards
       .runAction(keys[0], [
         'transition(C, "Start") :- actionCard(C).',
-        'transition(C, "Start") :- actionCard(C).',
+        `transition(${keys[1]}, "Finish").`,
       ])
       .catch((e: unknown) => e);
 
