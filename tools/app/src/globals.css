@@ -634,6 +634,10 @@
   min-height: 1.875rem;
   padding: 0.25rem 0 1rem 2.75rem;
 }
+/* No gap between the steps, so that the line reaches the next circle */
+.doc .ulist.steps > ul.checklist > li + li {
+  margin-top: 0;
+}
 .doc .ulist.steps > ul.checklist > li:last-child {
   padding-bottom: 0;
 }
