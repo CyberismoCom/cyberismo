@@ -2,7 +2,12 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import type { Workspace } from '@cyberismo/data-handler';
+import {
+  clingoLogicBackend,
+  LogicUnavailableError,
+  type LogicBackendFactory,
+  type Workspace,
+} from '@cyberismo/data-handler';
 import { createApp } from '../src/app.js';
 import { MockAuthProvider, MOCK_ROLE_COOKIE } from '../src/auth/mock.js';
 import {
@@ -18,12 +23,50 @@ let project: BuiltProject;
 let ws: Workspace;
 let app: ReturnType<typeof createApp>;
 
+// Clingo, unavailable while `down` names the call that fails: a query, or
+// the commit that completes a write.
+let down: 'query' | 'commit' | undefined;
+const logic: LogicBackendFactory = (owner) => {
+  const inner = clingoLogicBackend(owner);
+  const unavailable = () => new LogicUnavailableError('Lost the programs');
+  return {
+    begin: async () => {
+      const tx = await inner.begin();
+      return {
+        set: (programs) => tx.set(programs),
+        remove: (keys) => tx.remove(keys),
+        replaceAll: (programs) => tx.replaceAll(programs),
+        query: async (text) => {
+          if (down === 'query') throw unavailable();
+          return tx.query(text);
+        },
+        commit: async (options) => {
+          if (down === 'commit') {
+            await tx.abort();
+            throw unavailable();
+          }
+          return tx.commit(options);
+        },
+        abort: () => tx.abort(),
+      };
+    },
+    query: async (text) => {
+      if (down === 'query') throw unavailable();
+      return inner.query(text);
+    },
+    check: (programs) => inner.check(programs),
+    exportText: () => inner.exportText(),
+    close: () => inner.close(),
+  };
+};
+
 beforeEach(async () => {
+  down = undefined;
   project = await buildProject({
     templates: [{ name: 'tpl', cards: [{ title: 'From template' }] }],
     cards: [{ title: 'Host' }],
   });
-  ws = await openTestWorkspace(project.path);
+  ws = await openTestWorkspace(project.path, { logic });
   app = createApp(new MockAuthProvider(), directoryOf(ws));
 });
 
@@ -73,6 +116,26 @@ describe('POST /cards/:key/action', () => {
   it('an unknown card is 404', async () => {
     const response = await post('test_nope', { programs: [create] });
     expect(response.status).toBe(404);
+  });
+
+  // A busy backend before anything was applied can be retried; one when the
+  // write completes cannot, as the card was already created.
+  it.each([
+    ['before anything was applied', 'query', { applied: false }, []],
+    ['when the write completes', 'commit', {}, [expect.any(String)]],
+  ] as const)('tells a busy backend %s', async (_, call, details, children) => {
+    down = call;
+    const response = await post(project.keys[0], { programs: [create] });
+    down = undefined;
+
+    expect(response.status).toBe(503);
+    const body = await response.json();
+    expect(body.code).toBe('logic-unavailable');
+    expect(body.details.applied).toBe(details.applied);
+    expect(body.details.program).toBeUndefined();
+    expect((await ws.cards.details(project.keys[0])).children).toEqual(
+      children,
+    );
   });
 
   it.each([

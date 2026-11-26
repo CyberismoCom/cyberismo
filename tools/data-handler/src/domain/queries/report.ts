@@ -115,16 +115,28 @@ export async function generateReportContent(
   // register empty macros so that other macros aren't touched yet
   registerEmptyMacros(handlebars);
   registerReportHelpers(handlebars);
+  // Inside an action block, `{{{cardKey}}}` is the action card; elsewhere
+  // it is what the context holds, as without the helper. The context itself
+  // is left as it is.
+  let inAction = false;
+  handlebars.registerHelper('cardKey', function (this: unknown) {
+    return inAction
+      ? actionCardKey
+      : (this as { cardKey?: unknown } | null | undefined)?.cardKey;
+  });
   // Replaces the re-emitting helper: an action block never leaves a report.
   handlebars.registerHelper(
     actionMetadata.name,
     function (this: unknown, options: HelperOptions) {
-      // A primitive loop item is boxed, so `{{{this}}}` still renders it.
-      const context =
-        this !== null && typeof this === 'object'
-          ? { ...this, cardKey: actionCardKey }
-          : Object.assign(Object(this), { cardKey: actionCardKey });
-      const body = options.fn(context);
+      // Without the card, nothing is rendered, whatever the body would be.
+      if (!actionCardKey) return '';
+      let body: string;
+      inAction = true;
+      try {
+        body = options.fn(this);
+      } finally {
+        inAction = false;
+      }
       let input: unknown;
       try {
         input = JSON.parse(`{${body}}`);
@@ -138,13 +150,11 @@ export async function generateReportContent(
         actionMetadata,
         input,
       );
-      return actionCardKey
-        ? createInlineHtmlPlaceholder(actionMetadata, {
-            buttonLabel,
-            cardKey: actionCardKey,
-            programs: actions,
-          } satisfies ActionButtonOptions)
-        : '';
+      return createInlineHtmlPlaceholder(actionMetadata, {
+        buttonLabel,
+        cardKey: actionCardKey,
+        programs: actions,
+      } satisfies ActionButtonOptions);
     },
   );
 

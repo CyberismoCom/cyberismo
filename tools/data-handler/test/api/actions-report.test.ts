@@ -55,11 +55,12 @@ describe('action buttons in a report', () => {
     ]);
   });
 
+  // Without the card, the body would have no programs.
   it.each(['static', 'staticSite'] as const)(
     'renders nothing in %s mode',
     async (mode) => {
       const { out } = await render(
-        `before ${action('{{#quoted}}a.{{/quoted}}')} after`,
+        `before ${action('{{#if cardKey}}{{#quoted}}a.{{/quoted}}{{/if}}')} after`,
         mode,
       );
       expect(out).not.toContain('action-button');
@@ -97,6 +98,20 @@ describe('action buttons in a report', () => {
     expect(actionButtons(out).map((button) => button.programs)).toEqual([
       [`removeLabel(${keys[0]}, "urgent"). n(urgent).`],
       [`removeLabel(${keys[0]}, "7"). n(7).`],
+    ]);
+  });
+
+  it('leaves the row as it is inside the action', async () => {
+    const { out } = await render(
+      `{{#each items}}${action('{{#quoted}}{{#if this}}true.{{else}}false.{{/if}}{{#each this}} item({{{this}}}).{{/each}}{{/quoted}}')}\n{{/each}}`,
+      'inject',
+      () => ({ items: [false, 0, '', ['a', 'b']] }),
+    );
+    expect(actionButtons(out).map((button) => button.programs)).toEqual([
+      ['false.'],
+      ['false.'],
+      ['false.'],
+      ['true. item(a). item(b).'],
     ]);
   });
 

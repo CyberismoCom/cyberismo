@@ -369,7 +369,7 @@ router.post('/:key', requireRole(UserRole.Editor), async (c) => {
  * /api/cards/{key}/action:
  *   post:
  *     summary: Run an action's logic programs on a card
- *     description: The programs run in order as one write; each one is solved, then its effects are checked and applied to cards. actionCard/1 is the card in every program. A check refusal or logic error in the first program is returned as it is. Any later failure, while applying an effect or in a later program, returns the status of its cause (below) with `details.program` and `details.effect` (the failing effect, if any). Without autocommit, the effects applied before the failure stay applied.
+ *     description: The programs run in order as one write; each one is solved, then its effects are checked and applied to cards. actionCard/1 is the card in every program. A check refusal or logic error in the first program is returned as it is, with `details.applied` false, as nothing was applied. Any later failure, while applying an effect or in a later program, returns the status of its cause (below) with `details.program` and `details.effect` (the failing effect, if any). Without autocommit, the effects applied before the failure stay applied.
  *     parameters:
  *       - name: key
  *         in: path
@@ -411,7 +411,9 @@ router.post('/:key', requireRole(UserRole.Editor), async (c) => {
  *       503:
  *         description: The logic backend cannot answer now (code
  *                      `logic-unavailable`); retry after the Retry-After
- *                      header's seconds.
+ *                      header's seconds. Without `details.applied` false
+ *                      or `details.program`, it failed when the write
+ *                      completed, and the effects may have been applied.
  */
 router.post(
   '/:key/action',
