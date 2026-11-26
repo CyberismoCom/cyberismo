@@ -115,6 +115,15 @@ describe('action buttons in a report', () => {
     ]);
   });
 
+  it('leaves a cardKey section of the report as it is', async () => {
+    const { out, keys } = await render(
+      '{{#cardKey}}Card: {{this}}{{/cardKey}}|{{^cardKey}}none{{/cardKey}}|{{#with x}}{{^cardKey}}no key{{/cardKey}}{{/with}}',
+      'inject',
+      () => ({ x: { y: 1 } }),
+    );
+    expect(out.trim()).toBe(`Card: ${keys[0]}||no key`);
+  });
+
   it('clingoEscape keeps a hostile value inside its string', async () => {
     const owner = 'x"). evil(1). y("\\';
     const { out } = await render(

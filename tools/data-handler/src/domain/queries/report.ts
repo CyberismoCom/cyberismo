@@ -117,13 +117,21 @@ export async function generateReportContent(
   registerReportHelpers(handlebars);
   // Inside an action block, `{{{cardKey}}}` is the action card; elsewhere
   // it is what the context holds, as without the helper. The context itself
-  // is left as it is.
+  // is left as it is. A section, `{{#cardKey}}` or `{{^cardKey}}`, works on
+  // that value as it would without the helper.
   let inAction = false;
-  handlebars.registerHelper('cardKey', function (this: unknown) {
-    return inAction
-      ? actionCardKey
-      : (this as { cardKey?: unknown } | null | undefined)?.cardKey;
-  });
+  handlebars.registerHelper(
+    'cardKey',
+    function (this: unknown, options: HelperOptions) {
+      const value = inAction
+        ? actionCardKey
+        : (this as { cardKey?: unknown } | null | undefined)?.cardKey;
+      // A plain `{{cardKey}}` has no section to render.
+      return (options as Partial<HelperOptions>).fn
+        ? handlebars.helpers.blockHelperMissing.call(this, value, options)
+        : value;
+    },
+  );
   // Replaces the re-emitting helper: an action block never leaves a report.
   handlebars.registerHelper(
     actionMetadata.name,
