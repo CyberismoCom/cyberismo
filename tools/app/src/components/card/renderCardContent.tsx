@@ -118,12 +118,21 @@ export function renderCardHtml(html: string, options: RenderCardHtmlOptions) {
         verticalAlign: 'middle',
       };
       const className = node.attribs?.class ?? '';
+      // The marker classes tell the CSS whether a checklist item is done,
+      // for example to draw a checklist with the role "steps" as steps.
       if (className.includes('fa-check-square-o')) {
-        return <CheckBox color="primary" sx={checkboxSx} />;
+        return (
+          <CheckBox
+            className="checklist-marker checklist-marker--checked"
+            color="primary"
+            sx={checkboxSx}
+          />
+        );
       }
       if (className.includes('fa-square-o')) {
         return (
           <CheckBoxOutlineBlank
+            className="checklist-marker checklist-marker--unchecked"
             sx={{ ...checkboxSx, color: 'text.tertiary' }}
           />
         );

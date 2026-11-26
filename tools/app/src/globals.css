@@ -617,6 +617,85 @@
 .doc td.tableblock ul.checklist {
   padding-left: calc(1.5em - 1.25em);
 }
+/*
+ * A checklist with the role "steps" ([.steps] before the list) is a path of
+ * numbered steps. A done step has a tick, the first open step is the next
+ * step, and the later open steps are dimmed. Only the top-level items are
+ * steps: a nested list inside a step keeps its own look. The state comes from
+ * the checklist markers (checklist-marker--checked and --unchecked).
+ */
+.doc .ulist.steps > ul.checklist {
+  counter-reset: step;
+  padding-left: 0;
+}
+.doc .ulist.steps > ul.checklist > li {
+  counter-increment: step;
+  position: relative;
+  min-height: 1.875rem;
+  padding: 0.25rem 0 1rem 2.75rem;
+}
+.doc .ulist.steps > ul.checklist > li:last-child {
+  padding-bottom: 0;
+}
+.doc .ulist.steps > ul.checklist > li > p:first-child > .checklist-marker {
+  display: none;
+}
+.doc .ulist.steps > ul.checklist > li::before {
+  content: counter(step);
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  width: 1.875rem;
+  height: 1.875rem;
+  border-radius: 50%;
+  font-size: 0.875rem;
+  font-weight: 700;
+  background: var(--joy-palette-neutral-softBg, #e1e1e1);
+  color: var(--joy-palette-text-primary, #333);
+}
+/* The line between the circles */
+.doc .ulist.steps > ul.checklist > li:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  top: 1.875rem;
+  bottom: 0;
+  left: calc(0.9375rem - 1.5px);
+  width: 3px;
+  background: currentColor;
+  opacity: 0.2;
+}
+.doc
+  .ulist.steps
+  > ul.checklist
+  > li:has(> p:first-child > .checklist-marker--checked)::before {
+  content: '\2713';
+  background: var(--joy-palette-success-solidBg, #1f7a1f);
+  color: var(--joy-palette-success-solidColor, #fff);
+}
+/* The first open step is the next step */
+.doc
+  .ulist.steps
+  > ul.checklist
+  > li:has(> p:first-child > .checklist-marker--unchecked):not(
+    li:has(> p:first-child > .checklist-marker--unchecked) ~ li
+  )::before {
+  background: var(--joy-palette-warning-400, #eda100);
+  color: #1a1a1a;
+}
+/* The open steps after the next step */
+.doc
+  .ulist.steps
+  > ul.checklist
+  > li:has(> p:first-child > .checklist-marker--unchecked)
+  ~ li:has(> p:first-child > .checklist-marker--unchecked)
+  > p:first-child {
+  opacity: 0.6;
+}
 .doc .dlist .dlist,
 .doc .dlist .olist,
 .doc .dlist .ulist,

@@ -60,6 +60,22 @@ Above the editor, a *formatting toolbar* provides quick access to common operati
 | Insert a macro: Include, Xref, Create Cards, Report, or Graph
 |===
 
+=== Checklists as steps
+
+A checklist (`* [ ]` for an open item and `* [x]` for a done item) can show a path of numbered steps. Put the role `[.steps]` on the line before the list:
+
+[source,asciidoc]
+----
+[.steps]
+* [x] Name the project
+* [ ] Set the owner
+* [ ] Choose the libraries
+----
+
+Each top-level item is a step. A done step has a tick, the first open step is highlighted as the next step, and the later open steps are dimmed. A step can contain anything that a list item can, for example a field macro, a button, or a nested list. A report can write the checklist, so that the steps tick themselves when their work is done.
+
+The steps show in the app and in the static site export. Exported documents (AsciiDoc and PDF) show an ordinary checklist.
+
 == Managing attachments
 
 The attachments panel on the right side of the editor shows all files attached to the card. From here you can:
