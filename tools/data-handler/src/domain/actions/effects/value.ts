@@ -13,7 +13,9 @@ function isDate(text: string): boolean {
   const match = DATE.exec(text);
   if (!match) return false;
   const [year, month, day] = match.slice(1).map(Number);
-  const date = new Date(Date.UTC(year, month - 1, day));
+  // setUTCFullYear, as Date.UTC takes the years 0 to 99 as 1900 to 1999.
+  const date = new Date(0);
+  date.setUTCFullYear(year, month - 1, day);
   return (
     date.getUTCFullYear() === year &&
     date.getUTCMonth() === month - 1 &&
