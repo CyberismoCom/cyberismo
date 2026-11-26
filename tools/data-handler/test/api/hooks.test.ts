@@ -21,7 +21,15 @@ const field = (name: string) => `test/fieldTypes/${name}`;
 // a template whose root card is titled 'new', and one whose only card is.
 // Field 'other' is not a field of the card type, 'calc' is calculated.
 const spec = {
-  workflows: [flow],
+  workflows: [
+    {
+      ...flow,
+      transitions: [
+        ...flow.transitions,
+        { name: 'Reject', fromState: ['Review'], toState: 'Open' },
+      ],
+    },
+  ],
   fieldTypes: [
     { name: 'size', dataType: 'integer' },
     { name: 'level', dataType: 'enum', enumValues: ['low', 'high'] },
@@ -549,6 +557,24 @@ describe('hook field updates', () => {
     },
   );
 
+  it('runs a transition the action repeats itself again, with its hooks', async () => {
+    const { ws, keys, state } = await openWith(run('A', 'Start', 'B', 'Close'));
+    const solve = vi.spyOn(checkoutOf(ws).calculationEngine, 'runLogicProgram');
+
+    await ws.cards.runAction(keys[0], [
+      'transition(C, "Start") :- actionCard(C).',
+      'transition(C, "Reject") :- actionCard(C).',
+      'transition(C, "Start") :- actionCard(C).',
+    ]);
+
+    const hooksOfStart = solve.mock.calls.filter(([program]) =>
+      program.includes(`onTransitionSetField(${keys[0]}, "Start"`),
+    );
+    expect(hooksOfStart).toHaveLength(2);
+    expect(await state(0)).toBe('Review');
+    expect(await state(1)).toBe('Done');
+  });
+
   it("applies the hooks of an action's transition leniently", async () => {
     const { ws, keys, state } = await openWith(
       run('A', 'Start', 'B', 'Finish'),
@@ -572,7 +598,7 @@ describe('hook field updates', () => {
     const error = await ws.cards
       .runAction(keys[0], [
         'transition(C, "Start") :- actionCard(C).',
-        `transition(${keys[1]}, "Finish").`,
+        'transition(C, "Start") :- actionCard(C).',
       ])
       .catch((e: unknown) => e);
 

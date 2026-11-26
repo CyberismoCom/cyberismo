@@ -20,18 +20,26 @@ import {
 
 const logger = getChildLogger({ module: 'hooks' });
 
-// A (card, transition) pair as the visited set of a user operation holds it.
+// A (card, transition) pair as the visited map of a user operation holds it.
 const pair = (card: string, transition: string) => `${card}:${transition}`;
 
 /**
- * Whether a user operation has already run what a trigger is: a transition
- * in its visited set. An action's transition it has run is then in place.
- * @param visited The visited set the operation gives runHooks.
+ * The (card, transition) pairs a user operation has run or tried, each with
+ * whether a hook performed it. One map serves every trigger of the
+ * operation.
  */
-export function performed(visited: Set<string>, trigger: Trigger): boolean {
+export type Visited = Map<string, boolean>;
+
+/**
+ * Whether a hook of a user operation has already performed what a trigger
+ * is: an action's transition is then in place. A transition the action ran
+ * itself runs again when the action repeats it.
+ * @param visited The visited map the operation gives runHooks.
+ */
+export function performed(visited: Visited, trigger: Trigger): boolean {
   return (
     trigger.kind === 'transition' &&
-    visited.has(pair(trigger.card, trigger.transition))
+    visited.get(pair(trigger.card, trigger.transition)) === true
   );
 }
 
@@ -121,16 +129,17 @@ async function hookEffects(
  *
  * Never throws: an effect that cannot be applied is logged and skipped.
  * Runs inside a write.
- * @param visited The (card, transition) pairs the user operation has run;
- *   one set for every trigger of the operation.
+ * @param visited The (card, transition) pairs the user operation has run
+ *   or tried; one map for every trigger of the operation.
  */
 export async function runHooks(
   checkout: Checkout,
   trigger: Trigger,
-  visited = new Set<string>(),
+  visited: Visited = new Map(),
 ): Promise<void> {
   if (trigger.kind === 'transition') {
-    visited.add(pair(trigger.card, trigger.transition));
+    const key = pair(trigger.card, trigger.transition);
+    if (!visited.has(key)) visited.set(key, false);
   }
   // Each queued transition, what it sets off and the trigger whose hook
   // asked for it.
@@ -164,10 +173,13 @@ export async function runHooks(
       );
       continue;
     }
-    visited.add(key);
+    visited.set(key, false);
     await applyEffects(checkout, [effect], {
       ...lenient(trigger),
-      afterTrigger: consume,
+      afterTrigger: async (applied) => {
+        visited.set(key, true);
+        await consume(applied);
+      },
     });
   }
 }

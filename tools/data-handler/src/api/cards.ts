@@ -15,7 +15,7 @@ import type {
 import type { Checkout } from '../state/checkout/checkout.js';
 import { read, write } from '../infra/tx/rw-lock.js';
 import { runAction } from '../domain/actions/index.js';
-import { performed, runHooks } from '../domain/hooks/index.js';
+import { performed, runHooks, type Visited } from '../domain/hooks/index.js';
 import type { CommitIdentity } from '../infra/tx/tx-record.js';
 import {
   addAttachment,
@@ -169,8 +169,9 @@ export class Cards {
    * Runs an action's logic programs on a card, in order, as one write: each
    * program is solved, then its effects are checked and applied to cards.
    * Each applied create and transition runs its hooks before the next
-   * effect. A transition runs at most once in the action: a hook transition
-   * or an action's transition that already ran is skipped.
+   * effect. A hook does not repeat a transition the action already ran, and
+   * the action skips a transition a hook already performed; a transition
+   * the action repeats itself runs again, with its hooks.
    * @param cardKey Card the action runs on; actionCard/1 in every program.
    * @param programs The action's logic programs, one or more.
    */
@@ -179,7 +180,7 @@ export class Cards {
     cardKey: string,
     programs: string[],
   ): Promise<ActionResult> {
-    const visited = new Set<string>();
+    const visited: Visited = new Map();
     return runAction(this.checkout, cardKey, programs, {
       afterTrigger: (trigger) => runHooks(this.checkout, trigger, visited),
       performed: (trigger) => performed(visited, trigger),
@@ -324,7 +325,7 @@ export class Cards {
     templateName: string,
     parentCardKey?: string,
   ): Promise<Card[]> {
-    return this.createWithHooks(templateName, parentCardKey, new Set());
+    return this.createWithHooks(templateName, parentCardKey, new Map());
   }
 
   /**
@@ -337,7 +338,7 @@ export class Cards {
     csv: string,
     parentCardKey?: string,
   ): Promise<string[]> {
-    const visited = new Set<string>();
+    const visited: Visited = new Map();
     return importCsv(this.checkout, csv, parentCardKey, (template, parent) =>
       this.createWithHooks(template, parent, visited),
     );
@@ -348,7 +349,7 @@ export class Cards {
   private async createWithHooks(
     templateName: string,
     parentCardKey: string | undefined,
-    visited: Set<string>,
+    visited: Visited,
   ): Promise<Card[]> {
     const created = await createCard(
       this.checkout,
