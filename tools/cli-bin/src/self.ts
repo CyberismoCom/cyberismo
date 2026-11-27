@@ -79,12 +79,15 @@ export function registerSelf(program: Command, buildId: string) {
           `no build of ${target} is downloaded; get it with: cyberismo-dev self install ${target}`,
         );
       }
+      // main.ts pointed these at this build's assets; without them the other
+      // build extracts and serves its own.
+      const env = { ...process.env };
+      delete env.CYBERISMO_STATIC_DIR;
+      delete env.CYBERISMO_PUBLIC_DIR;
       const result = spawnSync(
         join(versionsDir, build, 'cyberismo-dev'),
         args,
-        {
-          stdio: 'inherit',
-        },
+        { stdio: 'inherit', env },
       );
       if (result.error) throw result.error;
       process.exitCode = result.status ?? 1;
