@@ -130,11 +130,11 @@ async function openProject() {
       name: `mymodule/reports/${report}`,
       ...parameters,
     }).slice(1, -1);
-    const { content } = await project.ws.render.macros(
+    const rendered = await project.ws.render.macros(
       `{{#report}}${body}{{/report}}`,
       { cardKey: host, context: 'localApp', mode: 'inject' },
     );
-    return actionButtons(content);
+    return actionButtons(rendered);
   };
   const click = ({ cardKey, programs }: ActionButtonOptions) =>
     project.ws.cards.runAction(cardKey, programs);

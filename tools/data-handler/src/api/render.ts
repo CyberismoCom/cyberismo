@@ -1,7 +1,11 @@
 // SPDX-FileCopyrightText: Cyberismo Ltd and contributors
 // SPDX-License-Identifier: AGPL-3.0-only
 
-import type { RenderedContent, RenderOptions } from '@cyberismo/model';
+import type {
+  RenderedContent,
+  RenderedPart,
+  RenderOptions,
+} from '@cyberismo/model';
 import type { Checkout } from '../state/checkout/checkout.js';
 import { rewriteAsciidocCardXrefs } from '../domain/macros/index.js';
 import { read } from '../infra/tx/rw-lock.js';
@@ -21,9 +25,11 @@ export class Render {
   constructor(private readonly checkout: Checkout) {}
 
   /**
-   * Evaluates the macros of `content`. A failing macro gives its error text
-   * followed by the fallback instead, and the error message. A logic backend
-   * that cannot answer now fails the call instead.
+   * Evaluates the macros of `content`. Each interactive macro becomes a part
+   * reference in the content and a part in `parts`, which holds only the
+   * parts the content refers to. A failing macro gives its error text
+   * followed by the fallback instead, the error message and no parts. A
+   * logic backend that cannot answer now fails the call instead.
    */
   @read
   public async macros(
@@ -31,13 +37,18 @@ export class Render {
     options: RenderOptions,
   ): Promise<RenderedContent> {
     const { fallback = content, ...context } = options;
+    const parts = new Map<string, RenderedPart>();
     try {
+      const rendered = await evaluateMacros(content, {
+        ...context,
+        checkout: this.checkout,
+        parts,
+      });
       return {
-        content: await evaluateMacros(content, {
-          ...context,
-          checkout: this.checkout,
-        }),
-        parts: {},
+        content: rendered,
+        parts: Object.fromEntries(
+          [...parts].filter(([id]) => rendered.includes(id)),
+        ),
       };
     } catch (error) {
       if (error instanceof LogicUnavailableError) throw error;

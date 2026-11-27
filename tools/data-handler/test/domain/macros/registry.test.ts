@@ -25,7 +25,6 @@ import { copyDir } from '../../../src/shared/utils/file-utils.js';
 import { getTestProject } from '../../helpers/test-utils.js';
 import {
   createAdmonition,
-  createHtmlPlaceholder,
   createMacro,
   evaluateMacros,
   registerMacros,
@@ -36,7 +35,7 @@ import TaskQueue from '../../../src/domain/macros/task-queue.js';
 
 import { MAX_LEVEL_OFFSET, ROOT } from '../../../src/shared/utils/constants.js';
 
-import type { Card } from '@cyberismo/model';
+import type { Card, RenderedPart } from '@cyberismo/model';
 import type { MacroGenerationContext } from '../../../src/shared/interfaces/macros.js';
 import { CardNotFoundError } from '../../../src/shared/exceptions/index.js';
 import type { Mode } from '../../../src/shared/interfaces/macros.js';
@@ -154,7 +153,8 @@ describe('macros', () => {
           cardKey: '',
           context: 'localApp',
         });
-        expect(result).toContain('<create-cards');
+        expect(result).toMatch(/\ncyberismo-part::[0-9a-f]{64}\[\]\n/);
+        expect(result).not.toContain('<create-cards');
       });
       it('createCards static (success)', async () => {
         const result = await evaluateMacros(validAdoc, {
@@ -163,7 +163,7 @@ describe('macros', () => {
           cardKey: '',
           context: 'localApp',
         });
-        expect(result).not.toContain('<create-cards>');
+        expect(result).not.toContain('cyberismo-part');
       });
       it('createCards exportSite (success)', async () => {
         const result = await evaluateMacros(validAdoc, {
@@ -172,7 +172,7 @@ describe('macros', () => {
           cardKey: '',
           context: 'localApp',
         });
-        expect(result).not.toContain('<create-cards');
+        expect(result).not.toContain('cyberismo-part');
       });
     });
     describe('createLinks', () => {
@@ -185,12 +185,18 @@ describe('macros', () => {
 ${q}
 {{/quoted}}
 {{/createLinks}}`;
-      const run = (mode: Mode, body: string, q = query) =>
+      const run = (
+        mode: Mode,
+        body: string,
+        q = query,
+        parts = new Map<string, RenderedPart>(),
+      ) =>
         evaluateMacros(linksAdoc(body, q), {
           mode,
           checkout,
           cardKey: '',
           context: 'localApp',
+          parts,
         });
       const valid = '"linkType": "decision/linkTypes/testTypes"';
 
@@ -201,13 +207,15 @@ ${q}
         },
       );
 
-      it('passes the query through quoted in the placeholder', async () => {
-        const result = await run('inject', valid);
-        expect(result).toContain('<create-links');
-        const options = /options="([^"]*)"/.exec(result)![1];
-        expect(
-          JSON.parse(Buffer.from(options, 'base64').toString('utf-8')),
-        ).toEqual({ linkType: 'decision/linkTypes/testTypes', query });
+      it('passes the query through quoted in the part', async () => {
+        const parts = new Map<string, RenderedPart>();
+        const result = await run('inject', valid, query, parts);
+        const id = /cyberismo-part::([0-9a-f]{64})\[\]/.exec(result)![1];
+        expect(parts.get(id)).toEqual({
+          kind: 'macro',
+          macro: 'createLinks',
+          options: { linkType: 'decision/linkTypes/testTypes', query },
+        });
       });
 
       it.each([
@@ -1430,51 +1438,6 @@ Some content here`;
     });
   });
   describe('adoc helpers', () => {
-    it('createHtmlPlaceholder (success)', () => {
-      const options = {
-        test: 'test-data',
-      };
-
-      const result = createHtmlPlaceholder(macro.metadata, options);
-      expect(result).toContain('test-tag-name');
-      expect(result).toContain('options="');
-
-      const optionsBase64 = Buffer.from(
-        JSON.stringify(options),
-        'utf-8',
-      ).toString('base64');
-
-      expect(result).toContain(optionsBase64);
-    });
-    it('createHtmlPlaceholder (success) without data', () => {
-      const result = createHtmlPlaceholder(macro.metadata, {});
-      expect(result).toContain('test-tag-name');
-      expect(result).toContain('options="');
-
-      const optionsBase64 = Buffer.from(JSON.stringify({}), 'utf-8').toString(
-        'base64',
-      );
-      expect(result).toContain(optionsBase64);
-    });
-    it('createHtmlPlaceholder with nested objects (dot notation)', () => {
-      const options = {
-        key: 'test',
-        anotherKey: {
-          key1: 'test',
-          key2: 'test2',
-          nested: {
-            deepValue: 'deep',
-          },
-        },
-      };
-      const result = createHtmlPlaceholder(macro.metadata, options);
-
-      const optionsBase64 = Buffer.from(
-        JSON.stringify(options),
-        'utf-8',
-      ).toString('base64');
-      expect(result).toContain(optionsBase64);
-    });
     it('createAdmonition (success)', () => {
       const result = createAdmonition('WARNING', 'test-title', 'test-content');
       expect(result).toEqual(

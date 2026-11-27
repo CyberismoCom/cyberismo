@@ -4,14 +4,15 @@
 import Handlebars, { type HelperOptions } from 'handlebars';
 import type { CalculationEngine } from '../../state/engine/calculation-engine.js';
 import {
-  createInlineHtmlPlaceholder,
   registerEmptyMacros,
   validateMacroContent,
 } from '../macros/registry.js';
+import { placeMacro } from '../macros/parts.js';
 import type {
   ActionButtonOptions,
   ActionMacroOptions,
   Context,
+  RenderedPart,
 } from '@cyberismo/model';
 import actionMetadata from '@cyberismo/model/macros/action/metadata';
 import {
@@ -45,11 +46,13 @@ interface GenerateReportContentParams {
    */
   contentRequested?: boolean;
   /**
-   * The card the report is rendered on, given only when action buttons are
-   * rendered. Inside an `action` block, `cardKey` is this card, whatever the
-   * report parameters say. Without it, an action block renders nothing.
+   * Given only when action buttons are rendered: the card the report is
+   * rendered on, and the parts of the render the report is in, where each
+   * button is placed. Inside an `action` block, `cardKey` is this card,
+   * whatever the report parameters say. Without it, an action block renders
+   * nothing.
    */
-  actionCardKey?: string;
+  action?: { cardKey: string; parts: Map<string, RenderedPart> };
 }
 
 /**
@@ -71,7 +74,7 @@ export async function generateReportContent(
     context,
     requested,
     contentRequested,
-    actionCardKey,
+    action,
   } = params;
 
   const handlebars = Handlebars.create();
@@ -124,7 +127,7 @@ export async function generateReportContent(
     'cardKey',
     function (this: unknown, options: HelperOptions) {
       const value = inAction
-        ? actionCardKey
+        ? action?.cardKey
         : (this as { cardKey?: unknown } | null | undefined)?.cardKey;
       // A plain `{{cardKey}}` has no section to render.
       return (options as Partial<HelperOptions>).fn
@@ -137,7 +140,7 @@ export async function generateReportContent(
     actionMetadata.name,
     function (this: unknown, options: HelperOptions) {
       // Without the card, nothing is rendered, whatever the body would be.
-      if (!actionCardKey) return '';
+      if (!action) return '';
       let body: string;
       inAction = true;
       try {
@@ -158,11 +161,16 @@ export async function generateReportContent(
         actionMetadata,
         input,
       );
-      return createInlineHtmlPlaceholder(actionMetadata, {
-        buttonLabel,
-        cardKey: actionCardKey,
-        programs: actions,
-      } satisfies ActionButtonOptions);
+      return placeMacro(
+        action,
+        actionMetadata,
+        {
+          buttonLabel,
+          cardKey: action.cardKey,
+          programs: actions,
+        } satisfies ActionButtonOptions,
+        'inline',
+      );
     },
   );
 

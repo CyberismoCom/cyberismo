@@ -10,6 +10,7 @@ import { CalculationEngine } from '../../../src/state/engine/calculation-engine.
 import { evaluateMacros } from '../../../src/domain/macros/registry.js';
 import { checkoutOf } from '../../../src/state/checkout/internal.js';
 import { projects } from '../cards/fixture.js';
+import { macroParts } from '../../helpers/content-parts.js';
 
 const open = projects();
 
@@ -73,12 +74,12 @@ async function render(
   const { ws, keys } = built;
   if (text) await ws.cards.editField(keys[0], TEXT, text(keys));
   const source = typeof content === 'string' ? content : content(built);
-  const { content: out } = await ws.render.macros(source, {
+  const rendered = await ws.render.macros(source, {
     cardKey: keys[host],
     context: 'localApp',
     mode,
   });
-  return { out, keys, built };
+  return { out: rendered.content, rendered, keys, built };
 }
 
 // Text of the single paragraph Asciidoctor makes of `adoc`; null if it holds markup.
@@ -213,35 +214,30 @@ describe('field macro', () => {
   ])(
     'emits a placeholder carrying the card, field, display and label for $name',
     async ({ cardKey, extra, want, display, showLabel }) => {
-      const { out, built } = await render((b) => {
+      const { rendered, built } = await render((b) => {
         const key = cardKey(b);
         return macro(
           `${key ? `"cardKey": "${key}", ` : ''}"field": "title"${extra}`,
         );
       }, 'inject');
 
-      const options = out.match(
-        /<card-field options="([^"]+)"><\/card-field>/,
-      )?.[1];
-      expect(JSON.parse(Buffer.from(options!, 'base64').toString())).toEqual({
-        cardKey: want(built),
-        field: 'title',
-        showLabel,
-        display,
-      });
+      expect(macroParts(rendered, 'field')).toEqual([
+        {
+          cardKey: want(built),
+          field: 'title',
+          showLabel,
+          display,
+        },
+      ]);
     },
   );
 
   it.each([
-    [
-      'row',
-      '',
-      /^before \n\n\+\+\+\+\n<card-field [^\n]*<\/card-field>\n\+\+\+\+\n\n after$/,
-    ],
+    ['row', '', /^before \n\ncyberismo-part::[0-9a-f]{64}\[\]\n\n after$/],
     [
       'inline',
       ', "display": "inline"',
-      /^before pass:\[<card-field [^\n]*<\/card-field>\] after$/,
+      /^before cyberismo-part:[0-9a-f]{64}\[\] after$/,
     ],
   ])('shapes a %s placeholder to fit its display', async (_, extra, shape) => {
     const { out } = await render(
@@ -399,20 +395,20 @@ describe('field macro', () => {
     });
     const run = async (field: string, mode: RenderOptions['mode']) => {
       const { ws, keys } = await open(reportSpec(field));
-      const { content } = await ws.render.macros(
+      const rendered = await ws.render.macros(
         `{{#report}}"name": "test/reports/rows"{{/report}}`,
         { cardKey: keys[0], context: 'localApp', mode },
       );
-      return { content, keys };
+      return { content: rendered.content, rendered, keys };
     };
     const rowKey = '"cardKey": "{{this.key}}", "field": "title"';
 
     it('gives each row its own card in inject mode', async () => {
-      const { content, keys } = await run(rowKey, 'inject');
+      const { rendered, keys } = await run(rowKey, 'inject');
 
-      const targets = [
-        ...content.matchAll(/<card-field options="([^"]+)"><\/card-field>/g),
-      ].map((m) => JSON.parse(Buffer.from(m[1], 'base64').toString()).cardKey);
+      const targets = macroParts<{ cardKey: string }>(rendered, 'field').map(
+        (options) => options.cardKey,
+      );
       expect(targets.sort()).toEqual([...keys].sort());
     });
 

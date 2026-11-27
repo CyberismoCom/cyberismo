@@ -1,7 +1,8 @@
 // SPDX-FileCopyrightText: Cyberismo Ltd and contributors
 // SPDX-License-Identifier: AGPL-3.0-only
 
-import { createHtmlPlaceholder, validateMacroContent } from '../registry.js';
+import { validateMacroContent } from '../registry.js';
+import { placeMacro } from '../parts.js';
 
 import type { CreateLinksOptions } from '@cyberismo/model';
 import type { MacroGenerationContext } from '../../../shared/interfaces/macros.js';
@@ -30,7 +31,7 @@ class CreateLinksMacro extends BaseMacro {
 
   handleInject = async (context: MacroGenerationContext, input: unknown) => {
     const options = this.validate(context, input);
-    return createHtmlPlaceholder(this.metadata, options);
+    return placeMacro(context, this.metadata, options);
   };
 
   handleStaticSite = async () => {

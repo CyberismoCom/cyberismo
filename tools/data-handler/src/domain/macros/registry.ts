@@ -248,7 +248,11 @@ export async function evaluateMacros(
   context: MacroGenerationContext,
   preserveRawBlocks: boolean = false,
 ) {
-  context = { ...context, cardQueries: context.cardQueries ?? new Map() };
+  context = {
+    ...context,
+    cardQueries: context.cardQueries ?? new Map(),
+    parts: context.parts ?? new Map(),
+  };
   const handlebars = Handlebars.create();
   const tasks = new TaskQueue();
   await registerMacros(handlebars, context, tasks);
@@ -391,40 +395,6 @@ export function handleMacroError(
   } else {
     return createAdmonition('WARNING', 'Macro Error', message);
   }
-}
-
-/**
- * Converts object to base64
- * @param obj Object to convert
- * @returns base64 conversion (as a Buffer)
- */
-function objectToBase64(obj: unknown): string {
-  return Buffer.from(JSON.stringify(obj), 'utf-8').toString('base64');
-}
-/**
- * Creates a placeholder for a macro
- * Options are encoded as base64
- * @param macro - The macro to create a placeholder for
- * @param options - The options for the macro
- * @returns The placeholder for the macro
- */
-export function createHtmlPlaceholder(macro: MacroMetadata, options: unknown) {
-  const optionsBase64 = objectToBase64(options);
-  return `\n\n++++\n<${macro.tagName} options="${optionsBase64}"></${macro.tagName}>\n++++\n\n`;
-}
-
-/**
- * Creates an HTML placeholder that stays inside its paragraph or table cell
- * @param macro - The macro metadata
- * @param options - The options for the macro
- * @returns The inline placeholder for the macro
- */
-export function createInlineHtmlPlaceholder(
-  macro: MacroMetadata,
-  options: unknown,
-) {
-  const optionsBase64 = objectToBase64(options);
-  return `pass:[<${macro.tagName} options="${optionsBase64}"></${macro.tagName}>]`;
 }
 
 /**

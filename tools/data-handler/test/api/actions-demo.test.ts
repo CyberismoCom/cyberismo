@@ -39,7 +39,7 @@ it('every button of the action macro demo does what the report says', async () =
     context: 'localApp',
     mode: 'inject',
   });
-  const buttons = actionButtons(rendered.content);
+  const buttons = actionButtons(rendered);
 
   const meta = (key: string) => metadataOf(ws, key);
   const child = async (title: string) => {
