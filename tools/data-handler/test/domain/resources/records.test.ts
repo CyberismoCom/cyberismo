@@ -67,6 +67,17 @@ describe('what a resource change records', () => {
       entry: `resource_update ${level}`,
     },
     {
+      change: 'a field visibility change',
+      apply: ({ ws }) =>
+        ws.resources.setFieldVisibility(
+          'test/cardTypes/page',
+          'test/fieldTypes/size',
+          'optional',
+          0,
+        ),
+      subject: 'Update field visibility for test/cardTypes/page',
+    },
+    {
       change: 'a rename',
       apply: ({ ws }) => rename(ws, 'test/calculations/calc', 'sum'),
       subject: 'Rename test/calculations/calc to sum',

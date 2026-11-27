@@ -18,7 +18,11 @@ import type { Checkout } from '../state/checkout/checkout.js';
 import type { ResourceMap } from '../state/resources/resource-cache.js';
 import { pluralResourceType } from '../state/resources/resource-handler.js';
 import type { ResourcesFrom } from '../state/resources/resources-from.js';
-import { createSubject } from '../domain/resources/index.js';
+import {
+  createSubject,
+  setFieldVisibility,
+  type FieldVisibility,
+} from '../domain/resources/index.js';
 import {
   getSkill,
   listSkills,
@@ -98,6 +102,35 @@ export class Resources {
         identifier: parsed.identifier,
       },
     });
+  }
+
+  /**
+   * Puts a custom field of a card type in a visibility group, optionally at
+   * a position among the group's fields. A field already in the group is
+   * only moved to the position.
+   * @param cardTypeName The card type: its identifier in this project, or
+   *   its full name.
+   * @param fieldName Name of the custom field.
+   * @param group 'always' or 'optional' visible, or 'hidden' (in neither).
+   * @param index Position in the group; 0 is first. Last when the field
+   *   comes from another group without one. Ignored for 'hidden'.
+   * @throws ResourceNotFoundError if the card type, or the field in it, does
+   *   not exist.
+   */
+  @write((cardTypeName) => `Update field visibility for ${cardTypeName}`)
+  public async setFieldVisibility(
+    cardTypeName: string,
+    fieldName: string,
+    group: FieldVisibility,
+    index?: number,
+  ): Promise<void> {
+    await setFieldVisibility(
+      this.checkout,
+      cardTypeName,
+      fieldName,
+      group,
+      index,
+    );
   }
 
   /** The resource's validation errors; '' when it is valid. */

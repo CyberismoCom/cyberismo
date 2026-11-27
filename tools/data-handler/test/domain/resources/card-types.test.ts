@@ -4,7 +4,10 @@
 import { readFile, writeFile } from 'node:fs/promises';
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { ResourceNotFoundError } from '../../../src/shared/exceptions/index.js';
+import {
+  DHValidationError,
+  ResourceNotFoundError,
+} from '../../../src/shared/exceptions/index.js';
 import {
   edit,
   expectRefused,
@@ -12,6 +15,7 @@ import {
   projects,
   remove,
   rename,
+  snapshot,
   spec,
 } from './fixture.js';
 import { Validate } from '../../../src/domain/validation/validate.js';
@@ -139,6 +143,154 @@ describe('card types', () => {
         );
       });
     });
+  });
+
+  describe('setting field visibility', () => {
+    const level = 'test/fieldTypes/level';
+    const visibility = async (ws: Awaited<ReturnType<typeof open>>['ws']) => {
+      const { alwaysVisibleFields, optionallyVisibleFields } =
+        await customFields(ws, page);
+      return { always: alwaysVisibleFields, optional: optionallyVisibleFields };
+    };
+
+    it('puts hidden fields in a group, last or at a position', async () => {
+      const { ws } = await open(spec);
+
+      await ws.resources.setFieldVisibility(page, size, 'always');
+      await ws.resources.setFieldVisibility(page, note, 'always');
+      await ws.resources.setFieldVisibility(page, level, 'always', 0);
+
+      expect(await visibility(ws)).toEqual({
+        always: [level, size, note],
+        optional: [],
+      });
+    });
+
+    it('moves a field from one group to the other', async () => {
+      const { ws } = await open(spec);
+      await ws.resources.setFieldVisibility(page, size, 'always');
+      await ws.resources.setFieldVisibility(page, note, 'optional');
+
+      await ws.resources.setFieldVisibility(page, size, 'optional', 0);
+
+      expect(await visibility(ws)).toEqual({
+        always: [],
+        optional: [size, note],
+      });
+    });
+
+    it('only reorders a field within its group', async () => {
+      const { ws } = await open(spec);
+      await ws.resources.setFieldVisibility(page, size, 'always');
+      await ws.resources.setFieldVisibility(page, note, 'always');
+
+      await ws.resources.setFieldVisibility(page, note, 'always', 0);
+
+      expect(await visibility(ws)).toEqual({
+        always: [note, size],
+        optional: [],
+      });
+    });
+
+    it('hides a field, ignoring a position', async () => {
+      const { ws } = await open(spec);
+      await ws.resources.setFieldVisibility(page, size, 'optional');
+
+      await ws.resources.setFieldVisibility(page, size, 'hidden', 3);
+
+      expect(await visibility(ws)).toEqual({ always: [], optional: [] });
+    });
+
+    it('changes nothing hiding a hidden field', async () => {
+      const { ws, path } = await open(spec);
+      const before = snapshot(path);
+
+      await ws.resources.setFieldVisibility(page, size, 'hidden');
+
+      expect(snapshot(path)).toEqual(before);
+    });
+
+    it.each([
+      [
+        'a field the card type lacks',
+        page,
+        'test/fieldTypes/nope',
+        ResourceNotFoundError,
+      ],
+      [
+        'a missing card type',
+        'test/cardTypes/nope',
+        size,
+        ResourceNotFoundError,
+      ],
+      ["a workflow's name", 'test/workflows/flow', size, DHValidationError],
+    ])(
+      'refuses %s, changing nothing',
+      async (_name, cardType, field, error) => {
+        const { ws, path } = await open(spec);
+
+        await expectRefused(
+          path,
+          () => ws.resources.setFieldVisibility(cardType, field, 'always'),
+          error,
+        );
+      },
+    );
+
+    it('takes the identifier of a card type of the project', async () => {
+      const { ws } = await open(spec);
+      await ws.resources.setFieldVisibility('page', note, 'optional');
+
+      await ws.resources.setFieldVisibility('page', size, 'always');
+      await ws.resources.setFieldVisibility('page', note, 'always', 0);
+
+      expect(await visibility(ws)).toEqual({
+        always: [note, size],
+        optional: [],
+      });
+    });
+
+    it('puts a field last at the position after the other fields', async () => {
+      const { ws } = await open(spec);
+      await ws.resources.setFieldVisibility(page, note, 'always');
+
+      await ws.resources.setFieldVisibility(page, size, 'always', 1);
+
+      expect(await visibility(ws)).toEqual({
+        always: [note, size],
+        optional: [],
+      });
+    });
+
+    // Without autocommit a failed write is not rolled back: the position is
+    // checked before the field moves.
+    it.each([2, -1])(
+      'refuses the position %i, changing nothing',
+      async (index) => {
+        const { ws, path } = await open(spec);
+        await ws.resources.setFieldVisibility(page, note, 'always');
+
+        await expectRefused(
+          path,
+          () => ws.resources.setFieldVisibility(page, size, 'always', index),
+          DHValidationError,
+        );
+      },
+    );
+
+    it.each([NaN, 0.5])(
+      'refuses the position %s for a field from the other group, changing nothing',
+      async (index) => {
+        const { ws, path } = await open(spec);
+        await ws.resources.setFieldVisibility(page, size, 'optional');
+
+        await expectRefused(
+          path,
+          () => ws.resources.setFieldVisibility(page, size, 'always', index),
+          /^Index must be a whole number$/,
+        );
+      },
+    );
   });
 
   describe('changing the workflow', () => {

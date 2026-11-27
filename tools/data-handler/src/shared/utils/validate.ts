@@ -98,3 +98,21 @@ export function validateJson<T>(
   // we know that the object is valid, so we can safely cast it to T
   return object as T;
 }
+
+/**
+ * Checks that `index` is a position among `count` items: a whole number from
+ * 0 (first) to `count` (after the last).
+ * @throws DHValidationError if the index is not a whole number, is negative
+ *   or is past the end
+ */
+export function checkPosition(index: number, count: number): void {
+  if (!Number.isInteger(index)) {
+    throw new DHValidationError(`Index must be a whole number`);
+  }
+  if (index < 0) {
+    throw new DHValidationError(`Index must not be negative`);
+  }
+  if (index > count) {
+    throw new DHValidationError(`Index ${index} is out of bounds`);
+  }
+}
