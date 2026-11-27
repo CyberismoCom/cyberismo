@@ -458,7 +458,7 @@ export function registerTools(
         - workflowState: Current workflow state name
         - availableTransitions: Array of {name, toState, toStateCategory} - valid transitions from current state
         - rawContent: Original AsciiDoc content
-        - parsedContent: HTML-rendered content with macros evaluated; field macros appear as <card-field> placeholders and their values are in fields
+        - parsedContent: HTML-rendered content with macros evaluated; each interactive macro (field, createCards, createLinks, mermaid, vega, a report's action button) appears as its macro source with the options the server resolved, in <code class="cyberismo-part" data-kind="macro"> inline or <pre class="cyberismo-part" data-kind="macro"> as a block; field values are in fields
         - fields: Array of field metadata including:
           - key, displayName, description, dataType, value
           - isCalculated, isEditable
