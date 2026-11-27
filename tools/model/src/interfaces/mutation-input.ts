@@ -15,7 +15,7 @@ import type { ResourceName } from './resource-name.js';
 
 /** Parameters of a resource create, per resource type. */
 export interface CreateParamsByType {
-  calculations: { content?: CalculationMetadata };
+  calculations: { content?: CalculationMetadata; displayName?: string };
   cardTypes: { workflow: string };
   fieldTypes: { dataType: DataType };
   graphModels: { content?: GraphModelMetadata };

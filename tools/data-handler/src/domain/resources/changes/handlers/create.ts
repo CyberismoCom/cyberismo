@@ -11,8 +11,10 @@ export class CreateHandler implements Handler<CreateInput> {
     const resources = ctx.checkout.resources;
     switch (target.type) {
       case 'calculations': {
-        const { content } = params<'calculations'>(ctx);
-        return resources.byType<'calculations'>(target).create(content);
+        const { content, displayName } = params<'calculations'>(ctx);
+        return resources
+          .byType<'calculations'>(target)
+          .create(content, displayName);
       }
       case 'cardTypes': {
         const { workflow } = params<'cardTypes'>(ctx);
