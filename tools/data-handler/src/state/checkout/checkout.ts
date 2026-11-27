@@ -181,8 +181,16 @@ export class Checkout {
       });
 
       // Rollback on failed writes
-      this.lock.onWriteError(async () => {
+      this.lock.onWriteError(async (_error, tx) => {
         await this.gitManager.rollback();
+        for (const undo of [...tx.undo].reverse()) {
+          try {
+            await undo();
+          } catch (undoError) {
+            // The write's own error is the one its caller needs.
+            this.logger.error({ error: undoError }, 'Undo on rollback failed');
+          }
+        }
         await this.repopulate();
       });
     } else {

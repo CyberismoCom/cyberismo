@@ -115,10 +115,7 @@ export const settings: ApiSerializable<Settings> &
   description: true,
   info: true,
   gitRemoteUrl: true,
-  setName: true,
-  setDescription: true,
-  setCategory: true,
-  setGitRemoteUrl: true,
+  update: true,
 };
 
 export const hubs: ApiSerializable<Hubs> & PropertiesSerializable<Hubs> = {

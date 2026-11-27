@@ -147,10 +147,27 @@ export class GitManager {
   async getRemoteUrl(
     remoteName: string = GitManager.DEFAULT_REMOTE,
   ): Promise<string | null> {
+    return this.remoteRef(remoteName, 'push');
+  }
+
+  /**
+   * Get the fetch URL of a named remote, the one `setRemoteUrl` changes.
+   * Returns null if the remote does not exist or the directory is not a git repo.
+   */
+  async getRemoteFetchUrl(
+    remoteName: string = GitManager.DEFAULT_REMOTE,
+  ): Promise<string | null> {
+    return this.remoteRef(remoteName, 'fetch');
+  }
+
+  private async remoteRef(
+    remoteName: string,
+    ref: 'fetch' | 'push',
+  ): Promise<string | null> {
     try {
       const remotes = await this.git.getRemotes(true);
       const remote = remotes.find((r) => r.name === remoteName);
-      return remote?.refs?.push ?? null;
+      return remote?.refs?.[ref] ?? null;
     } catch {
       return null;
     }
@@ -174,6 +191,17 @@ export class GitManager {
       await this.git.addRemote(remoteName, url);
     }
     this.logger.info({ remoteName, url }, 'Remote URL updated');
+  }
+
+  /** Remove a named remote. Does nothing if there is no such remote. */
+  async removeRemote(
+    remoteName: string = GitManager.DEFAULT_REMOTE,
+  ): Promise<void> {
+    const remotes = await this.git.getRemotes();
+    if (remotes.some((r) => r.name === remoteName)) {
+      await this.git.removeRemote(remoteName);
+      this.logger.info({ remoteName }, 'Remote removed');
+    }
   }
 
   /**

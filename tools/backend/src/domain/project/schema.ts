@@ -7,9 +7,8 @@ export const moduleParamSchema = z.object({
   module: z.string().min(1),
 });
 
-export const updateProjectSchema = z.object({
+export const updateProjectSchema = z.strictObject({
   name: z.string().optional(),
-  cardKeyPrefix: z.string().optional(),
   description: z.string().optional(),
   category: z.string().optional(),
   gitRemoteUrl: z
@@ -18,6 +17,10 @@ export const updateProjectSchema = z.object({
       message: 'Git remote URL must start with https:// or git@',
     })
     .optional(),
+});
+
+export const renamePrefixSchema = z.strictObject({
+  cardKeyPrefix: z.string().min(1),
 });
 
 export const addHubSchema = z.object({

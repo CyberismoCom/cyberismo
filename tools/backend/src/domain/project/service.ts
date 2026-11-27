@@ -1,7 +1,11 @@
 // SPDX-FileCopyrightText: Cyberismo Ltd and contributors
 // SPDX-License-Identifier: AGPL-3.0-only
 
-import { type ProjectDirectory, type Workspace } from '@cyberismo/data-handler';
+import {
+  type ProjectDirectory,
+  type SettingsUpdate,
+  type Workspace,
+} from '@cyberismo/data-handler';
 import {
   type CleanResult,
   type HubFetchFailure,
@@ -22,14 +26,6 @@ export interface ProjectInfo {
   category: string;
   modules: ProjectModule[];
   gitRemoteUrl: string | null;
-}
-
-export interface ProjectUpdatePayload {
-  name?: string;
-  cardKeyPrefix?: string;
-  description?: string;
-  category?: string;
-  gitRemoteUrl?: string;
 }
 
 export interface HubModuleInfo {
@@ -85,35 +81,23 @@ export async function getProject(ws: Workspace): Promise<ProjectInfo> {
 
 export async function updateProject(
   ws: Workspace,
-  directory: ProjectDirectory,
-  updates: ProjectUpdatePayload,
+  changes: SettingsUpdate,
 ): Promise<ProjectInfo> {
-  const { name, cardKeyPrefix, description, category, gitRemoteUrl } = updates;
+  await ws.settings.update(changes);
+  return getProject(ws);
+}
 
-  await ws.atomic(async () => {
-    if (cardKeyPrefix) {
-      await directory.rename(
-        ws.settings.prefix,
-        cardKeyPrefix,
-        ws.actor,
-        ws.identity,
-      );
-    }
-    if (name) {
-      await ws.settings.setName(name);
-    }
-    if (description !== undefined) {
-      await ws.settings.setDescription(description);
-    }
-    if (category !== undefined) {
-      await ws.settings.setCategory(category);
-    }
-  }, 'Update project settings');
-
-  if (gitRemoteUrl !== undefined) {
-    await ws.settings.setGitRemoteUrl(gitRemoteUrl);
-  }
-
+export async function renamePrefix(
+  ws: Workspace,
+  directory: ProjectDirectory,
+  cardKeyPrefix: string,
+): Promise<ProjectInfo> {
+  await directory.rename(
+    ws.settings.prefix,
+    cardKeyPrefix,
+    ws.actor,
+    ws.identity,
+  );
   return getProject(ws);
 }
 

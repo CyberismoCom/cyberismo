@@ -14,6 +14,7 @@ import type { Card } from '@cyberismo/model';
 import { resourceName } from '../../shared/utils/resource-utils.js';
 import { ResourcesFrom } from '../../state/resources/resources-from.js';
 import { renameCardAttachment } from '../../domain/cards/index.js';
+import { DHValidationError } from '../../shared/exceptions/index.js';
 import { updateCardMetadata as saveCardMetadata } from '../../domain/cards/index.js';
 
 const FILE_TYPES_WITH_PREFIX_REFERENCES = ['adoc', 'hbs', 'json', 'lp'];
@@ -34,22 +35,25 @@ export async function renameProjectPrefix(
   // Capture before setCardPrefix changes projectPrefix.
   const from = checkout.projectPrefix;
   if (!to) {
-    throw new Error("Input validation error: empty 'to' is not allowed");
+    throw new DHValidationError(
+      "Input validation error: empty 'to' is not allowed",
+    );
   }
   if (from === to) {
-    throw new Error(`Project prefix is already '${from}'`);
+    throw new DHValidationError(`Project prefix is already '${from}'`);
   }
+
+  // The prefix must change first: resource renames are validated against the
+  // current projectPrefix. The cache refresh is also required — local
+  // registry keys are derived from projectPrefix at collection time.
+  // setCardPrefix refuses a prefix that is not valid before writing it.
+  await checkout.configuration.setCardPrefix(to);
 
   // Everything may change below, so the write is published as a reload.
   const tx = checkout.lock.currentTx();
   if (tx) {
     tx.cause = 'rename';
   }
-
-  // The prefix must change first: resource renames are validated against the
-  // current projectPrefix. The cache refresh is also required — local
-  // registry keys are derived from projectPrefix at collection time.
-  await checkout.configuration.setCardPrefix(to);
   checkout.resources.changed();
 
   // Referenced resource families must rename before their referrers.

@@ -119,7 +119,7 @@ export interface GeneralSettings {
 }
 
 export type ProjectSettingsUpdate = Partial<
-  Pick<GeneralSettings, 'name' | 'cardKeyPrefix' | 'description' | 'category'>
+  Pick<GeneralSettings, 'name' | 'description' | 'category'>
 > & { gitRemoteUrl?: string };
 
 export interface HubModule {

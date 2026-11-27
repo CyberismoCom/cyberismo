@@ -15,6 +15,7 @@ import { canonicalHubLocation } from '../../infra/modules/hub-utils.js';
 import { getChildLogger } from '../../shared/utils/log-utils.js';
 import { readCardsConfigSync } from '../../infra/paths/cards-config.js';
 import { Validate } from '../../domain/validation/validate.js';
+import { DHValidationError } from '../../shared/exceptions/index.js';
 import { SCHEMA_VERSION } from '@cyberismo/migrations';
 
 /**
@@ -210,6 +211,7 @@ export class ProjectConfiguration implements ProjectSettings {
   /**
    * Changes project prefix.
    * @param newPrefix New prefix to use in the project
+   * @throws DHValidationError if the prefix is not valid; nothing is written.
    */
   public async setCardPrefix(newPrefix: string) {
     const isValid = Validate.validatePrefix(newPrefix);
@@ -217,7 +219,7 @@ export class ProjectConfiguration implements ProjectSettings {
       this.cardKeyPrefix = newPrefix;
       return this.save();
     }
-    throw new Error(
+    throw new DHValidationError(
       `Prefix '${newPrefix}' is not valid prefix. Prefix should be in lowercase and contain letters from a to z (max length 10).`,
     );
   }
@@ -290,7 +292,7 @@ export class ProjectConfiguration implements ProjectSettings {
       this.name = newName;
       return this.save();
     }
-    throw new Error(`Project name '${newName}' is not valid.`);
+    throw new DHValidationError(`Project name '${newName}' is not valid.`);
   }
 
   /**

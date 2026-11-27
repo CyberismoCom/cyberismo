@@ -44,6 +44,12 @@ export interface TxRecord {
     modules: Set<string>;
     settings: boolean;
   };
+  /**
+   * Undoes of changes that a rollback of the project files does not reach,
+   * such as the git configuration; run newest first when the write is
+   * rolled back.
+   */
+  undo: (() => Promise<void>)[];
   /** Full SHA of the write's commit, if it made one. */
   commit?: string;
   /** Event to publish once the lock is released. */
@@ -66,6 +72,7 @@ export function createTxRecord(frame: WriteFrame, message?: string): TxRecord {
       modules: new Set(),
       settings: false,
     },
+    undo: [],
   };
 }
 

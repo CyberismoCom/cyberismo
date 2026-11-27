@@ -101,7 +101,7 @@ describe('localFolder', () => {
     const { directory, failed } = await localFolder(root);
     await (
       await directory.open('two', SYSTEM_ACTOR)
-    ).settings.setCategory('Ops');
+    ).settings.update({ category: 'Ops' });
 
     expect(failed).toEqual([]);
     const listed = await directory.list();

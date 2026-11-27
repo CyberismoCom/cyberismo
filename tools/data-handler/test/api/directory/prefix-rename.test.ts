@@ -8,6 +8,7 @@ import { join } from 'node:path';
 import { Checkout } from '../../../src/state/checkout/checkout.js';
 import { copyDir } from '../../../src/shared/utils/file-utils.js';
 import { renameProjectPrefix } from '../../../src/api/directory/prefix-rename.js';
+import { DHValidationError } from '../../../src/shared/exceptions/index.js';
 
 const FIXTURE_PATH = join(
   import.meta.dirname,
@@ -117,8 +118,12 @@ describe('renameProjectPrefix', () => {
     );
   });
 
-  it('throws for an invalid prefix', async () => {
-    // Underscore is not a valid prefix character (setCardPrefix rejects it).
-    await expect(renameProjectPrefix(checkout, 'bad_prefix')).rejects.toThrow();
-  });
+  it.each(['bad_prefix', 'ab', 'ABC', 'abcdefghijk', ''])(
+    'refuses the prefix %j as a validation error',
+    async (prefix) => {
+      await expect(renameProjectPrefix(checkout, prefix)).rejects.toThrow(
+        DHValidationError,
+      );
+    },
+  );
 });
