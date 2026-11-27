@@ -47,10 +47,11 @@ case "$(uname -s)-$(uname -m)" in
 esac
 
 # 3. The commit to install, and whether its build is already here. For a pull
-#    request it is the newest commit; for main, the newest one CI has built.
+#    request it is the newest commit; for main, the newest one CI has built
+#    successfully (a push to main cancels the build of the one before it).
 if [ "$target" = main ]; then
   sha=$(gh run list -R "$REPO" --workflow binary.yml --branch main --event push \
-    --status completed --limit 1 --json headSha -q '.[0].headSha // empty')
+    --status success --limit 1 --json headSha -q '.[0].headSha // empty')
   [ -n "$sha" ] || die "no build of main yet"
 else
   sha=$(gh pr view "$target" -R "$REPO" --json headRefOid -q .headRefOid) ||
