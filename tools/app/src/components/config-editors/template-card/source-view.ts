@@ -65,6 +65,7 @@ export function templateCardView(
     },
     rawContent: source.content || '',
     adocContent: '',
+    parts: {},
     attachments: source.attachments,
     path: source.path,
   };

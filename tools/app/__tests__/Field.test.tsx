@@ -113,7 +113,7 @@ function Body({ html, preview = false }: { html: string; preview?: boolean }) {
   return (
     <BrowserRouter>
       <div className="doc">
-        {renderCardHtml(html, { macroKey: 'k_1', preview })}
+        {renderCardHtml(html, { parts: {}, macroKey: 'k_1', preview })}
       </div>
     </BrowserRouter>
   );

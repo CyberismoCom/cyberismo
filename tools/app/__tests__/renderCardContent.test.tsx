@@ -77,6 +77,7 @@ function Content({ html }: { html: string }) {
     <BrowserRouter>
       <div className="doc">
         {renderCardHtml(html, {
+          parts: {},
           macroKey: 'test_card',
           preview: false,
           downloadName: 'Test card',

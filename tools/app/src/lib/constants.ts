@@ -8,6 +8,11 @@ import type { TextareaProps } from '@mui/joy';
 
 export const MAX_RECENTS_STORED = 20;
 
+/** The element a part reference becomes in the content HTML. */
+export const PART_ELEMENT = 'cyberismo-part';
+/** The attribute of that element that holds the part id. */
+export const PART_ID_ATTRIBUTE = 'data-part-id';
+
 // These are resources that can be created from the toolbar
 export const RESOURCES = [
   'calculations',

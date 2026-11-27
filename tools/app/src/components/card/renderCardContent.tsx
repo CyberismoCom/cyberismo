@@ -13,11 +13,13 @@ import type { DOMNode } from 'html-react-parser';
 import { Link } from 'react-router';
 
 import { macroMetadata } from '@cyberismo/model';
+import type { RenderedParts } from '@cyberismo/model';
 
 import type { UIMacroName } from '@/components/macros';
 import { macros as UImacros } from '@/components/macros';
 import Mermaid from '@/components/macros/Mermaid';
 import SvgWrapper from '@/components/SvgWrapper';
+import { PART_ELEMENT, PART_ID_ATTRIBUTE } from '@/lib/constants';
 import { appRoutePath, parseDataAttributes } from '@/lib/utils';
 
 // Derive allowed macro tags from the frontend macro definitions so they survive sanitization
@@ -50,7 +52,7 @@ const FORM_TAGS = [
 
 const sanitizeOptions = {
   USE_PROFILES: { html: true, svg: true },
-  ADD_TAGS: [...MACRO_TAGS, 'iframe'],
+  ADD_TAGS: [...MACRO_TAGS, PART_ELEMENT, 'iframe'],
   FORBID_TAGS: FORM_TAGS,
   ADD_ATTR: [
     'options',
@@ -79,7 +81,19 @@ function decodeBase64Utf8(encoded: string): string | null {
   }
 }
 
+/** True if the node is inside the table of contents. */
+function insideToc(node: DOMNode): boolean {
+  for (let p = node.parent; p; p = p.parent) {
+    if (p.type === 'tag' && p.name === 'div' && p.attribs.id === 'toc') {
+      return true;
+    }
+  }
+  return false;
+}
+
 export interface RenderCardHtmlOptions {
+  /** The parts the server sent with this content, by id. */
+  parts: RenderedParts;
   /** The card key inside of which the content is rendered. */
   macroKey: string;
   /** True if the content is rendered in preview mode. */
@@ -94,7 +108,7 @@ export interface RenderCardHtmlOptions {
  * (graph macros, mermaid blocks) in React-owned SvgWrapper controls.
  */
 export function renderCardHtml(html: string, options: RenderCardHtmlOptions) {
-  const { macroKey, preview, downloadName } = options;
+  const { macroKey, preview, downloadName, parts } = options;
 
   // NOTE: Parser is case-insensitive and lower cases all tags and attributes
   // htmlparser2 options cannot be used on the browser
@@ -102,6 +116,39 @@ export function renderCardHtml(html: string, options: RenderCardHtmlOptions) {
   const replaceNode = (node: DOMNode): ReactElement | undefined => {
     if (node.type !== 'tag') {
       return;
+    }
+    // A part renders only when the server sent it with this content. The
+    // table of contents repeats section titles, and a part there renders
+    // nothing.
+    if (node.name === PART_ELEMENT) {
+      const id = node.attribs[PART_ID_ATTRIBUTE];
+      if (insideToc(node) || !Object.prototype.hasOwnProperty.call(parts, id)) {
+        return <></>;
+      }
+      const n = occurrences.get(id) ?? 0;
+      occurrences.set(id, n + 1);
+      const part = parts[id];
+      switch (part.kind) {
+        case 'macro':
+          // A macro without a component renders nothing.
+          return Object.prototype.hasOwnProperty.call(UImacros, part.macro) ? (
+            React.createElement(UImacros[part.macro as UIMacroName], {
+              ...part.options,
+              key: `${id}:${n}`,
+              macroKey,
+              preview,
+            })
+          ) : (
+            <></>
+          );
+        default: {
+          // Every kind has a case: a new kind fails the build here. At run
+          // time a kind this app does not know renders nothing.
+          const unknown: never = part.kind;
+          void unknown;
+          return <></>;
+        }
+      }
     }
     if (node.name === 'a') {
       const href = node.attribs?.href;

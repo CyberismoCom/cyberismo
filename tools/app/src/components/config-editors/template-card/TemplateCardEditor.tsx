@@ -13,6 +13,7 @@ import { AttachmentPanel } from '@/components/card/AttachmentPanel';
 import { useAddAttachmentDialog } from '@/components/card/useAddAttachmentDialog';
 import { CardLayout } from '@/components/card/CardLayout';
 import type { AnyNode, CardView } from '@/lib/api/types';
+import type { RenderedCardContent } from '@cyberismo/model';
 import type { MetadataValue } from '@/lib/definitions';
 import { findCardParentInResourceTree, metadataValuesEqual } from '@/lib/utils';
 import { UserRole, useHasMinRole } from '@/lib/auth';
@@ -69,7 +70,9 @@ export function TemplateCardEditor({
     metadataValuesEqual,
   );
   const [content, setContent] = useSavedDraft(savedContent);
-  const [previewAdoc, setPreviewAdoc] = useState<string | null>(null);
+  const [previewAdoc, setPreviewAdoc] = useState<RenderedCardContent | null>(
+    null,
+  );
   const [previewError, setPreviewError] = useState<string | null>(null);
   const contentRef = useRef<ContentEditorHandle>(null);
   const titleDenied = (card.deniedOperations.editField ?? [])
@@ -100,8 +103,8 @@ export function TemplateCardEditor({
     if (!isPreview) return;
     let mounted = true;
     parseContent(node.id, content).then(
-      (adoc) => {
-        if (mounted) setPreviewAdoc(adoc);
+      (parsed) => {
+        if (mounted) setPreviewAdoc(parsed);
       },
       (error: unknown) => {
         if (mounted)
@@ -149,7 +152,8 @@ export function TemplateCardEditor({
       title: (draft[TITLE_KEY] as string) ?? card.title,
       labels: (draft[LABELS_KEY] as string[]) ?? card.labels,
       rawContent: content,
-      adocContent: previewAdoc ?? '',
+      adocContent: previewAdoc?.adocContent ?? '',
+      parts: previewAdoc?.parts ?? {},
       fields: (card.fields ?? []).map((f) => ({
         ...f,
         value: draft[f.key] as typeof f.value,

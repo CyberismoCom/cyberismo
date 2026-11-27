@@ -17,6 +17,7 @@ import type {
   LinkDirection,
   Card,
   QueryResult,
+  RenderedCardContent,
 } from '@cyberismo/model';
 import type { CardAction } from './action-types';
 import { setRecentlyCreated } from '../slices/card';
@@ -73,13 +74,14 @@ export const useCardSource = (
 /** Joins the three card reads into what the card view renders. */
 export function toCardView(
   data: QueryResult<'card'> | null,
-  content: { adocContent: string } | null,
+  content: RenderedCardContent | null,
   source: Card | null,
 ): CardView | null {
   return data && content && source
     ? {
         ...data,
         adocContent: content.adocContent,
+        parts: content.parts,
         rawContent: source.content ?? '',
         attachments: source.attachments,
         path: source.path,

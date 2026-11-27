@@ -2,7 +2,7 @@
 
 The React 19 + Vite + MUI Joy single-page frontend. It talks to the backend over
 HTTP (SWR for fetching, Redux Toolkit for local state) and imports only
-browser-safe types from `@cyberismo/model`. `@/*` maps to `src/*`.
+browser-safe types and code from `@cyberismo/model`. `@/*` maps to `src/*`.
 
 ## Structure
 

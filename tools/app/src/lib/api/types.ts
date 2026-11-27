@@ -18,6 +18,8 @@ import type {
   ProjectModuleInfo,
   ResourceFolderType,
   QueryResult,
+  RenderedCardContent,
+  RenderedParts,
 } from '@cyberismo/model';
 import type { SWRResponse } from 'swr';
 import { RESOURCES } from '@/lib/constants';
@@ -25,6 +27,8 @@ import { RESOURCES } from '@/lib/constants';
 /** The card query result joined with its rendered content and stored source. */
 export type CardView = QueryResult<'card'> & {
   adocContent: string;
+  /** The parts the server sent with `adocContent`, by id. */
+  parts: RenderedParts;
   rawContent: string;
   attachments: CardAttachment[];
   path: string;
@@ -63,7 +67,7 @@ export type WorkflowGraphResponse = {
 export type Resources = {
   project: Project;
   card: QueryResult<'card'>;
-  cardContent: { adocContent: string };
+  cardContent: RenderedCardContent;
   cardSource: Card;
   connectors: Connector[];
   fieldTypes: FieldTypes;
