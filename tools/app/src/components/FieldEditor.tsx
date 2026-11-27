@@ -10,6 +10,7 @@ import type {
 import { useTranslation } from 'react-i18next';
 import Person from '@mui/icons-material/Person';
 import LabelEditor from './LabelEditor';
+import ClearButton from './ClearButton';
 
 export interface FieldEditorProps {
   value: MetadataValue;
@@ -25,6 +26,11 @@ export interface FieldEditorProps {
   focus?: boolean;
   /** Accessible name for the control when no visible label is rendered. */
   ariaLabel?: string;
+  /**
+   * Shows a Clear button on enum, boolean, list, date, and dateTime editors
+   * that have a value. Turn it off where another control clears the field.
+   */
+  clearable?: boolean;
 }
 
 export default function FieldEditor({
@@ -36,11 +42,29 @@ export default function FieldEditor({
   disabled,
   focus,
   ariaLabel,
+  clearable = true,
 }: FieldEditorProps) {
   const { t } = useTranslation();
   const handleListboxOpenChange = (open: boolean) => {
     if (!open) onCommit?.();
   };
+  // Clears the field. A caller that saves in onCommit saves the cleared
+  // value at once; other callers keep it as a draft.
+  const clearButton = (
+    hasValue: boolean,
+    emptyValue: string[] | null = null,
+  ) =>
+    clearable && hasValue && !disabled ? (
+      <ClearButton
+        ariaLabel={
+          ariaLabel ? t('clearNamed', { field: ariaLabel }) : undefined
+        }
+        onClick={() => {
+          onChange?.(emptyValue);
+          onCommit?.();
+        }}
+      />
+    ) : null;
   switch (dataType) {
     case 'integer':
     case 'number':
@@ -66,7 +90,7 @@ export default function FieldEditor({
     case 'boolean':
       return (
         <Select
-          value={value?.toString() ?? ''}
+          value={value == null ? null : value.toString()}
           disabled={disabled}
           onChange={(_, value) => onChange?.(value)}
           onListboxOpenChange={handleListboxOpenChange}
@@ -78,8 +102,8 @@ export default function FieldEditor({
           autoFocus={focus}
           slotProps={{ button: { 'aria-label': ariaLabel } }}
           placeholder={t('placeholder.boolean')}
+          endDecorator={clearButton(value != null)}
         >
-          <Option value="">{t('none')}</Option>
           <Option value="true">{t('yes')}</Option>
           <Option value="false">{t('no')}</Option>
         </Select>
@@ -87,7 +111,7 @@ export default function FieldEditor({
     case 'enum':
       return (
         <Select
-          value={(value as string | null) ?? ''}
+          value={(value as string | null) || null}
           disabled={disabled}
           onChange={(_, value) => onChange?.(value)}
           onListboxOpenChange={handleListboxOpenChange}
@@ -99,10 +123,8 @@ export default function FieldEditor({
           autoFocus={focus}
           slotProps={{ button: { 'aria-label': ariaLabel } }}
           placeholder={t('placeholder.enum')}
+          endDecorator={clearButton(!!value)}
         >
-          <Option value="" key="none">
-            {t('none')}
-          </Option>
           {enumValues?.map((enumDef) => (
             <Option key={enumDef.enumValue} value={enumDef.enumValue}>
               {enumDef.enumDisplayValue}
@@ -126,6 +148,10 @@ export default function FieldEditor({
           slotProps={{ button: { 'aria-label': ariaLabel } }}
           placeholder={t('placeholder.enum')}
           disabled={disabled}
+          endDecorator={clearButton(
+            Array.isArray(value) && value.length > 0,
+            [],
+          )}
         >
           {enumValues?.map((enumDef) => (
             <Option key={enumDef.enumValue} value={enumDef.enumValue}>
@@ -146,6 +172,7 @@ export default function FieldEditor({
           fullWidth
           autoFocus={focus}
           slotProps={{ input: { 'aria-label': ariaLabel } }}
+          endDecorator={clearButton(!!value)}
         />
       );
     case 'dateTime':
@@ -160,6 +187,7 @@ export default function FieldEditor({
           fullWidth
           autoFocus={focus}
           slotProps={{ input: { 'aria-label': ariaLabel } }}
+          endDecorator={clearButton(!!value)}
         />
       );
     case 'person':

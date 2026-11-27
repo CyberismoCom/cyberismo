@@ -101,6 +101,7 @@ export function FieldRow({
     isEditing,
     disabled,
     ariaLabel: hideLabel ? label : undefined,
+    clearable: !presentAsOverride,
     onSave,
     onAutoSave,
     onCancel,

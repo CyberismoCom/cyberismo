@@ -47,6 +47,7 @@ export function FieldPopover({
     row,
     isEditing: true,
     ariaLabel: row.label,
+    clearable: !presentsAsOverride(row),
     onSave,
     onCancel: () => onClose(true),
   });

@@ -35,12 +35,12 @@ $ cyberismo app
 
 Then open a browser and navigate to http://localhost:3000/.
 
-== Set the target adoption step as None
+== Clear the target adoption step
 
 To configure your project so that you can focus on threat modelling:
 
 . Navigate to the development project that you created in the previous tutorial.
-. Click *Edit* and change the *Target adoption step* metadata field as *None*.
+. In the metadata of the card, click the *Target adoption step* field, and then click *Clear*.
 
 The Cyberismo app will now hide all content that has been marked for Adoption step 1, step 2, or step 3, so you can focus on threat modelling and on a high-level risk assessment.
 

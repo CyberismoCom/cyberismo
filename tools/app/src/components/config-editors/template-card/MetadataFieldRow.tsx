@@ -8,8 +8,8 @@ import CloseIcon from '@mui/icons-material/Close';
 import EditableField, { FieldLabel } from '@/components/EditableField';
 import { containerRowSx } from '@/components/fieldRowFrame';
 import FieldEditor from '@/components/FieldEditor';
+import ClearButton from '@/components/ClearButton';
 import {
-  ClearOverrideButton,
   OverrideEditorFrame,
   OverriddenMarker,
 } from '@/components/card/metadata-section/OverrideEditorFrame';
@@ -119,6 +119,7 @@ export function MetadataFieldRow({
                 dataType={dataType}
                 enumValues={enumValues}
                 focus={false}
+                clearable={false}
               />
             }
             clearDisabled={saved == null && !dirty}
@@ -149,7 +150,12 @@ export function MetadataFieldRow({
               }
             />
           </Box>
-          {clearable && <ClearOverrideButton onClick={() => onClear?.()} />}
+          {clearable && (
+            <ClearButton
+              dataCy="fieldClearOverrideButton"
+              onClick={() => onClear?.()}
+            />
+          )}
           {actionButtons}
         </Stack>
       )}

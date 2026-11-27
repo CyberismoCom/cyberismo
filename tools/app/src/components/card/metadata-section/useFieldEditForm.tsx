@@ -19,6 +19,8 @@ interface FieldEditFormOptions {
   disabled?: boolean;
   /** Names the editor when its label is not visible. */
   ariaLabel?: string;
+  /** False where the override editor has its own Clear button. */
+  clearable?: boolean;
   onSave?: (value: MetadataValue) => void;
   onAutoSave?: (value: MetadataValue) => void;
   onCancel?: () => void;
@@ -30,6 +32,7 @@ export function useFieldEditForm({
   isEditing,
   disabled,
   ariaLabel,
+  clearable,
   onSave,
   onAutoSave,
   onCancel,
@@ -117,6 +120,7 @@ export function useFieldEditForm({
           disabled={disabled}
           focus={true}
           ariaLabel={ariaLabel}
+          clearable={clearable}
         />
       )}
     />
