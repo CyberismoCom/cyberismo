@@ -107,7 +107,6 @@ export function OptionCard({
         <Typography
           level="title-sm"
           paddingLeft={2}
-          fontWeight="bold"
           textOverflow="clip"
           marginTop="auto"
           marginBottom={1}
@@ -130,7 +129,7 @@ export function OptionCard({
           {caption && (
             <Typography
               level="body-xs"
-              fontWeight="bold"
+              fontWeight="lg"
               sx={{ wordBreak: 'break-word' }}
             >
               {caption}

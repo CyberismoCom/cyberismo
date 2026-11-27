@@ -99,7 +99,7 @@ export function OverrideEditorFrame({
     <Stack spacing={0.5} sx={[{ flexGrow: 1, minWidth: 0 }, rowValueWidthSx]}>
       <Typography level="body-xs" data-cy="calculatedValue">
         {t('calculatedValue')}:{' '}
-        <Typography component="span" fontWeight="bold" color="neutral">
+        <Typography component="span" fontWeight="lg" color="neutral">
           {calculatedValue}
         </Typography>
       </Typography>

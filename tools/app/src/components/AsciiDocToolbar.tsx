@@ -101,7 +101,7 @@ export function AsciiDocToolbar({
               asciiDocToolbarActions.heading(view, readOnly, level as 1 | 2 | 3)
             }
           >
-            <Typography color="neutral" fontWeight={800}>
+            <Typography color="neutral" fontWeight="xl">
               H{level}
             </Typography>
           </IconButton>

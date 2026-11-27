@@ -65,17 +65,13 @@ export default function PresenceIndicator({
                     key={user.userId}
                     level="body-xs"
                     component="span"
-                    sx={{ fontWeight: 600 }}
+                    fontWeight="lg"
                   >
                     {getInitials(user.userName)}
                   </Typography>
                 ))}
                 {hiddenCount > 0 && (
-                  <Typography
-                    level="body-xs"
-                    component="span"
-                    sx={{ fontWeight: 600 }}
-                  >
+                  <Typography level="body-xs" component="span" fontWeight="lg">
                     +{hiddenCount}
                   </Typography>
                 )}

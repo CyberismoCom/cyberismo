@@ -33,7 +33,7 @@ export function ModuleDeleteModal({
           moduleName,
         }}
         components={{
-          bold: <Typography fontWeight="bold" />,
+          bold: <Typography fontWeight="lg" />,
         }}
       />
     ),

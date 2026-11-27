@@ -51,7 +51,7 @@ export function SidebarPanelAccordion({
           }}
         >
           {leading}
-          <Typography level="title-sm" fontWeight="bold" sx={{ flexGrow: 1 }}>
+          <Typography level="title-sm" sx={{ flexGrow: 1 }}>
             {title}
           </Typography>
           <Button

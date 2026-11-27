@@ -71,7 +71,7 @@ export const CODE_MIRROR_THEMES = {
 export const TITLE_FIELD_PROPS: Pick<TextareaProps, 'sx'> = {
   sx: {
     marginBottom: '10px',
-    fontWeight: 'bold',
+    fontWeight: 'xl',
     fontSize: '1.8rem',
   },
 };

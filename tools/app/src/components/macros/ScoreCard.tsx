@@ -37,7 +37,7 @@ export default function ScoreCard({
         <Typography
           style={{
             fontSize: '48px',
-            fontWeight: 'bold',
+            fontWeight: 'var(--joy-fontWeight-xl)',
           }}
         >
           {value}

@@ -78,7 +78,7 @@ export function ChecksAccordion({
   const renderTitle = (title: string) => (
     <Typography
       level={collapsible ? 'title-sm' : 'body-xs'}
-      fontWeight={collapsible ? 'bold' : 'lg'}
+      fontWeight="lg"
       sx={{ flexGrow: 1 }}
     >
       {title}
@@ -99,13 +99,11 @@ export function ChecksAccordion({
           }}
         >
           <Box>
-            <Typography level="title-sm" fontWeight="bold">
+            <Typography level="title-sm">
               {success.category} - {success.title}
             </Typography>
           </Box>
-          <Typography level="title-sm" fontWeight="bold">
-            {successPassText}
-          </Typography>
+          <Typography level="title-sm">{successPassText}</Typography>
         </Alert>
       ))}
     </Stack>
@@ -125,7 +123,7 @@ export function ChecksAccordion({
           }}
         >
           <Box>
-            <Typography level="title-sm" fontWeight="bold">
+            <Typography level="title-sm">
               {failure.category}
               {failure.category && failure.title ? ' - ' : ''}
               {failure.title}
@@ -143,9 +141,7 @@ export function ChecksAccordion({
               </Link>
             )}
           </Box>
-          <Typography level="title-sm" fontWeight="bold">
-            {failureFailText}
-          </Typography>
+          <Typography level="title-sm">{failureFailText}</Typography>
         </Alert>
       ))}
     </Stack>

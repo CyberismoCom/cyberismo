@@ -125,7 +125,6 @@ export default function LinkedCardsSection({
             id={headingId}
             level="title-sm"
             component="h2"
-            fontWeight="bold"
             flexGrow={1}
           >
             {linkCount > 0 ? t('linkedCards') : t('noLinkedCards')}

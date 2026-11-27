@@ -41,7 +41,7 @@ export function DeleteModal({
         }}
         count={childAmount}
         components={{
-          bold: <Typography fontWeight="bold" />,
+          bold: <Typography fontWeight="lg" />,
         }}
       />
     ),

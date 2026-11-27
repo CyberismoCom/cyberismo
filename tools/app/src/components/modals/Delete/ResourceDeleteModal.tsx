@@ -38,7 +38,7 @@ export function ResourceDeleteModal({
           resourceName,
         }}
         components={{
-          bold: <Typography fontWeight="bold" />,
+          bold: <Typography fontWeight="lg" />,
         }}
       />
     ),
