@@ -12,7 +12,6 @@ import parseReact, { attributesToProps, domToReact } from 'html-react-parser';
 import type { DOMNode } from 'html-react-parser';
 import { Link } from 'react-router';
 
-import { macroMetadata } from '@cyberismo/model';
 import type { RenderedParts } from '@cyberismo/model';
 
 import type { UIMacroName } from '@/components/macros';
@@ -20,12 +19,7 @@ import { macros as UImacros } from '@/components/macros';
 import Mermaid from '@/components/macros/Mermaid';
 import SvgWrapper from '@/components/SvgWrapper';
 import { PART_ELEMENT, PART_ID_ATTRIBUTE } from '@/lib/constants';
-import { appRoutePath, parseDataAttributes } from '@/lib/utils';
-
-// Derive allowed macro tags from the frontend macro definitions so they survive sanitization
-const MACRO_TAGS = Object.values(macroMetadata)
-  .map((meta) => meta.tagName.toUpperCase())
-  .filter(Boolean) as string[];
+import { appRoutePath } from '@/lib/utils';
 
 const contentPurify = createDOMPurify(window);
 contentPurify.addHook('afterSanitizeAttributes', (node) => {
@@ -52,10 +46,9 @@ const FORM_TAGS = [
 
 const sanitizeOptions = {
   USE_PROFILES: { html: true, svg: true },
-  ADD_TAGS: [...MACRO_TAGS, PART_ELEMENT, 'iframe'],
+  ADD_TAGS: [PART_ELEMENT, 'iframe'],
   FORBID_TAGS: FORM_TAGS,
   ADD_ATTR: [
-    'options',
     'sandbox',
     'allow',
     'allowfullscreen',
@@ -63,13 +56,6 @@ const sanitizeOptions = {
     'data-mermaid-code',
   ],
 };
-
-// We simply trust that the macro has been validated
-// If a validation error occurs, it should also not try to render
-const combinedMacros = Object.entries(macroMetadata).map(([key, value]) => ({
-  ...value,
-  component: UImacros[key as UIMacroName] ?? (() => <>err</>),
-}));
 
 function decodeBase64Utf8(encoded: string): string | null {
   try {
@@ -104,8 +90,9 @@ export interface RenderCardHtmlOptions {
 
 /**
  * Sanitizes card content HTML and parses it into React elements.
- * Replaces macro tags with their React components and wraps SVG diagrams
- * (graph macros, mermaid blocks) in React-owned SvgWrapper controls.
+ * Renders each part element as the part the server sent with the content,
+ * and wraps SVG diagrams (graph macros, mermaid blocks) in React-owned
+ * SvgWrapper controls.
  */
 export function renderCardHtml(html: string, options: RenderCardHtmlOptions) {
   const { macroKey, preview, downloadName, parts } = options;
@@ -207,21 +194,6 @@ export function renderCardHtml(html: string, options: RenderCardHtmlOptions) {
         }
         return <Mermaid code={code} macroKey={macroKey} preview={!!preview} />;
       }
-    }
-    const macro = combinedMacros.find((m) => m.tagName === node.name);
-    if (macro) {
-      const attributes = parseDataAttributes(node.attribs);
-      // Server markup carries no keys; tag + options + occurrence is stable
-      // across re-renders and unaffected by unrelated macros before it.
-      const identity = `${macro.tagName}:${node.attribs.options ?? ''}`;
-      const n = occurrences.get(identity) ?? 0;
-      occurrences.set(identity, n + 1);
-      return React.createElement(macro.component, {
-        ...attributes,
-        key: `${identity}:${n}`,
-        macroKey,
-        preview,
-      });
     }
   };
 

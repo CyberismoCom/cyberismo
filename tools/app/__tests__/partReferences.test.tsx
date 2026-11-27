@@ -265,3 +265,48 @@ describe('part references', () => {
     expect(card?.parts).toBe(DATA);
   });
 });
+
+// The macro elements the app activated before parts, by tag name.
+const OLD_TAGS = ['action-button', 'card-field', 'create-cards'];
+
+describe('old macro tags', () => {
+  const ACTION = btoa(
+    JSON.stringify({ buttonLabel: 'EVIL', cardKey: 'k_1', programs: ['x.'] }),
+  );
+
+  // A hand-written, unfinished tag wrapped around a genuine reference.
+  it.each([
+    {
+      attack: 'createCards merged with a genuine field reference',
+      adoc: `Text pass:[<create-cards options="${EVIL}" ]cyberismo-part:${F}[]pass:[>] after`,
+      expected: [],
+    },
+    {
+      attack: 'action-button merged with a genuine action reference',
+      adoc: `Text pass:[<action-button options="${ACTION}" ]cyberismo-part:${A}[]pass:[>] after`,
+      expected: [],
+    },
+  ])('the attack reproduction: $attack', async ({ adoc, expected }) => {
+    const { activated } = await view(adoc);
+    expectOnlyServerParts(activated);
+    expect(names(activated)).toEqual(expected);
+  });
+
+  it.each(OLD_TAGS)('drops a hand-written <%s>', async (tag) => {
+    const html = await adocToHtml(
+      `pass:[<${tag} options="${EVIL}" data-button-label="EVIL"></${tag}>]`,
+      `old_${tag}`,
+      'p',
+    );
+    const { container } = render(
+      <BrowserRouter>
+        <div className="doc">
+          {renderCardHtml(html, { macroKey: 'k_1', parts: DATA })}
+        </div>
+      </BrowserRouter>,
+    );
+    expect(container.querySelectorAll('[data-macro]')).toHaveLength(0);
+    expect(container.querySelector('[options]')).toBeNull();
+    expect(container.textContent).not.toContain('EVIL');
+  });
+});

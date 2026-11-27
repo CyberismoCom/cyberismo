@@ -29,8 +29,6 @@ import {
   isAlreadyLinked,
   canCreateLinkToCard,
   eligibleCandidates,
-  parseNestedDataAttributes,
-  parseDataAttributes,
   getInitials,
 } from '@/lib/utils';
 
@@ -687,113 +685,6 @@ describe('canCreateLinkToCard', () => {
         mockPotentialTargetCard,
       ),
     ).toBe(true);
-  });
-});
-
-describe('parseNestedDataAttributes', () => {
-  test('handles flat attributes', () => {
-    const attribs = {
-      key: 'test',
-      anotherKey: 'value',
-    };
-
-    const result = parseNestedDataAttributes(attribs);
-
-    expect(result).toEqual({
-      key: 'test',
-      anotherKey: 'value',
-    });
-  });
-
-  test('handles nested attributes with dot notation', () => {
-    const attribs = {
-      key: 'test',
-      'anotherKey.key1': 'test',
-      'anotherKey.key2': 'test2',
-    };
-
-    const result = parseNestedDataAttributes(attribs);
-
-    expect(result).toEqual({
-      key: 'test',
-      anotherKey: {
-        key1: 'test',
-        key2: 'test2',
-      },
-    });
-  });
-
-  test('handles deeply nested attributes', () => {
-    const attribs = {
-      key: 'test',
-      'nested.level1.level2.level3': 'deep value',
-      'nested.level1.sibling': 'sibling value',
-    };
-
-    const result = parseNestedDataAttributes(attribs);
-
-    expect(result).toEqual({
-      key: 'test',
-      nested: {
-        level1: {
-          level2: {
-            level3: 'deep value',
-          },
-          sibling: 'sibling value',
-        },
-      },
-    });
-  });
-
-  test('preserves original string values', () => {
-    const attribs = {
-      numberValue: '42',
-      boolValue: 'true',
-      objectValue: '{"name":"test","value":123}',
-      arrayValue: '[1,2,3]',
-      'nested.jsonValue': '{"nested":true}',
-    };
-
-    const result = parseNestedDataAttributes(attribs);
-
-    expect(result).toEqual({
-      numberValue: '42',
-      boolValue: 'true',
-      objectValue: '{"name":"test","value":123}',
-      arrayValue: '[1,2,3]',
-      nested: {
-        jsonValue: '{"nested":true}',
-      },
-    });
-  });
-
-  describe('parseDataAttributes', () => {
-    test('correctly parses base64-encoded unicode JSON in options', () => {
-      const optionsObj = { label: '测试🌟', value: 'üñîçødë' };
-      const json = JSON.stringify(optionsObj);
-      // Encode to base64
-      const bytes = new TextEncoder().encode(json);
-      const binary = Array.from(bytes)
-        .map((b) => String.fromCharCode(b))
-        .join('');
-      const base64 = btoa(binary);
-      const attribs = {
-        key: 'test',
-        options: base64,
-      };
-      const result = parseDataAttributes(attribs);
-      expect(result.label).toBe(optionsObj.label);
-      expect(result.value).toBe(optionsObj.value);
-      // Also check that the original keys are present
-      expect(result.key).toBe('test');
-    });
-    test('correctly parses even if options is not present', () => {
-      const attribs = {
-        key: 'test',
-      };
-      const result = parseDataAttributes(attribs);
-      expect(result.key).toBe('test');
-    });
   });
 });
 
