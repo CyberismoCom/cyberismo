@@ -325,7 +325,7 @@ describe('CLI transcripts', { timeout: 30000 }, () => {
       );
       expect(await cli('calc', 'generate', 'x.lp', 'bogus')).toEqual(
         fail(
-          "Unknown query 'bogus'. Must be one of: card, connectors, enabledSkills, onCreation, onTransition, tree\n",
+          "Unknown query 'bogus'. Must be one of: card, connectors, enabledSkills, tree\n",
         ),
       );
     });

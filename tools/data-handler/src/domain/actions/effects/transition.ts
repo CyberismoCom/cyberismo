@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: Cyberismo Ltd and contributors
 // SPDX-License-Identifier: AGPL-3.0-only
 
-import { transitionCard } from '../../cards/transition.js';
+import { performTransition } from '../../cards/transition.js';
 import { cardTypeOf, projectCard, resourceExists } from './checks.js';
 import { defineEffect, refuse } from './define.js';
 
@@ -26,6 +26,11 @@ export const transition = defineEffect({
     reason: `card '${e.card}' has more than one transition`,
   }),
   async apply(checkout, e) {
-    await transitionCard(checkout, e.card, e.transition);
+    await performTransition(checkout, e.card, e.transition);
   },
+  trigger: (e) => ({
+    kind: 'transition',
+    card: e.card,
+    transition: e.transition,
+  }),
 });

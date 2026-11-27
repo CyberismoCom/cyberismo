@@ -50,6 +50,13 @@ function arities(kind: EffectKind): number[] {
 const rule = (kind: EffectKind, given: number, body: string) =>
   `actionEffect(${termOf(kind, given)}, "${kind.name}") :- ${body}.`;
 
+/**
+ * A rule that derives effects of a kind from a body. In the body, the
+ * effect's arguments are the variables named after them, capitalised.
+ */
+export const effectRule = (kind: EffectKind, body: string) =>
+  rule(kind, Object.keys(kind.args).length, body);
+
 // The field of a row that tells that a value argument is the constant null,
 // which as text would read the same as the string "null".
 const nullField = (name: string) => `${name}IsNull`;

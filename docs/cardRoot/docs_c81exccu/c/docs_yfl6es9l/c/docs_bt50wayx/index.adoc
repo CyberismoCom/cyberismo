@@ -87,7 +87,7 @@ The MCP server exposes the following tools, grouped by category.
 [cols="1,3,2", options="header"]
 |===
 | Tool | Description | Required parameters
-| `run_query` | Run a predefined query (`card`, `onCreation`, `onTransition`, `tree`) | `queryName`
+| `run_query` | Run a predefined query (`card`, `tree`) | `queryName`
 | `run_report` | Execute a named report with a card as context | `reportName`, `cardKey`
 | `run_graph` | Generate a graph visualization from a model and view | `model`, `view`
 | `run_logic_program` | Execute a custom Clingo/ASP logic program | `query`

@@ -122,35 +122,9 @@ describe('queries.runQuery options', () => {
     ).rejects.toThrow(/test_missing/);
   });
 
-  it('gives the side effects a transition would set off', async () => {
-    const { ws, keys } = await open({
-      ...spec,
-      calculations: {
-        effects:
-          'onTransitionSetField(X, "To Closed", X, "title", "Done") :- field(X, "title", "Top").',
-      },
-    });
-
-    const [effects] = await ws.queries.runQuery('onTransition', 'localApp', {
-      cardKey: keys[0],
-      transition: 'To Closed',
-    });
-
-    expect(effects.updateFields).toEqual([
-      expect.objectContaining({ card: keys[0], field: 'title' }),
-    ]);
-  });
-
   it.each([
-    ['onTransition', {}, /Invalid options for query 'onTransition'/],
-    [
-      'onTransition',
-      { cardKey: 'test_1' },
-      /Invalid options for query 'onTransition'.*\n.*transition/,
-    ],
-    ['onCreation', {}, /Invalid options for query 'onCreation'/],
-    ['onCreation', { cardKeys: [] }, /Invalid options for query 'onCreation'/],
     ['card', { title: 'x' }, /Unrecognized key/],
+    ['tree', { recursive: 'yes' }, /Invalid options for query 'tree'/],
   ] as const)(
     'refuses %s with options %j',
     async (queryName, options, message) => {
@@ -168,7 +142,6 @@ describe('queries.runQuery options', () => {
     ['tree', { cardKey: 'Test_1' }],
     ['card', { cardKeys: ['test_1', 'x.'] }],
     ['card', { cardKeys: 'test_1' }],
-    ['onTransition', { cardKey: 'x(', transition: 'To Closed' }],
   ] as const)(
     'refuses %s with the malformed card key in %j',
     async (queryName, options) => {
@@ -366,7 +339,7 @@ describe('queries.program', () => {
     const program = ws.queries.program('bogus');
 
     await expect(program).rejects.toThrow(
-      "Unknown query 'bogus'. Must be one of: card, connectors, enabledSkills, onCreation, onTransition, tree",
+      "Unknown query 'bogus'. Must be one of: card, connectors, enabledSkills, tree",
     );
     await expect(program).rejects.toBeInstanceOf(DHValidationError);
   });

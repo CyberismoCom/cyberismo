@@ -30,13 +30,6 @@ export const queryOptions = {
         'Skills enabled for this card; without it, project-wide skills',
       ),
   }),
-  onCreation: z.strictObject({
-    cardKeys: z.array(cardKey).min(1).describe('Cards that were created'),
-  }),
-  onTransition: z.strictObject({
-    cardKey: cardKey.describe('Card that makes the transition'),
-    transition: z.string().min(1).describe('Name of the transition'),
-  }),
   tree: z.strictObject({
     cardKey: cardKey
       .optional()

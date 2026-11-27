@@ -75,6 +75,11 @@ export interface Conflict {
   reason: string;
 }
 
+/** What an applied effect sets off: a card's transition, or new cards. */
+export type Trigger =
+  | { kind: 'transition'; card: string; transition: string }
+  | { kind: 'creation'; cards: string[] };
+
 /**
  * One kind of effect: its arguments, its check and how it is applied.
  * `check` comes first in a definition, as its result is the type of
@@ -106,6 +111,11 @@ export interface EffectDefinition<S extends ArgSpec, C> {
     e: Args<S>,
     checked: C,
   ): Promise<CreatedCard[] | void>;
+  /**
+   * What the applied effect sets off, for the caller of applyEffects.
+   * @param created The cards the effect created.
+   */
+  trigger?(e: Args<S>, created: CreatedCard[]): Trigger;
 }
 
 /** One effect a program derived, as its row gives it: not yet checked. */
@@ -142,6 +152,7 @@ export interface CheckedEffect {
   ): readonly (string | number)[];
   inPlace(checkout: Checkout): boolean;
   apply(checkout: Checkout): Promise<CreatedCard[]>;
+  trigger?(created: CreatedCard[]): Trigger;
 }
 
 /** Why an effect is refused. */
@@ -183,7 +194,7 @@ function argsOf(spec: ArgSpec, row: EffectRow): Record<string, unknown> {
 export function defineEffect<const S extends ArgSpec, C>(
   definition: EffectDefinition<S, C>,
 ): EffectKind {
-  const { name, args, step } = definition;
+  const { name, args, step, trigger } = definition;
   return {
     name,
     args,
@@ -200,6 +211,7 @@ export function defineEffect<const S extends ArgSpec, C>(
           definition.inPlace?.(checkout, e, checked) ?? false,
         apply: async (checkout) =>
           (await definition.apply(checkout, e, checked)) ?? [],
+        trigger: trigger && ((created) => trigger(e, created)),
       };
     },
   };

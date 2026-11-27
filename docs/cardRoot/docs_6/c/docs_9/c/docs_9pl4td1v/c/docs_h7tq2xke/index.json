@@ -1,0 +1,12 @@
+{
+    "title": "onTransitionExecuteTransition(CardKey, Transition, AffectedCard, TransitionToExecute)",
+    "cardType": "base/cardTypes/predicate",
+    "workflowState": "Ready",
+    "rank": "0|c",
+    "lastUpdated": "2026-11-24T00:00:00.000Z",
+    "base/fieldTypes/briefDescription": "A card shall be transitioned as a side effect of a workflow state transition",
+    "base/fieldTypes/category": "Side effects",
+    "links": [],
+    "templateCardKey": "base_weu9g7lz",
+    "lastTransitioned": "2026-11-24T00:00:00.000Z"
+}

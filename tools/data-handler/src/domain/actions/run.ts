@@ -1,12 +1,14 @@
 // SPDX-FileCopyrightText: Cyberismo Ltd and contributors
 // SPDX-License-Identifier: AGPL-3.0-only
 
+import { errorFunction } from '../../shared/utils/error-utils.js';
 import type { Checkout } from '../../state/checkout/checkout.js';
 import {
   Refused,
   STEPS,
   type CheckedEffect,
   type EffectRow,
+  type Trigger,
 } from './effects/define.js';
 import type { CreatedCard } from './facts.js';
 import { compareKeys, compareText, treeOrder } from './order.js';
@@ -27,17 +29,36 @@ export class EffectFailed extends Error {
   }
 }
 
+/** What applying effects hands to its caller as it goes. */
+export interface ApplyOptions {
+  /**
+   * Takes a failure instead of an EffectFailed being thrown; the next
+   * effect is then applied.
+   */
+  onFailure?: (atom: string, error: unknown) => void;
+  /** Takes what an applied effect sets off, right after the effect. */
+  afterTrigger?: (trigger: Trigger) => Promise<void>;
+  /**
+   * Whether the caller's operation already performed what an effect sets
+   * off: the effect is then in place, and nothing of it is applied.
+   */
+  performed?: (trigger: Trigger) => boolean;
+}
+
 /**
  * Checks one program's effects before any of them is applied. Each effect is
  * checked alone; then every effect of a conflict, as the `conflict` of the
  * effects tells, is refused.
  * @param checkout The checkout the effects will change.
  * @param rows The program's effects, in the order of their atoms.
+ * @param lenient Whether an unexpected error in the check of an effect
+ *   refuses that effect instead of being thrown.
  * @returns the effects that passed, in the same order, and the refusals
  */
 export function checkEffects(
   checkout: Checkout,
   rows: EffectRow[],
+  lenient = false,
 ): { checked: CheckedEffect[]; refused: Refusal[] } {
   const alone = rows.map((effect): CheckedEffect | Refusal => {
     try {
@@ -45,6 +66,9 @@ export function checkEffects(
     } catch (error) {
       if (error instanceof Refused) {
         return { atom: effect.atom, reason: error.message };
+      }
+      if (lenient) {
+        return { atom: effect.atom, reason: errorFunction(error) };
       }
       throw error;
     }
@@ -98,14 +122,21 @@ export function checkEffects(
 /**
  * Applies checked effects step by step, in the order of STEPS. Within a
  * step, in the order of the effects' sort keys, then of their atoms. An
- * effect already in place is skipped.
+ * effect already in place, or whose trigger was `performed`, is skipped.
+ * What an applied effect's `trigger` gives goes to `afterTrigger`.
  * @returns the cards the effects created, in creation order
  * @throws EffectFailed on the first failure
  */
 export async function applyEffects(
   checkout: Checkout,
   effects: CheckedEffect[],
+  options?: ApplyOptions,
 ): Promise<CreatedCard[]> {
+  const triggered = async (effect: CheckedEffect, made: CreatedCard[]) => {
+    if (effect.trigger) await options?.afterTrigger?.(effect.trigger(made));
+  };
+  const performed = (effect: CheckedEffect) =>
+    !!effect.trigger && !!options?.performed?.(effect.trigger([]));
   let order: Map<string, number> | undefined;
   const position = (cardKey: string) =>
     (order ??= treeOrder(checkout)).get(cardKey);
@@ -120,12 +151,18 @@ export async function applyEffects(
           compareText(a.effect.atom, b.effect.atom),
       );
     for (const { effect } of inStep) {
+      const before = created.length;
       try {
-        if (effect.inPlace(checkout)) continue;
+        if (effect.inPlace(checkout) || performed(effect)) continue;
         created.push(...(await effect.apply(checkout)));
       } catch (error) {
+        if (options?.onFailure) {
+          options.onFailure(effect.atom, error);
+          continue;
+        }
         throw new EffectFailed(effect.atom, error);
       }
+      await triggered(effect, created.slice(before));
     }
   }
   return created;

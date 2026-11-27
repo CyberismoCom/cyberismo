@@ -17,7 +17,12 @@ import type { CheckedEffect } from './effects/define.js';
 import { EFFECTS } from './effects/index.js';
 import { actionFacts, type CreatedCard } from './facts.js';
 import { solveEffects } from './rows.js';
-import { applyEffects, checkEffects, EffectFailed } from './run.js';
+import {
+  applyEffects,
+  checkEffects,
+  EffectFailed,
+  type ApplyOptions,
+} from './run.js';
 
 // A failure's text: a logic error's error messages, or the message. An
 // internal logic error's diagnostics are about the project's programs, not
@@ -92,12 +97,17 @@ async function effectsOf(
  * @param checkout The checkout to change.
  * @param cardKey The card the action runs on; actionCard/1 in every program.
  * @param programs The action's logic programs.
+ * @param options What each applied create and transition sets off goes to
+ *   `afterTrigger`, before the next effect is applied; an effect whose
+ *   trigger `performed` says the caller's operation already performed is
+ *   treated as in place.
  * @throws CardNotFoundError if the card does not exist
  */
 export async function runAction(
   checkout: Checkout,
   cardKey: string,
   programs: string[],
+  options?: Pick<ApplyOptions, 'afterTrigger' | 'performed'>,
 ): Promise<ActionResult> {
   findCard(checkout, cardKey);
   if (programs.length === 0) {
@@ -119,7 +129,7 @@ export async function runAction(
       throw actionFailed(n, undefined, error);
     }
     try {
-      created.push(...(await applyEffects(checkout, effects)));
+      created.push(...(await applyEffects(checkout, effects, options)));
     } catch (error) {
       throw error instanceof EffectFailed
         ? actionFailed(n, error.atom, error.cause)

@@ -197,16 +197,18 @@ describe('MCP Tools via Client', () => {
     ]);
   });
 
-  test('run_query refuses options its query needs but lacks', async () => {
+  test('run_query refuses options of the wrong type', async () => {
     const result = await client.callTool({
       name: 'run_query',
-      arguments: { projectPrefix: 'decision', queryName: 'onTransition' },
+      arguments: {
+        projectPrefix: 'decision',
+        queryName: 'tree',
+        options: { cardKey: 'decision_5', recursive: 'yes' },
+      },
     });
 
     expect(result.isError).toBe(true);
-    expect(contentOf(result)[0].text).toMatch(
-      /Invalid options for query 'onTransition'/,
-    );
+    expect(contentOf(result)[0].text).toMatch(/recursive/);
   });
 
   test('run_graph names a view that does not exist', async () => {

@@ -30,7 +30,7 @@ export {
   rootCards,
   templateCardTrees,
 } from './read.js';
-export { transitionCard } from './transition.js';
+export { performTransition } from './transition.js';
 export {
   addLabel,
   addLink,

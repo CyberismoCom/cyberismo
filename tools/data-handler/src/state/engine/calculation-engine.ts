@@ -105,25 +105,6 @@ export class CalculationEngine {
     return this.backend.check(programs);
   }
 
-  /**
-   * Runs the onCreation query for the given cards.
-   *
-   * Answering the query is this class's job; executing the side effects it
-   * asks for is a write the command layer owns.
-   * @param cardKeys Keys of the cards that were created.
-   * @param context In which type of context the query is run.
-   * @returns the query's side effects, or undefined if there are none.
-   */
-  public async creationQuery(
-    cardKeys: string[],
-    context: Context,
-  ): Promise<QueryResult<'onCreation'>[] | undefined> {
-    if (!cardKeys) return undefined;
-    return this.runQuery('onCreation', context, {
-      cardKeys,
-    });
-  }
-
   private transaction(): Promise<LogicTransaction> {
     this.tx ??= this.backend.begin();
     return this.tx;

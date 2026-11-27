@@ -11,3 +11,15 @@
 If `onTransitionSetField(CardKey, Transition, AffectedCard, Field, NewValue)` is true, and if the workflow transition `Transition` is executed on `CardKey`, then the field `Field` of `AffectedCard` shall be set to `NewValue`.
 
 Notice that creating a card is also a workflow transition. This enables logic programs to define side effects upon creating a new card. For example, the title of the new card can be set by the logic program.
+
+== Rules
+
+A side effect declared with `onTransitionSetField` or `onTransitionExecuteTransition` is called a hook. A hook sets the field as if a user edited it:
+
+* `AffectedCard` must be a card of the project; template and module cards cannot be changed.
+* `Field` must be `title` or a custom field of the card type of `AffectedCard`. Other fields, such as `workflowState`, cannot be set; use `onTransitionExecuteTransition` to change the workflow state.
+* `NewValue` is converted to the data type of the field: `true` or `false` for a boolean field, a whole number for an integer field and a number for a number field. A date field takes a date written `YYYY-MM-DD`, such as the result of `@today`, and a dateTime field an ISO 8601 date and time with a time zone, such as `2026-01-02T03:04:05Z`; the date and time is stored in UTC, so `2026-01-02T03:04+02:00` is stored as `2026-01-02T01:04:00.000Z`. Values of the other data types are used as text. A list field cannot be set. The constant `null`, written without quotes, clears a field of any data type, and so does an empty string; the string `"null"` in quotes is text like any other.
+* `editingFieldDenied` must not deny editing the field, and a calculated field can be set only if the card type enables override for it, but it can always be cleared.
+* The card must be valid after the change, for example an enum value must be one of the field type's values.
+
+A field update that breaks one of these rules is skipped and logged; it never prevents the transition that set off the hook, and the other hooks are still applied. If the hooks of one transition set the same field of a card to two different values, both updates are skipped. A value the field already has is not written again.

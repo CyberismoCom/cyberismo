@@ -24,7 +24,7 @@ import {
 } from './sharedSchemas.js';
 
 // The predefined queries run_query offers.
-const QUERY_NAMES = ['card', 'onCreation', 'onTransition', 'tree'] as const;
+const QUERY_NAMES = ['card', 'tree'] as const;
 
 const projectPrefixParam = z
   .string()
@@ -1210,7 +1210,7 @@ export function registerTools(
     'run_query',
     {
       description:
-        "Run a predefined query against the project, with its inputs in options. 'card': card details with fields, links and allowed operations ({ cardKey } or { cardKeys }; none for all cards). 'tree': the card tree ({ cardKey, recursive? } for a subtree; none for the whole project). 'onCreation': fields and transitions that creating cards would set off ({ cardKeys }). 'onTransition': fields and transitions that a transition would set off ({ cardKey, transition }).",
+        "Run a predefined query against the project, with its inputs in options. 'card': card details with fields, links and allowed operations ({ cardKey } or { cardKeys }; none for all cards). 'tree': the card tree ({ cardKey, recursive? } for a subtree; none for the whole project).",
       inputSchema: {
         projectPrefix: projectPrefixParam,
         queryName: z.enum(QUERY_NAMES).describe('Query type to run'),
