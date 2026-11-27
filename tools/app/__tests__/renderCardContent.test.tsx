@@ -183,6 +183,40 @@ describe('renderCardHtml', () => {
     expect(container.querySelectorAll('.tablecontainer')).toHaveLength(1);
   });
 
+  // Asciidoctor output of a checklist with the role "steps":
+  // [.steps]
+  // * [x] Done
+  // * [ ] Next
+  //   ** [ ] Nested
+  it('marks checklist items as checked or unchecked, and keeps the role', () => {
+    const { container } = render(
+      <Content
+        html={
+          '<div class="ulist checklist steps"><ul class="checklist">' +
+          '<li><p><i class="fa fa-check-square-o"></i> Done</p></li>' +
+          '<li><p><i class="fa fa-square-o"></i> Next</p>' +
+          '<div class="ulist checklist"><ul class="checklist">' +
+          '<li><p><i class="fa fa-square-o"></i> Nested</p></li>' +
+          '</ul></div></li>' +
+          '</ul></div>'
+        }
+      />,
+    );
+
+    const steps = container.querySelector('.ulist.checklist.steps');
+    expect(steps).not.toBeNull();
+    const items = steps!.querySelectorAll(':scope > ul > li');
+    expect(items).toHaveLength(2);
+    expect(
+      items[0].querySelector(':scope > p > .checklist-marker--checked'),
+    ).not.toBeNull();
+    expect(
+      items[1].querySelector(':scope > p > .checklist-marker--unchecked'),
+    ).not.toBeNull();
+    expect(container.querySelectorAll('.checklist-marker')).toHaveLength(3);
+    expect(container.querySelector('i.fa')).toBeNull();
+  });
+
   // Passthrough blocks put author-written HTML straight into the card, so the
   // sanitizer is the only thing between a card and a fake login box.
   describe('sanitization', () => {
