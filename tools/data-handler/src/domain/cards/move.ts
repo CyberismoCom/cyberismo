@@ -150,7 +150,11 @@ export async function rankAfter(
     throw new DHValidationError(`Cards must be from the same parent`);
   }
 
-  await tree.reorderAfter(cardKey, beforeCardKey);
+  await refreshRanked(
+    checkout,
+    tree,
+    await tree.reorderAfter(cardKey, beforeCardKey),
+  );
 }
 
 /**
@@ -158,7 +162,8 @@ export async function rankAfter(
  * @param cardKey card key
  */
 export async function rankFirst(checkout: Checkout, cardKey: string) {
-  await checkout.treeOf(cardKey).reorderFirst(cardKey);
+  const tree = checkout.treeOf(cardKey);
+  await refreshRanked(checkout, tree, await tree.reorderFirst(cardKey));
 }
 
 /**
@@ -169,7 +174,12 @@ export async function rebalanceUnder(
   checkout: Checkout,
   parentCardKey: string,
 ) {
-  await checkout.treeOf(parentCardKey).rebalanceChildren(parentCardKey);
+  const tree = checkout.treeOf(parentCardKey);
+  await refreshRanked(
+    checkout,
+    tree,
+    await tree.rebalanceChildren(parentCardKey),
+  );
 }
 
 /**
@@ -179,9 +189,20 @@ export async function rebalanceUnder(
 export async function rebalanceAll(checkout: Checkout) {
   for (const tree of [checkout.cardTree, ...checkout.templateTrees()]) {
     if (tree.writable) {
-      await tree.rebalanceAll();
+      await refreshRanked(checkout, tree, await tree.rebalanceAll());
     }
   }
+}
+
+// Refreshes the facts of the cards a rank rewrote.
+async function refreshRanked(
+  checkout: Checkout,
+  tree: CardTree,
+  cardKeys: string[],
+) {
+  await checkout.calculationEngine.refreshCardFacts(
+    cardKeys.map((cardKey) => tree.node(cardKey)),
+  );
 }
 
 /**
