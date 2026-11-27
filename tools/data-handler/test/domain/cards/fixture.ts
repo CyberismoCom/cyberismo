@@ -1,8 +1,10 @@
 // SPDX-FileCopyrightText: Cyberismo Ltd and contributors
 // SPDX-License-Identifier: AGPL-3.0-only
 
+import { execFile } from 'node:child_process';
 import { readdirSync, readFileSync } from 'node:fs';
 import { join, relative, sep } from 'node:path';
+import { promisify } from 'node:util';
 import { afterEach, expect } from 'vitest';
 
 import type { Card } from '@cyberismo/model';
@@ -58,6 +60,10 @@ export async function expectRefused(
   await expect(operation()).rejects.toThrow(error);
   expect(snapshot(dir)).toEqual(before);
 }
+
+// Runs git in `path` and gives its trimmed output.
+export const git = async (path: string, ...args: string[]) =>
+  (await promisify(execFile)('git', args, { cwd: path })).stdout.trim();
 
 export const metadataOf = async (ws: Workspace, key: string) =>
   (await ws.cards.details(key)).metadata!;

@@ -45,9 +45,11 @@ import {
   addLabel,
   addLink,
   editCardContent,
+  editLink,
   editCardMetadata,
   removeLabel,
   removeLink,
+  type LinkEnd,
 } from '../domain/cards/index.js';
 
 /**
@@ -248,6 +250,22 @@ export class Cards {
       linkDescription,
       direction,
     );
+  }
+
+  /**
+   * Changes a link of a card: its other end, link type, description or
+   * direction.
+   * @param cardKey Card whose link is changed.
+   * @param link The link as it is.
+   * @param changed The link as it is to be.
+   */
+  @write((cardKey) => `Edit link of ${cardKey}`)
+  public async editLink(
+    cardKey: string,
+    link: LinkEnd,
+    changed: LinkEnd,
+  ): Promise<void> {
+    await editLink(this.checkout, cardKey, link, changed);
   }
 
   /**

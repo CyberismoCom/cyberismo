@@ -36,7 +36,10 @@ export {
   addLink,
   editCardContent,
   editCardMetadata,
+  editLink,
+  linkEnds,
   removeLabel,
   removeLink,
   updateCardMetadata,
 } from './update.js';
+export type { LinkEnd } from './update.js';

@@ -8,7 +8,12 @@ import type {
   MetadataContent,
   QueryResult,
 } from '@cyberismo/model';
-import { AsciidoctorPdfError, type Workspace } from '@cyberismo/data-handler';
+import {
+  AsciidoctorPdfError,
+  linkEnds,
+  type LinkEnd,
+  type Workspace,
+} from '@cyberismo/data-handler';
 import { preprocessMermaidBlocksForHtml } from './mermaid.js';
 import { allCards } from './lib.js';
 import {
@@ -257,11 +262,7 @@ export async function createLink(
   direction: 'outbound' | 'inbound' = 'outbound',
   description?: string,
 ) {
-  // For outbound: key is source, target is destination
-  // For inbound: target is source, key is destination
-  const source = direction === 'outbound' ? key : target;
-  const destination = direction === 'outbound' ? target : key;
-
+  const [source, destination] = linkEnds(key, { target, linkType, direction });
   await ws.cards.addLink(source, destination, linkType, description, direction);
 
   return { message: 'Link created successfully' };
@@ -275,42 +276,25 @@ export async function removeLink(
   direction: 'outbound' | 'inbound' = 'outbound',
   description?: string,
 ) {
-  // For outbound: key is source, target is destination
-  // For inbound: target is source, key is destination
-  const source = direction === 'outbound' ? key : target;
-  const destination = direction === 'outbound' ? target : key;
-  await ws.cards.removeLink(source, destination, linkType, description);
+  const [source, destination] = linkEnds(key, { target, linkType, direction });
+  await ws.cards.removeLink(
+    source,
+    destination,
+    linkType,
+    description,
+    direction,
+  );
   return { message: 'Link removed successfully' };
 }
 
 export async function updateLink(
   ws: Workspace,
   key: string,
-  toCard: string,
-  linkType: string,
-  direction: 'outbound' | 'inbound',
-  previousToCard: string,
-  previousLinkType: string,
-  previousDirection: 'outbound' | 'inbound',
-  linkDescription?: string,
-  previousLinkDescription?: string,
+  link: LinkEnd,
+  changed: LinkEnd,
 ) {
-  // For simplicity create the new link first so that duplicate-link validation runs before
-  // the old link is removed. This also handles direction changes.
-  return ws.atomic(async () => {
-    await createLink(ws, key, toCard, linkType, direction, linkDescription);
-
-    await removeLink(
-      ws,
-      key,
-      previousToCard,
-      previousLinkType,
-      previousDirection,
-      previousLinkDescription,
-    );
-
-    return { message: 'Link updated successfully' };
-  }, `Update link on ${key} to ${toCard}`);
+  await ws.cards.editLink(key, link, changed);
+  return { message: 'Link updated successfully' };
 }
 
 export async function getAttachment(

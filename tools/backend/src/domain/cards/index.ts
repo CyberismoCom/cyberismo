@@ -794,14 +794,13 @@ router.put(
     const result = await cardService.updateLink(
       ws,
       key,
-      toCard,
-      linkType,
-      direction,
-      previousToCard,
-      previousLinkType,
-      previousDirection,
-      description,
-      previousDescription,
+      {
+        target: previousToCard,
+        linkType: previousLinkType,
+        direction: previousDirection,
+        linkDescription: previousDescription,
+      },
+      { target: toCard, linkType, direction, linkDescription: description },
     );
     return c.json(result);
   },
