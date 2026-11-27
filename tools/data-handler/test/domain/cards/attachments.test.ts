@@ -53,6 +53,30 @@ describe('card attachments', () => {
     expect(content.fileBuffer.toString()).toBe('png-bytes');
   });
 
+  it('adds several attachments at once, refusing all if one is refused', async () => {
+    // A failed write is rolled back under autocommit only.
+    const { ws, path, keys } = await open(
+      { ...spec, git: true },
+      { autocommit: true },
+    );
+
+    await ws.cards.addAttachments(keys[0], [
+      { name: 'a.txt', buffer: text('ay') },
+      { name: 'b.txt', buffer: text('bee') },
+    ]);
+
+    expect(await names(ws)).toEqual([`${keys[0]}/a.txt`, `${keys[0]}/b.txt`]);
+    await expectRefused(
+      path,
+      () =>
+        ws.cards.addAttachments(keys[0], [
+          { name: 'c.txt', buffer: text('see') },
+          { name: 'a.txt', buffer: text('again') },
+        ]),
+      /^EEXIST: file already exists/,
+    );
+  });
+
   it('adds a file from a path under its own name', async () => {
     const { ws, path, keys } = await open(spec);
     const source = join(path, 'note.txt'); // inside the project's tmp dir, cleaned with it

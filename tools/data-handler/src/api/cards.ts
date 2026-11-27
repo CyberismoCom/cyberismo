@@ -284,6 +284,22 @@ export class Cards {
   }
 
   /**
+   * Adds several attachments to a card, in order.
+   * @param cardKey Card to attach to.
+   * @param attachments Attachment names, each with its data; the base name
+   *   of a name names its file.
+   */
+  @write((cardKey) => `Add attachments to ${cardKey}`)
+  public async addAttachments(
+    cardKey: string,
+    attachments: { name: string; buffer: Buffer }[],
+  ): Promise<void> {
+    for (const { name, buffer } of attachments) {
+      await addAttachment(this.checkout, cardKey, name, buffer);
+    }
+  }
+
+  /**
    * Removes an attachment from a card.
    * @param cardKey Card to remove the attachment from.
    * @param attachment File name of the attachment.
