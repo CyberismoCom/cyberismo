@@ -188,6 +188,37 @@ export class PermissionDeniedError extends DomainError {
 }
 
 /**
+ * Thrown when an action fails after it may have written, or in a program
+ * after the first. Takes the code of a DomainError cause; 'validation'
+ * otherwise. The cause's details, if any, are in details.cause.
+ */
+export class ActionFailedError extends DomainError {
+  readonly code: ErrorCode;
+  /**
+   * @param message What failed, for the user.
+   * @param program The failing program, from 1.
+   * @param effect The failing effect's atom, if an effect failed.
+   * @param cause What failed.
+   */
+  constructor(
+    message: string,
+    program: number,
+    effect: string | undefined,
+    cause: unknown,
+  ) {
+    super(message, { cause });
+    this.name = 'ActionFailedError';
+    this.code = cause instanceof DomainError ? cause.code : 'validation';
+    this.details = {
+      program,
+      ...(effect && { effect }),
+      ...(cause instanceof DomainError &&
+        cause.details && { cause: cause.details }),
+    };
+  }
+}
+
+/**
  * Thrown when a named resource is not in the project.
  */
 export class ResourceNotFoundError extends DomainError {

@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import type {
+  ActionResult,
   ActorRef,
   AttachmentContent,
   Card,
@@ -13,6 +14,7 @@ import type {
 } from '@cyberismo/model';
 import type { Checkout } from '../state/checkout/checkout.js';
 import { read, write } from '../infra/tx/rw-lock.js';
+import { runAction } from '../domain/actions/index.js';
 import type { CommitIdentity } from '../infra/tx/tx-record.js';
 import {
   addAttachment,
@@ -154,6 +156,20 @@ export class Cards {
     transitionName: string,
   ): Promise<void> {
     await transitionCard(this.checkout, cardKey, transitionName);
+  }
+
+  /**
+   * Runs an action's logic programs on a card, in order, as one write: each
+   * program is solved, then its effects are checked and applied to cards.
+   * @param cardKey Card the action runs on; actionCard/1 in every program.
+   * @param programs The action's logic programs, one or more.
+   */
+  @write((cardKey) => `Run action on ${cardKey}`)
+  public async runAction(
+    cardKey: string,
+    programs: string[],
+  ): Promise<ActionResult> {
+    return runAction(this.checkout, cardKey, programs);
   }
 
   /**

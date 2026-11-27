@@ -40,6 +40,7 @@ export {
 };
 
 export {
+  ActionFailedError,
   AttachmentNotFoundError,
   CardNotFoundError,
   ContainerMismatchError,

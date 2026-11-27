@@ -82,6 +82,7 @@ export const cards: ApiSerializable<Cards> = {
   edit: true,
   editField: true,
   transition: true,
+  runAction: true,
   remove: true,
   addLabel: true,
   removeLabel: true,

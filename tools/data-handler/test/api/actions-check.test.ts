@@ -1,0 +1,471 @@
+// SPDX-FileCopyrightText: Cyberismo Ltd and contributors
+// SPDX-License-Identifier: AGPL-3.0-only
+
+import { beforeAll, describe, expect, it } from 'vitest';
+
+import type { Workspace } from '../../src/api/workspace.js';
+import { DHValidationError } from '../../src/shared/exceptions/index.js';
+import { openTestWorkspace } from '../helpers/open-test-workspace.js';
+import { buildProject } from '../helpers/project-builder.js';
+import {
+  flow,
+  metadataOf,
+  readOnlyModule,
+  snapshot,
+} from '../domain/cards/fixture.js';
+
+const field = (name: string) => `proj/fieldTypes/${name}`;
+
+// Cards: doc a, doc b (with a value in every field), note c; a template card
+// of t; a module template card.
+const spec = {
+  prefix: 'proj',
+  workflows: [flow],
+  fieldTypes: [
+    { name: 'short', dataType: 'shortText' },
+    { name: 'long', dataType: 'longText' },
+    { name: 'who', dataType: 'person' },
+    { name: 'day', dataType: 'date' },
+    { name: 'when', dataType: 'dateTime' },
+    { name: 'choice', dataType: 'enum', enumValues: ['x', 'y'] },
+    { name: 'int', dataType: 'integer' },
+    { name: 'num', dataType: 'number' },
+    { name: 'flag', dataType: 'boolean' },
+    { name: 'many', dataType: 'list' },
+    { name: 'elsewhere', dataType: 'shortText' },
+  ],
+  cardTypes: [
+    {
+      name: 'doc',
+      customFields: [
+        'short',
+        'long',
+        'who',
+        'day',
+        'when',
+        'choice',
+        'int',
+        'num',
+        'flag',
+        'many',
+      ].map((name) => ({ name })),
+    },
+    { name: 'note', customFields: [{ name: 'elsewhere' }] },
+  ],
+  linkTypes: [
+    { name: 'rel' },
+    { name: 'described', enableLinkDescription: true },
+    { name: 'fromNote', sourceCardTypes: ['note'] },
+  ],
+  cards: [
+    { cardType: 'doc' },
+    {
+      cardType: 'doc',
+      fields: {
+        [field('day')]: '2020-02-02',
+        [field('when')]: '2020-02-02T02:02:02.000Z',
+        [field('int')]: 1,
+        [field('num')]: 1.5,
+        [field('flag')]: true,
+      },
+    },
+    { cardType: 'note' },
+  ],
+  templates: [{ name: 't', cards: [{ cardType: 'doc' }] }],
+  modules: [readOnlyModule()],
+};
+
+let ws: Workspace;
+let path: string;
+let a: string, b: string, c: string, tpl: string, mod: string;
+
+beforeAll(async () => {
+  const project = await buildProject(spec);
+  ws = await openTestWorkspace(project.path);
+  path = project.path;
+  [a, b, c] = project.keys;
+  [tpl] = project.templateKeys['proj/templates/t'];
+  [mod] = project.templateKeys['mod/templates/mt'];
+  return project.cleanup;
+});
+
+// Atoms are written with A, B, C, TPL and MOD standing for the card keys.
+const keys = (atom: string) =>
+  atom
+    .replace(/\bTPL\b/g, tpl)
+    .replace(/\bMOD\b/g, mod)
+    .replace(/\bA\b/g, a)
+    .replace(/\bB\b/g, b)
+    .replace(/\bC\b/g, c);
+
+// Runs one program that states the atoms as facts.
+const run = (...atoms: string[]) =>
+  ws.cards.runAction(a, [atoms.map((atom) => `${keys(atom)}.`).join('\n')]);
+
+// Every row below is refused in the check, which writes nothing: one project
+// serves them all, and the last test compares its files.
+describe('an effect refused in the check', () => {
+  let before: Record<string, string>;
+  beforeAll(() => {
+    before = snapshot(path);
+  });
+
+  // [the effect as the program states it, the atom the refusal names, why].
+  // The atom is the effect as written, with create/2 given its Id.
+  it.each<[string, string, string]>([
+    [
+      'create(p_1,"x/templates/t")',
+      'create(p_1,"x/templates/t",none)',
+      "card 'p_1' does not exist",
+    ],
+    [
+      'create(root,"x/templates/t",3)',
+      'create(root,"x/templates/t",3)',
+      "template 'x/templates/t' does not exist",
+    ],
+    [
+      'create("p_1","x/templates/t","a")',
+      'create("p_1","x/templates/t","a")',
+      "card 'p_1' does not exist",
+    ],
+    [
+      'create(A,"x/templates/t","a b")',
+      'create(A,"x/templates/t","a b")',
+      "template 'x/templates/t' does not exist",
+    ],
+    [
+      'setField(p_1,"title","v")',
+      'setField(p_1,"title","v")',
+      "card 'p_1' does not exist",
+    ],
+    [
+      'setField("p_1","x/fieldTypes/n",-3)',
+      'setField("p_1","x/fieldTypes/n",-3)',
+      "card 'p_1' does not exist",
+    ],
+    [
+      'setField(p_1,"f","4")',
+      'setField(p_1,"f","4")',
+      "card 'p_1' does not exist",
+    ],
+    ['setField(p_1,"g",x)', 'setField(p_1,"g",x)', "card 'p_1' does not exist"],
+    [
+      'copyContent(p_1,p_2)',
+      'copyContent(p_1,p_2)',
+      "card 'p_1' does not exist",
+    ],
+    ['copyContent(A,p_2)', 'copyContent(A,p_2)', "card 'p_2' does not exist"],
+    [
+      'setContent(p_1,"a\\nb")',
+      'setContent(p_1,"a\\nb")',
+      "card 'p_1' does not exist",
+    ],
+    ['addLabel(p_1,"l")', 'addLabel(p_1,"l")', "card 'p_1' does not exist"],
+    ['removeLabel(p_1,l)', 'removeLabel(p_1,l)', "card 'p_1' does not exist"],
+    [
+      'transition(p_1,"Start")',
+      'transition(p_1,"Start")',
+      "card 'p_1' does not exist",
+    ],
+    [
+      'addLink(p_1,"p_2","x/linkTypes/l")',
+      'addLink(p_1,"p_2","x/linkTypes/l")',
+      "card 'p_1' does not exist",
+    ],
+    [
+      'addLink(A,p_2,"x/linkTypes/l","d")',
+      'addLink(A,p_2,"x/linkTypes/l","d")',
+      "card 'p_2' does not exist",
+    ],
+    [
+      'removeLink(A,B,"x/linkTypes/l")',
+      'removeLink(A,B,"x/linkTypes/l")',
+      "link type 'x/linkTypes/l' does not exist",
+    ],
+    [
+      'removeLink(p_1,p_2,"x/linkTypes/l","d")',
+      'removeLink(p_1,p_2,"x/linkTypes/l","d")',
+      "card 'p_1' does not exist",
+    ],
+    ['move(p_1,root)', 'move(p_1,root)', "card 'p_1' does not exist"],
+    ['move(A,"p_2")', 'move(A,"p_2")', "card 'p_2' does not exist"],
+    ['rank(A,p_2)', 'rank(A,p_2)', "card 'p_2' does not exist"],
+    ['rank(A,A)', 'rank(A,A)', "card 'A' cannot be ranked after itself"],
+    ['rankFirst(p_1)', 'rankFirst(p_1)', "card 'p_1' does not exist"],
+    [
+      'setField(TPL,"title","x")',
+      'setField(TPL,"title","x")',
+      "card 'TPL' is a template card",
+    ],
+  ])('names %s as %s', async (stated, atom, reason) => {
+    const error = await run(stated).catch((e: unknown) => e);
+
+    expect(error).toBeInstanceOf(DHValidationError);
+    expect((error as Error).message).toBe(
+      `Cannot apply '${keys(atom)}': ${keys(reason)}`,
+    );
+  });
+
+  it.each<[string, string, RegExp]>([
+    ['an unknown card', 'setField(nope_1,"title","x")', /nope_1/],
+    [
+      'a link to an external item',
+      'addLink(A,"jira:X-1","proj/linkTypes/rel")',
+      /'jira:X-1' is not a card key \(external items are not supported\)/,
+    ],
+    [
+      'a link from an external item',
+      'removeLink("jira:X-1",A,"proj/linkTypes/rel")',
+      /'jira:X-1' is not a card key \(external items are not supported\)/,
+    ],
+    ['an unknown template', 'create(A,"proj/templates/nope")', /template/],
+    [
+      'a resource that is no template',
+      'create(A,"proj/linkTypes/rel")',
+      /template/,
+    ],
+    ['a template card content', 'setContent(TPL,"x")', /template card/],
+    ['a module card content', 'setContent(MOD,"x")', /module card/],
+    ['an unknown card content', 'setContent(nope_1,"x")', /does not exist/],
+    ['a module card target', 'addLabel(MOD,"x")', /module card/],
+    ['a template card label removal', 'removeLabel(TPL,"x")', /template card/],
+    [
+      'a template card parent',
+      'create(TPL,"proj/templates/t")',
+      /template card/,
+    ],
+    ['a module card as new parent', 'move(A,MOD)', /module card/],
+    ['a template card moved', 'move(TPL,root)', /template card/],
+    ['a template card as rank anchor', 'rank(A,TPL)', /template card/],
+    ['a template card ranked', 'rank(TPL,A)', /template card/],
+    ['a template card ranked first', 'rankFirst(TPL)', /template card/],
+    [
+      'a template card transitioned',
+      'transition(TPL,"Start")',
+      /template card/,
+    ],
+    ['a copy onto a template card', 'copyContent(TPL,A)', /template card/],
+    [
+      'a copy from an unknown card',
+      'copyContent(A,nope_1)',
+      /card 'nope_1' does not exist/,
+    ],
+    ['an unknown link type', 'addLink(A,B,"proj/linkTypes/nope")', /link type/],
+    [
+      'an unknown link type on remove',
+      'removeLink(A,B,"proj/linkTypes/nope")',
+      /link type/,
+    ],
+    [
+      'a disallowed description',
+      'addLink(A,B,"proj/linkTypes/rel","d")',
+      /description/,
+    ],
+    [
+      'a card type not allowed',
+      'addLink(A,C,"proj/linkTypes/fromNote")',
+      /cannot be used as source/,
+    ],
+    [
+      'a link to a template card',
+      'addLink(A,TPL,"proj/linkTypes/rel")',
+      /template card/,
+    ],
+    [
+      'a link from a template card',
+      'addLink(TPL,A,"proj/linkTypes/rel")',
+      /template card/,
+    ],
+    [
+      'setField on workflowState',
+      'setField(A,"workflowState","Done")',
+      /workflowState/,
+    ],
+    ['setField on rank', 'setField(A,"rank","0|a")', /'rank' is neither/],
+    [
+      'setField on a field the card type lacks',
+      'setField(A,"proj/fieldTypes/elsewhere","x")',
+      /field 'proj\/fieldTypes\/elsewhere' is neither 'title' nor a custom field of card type 'proj\/cardTypes\/doc' \(card '.*'\)/,
+    ],
+    [
+      'a list field',
+      'setField(A,"proj/fieldTypes/many","x")',
+      /list field 'proj\/fieldTypes\/many' cannot be set/,
+    ],
+    [
+      '"abc" for a number',
+      'setField(A,"proj/fieldTypes/num","abc")',
+      /"abc" is not a valid number value for field 'proj\/fieldTypes\/num' of card/,
+    ],
+    [
+      'a template name without prefix',
+      'create(A,"/templates/t")',
+      /template '\/templates\/t' does not exist/,
+    ],
+    [
+      'a template name without identifier',
+      'create(A,"proj/templates/")',
+      /template 'proj\/templates\/' does not exist/,
+    ],
+    [
+      'a link type name without prefix',
+      'addLink(A,B,"/linkTypes/rel")',
+      /link type '\/linkTypes\/rel' does not exist/,
+    ],
+    [
+      'a transition the workflow lacks',
+      'transition(A,"Nope")',
+      /transition 'Nope' is not in workflow 'proj\/workflows\/flow'/,
+    ],
+    [
+      'a transition given as a number',
+      'transition(A,1)',
+      /transition '1' is not in workflow/,
+    ],
+  ])('refuses %s', async (_case, atom, reason) => {
+    const error = await run(atom).catch((e: unknown) => e);
+
+    expect(error).toBeInstanceOf(DHValidationError);
+    expect((error as Error).message).toMatch(reason);
+  });
+
+  // Every effect of the group is refused; the refusal names the first.
+  it.each<[string, string[], RegExp]>([
+    [
+      'two values for one field',
+      ['setField(A,"title","x")', 'setField(A,"title","y")'],
+      /^Cannot apply 'setField\(.*,"title","x"\)': field 'title' of card '.*' is set to two different values$/,
+    ],
+    [
+      'a link both added and removed',
+      [
+        'addLink(A,B,"proj/linkTypes/rel")',
+        'removeLink(A,B,"proj/linkTypes/rel")',
+      ],
+      /^Cannot apply 'addLink\(.*the link from card '.*' to card '.*' is both added and removed$/,
+    ],
+    [
+      'a link added with no description and removed with ""',
+      [
+        'addLink(A,B,"proj/linkTypes/rel")',
+        'removeLink(A,B,"proj/linkTypes/rel","")',
+      ],
+      /is both added and removed$/,
+    ],
+    [
+      'a label both added and removed',
+      ['addLabel(A,"l")', 'removeLabel(A,"l")'],
+      /^Cannot apply 'addLabel\(.*the label 'l' of card '.*' is both added and removed$/,
+    ],
+    [
+      'two transitions of a card',
+      ['transition(A,"Start")', 'transition(A,"Close")'],
+      /^Cannot apply 'transition\(.*,"Close"\)': card '.*' has more than one transition$/,
+    ],
+    [
+      'two moves of a card',
+      ['move(A,root)', 'move(A,B)'],
+      /card '.*' has more than one move$/,
+    ],
+    [
+      'rank and rankFirst of a card',
+      ['rank(A,B)', 'rankFirst(A)'],
+      /^Cannot apply 'rank\(.*card '.*' has more than one rank or rankFirst$/,
+    ],
+    [
+      'two ranks of a card',
+      ['rank(A,B)', 'rank(A,C)'],
+      /card '.*' has more than one rank or rankFirst$/,
+    ],
+    [
+      'two texts for one card',
+      ['setContent(A,"x")', 'setContent(A,"y")'],
+      /^Cannot apply 'setContent\(.*,"x"\)': the content of card '.*' is set more than once$/,
+    ],
+    [
+      'setContent and copyContent of a card',
+      ['copyContent(A,B)', 'setContent(A,"x")'],
+      /^Cannot apply 'copyContent\(.*the content of card '.*' is set more than once$/,
+    ],
+    [
+      'copies of two cards onto one',
+      ['copyContent(A,B)', 'copyContent(A,C)'],
+      /the content of card '.*' is set more than once$/,
+    ],
+  ])('refuses %s', async (_case, atoms, reason) => {
+    const error = await run(...atoms).catch((e: unknown) => e);
+
+    expect(error).toBeInstanceOf(DHValidationError);
+    expect((error as Error).message).toMatch(reason);
+  });
+
+  it('reports an effect refused alone before a conflict later in atom order', async () => {
+    await expect(
+      run(
+        'setField(A,"title","x")',
+        'setField(A,"title","y")',
+        'addLabel(TPL,"l")',
+      ),
+    ).rejects.toThrow(`card '${tpl}' is a template card`);
+  });
+
+  it('does not count an effect refused alone in a conflict', async () => {
+    await expect(
+      run(
+        'setField(A,"proj/fieldTypes/num","abc")',
+        'setField(A,"proj/fieldTypes/num","1")',
+      ),
+    ).rejects.toThrow(/"abc" is not a valid number value/);
+  });
+
+  it('wrote nothing', () => {
+    expect(snapshot(path)).toEqual(before);
+  });
+});
+
+// What setField writes for a value, by the data type of the field. The rows
+// share one project, in order; each sets a field of B, which has a value in
+// the fields a row clears. The constant null clears a field of any type.
+describe('a setField value', () => {
+  it.each<[string, string, string, unknown]>([
+    ['true', 'boolean', 'flag', true],
+    ['4', 'integer', 'int', 4],
+    ['null', 'integer', 'int', undefined],
+    ['"2.5"', 'number', 'num', 2.5],
+    ['""', 'number', 'num', undefined],
+    ['y', 'shortText', 'short', 'y'],
+    ['3', 'shortText', 'short', '3'],
+    ['null', 'shortText', 'short', undefined],
+    ['"null"', 'shortText', 'short', 'null'],
+    [
+      '"2026-01-02T03:04:05.678+02:00"',
+      'dateTime',
+      'when',
+      '2026-01-02T01:04:05.678Z',
+    ],
+    ['"Title"', 'title', 'title', 'Title'],
+  ])('%s is written to a %s field', async (value, _dataType, name, written) => {
+    const fieldName = name === 'title' ? 'title' : field(name);
+
+    await run(`setField(B,"${fieldName}",${value})`);
+
+    expect((await metadataOf(ws, b))[fieldName]).toEqual(written);
+  });
+
+  it('"" clears a text field', async () => {
+    await run(`setField(B,"${field('short')}","")`);
+
+    // An empty custom field has no key in the card's metadata.
+    expect((await metadataOf(ws, b))[field('short')]).toBeUndefined();
+  });
+
+  it('null and "" on one field are one value', async () => {
+    await run(`setField(B,"${field('long')}","x")`);
+    await run(
+      `setField(B,"${field('long')}",null)`,
+      `setField(B,"${field('long')}","")`,
+    );
+
+    expect((await metadataOf(ws, b))[field('long')]).toBeUndefined();
+  });
+});
