@@ -50,7 +50,6 @@ class TestMacro extends BaseMacro {
     super(
       {
         name: 'testName',
-        tagName: 'test-tag-name',
         schema,
       },
       new TaskQueue(),

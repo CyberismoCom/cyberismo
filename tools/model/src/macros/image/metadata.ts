@@ -8,7 +8,6 @@ import type { MacroMetadata } from '../../interfaces/macros.js';
  */
 const macroMetadata: MacroMetadata = {
   name: 'image',
-  tagName: 'image',
   schema: 'imageMacroSchema',
 };
 

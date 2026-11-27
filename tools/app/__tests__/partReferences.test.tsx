@@ -29,15 +29,9 @@ vi.mock('@/components/macros', async () => {
     );
   return {
     macros: Object.fromEntries(
-      [
-        'action',
-        'createCards',
-        'createLinks',
-        'field',
-        'mermaid',
-        'scoreCard',
-        'vega',
-      ].map((n) => [n, stub(n)]),
+      ['action', 'createCards', 'createLinks', 'field', 'mermaid', 'vega'].map(
+        (n) => [n, stub(n)],
+      ),
     ),
   };
 });
