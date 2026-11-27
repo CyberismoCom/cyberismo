@@ -37,11 +37,13 @@ export class Render {
           ...context,
           checkout: this.checkout,
         }),
+        parts: {},
       };
     } catch (error) {
       if (error instanceof LogicUnavailableError) throw error;
       return {
         content: macroErrorText(error, fallback),
+        parts: {},
         error: error instanceof Error ? error.message : 'Unknown error',
       };
     }

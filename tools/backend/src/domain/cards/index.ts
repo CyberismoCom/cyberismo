@@ -195,7 +195,8 @@ router.get(
  *         description: Card key (string)
  *     responses:
  *       200:
- *         description: Object with adocContent.
+ *         description: Object with adocContent, the AsciiDoc in which each
+ *           interactive macro is a part reference, and parts, the parts by id.
  *       400:
  *        description: No search key
  *       404:
@@ -528,7 +529,8 @@ router.delete(
  *                 type: string
  *     responses:
  *       200:
- *         description: Content parsed successfully
+ *         description: Object with adocContent, the AsciiDoc in which each
+ *           interactive macro is a part reference, and parts, the parts by id.
  *       400:
  *         description: Invalid request
  *       500:

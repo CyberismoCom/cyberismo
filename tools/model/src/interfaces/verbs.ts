@@ -38,9 +38,11 @@ export interface RenderOptions {
   fallback?: string;
 }
 
-// Rendered content, and the macro failure it stands for, if any.
+// Rendered content, the parts its references name (by id), and the macro
+// failure it stands for, if any. A failed render has no parts.
 export interface RenderedContent {
   content: string;
+  parts: RenderedParts;
   error?: string;
 }
 

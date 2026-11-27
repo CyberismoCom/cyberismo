@@ -75,7 +75,7 @@ test.each([
   ],
   [
     '/content',
-    { adocContent: expect.stringContaining('= Decision Records') },
+    { adocContent: expect.stringContaining('= Decision Records'), parts: {} },
     ['rawContent', 'fields'],
   ],
   [
