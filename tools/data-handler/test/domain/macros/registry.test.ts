@@ -15,6 +15,11 @@ import { join } from 'node:path';
 import { mkdirSync, rmSync } from 'node:fs';
 
 import Handlebars from 'handlebars';
+import { schemas } from '@cyberismo/assets';
+import {
+  MAX_ACTION_PROGRAM_LENGTH,
+  MAX_ACTION_PROGRAMS,
+} from '@cyberismo/model';
 import BaseMacro from '../../../src/domain/macros/base-macro.js';
 import { copyDir } from '../../../src/shared/utils/file-utils.js';
 import { getTestProject } from '../../helpers/test-utils.js';
@@ -280,6 +285,46 @@ ${q}
             context: 'localApp',
           }),
         ).rejects.toThrow(/cannot be used as source/);
+      });
+    });
+    describe('action', () => {
+      const actionAdoc = `
+{{#action}}
+  "buttonLabel": "Go",
+  "actions": [{{#quoted}}a.{{/quoted}}]
+{{/action}}`;
+      const run = (mode: Mode) =>
+        evaluateMacros(actionAdoc, {
+          mode,
+          checkout,
+          cardKey: 'decision_5',
+          context: 'localApp',
+        });
+
+      it("the action macro's schema holds the limits of an action", () => {
+        const schema = schemas.find(
+          (schema) => schema.$id === 'actionMacroSchema',
+        );
+        expect(schema?.properties).toMatchObject({
+          actions: {
+            minItems: 1,
+            maxItems: MAX_ACTION_PROGRAMS,
+            items: { minLength: 1, maxLength: MAX_ACTION_PROGRAM_LENGTH },
+          },
+        });
+      });
+
+      it('action in card content is a validation error', async () => {
+        await expect(run('validate')).rejects.toThrow(
+          /only in report templates/,
+        );
+      });
+
+      it('action in card content renders a warning in inject mode', async () => {
+        const result = await run('inject');
+        expect(result).not.toContain('<action-button');
+        expect(result).toContain('[WARNING]');
+        expect(result).toMatch(/only in report templates/);
       });
     });
     describe('raw', () => {

@@ -1,11 +1,21 @@
 // SPDX-FileCopyrightText: Cyberismo Ltd and contributors
 // SPDX-License-Identifier: AGPL-3.0-only
 
-import Handlebars from 'handlebars';
+import Handlebars, { type HelperOptions } from 'handlebars';
 import type { CalculationEngine } from '../../state/engine/calculation-engine.js';
-import { registerEmptyMacros } from '../macros/registry.js';
-import type { Context } from '@cyberismo/model';
 import {
+  createInlineHtmlPlaceholder,
+  registerEmptyMacros,
+  validateMacroContent,
+} from '../macros/registry.js';
+import type {
+  ActionButtonOptions,
+  ActionMacroOptions,
+  Context,
+} from '@cyberismo/model';
+import actionMetadata from '@cyberismo/model/macros/action/metadata';
+import {
+  registerClingoHelpers,
   registerComparisonHelpers,
   registerMathHelpers,
   registerQuotedHelper,
@@ -34,6 +44,12 @@ interface GenerateReportContentParams {
    * fails as a validation error.
    */
   contentRequested?: boolean;
+  /**
+   * The card the report is rendered on, given only when action buttons are
+   * rendered. Inside an `action` block, `cardKey` is this card, whatever the
+   * report parameters say. Without it, an action block renders nothing.
+   */
+  actionCardKey?: string;
 }
 
 /**
@@ -55,12 +71,14 @@ export async function generateReportContent(
     context,
     requested,
     contentRequested,
+    actionCardKey,
   } = params;
 
   const handlebars = Handlebars.create();
   registerComparisonHelpers(handlebars);
   registerMathHelpers(handlebars);
   registerQuotedHelper(handlebars);
+  registerClingoHelpers(handlebars);
 
   const render = (
     template: string,
@@ -97,6 +115,56 @@ export async function generateReportContent(
   // register empty macros so that other macros aren't touched yet
   registerEmptyMacros(handlebars);
   registerReportHelpers(handlebars);
+  // Inside an action block, `{{{cardKey}}}` is the action card; elsewhere
+  // it is what the context holds, as without the helper. The context itself
+  // is left as it is. A section, `{{#cardKey}}` or `{{^cardKey}}`, works on
+  // that value as it would without the helper.
+  let inAction = false;
+  handlebars.registerHelper(
+    'cardKey',
+    function (this: unknown, options: HelperOptions) {
+      const value = inAction
+        ? actionCardKey
+        : (this as { cardKey?: unknown } | null | undefined)?.cardKey;
+      // A plain `{{cardKey}}` has no section to render.
+      return (options as Partial<HelperOptions>).fn
+        ? handlebars.helpers.blockHelperMissing.call(this, value, options)
+        : value;
+    },
+  );
+  // Replaces the re-emitting helper: an action block never leaves a report.
+  handlebars.registerHelper(
+    actionMetadata.name,
+    function (this: unknown, options: HelperOptions) {
+      // Without the card, nothing is rendered, whatever the body would be.
+      if (!actionCardKey) return '';
+      let body: string;
+      inAction = true;
+      try {
+        body = options.fn(this);
+      } finally {
+        inAction = false;
+      }
+      let input: unknown;
+      try {
+        input = JSON.parse(`{${body}}`);
+      } catch (error) {
+        throw new Error(
+          `${actionMetadata.name} macro JSON error: ${error instanceof Error ? error.message : String(error)}`,
+          { cause: error },
+        );
+      }
+      const { buttonLabel, actions } = validateMacroContent<ActionMacroOptions>(
+        actionMetadata,
+        input,
+      );
+      return createInlineHtmlPlaceholder(actionMetadata, {
+        buttonLabel,
+        cardKey: actionCardKey,
+        programs: actions,
+      } satisfies ActionButtonOptions);
+    },
+  );
 
   return render(contentTemplate, { ...options, ...result }, contentRequested);
 }

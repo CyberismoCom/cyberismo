@@ -1,6 +1,10 @@
 // SPDX-FileCopyrightText: Cyberismo Ltd and contributors
 // SPDX-License-Identifier: AGPL-3.0-only
 
+import {
+  MAX_ACTION_PROGRAM_LENGTH,
+  MAX_ACTION_PROGRAMS,
+} from '@cyberismo/model';
 import { z } from 'zod';
 
 export const cardKeyParamSchema = z.object({ key: z.string().min(1) });
@@ -53,6 +57,13 @@ export const exportCardPdfSchema = z.object({
 });
 
 export type ExportCardPdfRequestBody = z.infer<typeof exportCardPdfSchema>;
+
+export const runActionSchema = z.object({
+  programs: z
+    .array(z.string().min(1).max(MAX_ACTION_PROGRAM_LENGTH))
+    .min(1)
+    .max(MAX_ACTION_PROGRAMS),
+});
 
 export const cardBatchSchema = z.object({
   keys: z.array(z.string()).min(1).max(100),

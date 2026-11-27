@@ -207,6 +207,14 @@ export async function createCard(
   return result;
 }
 
+export async function runAction(
+  ws: Workspace,
+  key: string,
+  programs: string[],
+) {
+  return ws.cards.runAction(key, programs);
+}
+
 export async function uploadAttachments(
   ws: Workspace,
   key: string,

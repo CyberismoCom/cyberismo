@@ -44,6 +44,8 @@ class ReportMacro extends BaseMacro {
           ...options,
         },
         context: context.context,
+        // Only an injected render shows action buttons.
+        actionCardKey: context.mode === 'inject' ? context.cardKey : undefined,
       });
     } catch (error) {
       // A backend that cannot answer now fails the whole render.
