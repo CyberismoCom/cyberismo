@@ -340,7 +340,7 @@ For more about reports, see {{#xref}}"cardKey":"docs_j1ldnk0s"{{/xref}}.
 
 == Placing the button
 
-Use the macro in report templates only. A button element written by hand into card content, for example in a passthrough block, is not supported.
+Use the macro in report templates only. Only buttons rendered by a report are shown; markup written into card content does not make a button.
 
 == Static site and exports
 

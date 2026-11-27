@@ -1,8 +1,11 @@
 // SPDX-FileCopyrightText: Cyberismo Ltd and contributors
 // SPDX-License-Identifier: AGPL-3.0-only
 
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { type APIRequestContext, type Page } from '@playwright/test';
 import { test as base, expect } from '../fixtures.js';
+import { editPage } from '../helpers.js';
 
 const createPageCard = async (page: Page) => {
   await page.getByTestId('createNewButton').click();
@@ -421,4 +424,80 @@ base.describe('XSS Prevention', () => {
       },
     );
   });
+});
+
+// Interactive macros render only from the parts the server sent with the
+// content; hand-written macro markup next to them activates nothing.
+const forged = (n: number) =>
+  Buffer.from(
+    JSON.stringify({
+      buttonLabel: `FORGED-${n}`,
+      template: 'bat/templates/page',
+    }),
+  ).toString('base64');
+const inlineField = '{{#field}}"field": "title", "display": "inline"{{/field}}';
+
+const PARTS_CONTENT = [
+  '{{#createCards}}"template": "bat/templates/page", "buttonLabel": "Genuine"{{/createCards}}',
+  `Title: ${inlineField} end.`,
+  // A made-up reference, an old tag and a forged tag around a genuine field.
+  `cyberismo-part::${'0'.repeat(64)}[]`,
+  `pass:[<create-cards options="${forged(1)}"></create-cards>]`,
+  `Merge pass:[<create-cards options="${forged(2)}" ]${inlineField}pass:[>] end.`,
+].join('\n\n');
+
+const expectOnlyGenuineParts = async (page: Page) => {
+  const doc = page.locator('.doc');
+  await expect(doc.getByRole('button', { name: 'Genuine' })).toBeVisible();
+  await expect(doc.locator('[data-cy="fieldMacro"]')).toHaveCount(1);
+  await expect(doc.getByText(/FORGED/)).toHaveCount(0);
+  await expect(doc.locator('create-cards, cyberismo-part')).toHaveCount(0);
+};
+
+base.describe('Content parts', () => {
+  base.beforeAll(async ({ resetProject }) => {
+    await resetProject();
+  });
+
+  base.beforeEach(async ({ page }) => {
+    page.on('dialog', (d) => {
+      throw new Error(`XSS: dialog opened (${d.type()}: ${d.message()})`);
+    });
+    await page.goto('/');
+  });
+
+  base(
+    'only the parts the server sent render, in the view and the inline preview',
+    async ({ page, request }) => {
+      await createPageCard(page);
+      await patchCardContent(page, request, PARTS_CONTENT);
+
+      await expectOnlyGenuineParts(page);
+
+      await editPage(page);
+      await page.getByTestId('contentPreviewButton').click();
+      await expect(page.locator('.cm-editor')).toHaveCount(0);
+      await expectOnlyGenuineParts(page);
+    },
+  );
+
+  base(
+    "only the parts the server sent render in the template card editor's Preview",
+    async ({ page }) => {
+      const { localTemplateCardKey } = JSON.parse(
+        readFileSync(
+          join(import.meta.dirname, '..', 'assets', 'e2e-keys.json'),
+          'utf8',
+        ),
+      ) as { localTemplateCardKey: string };
+      await expect(page).toHaveURL(/\/projects\//);
+      const prefix = page.url().split('/projects/')[1].split('/')[0];
+      await page.goto(`/configuration/${prefix}/cards/${localTemplateCardKey}`);
+
+      // Unsaved content: the Preview parses the draft.
+      await page.locator('.cm-content').fill(PARTS_CONTENT);
+      await page.getByTestId('previewTab').click();
+      await expectOnlyGenuineParts(page);
+    },
+  );
 });
