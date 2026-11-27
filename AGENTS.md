@@ -13,7 +13,7 @@ Use `pnpm`, never `npm` or `yarn`.
 - `pnpm install` — install deps
 - `pnpm build` — build all packages
 - `pnpm test` — run all tests
-- `pnpm test-<package>` — one package's tests (e.g. `pnpm test-data-handler`, `test-cli`, `test-app`, `test-backend`, `test-clingo`, `test-mcp`)
+- `pnpm test-<package>` — one package's tests (e.g. `pnpm test-data-handler`, `test-cli`, `test-app`, `test-backend`, `test-clingo`, `test-mcp`, `test-model`)
 - `pnpm lint` — check SPDX headers and eslint all packages
 - `pnpm prettier-check` / `pnpm prettier-fix` — formatting
 - `pnpm dev` — run all packages in dev/watch mode
@@ -33,7 +33,7 @@ pnpm workspaces under `tools/`:
 - `node-clingo` — native Clingo bindings
 - `assets` — shared JSON schemas and static content
 - `migrations` — schema migrations
-- `model` — browser-safe shared types (the app imports these, never Node code)
+- `model` — browser-safe shared types and code (the app imports these, never Node code)
 
 Internal deps use `"workspace:*"` and are imported as `@cyberismo/<package>`.
 
