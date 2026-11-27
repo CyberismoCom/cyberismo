@@ -29,6 +29,17 @@ static-site export. It holds no project rules; those live in data-handler.
 - Errors map to status codes in one place (`common/errors.ts`); client-facing errors stay generic.
 - Adapter tests check mapping (status, shape, role) and do not re-test Workspace behaviour.
 
+## Testing
+
+- Domain rules are tested in data-handler, not here. A route test checks
+  only what the route owns: it calls the right Workspace operation with the
+  parsed arguments and answers with its result in the right shape, and a
+  body that breaks the contract gets 400 from zod.
+- Data-handler errors map to status codes in `test/errors.test.ts`, once,
+  not per route.
+- A role test belongs to a route only when it checks the route's own
+  `requireRole`.
+
 ## Known debt
 
 - `src/domain/` means "route modules", the opposite of data-handler's `domain/`; cross-area and upward imports exist (no ticket yet).

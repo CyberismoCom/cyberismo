@@ -5,8 +5,7 @@ import { useSWRHook } from './common';
 import { projectApiPaths } from '../swr';
 
 import type { SWRConfiguration } from 'swr';
-import type { CardUpdate } from './types';
-import { updateCard } from './card';
+import { moveCard } from './card';
 
 /**
  * @deprecated Use useProjectSettings for project configuration. Use resource hooks for resources
@@ -24,7 +23,7 @@ export const useProject = (
   );
   return {
     ...rest,
-    updateCard: async (key: string, update: CardUpdate) =>
-      await callUpdate(() => updateCard(key, update)),
+    moveCard: async (key: string, parent: string, index?: number) =>
+      await callUpdate(() => moveCard(key, parent, index)),
   };
 };

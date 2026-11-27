@@ -1,8 +1,10 @@
 // SPDX-FileCopyrightText: Cyberismo Ltd and contributors
 // SPDX-License-Identifier: AGPL-3.0-only
 
+import { execFile } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
+import { promisify } from 'node:util';
 import { describe, expect, it } from 'vitest';
 
 import type { Workspace } from '../../../src/api/workspace.js';
@@ -23,6 +25,9 @@ import {
 } from './fixture.js';
 
 const open = projects();
+
+const git = async (path: string, ...args: string[]) =>
+  (await promisify(execFile)('git', args, { cwd: path })).stdout.trim();
 
 // Cards a(a1, a2), b, c; templates tpl(t1(t2)) and other(u1); module template mod(m1).
 const spec = {
@@ -62,6 +67,153 @@ describe('cards.move', () => {
 
     expect((await ws.cards.details(a1)).parent).toBe('root');
     expect(await rootKeys(ws)).toEqual([keys[0], b, c, a1]);
+  });
+
+  it('moves a card under another card at a position', async () => {
+    const { ws, path, keys } = await open(spec);
+    const [a, a1, a2] = keys;
+
+    await ws.cards.move(a2, keys[3], 0);
+    await ws.cards.move(a1, keys[3], 1);
+
+    expect(await childKeys(ws, keys[3])).toEqual([a2, a1]);
+    expect(await childKeys(ws, a)).toEqual([]);
+    expect(existsSync(join(path, 'cardRoot', keys[3], 'c', a1))).toBe(true);
+  });
+
+  it('only ranks a card moved to its own parent at a position', async () => {
+    const { ws, keys } = await open(spec);
+    const [a, a1, a2] = keys;
+
+    await ws.cards.move(a2, a, 0);
+
+    expect(await childKeys(ws, a)).toEqual([a2, a1]);
+  });
+
+  it('moves a template card to its own root at a position', async () => {
+    const { ws, templateKeys } = await open({
+      ...spec,
+      templates: [{ name: 'tpl', cards: [{ children: [{}] }, {}] }],
+    });
+    const [t1, t2, t3] = templateKeys['test/templates/tpl'];
+
+    await ws.cards.move(t2, 'root', 1);
+
+    const [tree] = (await ws.cards.templateCards()).filter(
+      (tree) => tree.name === 'test/templates/tpl',
+    );
+    // The template's cards are listed in no particular order.
+    const ranked = tree.cards
+      .map((card) => [card.metadata!.rank, card.key])
+      .sort(([a], [b]) => (a < b ? -1 : 1))
+      .map(([, key]) => key);
+    expect(ranked).toEqual([t1, t2, t3]);
+  });
+
+  // Without autocommit a failed write is not rolled back: the position is
+  // checked before the card moves.
+  it.each([
+    ['a negative position', -1, /^Index must not be negative$/],
+    ['a position past the new siblings', 1, /^Index 1 is out of bounds$/],
+    ['a fractional position', 0.5, /^Index must be a whole number$/],
+    ['an infinite position', Infinity, /^Index must be a whole number$/],
+    ['a position that is not a number', NaN, /^Index must be a whole number$/],
+  ])('refuses %s, moving nothing', async (_name, index, error) => {
+    const { ws, path, keys } = await open(spec);
+
+    await expectRefused(
+      path,
+      () => ws.cards.move(keys[1], keys[3], index),
+      error,
+    );
+  });
+
+  // A card that stays under its parent counts itself among the positions.
+  it('ranks a card staying under its parent up to the end, and no further', async () => {
+    const { ws, path, keys } = await open(spec);
+    const [a, a1, a2] = keys;
+
+    await expectRefused(
+      path,
+      () => ws.cards.move(a1, a, 3),
+      /^Index 3 is out of bounds$/,
+    );
+    await ws.cards.move(a1, a, 2);
+
+    expect(await childKeys(ws, a)).toEqual([a2, a1]);
+  });
+
+  it('leaves a card staying under its parent where it is at the position right after itself', async () => {
+    const { ws, keys } = await open(spec);
+    const [a, a1, a2] = keys;
+
+    await ws.cards.move(a2, a, 2);
+    await ws.cards.move(a1, a, 1);
+
+    expect(await childKeys(ws, a)).toEqual([a1, a2]);
+  });
+
+  // A moved card is ranked after the ranked siblings, so before unranked
+  // ones; the position counts the new siblings as they were before the move.
+  it.each([
+    [1, ['x', 'moved', 'u']],
+    [2, ['x', 'u', 'moved']],
+  ])(
+    'moves a card to position %i among new siblings that are not all ranked',
+    async (index, expected) => {
+      const { ws, keys } = await open({
+        cards: [
+          { title: 'a', children: [{ title: 'moved' }] },
+          {
+            title: 'b',
+            children: [{ title: 'x' }, { title: 'u', fields: { rank: '' } }],
+          },
+        ],
+      });
+      const [, moved, b, x, u] = keys;
+      const names: Record<string, string> = {
+        [moved]: 'moved',
+        [x]: 'x',
+        [u]: 'u',
+      };
+
+      await ws.cards.move(moved, b, index);
+
+      expect((await childKeys(ws, b)).map((key) => names[key])).toEqual(
+        expected,
+      );
+    },
+  );
+
+  it('a move to the own parent is a rank commit', async () => {
+    const { ws, path, keys } = await open(
+      { ...spec, git: true },
+      { autocommit: true },
+    );
+
+    await ws.cards.move(keys[2], keys[0], 0);
+
+    expect(await childKeys(ws, keys[0])).toEqual([keys[2], keys[1]]);
+    expect(await git(path, 'log', '-1', '--format=%s')).toBe(
+      `Rank card ${keys[2]}`,
+    );
+  });
+
+  it('a move to a position is one commit', async () => {
+    const { ws, path, keys } = await open(
+      { ...spec, git: true },
+      { autocommit: true },
+    );
+    const before = await git(path, 'rev-list', '--count', 'HEAD');
+
+    await ws.cards.move(keys[1], keys[3], 0);
+
+    expect(await git(path, 'log', '-1', '--format=%s')).toBe(
+      `Move card ${keys[1]} to ${keys[3]}`,
+    );
+    expect(Number(await git(path, 'rev-list', '--count', 'HEAD'))).toBe(
+      Number(before) + 1,
+    );
   });
 
   it('moves a whole subtree with the card', async () => {

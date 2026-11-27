@@ -13,7 +13,6 @@ import {
   useOptionalKeyParam,
   useDocumentTitle,
 } from '../../lib/hooks';
-import { findParentCard } from '../../lib/utils';
 import { useVisibleTree } from '../../lib/api/tree';
 import { useCard } from '../../lib/api/card';
 import { CardTreeMenu } from '@/components/CardTreeMenu';
@@ -27,7 +26,7 @@ import { UserRole, useHasMinRole } from '@/lib/auth';
 export default function AppLayout() {
   // Last URL parameter after /cards base is the card key
   const key = useOptionalKeyParam();
-  const { project, loadError: error, isLoading, updateCard } = useProject();
+  const { project, loadError: error, isLoading, moveCard } = useProject();
   const { tree, isLoading: isLoadingTree, error: treeError } = useVisibleTree();
   const { card } = useCard(key);
   const canEdit = useHasMinRole(UserRole.Editor);
@@ -86,11 +85,7 @@ export default function AppLayout() {
           onClose={() => setDrawerOpen(false)}
           onMove={async (cardKey: string, newParent: string, index: number) => {
             if (!canEdit) return;
-            const parent = findParentCard(tree, cardKey);
-            await updateCard(cardKey, {
-              parent: newParent === parent?.key ? undefined : newParent,
-              index,
-            });
+            await moveCard(cardKey, newParent, index);
           }}
           onCardSelect={(node) => {
             if (node.data.key) {

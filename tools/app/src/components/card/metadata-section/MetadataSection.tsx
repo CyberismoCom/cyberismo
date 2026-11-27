@@ -21,9 +21,7 @@ import { addNotification } from '@/lib/slices/notifications';
 export interface MetadataViewProps {
   initialExpanded?: boolean;
   card: CardView;
-  onUpdate?: (update: {
-    metadata: Record<string, MetadataValue>;
-  }) => Promise<void>;
+  onUpdate?: (field: string, value: MetadataValue) => Promise<void>;
   focusFieldKey?: string | null;
   onFieldFocused?: () => void;
 }
@@ -95,7 +93,7 @@ export default function MetadataSection({
   const handleSaveField = async (metadataKey: string, value: MetadataValue) => {
     if (!onUpdate) return;
     try {
-      await onUpdate({ metadata: { [metadataKey]: value } });
+      await onUpdate(metadataKey, value);
       // A blur-triggered save resolves after the click that opened the next
       // field, so only close the editor if this field is still the open one.
       setEditingFieldKey((current) =>
@@ -109,7 +107,7 @@ export default function MetadataSection({
   const handleAutoSaveLabels = async (value: MetadataValue) => {
     if (!onUpdate) return;
     try {
-      await onUpdate({ metadata: { labels: value } });
+      await onUpdate('labels', value);
     } catch (error) {
       notifyError(error);
     }

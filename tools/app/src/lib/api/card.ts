@@ -8,7 +8,8 @@ import { cardFetcher } from './card-batch';
 
 import type { SWRConfiguration } from 'swr';
 import { mutate } from 'swr';
-import type { CardUpdate, CardView } from './types';
+import type { CardView } from './types';
+import type { MetadataValue } from '../definitions';
 import { useAppDispatch, useUpdating } from '../hooks';
 import { cardDeleted } from '../actions';
 import { createLink, removeLink, updateLink } from './actions';
@@ -96,8 +97,12 @@ export const useCardMutations = (
 
   return {
     isUpdating: (action?: CardAction) => isUpdating(action),
-    updateCard: async (update: CardUpdate) =>
-      (key && (await call(() => updateCard(key, update), 'update'))) || null,
+    updateContent: async (content: string) =>
+      (key && (await call(() => editCardContent(key, content), 'update'))) ||
+      null,
+    updateField: async (field: string, value: MetadataValue) =>
+      (key && (await call(() => editCardField(key, field, value), 'update'))) ||
+      null,
     deleteCard: async () => {
       if (!key) return;
       try {
@@ -127,26 +132,12 @@ export const useCardMutations = (
       dispatch(setRecentlyCreated(result.map((card) => card.key)));
       return result;
     },
-    moveCard: async (target: string, index?: number) =>
-      key &&
-      (await call(
-        () =>
-          updateCard(key, {
-            parent: target,
-            index,
-          }),
-        'move',
-      )),
+    moveCard: async (parent: string, index?: number) =>
+      key && (await call(() => moveCard(key, parent, index), 'move')),
 
-    updateWorkFlowState: async (state: string) =>
+    updateWorkFlowState: async (transition: string) =>
       (key &&
-        (await call(
-          () =>
-            updateCard(key, {
-              state,
-            }),
-          'updateState',
-        ))) ||
+        (await call(() => transitionCard(key, transition), 'updateState'))) ||
       null,
     createLink: async (
       target: string,
@@ -248,18 +239,19 @@ export function revalidateMountedCards(projectPrefix?: string) {
   });
 }
 
-export async function updateCard(
+// Writes to a card answer with its new data; its body, its place in the
+// trees and the trees' columns may have changed with it. Resolves once the
+// write is done, with the refetch of the card's body.
+async function writeCard(
   key: string,
-  cardUpdate: CardUpdate,
+  url: string,
+  method: 'PUT' | 'PATCH' | 'POST',
+  body: object,
   projectPrefix?: string,
-) {
+): Promise<{ bodyRefetch: Promise<unknown> }> {
   const apiPaths = projectApiPaths(projectPrefix);
   const swrKey = apiPaths.card(key);
-  const result = await callApi<QueryResult<'card'>>(
-    swrKey,
-    'PATCH',
-    cardUpdate,
-  );
+  const result = await callApi<QueryResult<'card'>>(url, method, body);
 
   mutate(swrKey, result, false);
   const bodyRefetch = Promise.all([
@@ -270,11 +262,57 @@ export async function updateCard(
   mutate(apiPaths.tree());
   // Template-card moves/ranks also affect the configuration tree.
   mutate(apiPaths.resourceTree());
+  return { bodyRefetch };
+}
 
+export async function editCardContent(
+  key: string,
+  content: string,
+  projectPrefix?: string,
+) {
+  const url = projectApiPaths(projectPrefix).cardContent(key);
+  const { bodyRefetch } = await writeCard(
+    key,
+    url,
+    'PUT',
+    { content },
+    projectPrefix,
+  );
   // The editor leaves edit mode on resolve; the new body must be in by then.
-  if (cardUpdate.content != null) {
-    await bodyRefetch;
-  }
+  await bodyRefetch;
+}
+
+export async function editCardField(
+  key: string,
+  field: string,
+  value: MetadataValue,
+  projectPrefix?: string,
+) {
+  const url = projectApiPaths(projectPrefix).cardFields(key);
+  await writeCard(key, url, 'PATCH', { field, value }, projectPrefix);
+}
+
+export async function transitionCard(
+  key: string,
+  transition: string,
+  projectPrefix?: string,
+) {
+  const url = projectApiPaths(projectPrefix).cardTransition(key);
+  await writeCard(key, url, 'POST', { transition }, projectPrefix);
+}
+
+/**
+ * Moves a card under `parent` ('root' for the root of its own container),
+ * at `index` among its new siblings; last without one.
+ */
+export async function moveCard(
+  key: string,
+  parent: string,
+  index?: number,
+  projectPrefix?: string,
+) {
+  const url = projectApiPaths(projectPrefix).cardMove(key);
+  await writeCard(key, url, 'POST', { parent, index }, projectPrefix);
 }
 
 export async function deleteCard(key: string, projectPrefix?: string) {

@@ -41,9 +41,7 @@ type CardLayoutProps = {
   card: CardView;
   linkTypes: ExpandedLinkType[];
   connectors?: Connector[];
-  onMetadataUpdate?: (update: {
-    metadata: Record<string, MetadataValue>;
-  }) => Promise<void>;
+  onMetadataUpdate?: (field: string, value: MetadataValue) => Promise<void>;
   onContentSave?: (content: string) => Promise<void>;
   onLinkFormSubmit?: (data: LinkFormSubmitData) => boolean | Promise<boolean>;
   onDeleteLink?: (data: CalculationLink) => void | Promise<void>;

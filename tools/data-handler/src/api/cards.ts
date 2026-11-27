@@ -63,14 +63,24 @@ export class Cards {
   ) {}
 
   /**
-   * Moves a card under another card, or to a root.
+   * Moves a card under another card, or to a root, optionally to a position
+   * among its new siblings. Moving a card to its own parent only ranks it.
    * @param source Card to move.
    * @param destination New parent card; 'root' for the root of the card's
    *   own container, or 'root:project' / 'root:<template>'.
+   * @param index Position among the new siblings; 0 is first. Last when
+   *   moved to another parent without one.
    */
-  @write((source, destination) => `Move card ${source} to ${destination}`)
-  public async move(source: string, destination: string): Promise<void> {
-    await moveCard(this.checkout, source, destination);
+  @write()
+  public async move(
+    source: string,
+    destination: string,
+    index?: number,
+  ): Promise<void> {
+    const moved = await moveCard(this.checkout, source, destination, index);
+    this.checkout.lock.currentTx()!.message ??= moved
+      ? `Move card ${source} to ${destination}`
+      : `Rank card ${source}`;
   }
 
   /**

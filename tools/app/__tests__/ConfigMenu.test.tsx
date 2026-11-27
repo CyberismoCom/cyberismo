@@ -28,7 +28,7 @@ vi.mock('@/lib/api', () => ({
 vi.mock('@/lib/api/project', () => ({
   useProject: () => ({
     project: { name: 'Test Project' },
-    updateCard: vi.fn(),
+    moveCard: vi.fn(),
   }),
 }));
 

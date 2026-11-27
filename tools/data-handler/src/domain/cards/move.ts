@@ -13,16 +13,22 @@ import type { CardTree } from '../../state/cards/card-tree.js';
 import { ROOT } from '../../shared/utils/constants.js';
 import { cardNode } from './read.js';
 
-/**
- * Moves card from 'destination' to 'source'.
- * @param source source card to move
- * @param destination destination card where source card will be moved to; or to root
- */
-export async function moveCard(
+interface MoveTarget {
+  /** Tree the card is in now. */
+  sourceTree: CardTree;
+  /** Tree the card goes to. */
+  targetTree: CardTree;
+  /** New parent card key, or 'root'. */
+  newParent: string;
+}
+
+// Where moving `source` to `destination` puts it.
+// @throws if the card cannot be moved there.
+function moveTarget(
   checkout: Checkout,
   source: string,
   destination: string,
-) {
+): MoveTarget {
   if (source === ROOT) {
     throw new DHValidationError('Cannot move "root"');
   }
@@ -31,7 +37,6 @@ export async function moveCard(
   }
 
   const sourceTree = checkout.treeOf(source);
-  const sourceCard = sourceTree.card(source);
   const sourceIsTemplate = sourceTree.name !== 'project';
 
   const movingToRoot = destination === ROOT || destination.startsWith('root:');
@@ -88,42 +93,111 @@ export async function moveCard(
   const targetTree = targetTemplateTree ?? destinationTree ?? checkout.cardTree;
   const newParent = movingToRoot ? ROOT : destination;
 
-  // if the card is already in the destination, do nothing
-  if (sourceTree === targetTree && sourceCard.parent === newParent) {
-    return;
-  }
+  return { sourceTree, targetTree, newParent };
+}
 
-  // make sure source card can be moved
-  await assertAllowed(checkout, 'move', source);
-
-  await relocateCard(checkout, source, newParent, targetTree.name);
-
-  await checkout.handleCardMoved(cardNode(checkout, source));
+// Whether the move leaves the card under the parent it has.
+function staysUnderParent(
+  { sourceTree, targetTree, newParent }: MoveTarget,
+  source: string,
+): boolean {
+  return (
+    sourceTree === targetTree && sourceTree.card(source).parent === newParent
+  );
 }
 
 /**
- * Ranks card using position given as 'index'.
+ * Moves a card under a parent, optionally to a position among its new
+ * siblings. A move to the card's own parent only ranks it. The position is
+ * checked before anything is written.
+ * @param source Card to move.
+ * @param destination New parent card; 'root' for the root of the card's
+ *   own container, or 'root:project' / 'root:<template>'.
+ * @param index Position among the destination's cards as they are now; 0 is
+ *   first. A card staying under its parent counts itself among them.
+ * @returns Whether the card moved to another parent.
+ * @throws DHValidationError if the position is not a whole number, is
+ *   negative or is past the end.
+ */
+export async function moveCard(
+  checkout: Checkout,
+  source: string,
+  destination: string,
+  index?: number,
+): Promise<boolean> {
+  const target = moveTarget(checkout, source, destination);
+  const { targetTree, newParent } = target;
+  const staying = staysUnderParent(target, source);
+  const step =
+    index === undefined
+      ? undefined
+      : rankStep(targetTree.childrenInRankOrder(newParent), source, index);
+  if (!staying) {
+    await assertAllowed(checkout, 'move', source);
+    await relocateCard(checkout, source, newParent, targetTree.name);
+    await checkout.handleCardMoved(cardNode(checkout, source));
+  }
+  if (step) {
+    await takeRankStep(checkout, source, step);
+  }
+  return !staying;
+}
+
+// What ranking a card at a position takes: ranking it first, after a
+// sibling, or nothing when it already sits there.
+type RankStep = { first: true } | { after: string } | { stay: true };
+
+// What putting `cardKey` at `index` among `cards` takes. `cards` are the
+// cards under the destination parent as they are now, in rank order; the
+// card is one of them when it stays under its parent, and the position right
+// after it leaves it where it is.
+// @throws DHValidationError if the index is not a whole number, is negative
+//   or is past the end
+function rankStep(cards: string[], cardKey: string, index: number): RankStep {
+  if (!Number.isInteger(index)) {
+    throw new DHValidationError(`Index must be a whole number`);
+  }
+  if (index < 0) {
+    throw new DHValidationError(`Index must not be negative`);
+  }
+  if (index > cards.length) {
+    throw new DHValidationError(`Index ${index} is out of bounds`);
+  }
+  if (index === 0) {
+    return { first: true };
+  }
+  const previous = cards[index - 1];
+  return previous === cardKey ? { stay: true } : { after: previous };
+}
+
+async function takeRankStep(
+  checkout: Checkout,
+  cardKey: string,
+  step: RankStep,
+) {
+  if ('first' in step) {
+    await rankFirst(checkout, cardKey);
+  } else if ('after' in step) {
+    await rankAfter(checkout, cardKey, step.after);
+  }
+}
+
+/**
+ * Ranks a card at a position among its siblings.
  * @param cardKey card key
- * @param index to which position should card be ranked to
+ * @param index Position among the siblings as they are now, the card itself
+ *   included; 0 is first, and the position right after the card leaves it
+ *   where it is.
+ * @throws DHValidationError if the position is not a whole number, is
+ *   negative or is past the end.
  */
 export async function rankAt(
   checkout: Checkout,
   cardKey: string,
   index: number,
 ) {
-  if (index < 0) {
-    throw new DHValidationError(`Index must be greater than 0`);
-  }
-  if (index === 0) {
-    await rankFirst(checkout, cardKey);
-    return;
-  }
-
   const siblings = checkout.treeOf(cardKey).siblingsOf(cardKey);
-  if (siblings.length < index) {
-    throw new DHValidationError(`Index ${index} is out of bounds`);
-  }
-  await rankAfter(checkout, cardKey, siblings[index - 1]);
+  await takeRankStep(checkout, cardKey, rankStep(siblings, cardKey, index));
 }
 
 /**

@@ -187,21 +187,21 @@ describe('resolveConfigTreeMove', () => {
     });
   });
 
-  test('updates with index only when reordering at the source template root', () => {
+  test('moves to the own root when reordering at the source template root', () => {
     const tree = buildFixture();
     expect(resolveConfigTreeMove(tree, 'root2', pageTemplateId, 0)).toEqual({
       kind: 'update',
       cardKey: 'root2',
-      update: { index: 0 },
+      update: { parent: 'root', index: 0 },
     });
   });
 
-  test('updates with index only when reordering under the same card', () => {
+  test('moves to the own parent when reordering under the same card', () => {
     const tree = buildFixture();
     expect(resolveConfigTreeMove(tree, 'child1b', 'root1', 0)).toEqual({
       kind: 'update',
       cardKey: 'child1b',
-      update: { index: 0 },
+      update: { parent: 'root1', index: 0 },
     });
   });
 

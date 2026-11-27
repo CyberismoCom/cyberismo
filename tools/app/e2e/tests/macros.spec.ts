@@ -849,7 +849,7 @@ test.describe('Field macro', () => {
       cardApiPath = `/api/projects/${prefix}/cards/${card.key}`;
       const selfXref = `{{#xref}}"cardKey": "${card.key}"{{/xref}}`;
       seedContent = `${fieldMacros}\n\n${selfXref}`;
-      const patched = await context.request.patch(cardApiPath, {
+      const patched = await context.request.put(`${cardApiPath}/content`, {
         data: { content: seedContent },
       });
       expect(patched.ok()).toBeTruthy();
@@ -922,8 +922,8 @@ test.describe('Field macro', () => {
           response.request().method() === 'GET' &&
           response.url().endsWith(`${cardApiPath}/content`),
       );
-      const patched = await bob.request.patch(cardApiPath, {
-        data: { metadata: { 'test/fieldTypes/integer': 8 } },
+      const patched = await bob.request.patch(`${cardApiPath}/fields`, {
+        data: { field: 'test/fieldTypes/integer', value: 8 },
       });
       expect(patched.ok()).toBeTruthy();
       await refetched;
@@ -988,7 +988,7 @@ test.describe('Field macro', () => {
   }) => {
     // Authoring is covered above; the sentence is seeded so typing braces
     // into CodeMirror (which auto-closes them) stays out of this test.
-    await page.request.patch(cardApiPath, {
+    await page.request.put(`${cardApiPath}/content`, {
       data: {
         content:
           'The short text reads {{#field}}"field": "test/fieldTypes/shortText", "display": "inline"{{/field}} today.',
@@ -1013,7 +1013,9 @@ test.describe('Field macro', () => {
       );
     } finally {
       // The other tests expect the seeded body.
-      await page.request.patch(cardApiPath, { data: { content: seedContent } });
+      await page.request.put(`${cardApiPath}/content`, {
+        data: { content: seedContent },
+      });
     }
   });
 });
@@ -1039,8 +1041,8 @@ test.describe('Create links macro', () => {
         expect(created.ok()).toBeTruthy();
         const [card] = (await created.json()) as { key: string }[];
         const patched = await context.request.patch(
-          `/api/projects/${prefix}/cards/${card.key}`,
-          { data: { metadata: { title } } },
+          `/api/projects/${prefix}/cards/${card.key}/fields`,
+          { data: { field: 'title', value: title } },
         );
         expect(patched.ok()).toBeTruthy();
         keys[title] = card.key;

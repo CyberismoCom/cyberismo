@@ -64,6 +64,9 @@ export function projectApiPaths(projectPrefix?: string) {
       `${base}/cards/${cardKey}/attachments`,
     cardAttachment: (cardKey: string, filename: string) =>
       `${base}/cards/${cardKey}/attachments/${encodeURIComponent(filename)}`,
+    cardFields: (cardKey: string) => `${base}/cards/${cardKey}/fields`,
+    cardTransition: (cardKey: string) => `${base}/cards/${cardKey}/transition`,
+    cardMove: (cardKey: string) => `${base}/cards/${cardKey}/move`,
     cardLinks: (cardKey: string) => `${base}/cards/${cardKey}/links`,
     cardParse: (cardKey: string) => `${base}/cards/${cardKey}/parse`,
     linkTypes: () => `${base}/linkTypes`,

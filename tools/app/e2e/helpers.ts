@@ -95,7 +95,11 @@ export async function createExportCards(baseURL: string): Promise<ExportCards> {
     const [card] = (await api(`/cards/${parent}`, 'POST', {
       template: 'test/templates/page',
     })) as { key: string }[];
-    await api(`/cards/${card.key}`, 'PATCH', { metadata: { title }, content });
+    await api(`/cards/${card.key}/fields`, 'PATCH', {
+      field: 'title',
+      value: title,
+    });
+    await api(`/cards/${card.key}/content`, 'PUT', { content });
     return card.key;
   };
   const [{ key: rootCardKey }] = (await api('/tree')) as { key: string }[];

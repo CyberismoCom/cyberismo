@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest';
 import {
   CardNotFoundError,
   CycleError,
+  DHValidationError,
   LogicInternalError,
   LogicInvalidError,
   LogicNonTotalError,
@@ -18,6 +19,7 @@ import { errorResponse } from '../src/common/errors.js';
 
 describe('errorResponse', () => {
   it.each([
+    [new DHValidationError('Index 1 is out of bounds'), 400, 'validation'],
     [new CardNotFoundError('card_1'), 404, 'not-found'],
     [new ReadOnlyContainerError('mod/templates/page'), 403, 'read-only'],
     [new PermissionDeniedError(['Card is locked']), 403, 'permission-denied'],

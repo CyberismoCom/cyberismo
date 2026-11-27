@@ -135,7 +135,7 @@ function ValueField({
   const { t } = useTranslation();
   const notify = useErrorNotification();
   const canEditRole = useHasMinRole(UserRole.Editor);
-  const { updateCard } = useCardMutations(card.key);
+  const { updateField } = useCardMutations(card.key);
   // Per macro, so opening one never closes or resets another.
   const [isEditing, setIsEditing] = useState(false);
 
@@ -166,7 +166,7 @@ function ValueField({
   // Resolves true when saved; a failure is reported and leaves the editor open.
   const save = async (value: MetadataValue) =>
     (await notify(async () => {
-      await updateCard({ metadata: { [field]: value } });
+      await updateField(field, value);
       onSaved?.();
       return true;
     })) ?? false;

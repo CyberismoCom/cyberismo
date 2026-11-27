@@ -38,11 +38,11 @@ afterEach(async () => {
 test('a REST write is committed as the user', async () => {
   const app = createApp({ authenticate: async () => user }, directoryOf(ws));
   const response = await app.request(
-    `/api/projects/test/cards/${project.keys[0]}`,
+    `/api/projects/test/cards/${project.keys[0]}/fields`,
     {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ metadata: { labels: ['urgent'] } }),
+      body: JSON.stringify({ field: 'labels', value: ['urgent'] }),
     },
   );
   expect(response.status).toBe(200);

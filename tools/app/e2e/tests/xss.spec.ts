@@ -32,13 +32,13 @@ const patchCardContent = async (
   const url = page.url();
   const cardKey = url.split('/cards/')[1];
   const projectPrefix = url.split('/projects/')[1].split('/')[0];
-  const res = await request.patch(
-    `/api/projects/${projectPrefix}/cards/${cardKey}`,
+  const res = await request.put(
+    `/api/projects/${projectPrefix}/cards/${cardKey}/content`,
     {
       data: { content },
     },
   );
-  if (!res.ok()) throw new Error(`PATCH failed: ${res.status()}`);
+  if (!res.ok()) throw new Error(`PUT failed: ${res.status()}`);
   await page.goto(`/projects/${projectPrefix}/cards/${cardKey}`);
 };
 

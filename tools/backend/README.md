@@ -19,4 +19,4 @@ Locally: `pnpm dev`, then visit `/api/auth/me?user=alice` and `?user=bob` in
 separate browser profiles, reloading the app after a change. In one profile,
 open the app as Alice and drive Bob from the console with `?as=bob`: his SSE
 stream yields a `connectionId`, and `PUT .../events/presence?as=bob` or
-`PATCH .../cards/:key?as=bob` then shows up in Alice's tab.
+`PATCH .../cards/:key/fields?as=bob` then shows up in Alice's tab.

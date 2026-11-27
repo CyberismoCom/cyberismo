@@ -55,6 +55,12 @@ describe('cards.rank, rankFirst, rankAt', () => {
     ['rank at 0', (c, k) => c.rankAt(k[3], 0), [3, 0, 1, 2, 4]],
     ['rank at a middle index', (c, k) => c.rankAt(k[0], 2), [1, 0, 2, 3, 4]],
     ['rank at the sibling count', (c, k) => c.rankAt(k[0], 5), [1, 2, 3, 4, 0]],
+    // The index counts the card itself: the slot right after it is where it is.
+    [
+      'rank just past its own position',
+      (c, k) => c.rankAt(k[1], 2),
+      [0, 1, 2, 3, 4],
+    ],
   ] as [
     string,
     (c: Workspace['cards'], k: string[]) => Promise<void>,
@@ -95,14 +101,21 @@ describe('cards.rank, rankFirst, rankAt', () => {
       CardNotFoundError,
     ],
     ['a missing card', (c) => c.rankFirst('test_zzzzzzzz'), CardNotFoundError],
-    // Pins today's behaviour: the index counts the card itself, so the slot after it is 'after itself'.
-    ['just past its own position', (c, k) => c.rankAt(k[1], 2), /after itself/],
+    [
+      'to a fractional index',
+      (c, k) => c.rankAt(k[0], 1.5),
+      /^Index must be a whole number$/,
+    ],
     [
       'a card of an imported module',
       (c, _k, _t, m) => c.rankFirst(m),
       ReadOnlyContainerError,
     ],
-    ['to a negative index', (c, k) => c.rankAt(k[0], -1), /greater than 0/],
+    [
+      'to a negative index',
+      (c, k) => c.rankAt(k[0], -1),
+      /^Index must not be negative$/,
+    ],
     [
       'to an index past the siblings',
       (c, k) => c.rankAt(k[0], 6),
