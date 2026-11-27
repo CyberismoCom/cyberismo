@@ -3,7 +3,7 @@
 
 import { useSWRHook } from './common';
 import { downloadBlob } from '@/lib/utils';
-import { callApi, projectApiPaths } from '../swr';
+import { ApiCallError, callApi, projectApiPaths } from '../swr';
 import { cardFetcher } from './card-batch';
 
 import type { SWRConfiguration } from 'swr';
@@ -12,7 +12,12 @@ import type { CardUpdate, CardView } from './types';
 import { useAppDispatch, useUpdating } from '../hooks';
 import { cardDeleted } from '../actions';
 import { createLink, removeLink, updateLink } from './actions';
-import type { LinkDirection, Card, QueryResult } from '@cyberismo/model';
+import type {
+  ActionResult,
+  LinkDirection,
+  Card,
+  QueryResult,
+} from '@cyberismo/model';
 import type { CardAction } from './action-types';
 import { setRecentlyCreated } from '../slices/card';
 import { addNotification, removeNotification } from '../slices/notifications';
@@ -127,6 +132,17 @@ export const useCardMutations = (
       dispatch(setRecentlyCreated(result.map((card) => card.key)));
       return result;
     },
+    runAction: async (programs: string[]) => {
+      if (!key) return null;
+      const result = await call(
+        () => runAction(key, programs, projectPrefix),
+        'action',
+      );
+      if (result.created.length > 0) {
+        dispatch(setRecentlyCreated(result.created.map((card) => card.key)));
+      }
+      return result;
+    },
     moveCard: async (target: string, index?: number) =>
       key &&
       (await call(
@@ -236,15 +252,19 @@ function revalidateCardView(key: string, projectPrefix?: string) {
 }
 
 /**
- * Refetches every mounted card's data and rendered content. A write to one
- * card can change another's calculated values or the content that shows it.
+ * Refetches every mounted card's data, rendered content and source. A write
+ * to one card can change another's calculated values or the content that
+ * shows it, and an action can change any card's content.
  */
 export function revalidateMountedCards(projectPrefix?: string) {
   const cardsBase = `${projectApiPaths(projectPrefix).cards()}/`;
   return mutate((key) => {
     if (typeof key !== 'string' || !key.startsWith(cardsBase)) return false;
     const [, ...rest] = key.slice(cardsBase.length).split('/');
-    return rest.length === 0 || (rest.length === 1 && rest[0] === 'content');
+    return (
+      rest.length === 0 ||
+      (rest.length === 1 && (rest[0] === 'content' || rest[0] === 'source'))
+    );
   });
 }
 
@@ -304,6 +324,57 @@ export async function createCard(
   // revalidate whole project
   mutate(apiPaths.tree());
 
+  return result;
+}
+
+/**
+ * Thrown when an action's request or its answer was lost: the action may have
+ * run. `refreshed` tells whether the view was refreshed afterwards.
+ */
+export class ActionLostError extends Error {
+  constructor(readonly refreshed: boolean) {
+    super('The action request or its answer was lost');
+    this.name = 'ActionLostError';
+  }
+}
+
+/**
+ * Runs an action's programs on a card, then refetches the tree and every
+ * mounted card: an action can change any card. Also after a failure, which
+ * without autocommit leaves the changes made before it.
+ * @throws ApiCallError when the server answers with an error
+ * @throws ActionLostError when no answer arrives
+ */
+export async function runAction(
+  cardKey: string,
+  programs: string[],
+  projectPrefix?: string,
+): Promise<ActionResult> {
+  const apiPaths = projectApiPaths(projectPrefix);
+  const refresh = () => {
+    mutate(apiPaths.tree());
+    return revalidateMountedCards(projectPrefix);
+  };
+  let result: ActionResult;
+  try {
+    result = await callApi<ActionResult>(apiPaths.cardAction(cardKey), 'POST', {
+      programs,
+    });
+  } catch (error) {
+    if (error instanceof ApiCallError) {
+      await refresh();
+      throw error;
+    }
+    // Refetch only if the server answers now, so a failed refetch adds no
+    // second message of its own.
+    const reachable = await callApi(apiPaths.card(cardKey), 'GET').then(
+      () => true,
+      () => false,
+    );
+    if (reachable) await refresh();
+    throw new ActionLostError(reachable);
+  }
+  await refresh();
   return result;
 }
 

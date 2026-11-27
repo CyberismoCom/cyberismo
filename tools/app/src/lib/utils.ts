@@ -566,6 +566,26 @@ export function isAlreadyLinked(
 }
 
 /**
+ * Whether a click is a plain left click, which an in-app link handles
+ * itself; a modified or other-button click is left to the browser.
+ */
+export function isPlainLeftClick(event: {
+  button: number;
+  metaKey: boolean;
+  ctrlKey: boolean;
+  shiftKey: boolean;
+  altKey: boolean;
+}): boolean {
+  return (
+    event.button === 0 &&
+    !event.metaKey &&
+    !event.ctrlKey &&
+    !event.shiftKey &&
+    !event.altKey
+  );
+}
+
+/**
  * Returns the origin-relative path to navigate to if `href` should be handled
  * by React Router (SPA navigation), or null if the browser's default link
  * behavior should apply.

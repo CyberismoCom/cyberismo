@@ -5,6 +5,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import type { Cache } from 'swr';
 import {
   ApiCallError,
+  createApiCallError,
   getSwrConfig,
   globalApiPaths,
   projectApiPaths,
@@ -114,6 +115,19 @@ describe('projectApiPaths', () => {
       expect(pathsA.tree()).toBe('/api/projects/AAA/tree');
       expect(pathsB.tree()).toBe('/api/projects/BBB/tree');
     });
+  });
+});
+
+describe('createApiCallError', () => {
+  it('keeps the message and the details of a JSON error body', async () => {
+    const error = await createApiCallError(
+      new Response(JSON.stringify({ error: 'no', details: { program: 2 } }), {
+        status: 503,
+      }),
+    );
+
+    expect(error.message).toBe('no');
+    expect(error.details).toEqual({ program: 2 });
   });
 });
 

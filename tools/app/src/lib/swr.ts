@@ -41,6 +41,8 @@ export function projectApiPaths(projectPrefix?: string) {
       `${base}/cards/${encodeURIComponent(key)}/content`,
     cardSource: (key: string) =>
       `${base}/cards/${encodeURIComponent(key)}/source`,
+    cardAction: (key: string) =>
+      `${base}/cards/${encodeURIComponent(key)}/action`,
     calculations: () => `${base}/calculations`,
     calculation: (name: string) => `${base}/calculations/${name}`,
     cardTypes: () => `${base}/cardTypes`,
@@ -115,9 +117,15 @@ export function projectApiPaths(projectPrefix?: string) {
 
 export class ApiCallError extends Error {
   public reason: string;
+  /**
+   * @param response The error response.
+   * @param reason The error message of the body, or its text.
+   * @param details The details of a JSON error body, if it has them.
+   */
   constructor(
     public response: Response,
     reason?: string,
+    public details?: Record<string, unknown>,
   ) {
     super(
       reason ?? `Api call failed: ${response.status} ${response.statusText}`,
@@ -146,7 +154,7 @@ export async function createApiCallError(
   const text = await response.text();
   try {
     const json = JSON.parse(text);
-    return new ApiCallError(response, json.error);
+    return new ApiCallError(response, json.error, json.details);
   } catch {
     return new ApiCallError(response, text);
   }

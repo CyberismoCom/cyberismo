@@ -1,0 +1,17 @@
+{{#action}}
+  "buttonLabel": "Approve",
+  "actions": [
+    {{#quoted}}
+    transition({{{cardKey}}}, "Approve").
+    {{/quoted}}
+  ]
+{{/action}}
+
+{{#action}}
+  "buttonLabel": "Add page",
+  "actions": [
+    {{#quoted}}
+    create({{{cardKey}}}, "test/templates/page").
+    {{/quoted}}
+  ]
+{{/action}}

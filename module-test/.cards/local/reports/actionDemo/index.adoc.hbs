@@ -1,0 +1,285 @@
+{{!-- A closing {{/action}} line is removed with its line break, so two blank lines follow each, to end the paragraph of the button. --}}
+Each button below runs logic programs on this card and its child cards. A button that works shows a message and refreshes the card; a button that fails shows an error message and changes nothing, unless it says otherwise.
+
+== Workflow
+
+Approve moves this card from Draft to Approved; its workflow state changes at the top of the card.
+
+{{#action}}
+  "buttonLabel": "Approve",
+  "actions": [
+    {{#quoted}}
+    transition({{{cardKey}}}, "Approve").
+    {{/quoted}}
+  ]
+{{/action}}
+
+
+== Creating cards
+
+Add page creates a child card Untitled page under this card, and the message links to it.
+
+{{#action}}
+  "buttonLabel": "Add page",
+  "actions": [
+    {{#quoted}}
+    create({{{cardKey}}}, "test/templates/page").
+    {{/quoted}}
+  ]
+{{/action}}
+
+
+Add named page creates a child card in its first program, and its second program names it Named page and gives it the label named.
+
+{{#action}}
+  "buttonLabel": "Add named page",
+  "actions": [
+    {{#quoted}}
+    create({{{cardKey}}}, "test/templates/page").
+    {{/quoted}},
+    {{#quoted}}
+    setField(K, "title", "Named page") :- created(K, _, "test/templates/page", _, _).
+    addLabel(K, "named") :- created(K, _, "test/templates/page", _, _).
+    {{/quoted}}
+  ]
+{{/action}}
+
+
+== Fields
+
+Set fields sets Short text of this card to Set by an action and Integer to 42; the 42 is given as text and converted to a number.
+
+{{#action}}
+  "buttonLabel": "Set fields",
+  "actions": [
+    {{#quoted}}
+    setField({{{cardKey}}}, "test/fieldTypes/shortText", "Set by an action").
+    setField({{{cardKey}}}, "test/fieldTypes/integer", "42").
+    {{/quoted}}
+  ]
+{{/action}}
+
+
+== Labels
+
+Add label gives this card the label reviewed.
+
+{{#action}}
+  "buttonLabel": "Add label",
+  "actions": [
+    {{#quoted}}
+    addLabel({{{cardKey}}}, "reviewed").
+    {{/quoted}}
+  ]
+{{/action}}
+
+
+Remove label takes the label reviewed away again and keeps the label demo.
+
+{{#action}}
+  "buttonLabel": "Remove label",
+  "actions": [
+    {{#quoted}}
+    removeLabel({{{cardKey}}}, "reviewed").
+    {{/quoted}}
+  ]
+{{/action}}
+
+
+== Links
+
+Add link links this card to its child card Link target; the link shows under Outbound.
+
+{{#action}}
+  "buttonLabel": "Add link",
+  "actions": [
+    {{#quoted}}
+    addLink({{{cardKey}}}, T, "test/linkTypes/test") :- parent(T, {{{cardKey}}}), field(T, "title", "Link target").
+    {{/quoted}}
+  ]
+{{/action}}
+
+
+Remove link removes that link again.
+
+{{#action}}
+  "buttonLabel": "Remove link",
+  "actions": [
+    {{#quoted}}
+    removeLink({{{cardKey}}}, T, "test/linkTypes/test") :- parent(T, {{{cardKey}}}), field(T, "title", "Link target").
+    {{/quoted}}
+  ]
+{{/action}}
+
+
+== Content
+
+Set content replaces the content of the child card Notes with a short checklist.
+
+{{#action}}
+  "buttonLabel": "Set content",
+  "actions": [
+    {{#quoted}}
+    setContent(N, {{#quoted}}
+== Checklist
+
+. Read the demo.
+. Click every button.
+{{/quoted}}) :- parent(N, {{{cardKey}}}), field(N, "title", "Notes").
+    {{/quoted}}
+  ]
+{{/action}}
+
+
+Copy content replaces the content of Notes with the content of the child card Source text.
+
+{{#action}}
+  "buttonLabel": "Copy content",
+  "actions": [
+    {{#quoted}}
+    copyContent(N, S) :- parent(N, {{{cardKey}}}), field(N, "title", "Notes"), parent(S, {{{cardKey}}}), field(S, "title", "Source text").
+    {{/quoted}}
+  ]
+{{/action}}
+
+
+== Ranking and moving
+
+Rank first puts the child card Movable page first among the children of this card.
+
+{{#action}}
+  "buttonLabel": "Rank first",
+  "actions": [
+    {{#quoted}}
+    rankFirst(M) :- parent(M, {{{cardKey}}}), field(M, "title", "Movable page").
+    {{/quoted}}
+  ]
+{{/action}}
+
+
+Move moves Movable page under the child card Link target in the card tree.
+
+{{#action}}
+  "buttonLabel": "Move",
+  "actions": [
+    {{#quoted}}
+    move(M, T) :- parent(M, {{{cardKey}}}), field(M, "title", "Movable page"), parent(T, {{{cardKey}}}), field(T, "title", "Link target").
+    {{/quoted}}
+  ]
+{{/action}}
+
+
+== Nothing to change
+
+Add label demo adds a label that this card already has, so nothing changes and the message says that the action ran.
+
+{{#action}}
+  "buttonLabel": "Add label demo",
+  "actions": [
+    {{#quoted}}
+    addLabel({{{cardKey}}}, "demo").
+    {{/quoted}}
+  ]
+{{/action}}
+
+
+== Failures
+
+Approve again works only while this card is Draft; after Approve above, it fails with a message that the workflow has no Approve transition from state Approved.
+
+{{#action}}
+  "buttonLabel": "Approve again",
+  "actions": [
+    {{#quoted}}
+    transition({{{cardKey}}}, "Approve").
+    {{/quoted}}
+  ]
+{{/action}}
+
+
+Set a missing field sets Failure message, which is not a field of this card's type, and fails with a message that it is neither title nor a custom field of card type All data types.
+
+{{#action}}
+  "buttonLabel": "Set a missing field",
+  "actions": [
+    {{#quoted}}
+    setField({{{cardKey}}}, "test/fieldTypes/failureMessage", "Oops").
+    {{/quoted}}
+  ]
+{{/action}}
+
+
+Set text into Integer sets Integer to the text many and fails with a message that many is not a valid integer value.
+
+{{#action}}
+  "buttonLabel": "Set text into Integer",
+  "actions": [
+    {{#quoted}}
+    setField({{{cardKey}}}, "test/fieldTypes/integer", "many").
+    {{/quoted}}
+  ]
+{{/action}}
+
+
+Set two values sets Short text to both One and Two in one program and fails with a message that the field is set to two different values.
+
+{{#action}}
+  "buttonLabel": "Set two values",
+  "actions": [
+    {{#quoted}}
+    setField({{{cardKey}}}, "test/fieldTypes/shortText", "One").
+    setField({{{cardKey}}}, "test/fieldTypes/shortText", "Two").
+    {{/quoted}}
+  ]
+{{/action}}
+
+
+Edit locked field changes Field to edit of the child card Locked card, which a deny rule forbids, and fails with the rule's message: The field Field to edit of this card is locked.
+
+{{#action}}
+  "buttonLabel": "Edit locked field",
+  "actions": [
+    {{#quoted}}
+    setField(L, "test/fieldTypes/shortText", "Changed") :- parent(L, {{{cardKey}}}), field(L, "title", "Locked card").
+    {{/quoted}}
+  ]
+{{/action}}
+
+
+Run a broken program runs a program with a syntax error and fails with a message that starts with Parsing failed.
+
+{{#action}}
+  "buttonLabel": "Run a broken program",
+  "actions": [
+    {{#quoted}}
+    transition({{{cardKey}}}, "Approve"
+    {{/quoted}}
+  ]
+{{/action}}
+
+
+Label the template card adds a label to the card of the Action macro demo template, which cannot be changed, and fails with a message that the card is a template card, or a module card when module-test is installed as a module.
+
+{{#action}}
+  "buttonLabel": "Label the template card",
+  "actions": [
+    {{#quoted}}
+    addLabel(T, "reviewed") :- parent(T, "test/templates/actionDemo").
+    {{/quoted}}
+  ]
+{{/action}}
+
+
+Fail in program 2 adds the label partial to this card in its first program, then fails in its second program on the text many in Integer, with a message that ends: Without autocommit, the changes of the earlier programs were kept. Without autocommit, the label partial stays; with autocommit, nothing changes.
+
+{{#action}}
+  "buttonLabel": "Fail in program 2",
+  "actions": [
+    {{#quoted}}
+    addLabel({{{cardKey}}}, "partial").
+    {{/quoted}},
+    {{#quoted}}
+    setField({{{cardKey}}}, "test/fieldTypes/integer", "many").
+    {{/quoted}}
+  ]
+{{/action}}

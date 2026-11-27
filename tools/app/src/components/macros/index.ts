@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import type { MacroName } from '@cyberismo/model';
+import Action from './Action';
 import CreateCards from './CreateCards';
 import CreateLinks from './CreateLinks';
 import Mermaid from './Mermaid';
@@ -23,14 +24,7 @@ export interface MacroContext {
 
 export type UIMacroName = Exclude<
   MacroName,
-  | 'report'
-  | 'graph'
-  | 'include'
-  | 'xref'
-  | 'percentage'
-  | 'vegaLite'
-  | 'image'
-  | 'action'
+  'report' | 'graph' | 'include' | 'xref' | 'percentage' | 'vegaLite' | 'image'
 >;
 
 // We simply trust that the macro has been
@@ -38,6 +32,7 @@ export type UIMacroName = Exclude<
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const macros: Record<UIMacroName, (props: any) => ReactElement | null> =
   {
+    action: Action,
     createCards: CreateCards,
     createLinks: CreateLinks,
     field: Field,

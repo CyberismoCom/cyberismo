@@ -11,6 +11,13 @@ export interface Notification {
   closed: boolean;
   createdAt: number;
   disableAutoClose: boolean;
+  /**
+   * Links shown after the message, e.g. to cards the message names. A toast
+   * with links stays open until closed with its close button.
+   */
+  links?: { label: string; href: string }[];
+  /** Text after the links, e.g. how many were left out. */
+  more?: string;
 }
 
 export type NotificationMessage = Omit<

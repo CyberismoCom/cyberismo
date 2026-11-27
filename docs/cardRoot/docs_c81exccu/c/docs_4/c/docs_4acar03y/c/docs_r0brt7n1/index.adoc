@@ -17,6 +17,8 @@ Reports may define additional report-specific parameters.
 
 To learn how to define new reports, see {{#xref}}"cardKey":"docs_byr4iof0"{{/xref}}.
 
+A report's content template can also show buttons that change cards. See {{#xref}}"cardKey":"docs_bfe9arl1"{{/xref}}.
+
 == Example
 
 For example, the report `base/reports/childrenList` shows a list of child cards. To use this report, use the following notation:

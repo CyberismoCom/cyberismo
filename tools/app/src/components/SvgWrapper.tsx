@@ -9,7 +9,7 @@ import OpenInFullIcon from '@mui/icons-material/OpenInFull';
 
 import SvgViewerModal from '@/components/modals/svgViewerModal';
 import { useAppRouter } from '@/lib/hooks';
-import { appRoutePath } from '@/lib/utils';
+import { appRoutePath, isPlainLeftClick } from '@/lib/utils';
 
 export interface SvgWrapperProps {
   /** The SVG content (already sanitized). */
@@ -76,8 +76,7 @@ function SvgWrapper({ children, downloadName }: SvgWrapperProps) {
   // <a> elements may use xlink:href, which the content parser does not map
   // to router links.
   const handleLinkClick = (e: MouseEvent<HTMLDivElement>) => {
-    if (e.defaultPrevented || e.button !== 0) return;
-    if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+    if (e.defaultPrevented || !isPlainLeftClick(e)) return;
     const anchor = (e.target as Element | null)?.closest?.('a');
     if (!anchor) return;
     const href =

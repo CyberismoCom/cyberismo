@@ -30,7 +30,14 @@ vi.mock('@/lib/api/actions', async (importOriginal) => ({
   addAttachments: vi.fn().mockResolvedValue(undefined),
 }));
 
-import { deleteCard, updateCard, useCardMutations } from '@/lib/api/card';
+import {
+  ActionLostError,
+  deleteCard,
+  runAction,
+  updateCard,
+  useCardMutations,
+} from '@/lib/api/card';
+import { ApiCallError } from '@/lib/swr';
 import { useAttachments } from '@/lib/api/attachments';
 
 const base = '/api/projects/TST';
@@ -40,8 +47,10 @@ const source = `${card}/source`;
 const tree = `${base}/tree`;
 const resourceTree = `${base}/resources/tree`;
 
-function hook<T>(use: () => T) {
-  const store = configureStore({ reducer: rootReducer });
+function hook<T>(
+  use: () => T,
+  store = configureStore({ reducer: rootReducer }),
+) {
   const wrapper = ({ children }: { children: ReactNode }) => (
     <Provider store={store}>
       <SWRConfig value={{ fetcher: () => new Promise(() => {}) }}>
@@ -109,4 +118,65 @@ describe('card mutations', () => {
     fetched();
     await expect(save).resolves.toBeUndefined();
   });
+});
+
+describe('runAction', () => {
+  const action = `${card}/action`;
+  // Mounted card keys are matched by a function; the rest by name.
+  const mutated = () =>
+    mutate.mock.calls.map(([key]) =>
+      typeof key === 'function' ? 'mounted cards' : key,
+    );
+
+  it('posts the programs and refreshes the tree and the cards', async () => {
+    callApi.mockResolvedValueOnce({ created: [] });
+
+    expect(await runAction('TST_1', ['a.'], 'TST')).toEqual({ created: [] });
+    expect(callApi).toHaveBeenCalledWith(action, 'POST', { programs: ['a.'] });
+    expect(mutated()).toEqual([tree, 'mounted cards']);
+    // The source too: the card editor shows it.
+    const [mounted] = mutate.mock.calls[1];
+    expect(mounted(card)).toBe(true);
+    expect(mounted(source)).toBe(true);
+  });
+
+  it('marks the cards it created as recently created, from the hook', async () => {
+    const store = configureStore({ reducer: rootReducer });
+    callApi.mockResolvedValueOnce({
+      created: [{ key: 'TST_2', title: 'New' }],
+    });
+
+    await hook(() => useCardMutations('TST_1', 'TST'), store).runAction(['a.']);
+
+    expect(store.getState().card.recentlyCreated).toEqual(['TST_2']);
+  });
+
+  it('refreshes after an error answer and passes it on', async () => {
+    const error = new ApiCallError(new Response(null, { status: 400 }), 'no');
+    callApi.mockRejectedValueOnce(error);
+
+    await expect(runAction('TST_1', ['a.'], 'TST')).rejects.toBe(error);
+    expect(mutated()).toEqual([tree, 'mounted cards']);
+  });
+
+  it.each([
+    [true, [tree, 'mounted cards']],
+    [false, []],
+  ])(
+    'says the answer was lost, refreshing only a reachable server: %s',
+    async (reachable, refreshed) => {
+      callApi.mockRejectedValueOnce(new TypeError('Failed to fetch'));
+      if (reachable) callApi.mockResolvedValueOnce({});
+      else callApi.mockRejectedValueOnce(new TypeError('Failed to fetch'));
+
+      const error = await runAction('TST_1', ['a.'], 'TST').catch(
+        (e: unknown) => e,
+      );
+
+      expect(error).toBeInstanceOf(ActionLostError);
+      expect((error as ActionLostError).refreshed).toBe(reachable);
+      expect(callApi).toHaveBeenLastCalledWith(card, 'GET');
+      expect(mutated()).toEqual(refreshed);
+    },
+  );
 });
