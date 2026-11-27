@@ -77,20 +77,50 @@ else
       die "the build of $what at $short is still running: gh run watch $run -R $REPO"
     die "no build of $what at $short. One starts within a minute of a push, but only for pull requests into main that have no merge conflicts"
   fi
-  artifact_id=$(gh api "repos/$REPO/actions/runs/$run/artifacts" \
-    -q ".artifacts[] | select(.name == \"$artifact\" and (.expired | not)) | .id")
-  [ -n "$artifact_id" ] ||
+  found=$(gh api "repos/$REPO/actions/runs/$run/artifacts" \
+    -q ".artifacts[] | select(.name == \"$artifact\" and (.expired | not)) | \"\\(.id) \\(.size_in_bytes)\"")
+  [ -n "$found" ] ||
     die "the build of $what at $short failed or has expired: gh run view $run -R $REPO"
+  artifact_id=${found% *}
+  size=${found#* }
 
   # 5. Download it and check that it runs.
   mkdir -p "$VERSIONS_DIR"
   tmp=$(mktemp -d "$VERSIONS_DIR/.tmp.XXXXXX")
   trap 'rm -rf "$tmp"' EXIT
-  echo "Downloading $build"
-  curl -fL --progress-bar -o "$tmp/artifact.zip" \
+  echo "Downloading $build ($((size / 1000000)) MB)"
+  # The API redirects to blob storage, which serves each connection at about
+  # 1 MB/s, so the zip is fetched as byte ranges over parallel connections
+  # and joined in order.
+  url=$(curl -fsS -o /dev/null -w '%{redirect_url}' \
     -H "Authorization: Bearer $(gh auth token)" \
-    "https://api.github.com/repos/$REPO/actions/artifacts/$artifact_id/zip" ||
+    "https://api.github.com/repos/$REPO/actions/artifacts/$artifact_id/zip") ||
     die "download failed"
+  [ -n "$url" ] || die "download failed: GitHub gave no download address"
+  parts=32
+  chunk=$(((size + parts - 1) / parts))
+  pids=""
+  i=0
+  while [ "$i" -lt "$parts" ] && [ $((i * chunk)) -lt "$size" ]; do
+    from=$((i * chunk))
+    to=$((from + chunk - 1))
+    [ "$to" -lt "$size" ] || to=$((size - 1))
+    curl -fsS --retry 3 -r "$from-$to" -o "$tmp/part.$i" "$url" &
+    pids="$pids $!"
+    i=$((i + 1))
+  done
+  failed=""
+  for pid in $pids; do
+    wait "$pid" || failed=1
+  done
+  [ -z "$failed" ] || die "download failed"
+  j=0
+  while [ "$j" -lt "$i" ]; do
+    cat "$tmp/part.$j"
+    rm "$tmp/part.$j"
+    j=$((j + 1))
+  done >"$tmp/artifact.zip"
+  [ $(($(wc -c <"$tmp/artifact.zip"))) -eq "$size" ] || die "download failed: incomplete"
   unzip -q "$tmp/artifact.zip" -d "$tmp"
   rm "$tmp/artifact.zip"
   chmod +x "$tmp/cyberismo-dev"
