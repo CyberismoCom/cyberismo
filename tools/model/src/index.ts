@@ -1,7 +1,9 @@
 // SPDX-FileCopyrightText: Cyberismo Ltd and contributors
 // SPDX-License-Identifier: AGPL-3.0-only
 
-// Browser-safe shared types. Nothing here may import Node built-ins.
+// Browser-safe shared types and code. Nothing here may import Node built-ins.
+// Code that loads a library is under its own subpath (`./parts/*`), so the
+// root stays light for every consumer.
 export * from './interfaces/actor.js';
 export * from './interfaces/change-event.js';
 export * from './interfaces/clean.js';
@@ -11,6 +13,7 @@ export * from './interfaces/folder-content-interfaces.js';
 export * from './interfaces/macros.js';
 export * from './interfaces/mutation-input.js';
 export * from './interfaces/operations.js';
+export * from './interfaces/parts.js';
 export * from './interfaces/project-interfaces.js';
 export * from './interfaces/resource-interfaces.js';
 export * from './interfaces/resource-name.js';

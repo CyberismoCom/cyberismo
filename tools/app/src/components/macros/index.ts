@@ -7,7 +7,6 @@ import CreateCards from './CreateCards';
 import CreateLinks from './CreateLinks';
 import Mermaid from './Mermaid';
 import Field from './Field';
-import ScoreCard from './ScoreCard';
 import type { ReactElement } from 'react';
 import Vega from './Vega';
 
@@ -24,7 +23,14 @@ export interface MacroContext {
 
 export type UIMacroName = Exclude<
   MacroName,
-  'report' | 'graph' | 'include' | 'xref' | 'percentage' | 'vegaLite' | 'image'
+  | 'report'
+  | 'graph'
+  | 'include'
+  | 'xref'
+  | 'percentage'
+  | 'scoreCard'
+  | 'vegaLite'
+  | 'image'
 >;
 
 // We simply trust that the macro has been
@@ -37,6 +43,5 @@ export const macros: Record<UIMacroName, (props: any) => ReactElement | null> =
     createLinks: CreateLinks,
     field: Field,
     mermaid: Mermaid,
-    scoreCard: ScoreCard,
     vega: Vega,
   };

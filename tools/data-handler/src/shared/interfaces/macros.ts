@@ -4,7 +4,7 @@
 import type { Checkout } from '../../state/checkout/checkout.js';
 import type { MacroError } from '../exceptions/index.js';
 import type { LogicUnavailableError } from '../../infra/logic/logic-backend.js';
-import type { Context, QueryResult } from '@cyberismo/model';
+import type { Context, QueryResult, RenderedPart } from '@cyberismo/model';
 
 export type Mode = 'validate' | 'static' | 'inject' | 'staticSite';
 
@@ -16,6 +16,8 @@ export interface MacroGenerationContext {
   maxTries?: number;
   // Card query results by card key, shared by one evaluation and its nested ones
   cardQueries?: Map<string, Promise<QueryResult<'card'>[]>>;
+  // The parts placed so far by id, shared by one evaluation and its nested ones
+  parts?: Map<string, RenderedPart>;
 }
 
 export interface MacroTaskState {

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: Cyberismo Ltd and contributors
 // SPDX-License-Identifier: AGPL-3.0-only
 
-import { beforeAll, describe, expect, test } from 'vitest';
+import { afterAll, beforeAll, describe, expect, test } from 'vitest';
 import { type Workspace } from '@cyberismo/data-handler';
 import type { QueryResult } from '@cyberismo/model';
 import {
@@ -12,6 +12,10 @@ import {
 } from '../src/lib/render.js';
 import { testDataPath } from './test-utils.js';
 import { openTestWorkspace } from './helpers/open-test-workspace.js';
+import {
+  buildProject,
+  type BuiltProject,
+} from '../../data-handler/test/helpers/project-builder.js';
 
 let ws: Workspace;
 let renderedCard: RenderedCard;
@@ -161,5 +165,59 @@ describe('getCardTree', () => {
     expect(tree.length).toBeGreaterThan(0);
     expect(tree[0].key).toBeDefined();
     expect(tree[0].title).toBeDefined();
+  });
+});
+
+describe('renderCard shows each content part as its source', () => {
+  let project: BuiltProject;
+  let parts: Workspace;
+  let host: string;
+
+  beforeAll(async () => {
+    project = await buildProject({
+      cards: [{ title: 'Host' }],
+    });
+    [host] = project.keys;
+    parts = await openTestWorkspace(project.path);
+  });
+
+  afterAll(async () => {
+    await project?.cleanup();
+  });
+
+  const show = async (content: string) => {
+    await parts.cards.edit(host, content);
+    return (await renderCard(parts, host)).parsedContent;
+  };
+
+  test('shows a field macro as its source with resolved options', async () => {
+    const html = await show(
+      'Title: {{#field}}"field": "title", "display": "inline"{{/field}}\n\n{{#field}}"field": "title"{{/field}}',
+    );
+    expect(html).toContain(
+      `{{#field}}"cardKey":"${host}","field":"title","showLabel":false,"display":"inline"{{/field}}`,
+    );
+    expect(html).toContain(
+      `{{#field}}"cardKey":"${host}","field":"title","showLabel":true,"display":"row"{{/field}}`,
+    );
+    expect(html).not.toMatch(/cyberismo-part:/);
+  });
+
+  test('escapes the source', async () => {
+    const html = await show(
+      '{{#createCards}}"buttonLabel": "<b>&</b>", "template": "x"{{/createCards}}',
+    );
+    expect(html).toContain('"buttonLabel":"&lt;b&gt;&amp;&lt;/b&gt;"');
+    expect(html).not.toContain('<b>');
+  });
+
+  test('shows nothing for a made-up reference', async () => {
+    const made = 'ab'.repeat(32);
+    const html = await show(
+      `Before cyberismo-part:${made}[] after\n\ncyberismo-part::${made}[]`,
+    );
+    expect(html).toContain('<p>Before  after</p>');
+    expect(html).not.toContain(made);
+    expect(html).not.toContain('cyberismo-part');
   });
 });

@@ -2,13 +2,24 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { convert } from '@asciidoctor/core';
+import { partReferences } from '@cyberismo/model/parts/references';
 
+import { PART_ELEMENT, PART_ID_ATTRIBUTE } from './constants';
 import { projectApiPaths } from './swr';
 
 // Asciidoctor resolves include:: over XMLHttpRequest in the browser, so card content
 // could otherwise fetch same-origin endpoints with the viewer's session. SECURE drops
 // includes; icons survives it because asciidoctor's gate is `attr_overrides ||= nil`.
 const SAFE_MODE = 'secure';
+
+// A part reference becomes an element that holds only its id; the renderer
+// looks the id up in the parts the server sent with the content.
+const partElement = (id: string) =>
+  `<${PART_ELEMENT} ${PART_ID_ATTRIBUTE}="${id}"></${PART_ELEMENT}>`;
+const partElements = partReferences({
+  block: partElement,
+  inline: partElement,
+});
 
 const CACHE_LIMIT = 20;
 const cache = new Map<string, string>();
@@ -66,6 +77,7 @@ export async function adocToHtml(
   const html = (
     await convert(adoc, {
       safe: SAFE_MODE,
+      extension_registry: partElements,
       attributes: {
         imagesdir,
         icons: 'font',

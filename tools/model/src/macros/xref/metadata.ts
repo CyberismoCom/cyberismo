@@ -5,7 +5,6 @@ import type { MacroMetadata } from '../../interfaces/macros.js';
 
 const macroMetadata: MacroMetadata = {
   name: 'xref',
-  tagName: 'xref',
   schema: 'xrefMacroSchema',
 };
 

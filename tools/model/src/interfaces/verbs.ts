@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import type { Context } from './project-interfaces.js';
+import type { RenderedParts } from './parts.js';
 
 // Parameters of a report run; the card is the report's context.
 export interface ReportParameters {
@@ -37,10 +38,19 @@ export interface RenderOptions {
   fallback?: string;
 }
 
-// Rendered content, and the macro failure it stands for, if any.
+// Rendered content, the parts its references name (by id), and the macro
+// failure it stands for, if any. A failed render has no parts.
 export interface RenderedContent {
   content: string;
+  parts: RenderedParts;
   error?: string;
+}
+
+// A card's rendered content as the card API serves it: AsciiDoc in which
+// each part is a reference, and the parts by id.
+export interface RenderedCardContent {
+  adocContent: string;
+  parts: RenderedParts;
 }
 
 // A rendered PDF and the warnings asciidoctor-pdf reported while rendering.

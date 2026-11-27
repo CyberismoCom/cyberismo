@@ -7,6 +7,7 @@ import type {
   ExportPdfOptions,
   MetadataContent,
   QueryResult,
+  RenderedCardContent,
 } from '@cyberismo/model';
 import { AsciidoctorPdfError, type Workspace } from '@cyberismo/data-handler';
 import { preprocessMermaidBlocksForHtml } from './mermaid.js';
@@ -27,16 +28,17 @@ async function renderAdoc(
   mode: RenderMode,
   fallback?: string,
   tree?: TreeOptions,
-): Promise<string> {
-  let { content: asciidocContent } = await ws.render.macros(content, {
+): Promise<RenderedCardContent> {
+  const rendered = await ws.render.macros(content, {
     context: mode === 'staticSite' ? 'exportedSite' : 'localApp',
     mode,
     cardKey: key,
     fallback,
   });
 
+  const { parts } = rendered;
   // Convert [mermaid] AsciiDoc blocks to passthrough HTML before asciidoctor processes them
-  asciidocContent = preprocessMermaidBlocksForHtml(asciidocContent);
+  const asciidocContent = preprocessMermaidBlocksForHtml(rendered.content);
 
   // Rewrite native AsciiDoc xrefs that target other cards into
   // /projects/<prefix>/cards/<key> links. On the static site, an xref to a
@@ -44,12 +46,13 @@ async function renderAdoc(
   // export's result.
   if (mode === 'staticSite') {
     const prefix = ws.settings.prefix;
-    return ws.render.xrefs(asciidocContent, mode, {
+    const adocContent = await ws.render.xrefs(asciidocContent, mode, {
       exported: await exportedKeys(ws, tree),
       onWarning: (message) => addExportWarning(prefix, message),
     });
+    return { adocContent, parts };
   }
-  return ws.render.xrefs(asciidocContent, mode);
+  return { adocContent: await ws.render.xrefs(asciidocContent, mode), parts };
 }
 
 export async function getCardData(
@@ -96,10 +99,10 @@ export async function getCardContent(
   key: string,
   staticMode: boolean,
   tree?: TreeOptions,
-): Promise<{ adocContent: string }> {
+): Promise<RenderedCardContent> {
   return ws.consistent(async () => {
     const card = await ws.cards.details(key);
-    const adocContent = await renderAdoc(
+    return renderAdoc(
       ws,
       key,
       card.content || '',
@@ -107,7 +110,6 @@ export async function getCardContent(
       '',
       tree,
     );
-    return { adocContent };
   });
 }
 
@@ -250,10 +252,8 @@ export async function parseContent(
   ws: Workspace,
   key: string,
   content: string,
-) {
-  return ws.consistent(async () => ({
-    adocContent: await renderAdoc(ws, key, content, 'inject'),
-  }));
+): Promise<RenderedCardContent> {
+  return ws.consistent(() => renderAdoc(ws, key, content, 'inject'));
 }
 
 export async function createLink(

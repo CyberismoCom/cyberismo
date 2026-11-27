@@ -75,7 +75,7 @@ test.each([
   ],
   [
     '/content',
-    { adocContent: expect.stringContaining('= Decision Records') },
+    { adocContent: expect.stringContaining('= Decision Records'), parts: {} },
     ['rawContent', 'fields'],
   ],
   [
@@ -106,6 +106,37 @@ test.each([
     }
   },
 );
+
+test('POST /api/projects/decision/cards/decision_5/parse returns the parts of the posted content', async () => {
+  const response = await app.request(
+    '/api/projects/decision/cards/decision_5/parse',
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        content:
+          'Title: {{#field}}"field": "title", "display": "inline"{{/field}}',
+      }),
+    },
+  );
+  expect(response.status).toBe(200);
+  const result = await response.json();
+  const id = /^Title: cyberismo-part:([0-9a-f]{64})\[\]$/.exec(
+    result.adocContent.trim(),
+  )?.[1];
+  expect(result.parts).toEqual({
+    [id!]: {
+      kind: 'macro',
+      macro: 'field',
+      options: {
+        cardKey: 'decision_5',
+        field: 'title',
+        display: 'inline',
+        showLabel: false,
+      },
+    },
+  });
+});
 
 test.each(['', '/content', '/source'])(
   'GET /api/projects/decision/cards/bogus_999%s returns 404',

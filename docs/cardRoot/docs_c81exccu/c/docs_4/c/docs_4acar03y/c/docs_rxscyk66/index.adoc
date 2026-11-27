@@ -36,7 +36,7 @@ This card is owned by {{#field}}
 {{/raw}}
 ```
 
-Use `inline` whenever the macro is in running text, in a list item or in a table cell.
+Use `inline` whenever the macro is in running text, in a list item or in a table cell. A `row` macro in a table needs an AsciiDoc cell, `a|`.
 
 == Showing a field of another card
 

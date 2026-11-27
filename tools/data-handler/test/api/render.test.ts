@@ -55,7 +55,7 @@ describe('render', () => {
         'See {{#xref}}"cardKey": "decision_6"{{/xref}}.',
         options,
       ),
-    ).toEqual({ content: 'See <<decision_6>>.' });
+    ).toEqual({ content: 'See <<decision_6>>.', parts: {} });
   });
 
   it.each([
@@ -68,6 +68,7 @@ describe('render', () => {
         await ws.render.macros(content, { ...options, fallback: row.fallback }),
       ).toEqual({
         content: `Macro error: boom\n\n${row.after}`,
+        parts: {},
         error: 'boom',
       });
     } finally {

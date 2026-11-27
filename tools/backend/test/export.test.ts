@@ -550,6 +550,47 @@ describe('export module', () => {
       // Punctuation is a numeric entity, so the value is shown as typed.
       expect(content.adocContent).toContain('pass:[1&#46;5]');
       expect(content.adocContent).not.toContain('<card-field');
+      expect(content.parts).toEqual({});
+    });
+
+    test('exports a vega macro as a reference to a part of the content', async () => {
+      const card = join(
+        folder,
+        'decision-records',
+        'cardRoot',
+        'decision_5',
+        'c',
+        'decision_6',
+      );
+      const spec = { width: 10, height: 10, marks: [] };
+      await writeFile(
+        join(card, 'index.adoc'),
+        `{{#vega}}"spec": ${JSON.stringify(spec)}{{/vega}}\n`,
+      );
+      const { directory: registry } = await localFolder(folder);
+
+      await exportSite(registry, tempDir, { cardKey: 'decision_6' });
+
+      const content = JSON.parse(
+        await readFile(
+          join(
+            tempDir,
+            'api',
+            'projects',
+            'decision',
+            'cards',
+            'decision_6',
+            'content.json',
+          ),
+          'utf8',
+        ),
+      );
+      const id = /cyberismo-part::([0-9a-f]{64})\[\]/.exec(
+        content.adocContent,
+      )?.[1];
+      expect(content.parts).toEqual({
+        [id!]: { kind: 'macro', macro: 'vega', options: { spec } },
+      });
     });
   });
 });

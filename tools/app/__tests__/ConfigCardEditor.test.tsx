@@ -38,6 +38,7 @@ let previewCardArg:
   | {
       rawContent?: string;
       adocContent?: string;
+      parts?: unknown;
       fields?: { key: string; value: unknown }[];
     }
   | undefined;
@@ -98,8 +99,21 @@ vi.mock('@/lib/auth', () => ({
   useHasMinRole: () => true,
 }));
 
+const { PREVIEW_PARTS } = vi.hoisted(() => ({
+  PREVIEW_PARTS: {
+    ['a'.repeat(64)]: {
+      kind: 'macro',
+      macro: 'field',
+      options: { cardKey: 'c1', field: 'f1' },
+    },
+  },
+}));
+
 vi.mock('@/lib/api/actions/card', () => ({
-  parseContent: vi.fn().mockResolvedValue('preview adoc'),
+  parseContent: vi.fn().mockResolvedValue({
+    adocContent: 'preview adoc',
+    parts: PREVIEW_PARTS,
+  }),
 }));
 
 vi.mock('@/lib/utils', async (orig) => ({
@@ -274,6 +288,7 @@ describe('ConfigCardEditor (template card editor)', () => {
     await waitFor(() =>
       expect(previewCardArg?.adocContent).toBe('preview adoc'),
     );
+    expect(previewCardArg?.parts).toEqual(PREVIEW_PARTS);
 
     // Reopening must not show the earlier render while the new parse runs.
     fireEvent.click(screen.getByRole('button', { name: 'edit' }));

@@ -89,6 +89,7 @@ vi.mock('react-i18next', () => ({
 }));
 
 import { renderCardHtml } from '@/components/card/renderCardContent';
+import type { RenderedParts } from '@cyberismo/model';
 
 const textField = (key: string, value: string) => ({
   key,
@@ -101,19 +102,30 @@ const textField = (key: string, value: string) => ({
   enumValues: [],
 });
 
+// The parts the server sent, as the macros in the HTML refer to them.
+const PARTS: RenderedParts = {};
+let partCount = 0;
+
 const placeholder = (
   field: string,
   showLabel = true,
   display: 'row' | 'inline' = 'row',
   cardKey = 'k_1',
-) =>
-  `<card-field options="${btoa(JSON.stringify({ cardKey, field, showLabel, display }))}"></card-field>`;
+) => {
+  const id = (++partCount).toString(16).padStart(64, '0');
+  PARTS[id] = {
+    kind: 'macro',
+    macro: 'field',
+    options: { cardKey, field, showLabel, display },
+  };
+  return `<cyberismo-part data-part-id="${id}"></cyberismo-part>`;
+};
 
 function Body({ html, preview = false }: { html: string; preview?: boolean }) {
   return (
     <BrowserRouter>
       <div className="doc">
-        {renderCardHtml(html, { macroKey: 'k_1', preview })}
+        {renderCardHtml(html, { parts: PARTS, macroKey: 'k_1', preview })}
       </div>
     </BrowserRouter>
   );

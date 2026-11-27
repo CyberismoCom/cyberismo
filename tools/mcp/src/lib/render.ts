@@ -9,6 +9,8 @@ import {
 } from '@cyberismo/data-handler';
 import type { QueryResult } from '@cyberismo/model';
 
+import { resolvingParts } from './part-source.js';
+
 // Special constant for transitions that work from any state
 const ANY_STATE = '*';
 
@@ -171,6 +173,7 @@ export async function renderCard(
           parsedContent = (
             await convert(asciidocContent, {
               safe: 'secure',
+              extension_registry: resolvingParts(evaluated.parts),
               attributes: {
                 imagesdir: `/api/cards/${cardKey}/a`,
                 icons: 'font',

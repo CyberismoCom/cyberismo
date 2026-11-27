@@ -29,11 +29,12 @@ async function render(
     1,
     -1,
   );
-  const { content: out } = await ws.render.macros(
-    `{{#report}}${report}{{/report}}`,
-    { cardKey: keys[0], context: 'localApp', mode },
-  );
-  return { out, keys, ws };
+  const rendered = await ws.render.macros(`{{#report}}${report}{{/report}}`, {
+    cardKey: keys[0],
+    context: 'localApp',
+    mode,
+  });
+  return { out: rendered.content, rendered, keys, ws };
 }
 
 const action = (programs: string, label = 'Go') =>
@@ -41,12 +42,12 @@ const action = (programs: string, label = 'Go') =>
 
 describe('action buttons in a report', () => {
   it('renders a button with the programs in inject mode', async () => {
-    const { out, keys } = await render(
+    const { rendered, keys } = await render(
       action(
         '{{#quoted}}transition({{{cardKey}}}, "Start").{{/quoted}}, {{#quoted}}a.{{/quoted}}',
       ),
     );
-    expect(actionButtons(out)).toEqual([
+    expect(actionButtons(rendered)).toEqual([
       {
         buttonLabel: 'Go',
         cardKey: keys[0],
@@ -63,7 +64,7 @@ describe('action buttons in a report', () => {
         `before ${action('{{#if cardKey}}{{#quoted}}a.{{/quoted}}{{/if}}')} after`,
         mode,
       );
-      expect(out).not.toContain('action-button');
+      expect(out).not.toContain('cyberismo-part');
       expect(out).not.toContain('WARNING');
       expect(out.trim()).toBe('before  after');
     },
@@ -71,7 +72,7 @@ describe('action buttons in a report', () => {
 
   it('refuses an empty actions array', async () => {
     const { out } = await render(action(''));
-    expect(out).not.toContain('<action-button');
+    expect(out).not.toContain('cyberismo-part');
     expect(out).toContain('[WARNING]');
     expect(out).toMatch(/action macro JSON validation error/);
   });
@@ -83,31 +84,31 @@ describe('action buttons in a report', () => {
     'refuses a malformed body with %s, naming the action macro',
     async (_, programs) => {
       const { out } = await render(action(programs));
-      expect(out).not.toContain('<action-button');
+      expect(out).not.toContain('cyberismo-part');
       expect(out).toContain('[WARNING]');
       expect(out).toMatch(/action macro JSON error: /);
     },
   );
 
   it('renders one button per item inside each over strings and numbers', async () => {
-    const { out, keys } = await render(
+    const { rendered, keys } = await render(
       `{{#each items}}${action('{{#quoted}}removeLabel({{{cardKey}}}, "{{{this}}}"). n({{this}}).{{/quoted}}')}\n{{/each}}`,
       'inject',
       () => ({ items: ['urgent', 7] }),
     );
-    expect(actionButtons(out).map((button) => button.programs)).toEqual([
+    expect(actionButtons(rendered).map((button) => button.programs)).toEqual([
       [`removeLabel(${keys[0]}, "urgent"). n(urgent).`],
       [`removeLabel(${keys[0]}, "7"). n(7).`],
     ]);
   });
 
   it('leaves the row as it is inside the action', async () => {
-    const { out } = await render(
+    const { rendered } = await render(
       `{{#each items}}${action('{{#quoted}}{{#if this}}true.{{else}}false.{{/if}}{{#each this}} item({{{this}}}).{{/each}}{{/quoted}}')}\n{{/each}}`,
       'inject',
       () => ({ items: [false, 0, '', ['a', 'b']] }),
     );
-    expect(actionButtons(out).map((button) => button.programs)).toEqual([
+    expect(actionButtons(rendered).map((button) => button.programs)).toEqual([
       ['false.'],
       ['false.'],
       ['false.'],
@@ -126,12 +127,12 @@ describe('action buttons in a report', () => {
 
   it('clingoEscape keeps a hostile value inside its string', async () => {
     const owner = 'x"). evil(1). y("\\';
-    const { out } = await render(
+    const { rendered } = await render(
       action('{{#quoted}}owner("{{{clingoEscape owner}}}").{{/quoted}}'),
       'inject',
       () => ({ owner }),
     );
-    expect(actionButtons(out)[0].programs).toEqual([
+    expect(actionButtons(rendered)[0].programs).toEqual([
       'owner("x\\"). evil(1). y(\\"\\\\").',
     ]);
   });
@@ -148,11 +149,11 @@ describe('action buttons in a report', () => {
       },
       cards: [{ title: 'Host' }, { title }],
     });
-    const { content } = await ws.render.macros(
+    const rendered = await ws.render.macros(
       `{{#report}}"name": "${REPORT}"{{/report}}`,
       { cardKey: keys[0], context: 'localApp', mode: 'inject' },
     );
-    const [button] = actionButtons(content);
+    const [button] = actionButtons(rendered);
 
     await ws.cards.runAction(keys[0], button.programs);
 
@@ -160,14 +161,14 @@ describe('action buttons in a report', () => {
   });
 
   it('cardKey in the action is the rendering card even when the report overrides it', async () => {
-    const { out, keys } = await render(
+    const { rendered, keys } = await render(
       action(
         '{{#quoted}}card({{{cardKey}}}). param({{{@root.cardKey}}}).{{/quoted}}',
       ),
       'inject',
       (keys) => ({ cardKey: keys[1] }),
     );
-    expect(actionButtons(out)).toEqual([
+    expect(actionButtons(rendered)).toEqual([
       {
         buttonLabel: 'Go',
         cardKey: keys[0],
@@ -186,13 +187,13 @@ describe('action buttons in a report', () => {
 
 {{/each}}
 |===`;
-    const { out, keys } = await render(content, 'inject', (keys) => ({
+    const { out, rendered, keys } = await render(content, 'inject', (keys) => ({
       cardKey: keys[1],
     }));
 
     const byLabel = (a: ActionButtonOptions, b: ActionButtonOptions) =>
       a.buttonLabel.localeCompare(b.buttonLabel);
-    expect(actionButtons(out).sort(byLabel)).toEqual(
+    expect(actionButtons(rendered).sort(byLabel)).toEqual(
       [...keys].sort().map((row) => ({
         buttonLabel: `Go ${row}`,
         cardKey: keys[0],
@@ -205,14 +206,14 @@ describe('action buttons in a report', () => {
       ([, cell]) => cell,
     );
     expect(
-      cells.filter((cell) => cell.includes('<action-button')),
+      cells.filter((cell) => cell.includes('cyberismo-part:')),
     ).toHaveLength(keys.length);
   });
 
   it('a nested quoted text is one clingo string literal that sets the content', async () => {
     // The text of a setContent effect, written with a nested quoted.
     const text = '= Plan\nSay "hi" to C:\\temp\nDone';
-    const { out, keys, ws } = await render(
+    const { rendered, keys, ws } = await render(
       action(`{{#quoted}}
 setContent({{{cardKey}}}, {{#quoted}}
 ${text}
@@ -220,7 +221,7 @@ ${text}
 {{/quoted}}`),
     );
 
-    const [program] = actionButtons(out)[0].programs;
+    const [program] = actionButtons(rendered)[0].programs;
     // Line break, double quote and backslash escaped once, for clingo.
     expect(program).toBe(
       `setContent(${keys[0]}, "= Plan\\nSay \\"hi\\" to C:\\\\temp\\nDone").`,

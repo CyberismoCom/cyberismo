@@ -31,7 +31,7 @@ import { addNotification } from '@/lib/slices/notifications';
 
 import { renderCardHtml } from '@/components/card/renderCardContent';
 import type { CardView } from '@/lib/api/types';
-import type { CardAttachment } from '@cyberismo/model';
+import type { CardAttachment, RenderedParts } from '@cyberismo/model';
 import {
   addAttachment,
   handleAttachmentDrop,
@@ -90,7 +90,10 @@ export const CardBody = forwardRef<CardBodyHandle, CardBodyProps>(
     const [cmView, setCmView] = useState<EditorView | null>(null);
     const [cmEditor, setCmEditor] = useState<HTMLDivElement | null>(null);
     const [previewing, setPreviewing] = useState(false);
-    const [previewHtml, setPreviewHtml] = useState<string | null>(null);
+    const [previewHtml, setPreviewHtml] = useState<{
+      html: string;
+      parts: RenderedParts;
+    } | null>(null);
 
     const canEdit = !preview && !!onContentSave && canEditRole;
 
@@ -167,8 +170,11 @@ export const CardBody = forwardRef<CardBodyHandle, CardBodyProps>(
       setPreviewing(true);
       setPreviewHtml(null);
       try {
-        const adoc = await parseContent(card.key, editContentRef.current);
-        setPreviewHtml(await adocToHtml(adoc, card.key));
+        const parsed = await parseContent(card.key, editContentRef.current);
+        setPreviewHtml({
+          html: await adocToHtml(parsed.adocContent, card.key),
+          parts: parsed.parts,
+        });
       } catch {
         setPreviewing(false);
         dispatch(addNotification({ message: t('error'), type: 'error' }));
@@ -201,14 +207,15 @@ export const CardBody = forwardRef<CardBodyHandle, CardBodyProps>(
       setContentRef(node);
     }, []);
 
-    const renderHtml = (html: string) =>
+    const renderHtml = (html: string, parts: RenderedParts) =>
       renderCardHtml(html, {
+        parts,
         macroKey: card.key,
         preview,
         downloadName: card.title,
       });
 
-    const renderedBody = renderHtml(htmlContent);
+    const renderedBody = renderHtml(htmlContent, card.parts);
     const isEmpty = !htmlContent.trim();
 
     return (
@@ -292,7 +299,9 @@ export const CardBody = forwardRef<CardBodyHandle, CardBodyProps>(
                       <CircularProgress size="sm" />
                     </Stack>
                   ) : (
-                    <div className="doc">{renderHtml(previewHtml)}</div>
+                    <div className="doc">
+                      {renderHtml(previewHtml.html, previewHtml.parts)}
+                    </div>
                   )}
                 </Box>
               ) : (

@@ -1,11 +1,8 @@
 // SPDX-FileCopyrightText: Cyberismo Ltd and contributors
 // SPDX-License-Identifier: AGPL-3.0-only
 
-import {
-  createHtmlPlaceholder,
-  createInlineHtmlPlaceholder,
-  validateMacroContent,
-} from '../registry.js';
+import { validateMacroContent } from '../registry.js';
+import { placeMacro } from '../parts.js';
 
 import type { MacroGenerationContext } from '../../../shared/interfaces/macros.js';
 import macroMetadata from '@cyberismo/model/macros/field/metadata';
@@ -92,9 +89,12 @@ export default class FieldMacro extends BaseMacro {
 
   handleInject = async (context: MacroGenerationContext, input: unknown) => {
     const options = this.resolve(context, input);
-    return options.display === 'inline'
-      ? createInlineHtmlPlaceholder(this.metadata, options)
-      : createHtmlPlaceholder(this.metadata, options);
+    return placeMacro(
+      context,
+      this.metadata,
+      options,
+      options.display === 'inline' ? 'inline' : 'block',
+    );
   };
 
   handleStatic = async (

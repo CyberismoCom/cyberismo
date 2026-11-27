@@ -53,6 +53,7 @@ vi.mock('mermaid', () => ({
 }));
 
 import { renderCardHtml } from '@/components/card/renderCardContent';
+import type { RenderedParts } from '@cyberismo/model';
 
 const graphWrapper = (id: string) =>
   `<div class="cyberismo-svg-wrapper" data-type="cyberismo-svg-wrapper"><svg id="${id}" viewBox="0 0 10 10"></svg></div>`;
@@ -72,11 +73,15 @@ const CARD_B = `
 <div class="paragraph"><p>Another card</p></div>
 ${graphWrapper('graph-b1')}`;
 
+// The parts the server sent, as the macros in the HTML refer to them.
+const PARTS: RenderedParts = {};
+
 function Content({ html }: { html: string }) {
   return (
     <BrowserRouter>
       <div className="doc">
         {renderCardHtml(html, {
+          parts: PARTS,
           macroKey: 'test_card',
           preview: false,
           downloadName: 'Test card',
@@ -97,8 +102,20 @@ describe('renderCardHtml', () => {
   });
 
   describe('macro identity', () => {
-    const field = (name: string) =>
-      `<card-field options="${btoa(JSON.stringify({ cardKey: 'k_1', field: `m/fieldTypes/${name}`, showLabel: false, display: 'row' }))}"></card-field>`;
+    const field = (name: string) => {
+      const id = name.charCodeAt(0).toString(16).padStart(64, '0');
+      PARTS[id] = {
+        kind: 'macro',
+        macro: 'field',
+        options: {
+          cardKey: 'k_1',
+          field: `m/fieldTypes/${name}`,
+          showLabel: false,
+          display: 'row',
+        },
+      };
+      return `<cyberismo-part data-part-id="${id}"></cyberismo-part>`;
+    };
     const A = field('a');
     const B = field('b');
 

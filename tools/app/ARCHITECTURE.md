@@ -2,7 +2,7 @@
 
 The React 19 + Vite + MUI Joy single-page frontend. It talks to the backend over
 HTTP (SWR for fetching, Redux Toolkit for local state) and imports only
-browser-safe types from `@cyberismo/model`. `@/*` maps to `src/*`.
+browser-safe types and code from `@cyberismo/model`. `@/*` maps to `src/*`.
 
 ## Structure
 
@@ -28,6 +28,7 @@ browser-safe types from `@cyberismo/model`. `@/*` maps to `src/*`.
 - Server data comes through `lib/api/` hooks (SWR); Redux holds client state only.
 - Permission-gated UI uses `lib/auth/`; the backend still enforces the role.
 - User-visible strings live in `locales/`; e2e reads them from there.
+- Content parts render only from the `parts` sent with the content (the reference extension from `@cyberismo/model/parts/references`, used in `lib/asciidoc.ts`; `components/card/parts.tsx`); there is no generic HTML part.
 - e2e (Playwright, `e2e/tests/`) covers user journeys; `__tests__/` (Vitest) covers units and non-trivial component logic.
 
 ## Design system
