@@ -1,6 +1,6 @@
 ---
 name: review-pr
-description: Review a Cyberismo change (current branch vs origin/main, a branch, or a PR number) with the repo's review agents - behaviour, fit and tests in parallel, then a check of each serious finding. Read-only; never edits code. Use when asked to review a branch, diff or PR.
+description: Review a Cyberismo change (current branch vs origin/main, a branch, or a PR number) with the repo's review agents - behaviour, fit and tests in parallel with the built-in code review, then a check of each serious finding. Read-only; never edits code. Use when asked to review a branch, diff or PR.
 argument-hint: '[PR number | branch | empty for current branch]'
 disable-model-invocation: true
 ---
@@ -48,17 +48,23 @@ and the touched packages. Do not pass one reviewer's conclusions to another.
 - `test-reviewer`, when a test file is added, changed, moved or deleted, or
   when production code changes with no test change. In the second case, tell
   it so: it then reports only behaviour the change introduces with no test.
+- Claude Code's built-in code review, for bugs: the Skill tool with skill
+  `code-review` and args `medium <PR number or branch>`, never `--comment` or
+  `--fix`. Run it alongside the agents when you can. Like them, it sees no
+  other reviewer's conclusions and no PR comments.
 
 Give every reviewer the same brief. Questions that matter for one kind of
 change belong in the agent files, not in a one-off prompt.
 
 ## 3. Check serious findings
 
-Merge duplicate findings, keeping the higher severity. For each Blocker,
-Major and Decision, read the cited lines yourself with enough context to judge
-it. Drop one that does not hold and list it under Dropped with the reason; move
-one the diff did not introduce to Follow-ups. Drop any finding without
-file:line and evidence.
+Merge duplicate findings, keeping the higher severity. The code review's
+correctness bugs are Blocker or Major by the same rules, its cleanups Fix or
+Minor; check its bugs like any other. Mark each finding's source (behaviour,
+fit, test or code-review). For each Blocker, Major and Decision, read the
+cited lines yourself with enough context to judge it. Drop one that does not
+hold and list it under Dropped with the reason; move one the diff did not
+introduce to Follow-ups. Drop any finding without file:line and evidence.
 
 Severities, for the report:
 
